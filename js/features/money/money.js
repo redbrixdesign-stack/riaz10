@@ -71,7 +71,7 @@ const MoneyFeature = {
         <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px;">
           <div>
             <div style="font-weight:600;">Tax Estimate</div>
-            <div style="font-size:12px;color:var(--text-tertiary);">Tax year ${taxSummary.tax.label}</div>
+            <div style="font-size:12px;color:var(--text-tertiary);">Tax year ${taxSummary.tax.taxYear.label}</div>
           </div>
           <span class="badge badge-primary">Estimate</span>
         </div>
@@ -87,12 +87,12 @@ const MoneyFeature = {
         <div style="font-weight:600;margin-bottom:12px;">Payment Deadlines</div>
         <div style="display:flex;flex-direction:column;gap:12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
-            <div><div style="font-weight:500;">31 January ${taxSummary.tax.endYear + 1}</div><div style="font-size:12px;color:var(--text-tertiary);">${formatted.weeksLeft} weeks away</div></div>
+            <div><div style="font-weight:500;">31 January ${taxSummary.tax.taxYear.endYear + 1}</div><div style="font-size:12px;color:var(--text-tertiary);">${formatted.weeksLeft} weeks away</div></div>
             <div style="font-size:18px;font-weight:700;color:var(--danger);">${formatted.jan31}</div>
           </div>
           <div class="progress-bar"><div class="fill danger" style="width:${Math.min(100,(52-taxSummary.tax.weeksToJan31)/52*100)}%"></div></div>
           <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid var(--border-light);">
-            <div><div style="font-weight:500;">31 July ${taxSummary.tax.endYear + 1}</div><div style="font-size:12px;color:var(--text-tertiary);">Payment on account</div></div>
+            <div><div style="font-weight:500;">31 July ${taxSummary.tax.taxYear.endYear + 1}</div><div style="font-size:12px;color:var(--text-tertiary);">Payment on account</div></div>
             <div style="font-size:16px;font-weight:600;color:var(--text-secondary);">${formatted.jul31}</div>
           </div>
         </div>
