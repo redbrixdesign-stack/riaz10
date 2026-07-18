@@ -281,13 +281,27 @@ const App = {
           }
         }).catch(err => {
           console.error('Render error:', err);
-          main.innerHTML = `<div class="empty-state"><span class="material-symbols-rounded">error</span><div>Failed to load</div></div>`;
+          main.innerHTML = `<div class="empty-state">
+            <span class="material-symbols-rounded">error</span>
+            <div>Failed to load</div>
+            <div style="display:flex;gap:8px;margin-top:12px;">
+              <button class="btn btn-outline btn-sm" onclick="App.navigate('${Utils.escapeJsString(featureId)}')">Try again</button>
+              ${featureId !== 'today' ? `<button class="btn btn-primary btn-sm" onclick="App.navigate('today')">Go to Today</button>` : ''}
+            </div>
+          </div>`;
         });
         return; // activate called in promise
       }
     } catch (err) {
       console.error('Render error:', err);
-      main.innerHTML = `<div class="empty-state"><span class="material-symbols-rounded">error</span><div>Something went wrong</div></div>`;
+      main.innerHTML = `<div class="empty-state">
+        <span class="material-symbols-rounded">error</span>
+        <div>Something went wrong loading this screen</div>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <button class="btn btn-outline btn-sm" onclick="App.navigate('${Utils.escapeJsString(featureId)}')">Try again</button>
+          ${featureId !== 'today' ? `<button class="btn btn-primary btn-sm" onclick="App.navigate('today')">Go to Today</button>` : ''}
+        </div>
+      </div>`;
       return;
     }
 
@@ -363,6 +377,28 @@ const App = {
     });
     window.addEventListener('offline', () => {
       Toast.show('Working offline', 'warning');
+    });
+
+    // Safety net for errors that escape the feature render/activate try-catch
+    // in navigate() - e.g. an inline onclick handler in rendered HTML throwing,
+    // or an unhandled promise rejection anywhere in the app. Without this such
+    // errors just fail silently to the console with no signal to the user.
+    let lastGlobalErrorToast = 0;
+    const notifyUnexpectedError = () => {
+      const now = Date.now();
+      // Throttle: a single bug can throw repeatedly (e.g. in a loop or timer),
+      // don't spam the user with a toast per occurrence.
+      if (now - lastGlobalErrorToast < 4000) return;
+      lastGlobalErrorToast = now;
+      Toast.show('Something went wrong there - your data is safe', 'error');
+    };
+    window.addEventListener('error', (e) => {
+      console.error('Unhandled error:', e.error || e.message);
+      notifyUnexpectedError();
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      console.error('Unhandled promise rejection:', e.reason);
+      notifyUnexpectedError();
     });
   },
 
