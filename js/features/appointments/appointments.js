@@ -1360,6 +1360,16 @@ const AppointmentsFeature = {
                 <span class="material-symbols-rounded" style="font-size: 18px;">chat</span>
                 Contact
               </button>
+              ${(() => {
+                const match = (typeof TalkFeature !== 'undefined') ? TalkFeature.getTemplateForOutcome(appt.outcome) : null;
+                if (!match) return '';
+                return `
+                  <button class="btn btn-outline btn-sm" style="flex: 1; gap: 6px;" onclick="TalkFeature.sendMessage(${appt.id}, '${Utils.escapeJsString(match.template)}')">
+                    <span class="material-symbols-rounded" style="font-size: 18px;">forward_to_inbox</span>
+                    ${Utils.escapeHtml(match.action)}
+                  </button>
+                `;
+              })()}
             </div>
           ` : ''}
         </div>
