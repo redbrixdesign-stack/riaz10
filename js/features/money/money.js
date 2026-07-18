@@ -110,7 +110,16 @@ const MoneyFeature = {
         </div>
       </div>
       ` : ''}
-      ` : '<div class="card" style="margin:16px;text-align:center;padding:32px;"><div style="color:var(--text-tertiary);">Record visit outcomes, expenses, and mileage to see your tax estimate</div></div>'}
+      ` : `<div class="card" style="margin:16px;text-align:center;padding:24px;">
+        <span class="material-symbols-rounded" style="font-size:32px;color:var(--text-tertiary);">receipt_long</span>
+        <div style="font-weight:600;margin-top:8px;">No tax estimate yet</div>
+        <div style="color:var(--text-tertiary);font-size:13px;margin-top:4px;">Log one of these to get started - your estimate builds automatically from there</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:16px;">
+          <button class="btn btn-outline btn-sm btn-block" onclick="App.navigate('appointments')"><span class="material-symbols-rounded">event_available</span>Record a visit outcome</button>
+          <button class="btn btn-outline btn-sm btn-block" onclick="MoneyFeature.openExpenseModal()"><span class="material-symbols-rounded">receipt</span>Log an expense</button>
+          <button class="btn btn-outline btn-sm btn-block" onclick="MoneyFeature.openMileageModal()"><span class="material-symbols-rounded">route</span>Log mileage</button>
+        </div>
+      </div>`}
 
       <div style="padding:0 16px;margin-top:16px;">
         <div class="divider-text">This Month</div>

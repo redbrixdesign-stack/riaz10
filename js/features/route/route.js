@@ -25,7 +25,10 @@ const RouteFeature = {
 
     // Load Leaflet JS
     if (!window.L) {
+      const existing = document.getElementById('leaflet-js');
+      if (existing) existing.remove(); // retry: drop the previous (failed) attempt before re-adding
       const script = document.createElement('script');
+      script.id = 'leaflet-js';
       script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
       script.onload = () => {
         console.log('Leaflet loaded');
@@ -694,11 +697,13 @@ const RouteFeature = {
       if (!window.L) {
         const mapEl = document.getElementById('route-map');
         if (!mapEl) return; // user already navigated away before the timeout fired
+        const offline = !navigator.onLine;
         mapEl.innerHTML = `
           <div class="empty-state" style="height: 100%;">
-            <span class="material-symbols-rounded">wifi_off</span>
-            <div>Map unavailable offline</div>
-            <div style="font-size: 13px;">Check your connection</div>
+            <span class="material-symbols-rounded">${offline ? 'wifi_off' : 'map'}</span>
+            <div>${offline ? 'Map unavailable offline' : 'Map failed to load'}</div>
+            <div style="font-size: 13px;">${offline ? 'Check your connection' : 'This can happen if the map service is temporarily unreachable'}</div>
+            <button class="btn btn-outline btn-sm" style="margin-top:12px;" onclick="RouteFeature.retryMap()">Try again</button>
           </div>
         `;
         return;
@@ -706,6 +711,23 @@ const RouteFeature = {
     }
 
     await this.initMap();
+  },
+
+  async retryMap() {
+    const mapEl = document.getElementById('route-map');
+    if (mapEl) {
+      mapEl.innerHTML = `
+        <div id="route-map-loading" style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-tertiary);">
+          <span class="material-symbols-rounded" style="font-size: 48px; margin-bottom: 8px;">map</span>
+          <div>Loading map...</div>
+        </div>
+      `;
+    }
+    if (!window.L) {
+      this.leafletLoaded = false;
+      this.init(); // re-attempt the script/CSS injection in case it failed the first time
+    }
+    await this.activate();
   },
 
   async initMap() {
