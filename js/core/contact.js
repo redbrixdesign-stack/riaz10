@@ -1,0 +1,75 @@
+/* ============================================
+   ADVISOROS v5.0 — CONTACT ACTIONS
+   Safer customer contact sheet for file/browser builds
+   ============================================ */
+
+const ContactFeature = {
+  open({ name = 'Customer', phone = '', message = '' } = {}) {
+    const cleanedPhone = String(phone || '').trim();
+    if (!cleanedPhone) {
+      Toast.show('No phone number added yet', 'warning');
+      return;
+    }
+
+    const whatsappPhone = Utils.toWhatsAppPhone(cleanedPhone);
+    const whatsappText = message ? `&text=${encodeURIComponent(message)}` : '';
+    const whatsappUrl = whatsappPhone ? `https://web.whatsapp.com/send?phone=${whatsappPhone}${whatsappText}` : '';
+    const telUrl = `tel:${cleanedPhone.replace(/[^\d+]/g, '')}`;
+
+    const content = `
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <h3>Contact ${Utils.escapeHtml(name || 'Customer')}</h3>
+        <button class="btn btn-ghost btn-sm" onclick="App.closeModal()" aria-label="Close">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+      <div class="sheet-body">
+        <div class="contact-sheet-number">${Utils.escapeHtml(Utils.formatPhone(cleanedPhone))}</div>
+        <div class="contact-sheet-actions">
+          ${whatsappUrl ? `
+            <button class="btn contact-sheet-primary" onclick="ContactFeature.openWhatsApp('${Utils.escapeJsString(whatsappUrl)}')">
+              <span class="material-symbols-rounded">chat</span>
+              WhatsApp
+            </button>
+          ` : ''}
+          <button class="btn contact-sheet-secondary" onclick="ContactFeature.openCall('${Utils.escapeJsString(telUrl)}')">
+            <span class="material-symbols-rounded">phone</span>
+            Call
+          </button>
+          <button class="btn contact-sheet-secondary" onclick="ContactFeature.copyNumber('${Utils.escapeJsString(cleanedPhone)}')">
+            <span class="material-symbols-rounded">content_copy</span>
+            Copy Number
+          </button>
+        </div>
+      </div>
+    `;
+
+    App.openModal(content);
+  },
+
+  openWhatsApp(url) {
+    if (!url) {
+      Toast.show('This number needs a valid WhatsApp format', 'warning');
+      return;
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
+    App.closeModal();
+  },
+
+  openCall(url) {
+    window.location.href = url;
+    App.closeModal();
+  },
+
+  async copyNumber(phone) {
+    try {
+      await navigator.clipboard.writeText(phone);
+      Toast.show('Number copied', 'success');
+    } catch (error) {
+      Toast.show(phone, 'info');
+    }
+  }
+};
+
+window.ContactFeature = ContactFeature;

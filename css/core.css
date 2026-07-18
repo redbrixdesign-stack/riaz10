@@ -1,0 +1,612 @@
+/* ============================================
+   ADVISOROS v5.0 — CORE STYLES
+   ============================================ */
+
+/* CSS Variables */
+:root {
+  /* Colors — dark olive canvas with cream cards and a lime accent,
+     inspired by the Conneq CRM reference. --primary/--secondary/--warning/
+     --danger keep their original semantic roles (buttons, badges, status)
+     but are retuned to sit well against light cream cards. */
+  --primary: #23261c;
+  --primary-dark: #14160f;
+  --primary-light: #e9edda;
+  --secondary: #4f6a2f;
+  --secondary-light: #e6f0d8;
+  --warning: #9b6a22;
+  --warning-light: #f5ead8;
+  --danger: #9a3d32;
+  --danger-light: #f3dfdc;
+  --info: #566d76;
+
+  /* Lime accent — the "today" / highlight colour from the reference (used for
+     selected calendar day, active nav, primary highlight moments). */
+  --accent: #d7f24e;
+  --accent-contrast: #20250f;
+
+  /* Neutrals — page canvas is dark olive-black; cards are cream. */
+  --bg: #14170f;
+  --bg-elevated: #1b1f13;
+  --surface: #f4f2e6;
+  --surface-elevated: #ffffff;
+  --surface-muted: #aab29a;
+  --border: #4b4740;
+  --border-light: rgba(75, 71, 64, 0.22);
+
+  /* Default text tokens — for content sitting directly on the dark --bg
+     canvas (page titles, section labels between cards). Anything inside a
+     card/header/nav/input/modal/sheet gets re-scoped to dark text below. */
+  --text-primary: #f5f4ea;
+  --text-secondary: #c3c9ae;
+  --text-tertiary: #838a6c;
+  --text-inverse: #ffffff;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.22);
+  --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.28);
+  --shadow-lg: 0 10px 28px rgba(0, 0, 0, 0.35);
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+
+  /* Typography */
+  --font-body: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+
+  /* Layout */
+  --nav-height: 64px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --max-width: 480px;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14170f;
+    --surface: #f4f2e6;
+    --surface-elevated: #ffffff;
+    --border: #4b4740;
+    --border-light: rgba(75, 71, 64, 0.22);
+    --text-primary: #f5f4ea;
+    --text-secondary: #c3c9ae;
+    --text-tertiary: #838a6c;
+  }
+}
+
+/* ============================================
+   SURFACE TEXT SCOPING
+   Every element that renders as a light "card" surface (cards, headers, nav,
+   modals, sheets, inputs, toasts, list items, calendar cells, stat tiles)
+   re-declares the text tokens to their dark, on-cream values. Anything NOT
+   inside one of these keeps the root (light, on-dark-canvas) values above.
+   This one rule is what lets the whole app flip from a light-on-light theme
+   to a dark-canvas/cream-card theme without editing every screen by hand.
+   ============================================ */
+.card,
+.top-header,
+#bottom-nav,
+.bottom-sheet,
+.modal-full .modal-header,
+.modal-full .modal-body,
+.modal-full .modal-footer,
+.toast,
+.list-item,
+.input,
+.select,
+.textarea,
+.stat-card,
+.search-bar,
+.tab.active,
+.segment.active,
+.route-plan,
+.route-stats,
+.route-list,
+.route-leg-index,
+.fab-secondary,
+.notebook-page,
+.dropdown-menu,
+.empty-state,
+.calendar-card {
+  --text-primary: #1c1f16;
+  --text-secondary: #5c6152;
+  --text-tertiary: #8b8579;
+  /* Elements below that don't set their own `color` inherit the RESOLVED
+     value of `color`, not a live re-evaluation of --text-primary. Setting
+     `color` explicitly here (not just the custom property) is what makes
+     the override actually reach unstyled child text (plain headings,
+     labels, etc.) instead of only affecting descendants that happen to
+     write `color: var(--text-primary)` themselves. */
+  color: var(--text-primary);
+}
+
+/* modal-full body sits on the dark canvas by design (full-screen forms) —
+   its content is made of .card / .form-group blocks, so give it the light
+   (on-dark) text tokens back rather than the generic override above. */
+.modal-full .modal-body {
+  --text-primary: #f5f4ea;
+  --text-secondary: #c3c9ae;
+  --text-tertiary: #838a6c;
+  color: var(--text-primary);
+}
+
+/* Utility for the handful of "dark inset note/bubble" boxes that
+   deliberately keep background: var(--bg) even inside a cream card (e.g.
+   message previews, highlighted detail panels). Add this class alongside
+   the inline background so descendants using var(--text-secondary) etc.
+   correctly resolve to the light-on-dark tokens instead of inheriting the
+   card's dark-on-cream tokens. */
+.inset-dark {
+  --text-primary: #f5f4ea;
+  --text-secondary: #c3c9ae;
+  --text-tertiary: #838a6c;
+  color: var(--text-primary);
+}
+
+/* Reset & Base */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--bg);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* App Shell */
+#app {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  position: relative;
+}
+
+/* Main Content Area */
+#main {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + var(--space-md));
+}
+
+/* Extra clearance so content isn't hidden behind the live trip banner */
+body.trip-active #main {
+  padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + var(--space-md) + 52px);
+}
+
+/* Scrollbar styling */
+#main::-webkit-scrollbar {
+  width: 4px;
+}
+
+#main::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#main::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+/* ============================================
+   TYPOGRAPHY
+   ============================================ */
+
+h1, h2, h3, h4 {
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+h1 { font-size: 28px; }
+h2 { font-size: 22px; }
+h3 { font-size: 18px; }
+h4 { font-size: 15px; }
+
+.text-sm { font-size: 13px; }
+.text-xs { font-size: 11px; }
+.text-lg { font-size: 18px; }
+.text-xl { font-size: 24px; }
+
+.font-mono { font-family: var(--font-mono); }
+
+.text-primary { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-tertiary { color: var(--text-tertiary); }
+.text-success { color: var(--secondary); }
+.text-warning { color: var(--warning); }
+.text-danger { color: var(--danger); }
+.text-info { color: var(--info); }
+
+/* ============================================
+   LAYOUT UTILITIES
+   ============================================ */
+
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.justify-center { justify-content: center; }
+.gap-xs { gap: var(--space-xs); }
+.gap-sm { gap: var(--space-sm); }
+.gap-md { gap: var(--space-md); }
+.gap-lg { gap: var(--space-lg); }
+
+.p-xs { padding: var(--space-xs); }
+.p-sm { padding: var(--space-sm); }
+.p-md { padding: var(--space-md); }
+.p-lg { padding: var(--space-lg); }
+
+.m-xs { margin: var(--space-xs); }
+.m-sm { margin: var(--space-sm); }
+.m-md { margin: var(--space-md); }
+.m-lg { margin: var(--space-lg); }
+
+.mt-sm { margin-top: var(--space-sm); }
+.mt-md { margin-top: var(--space-md); }
+.mt-lg { margin-top: var(--space-lg); }
+
+.mb-sm { margin-bottom: var(--space-sm); }
+.mb-md { margin-bottom: var(--space-md); }
+.mb-lg { margin-bottom: var(--space-lg); }
+
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+
+/* ============================================
+   CARDS
+   ============================================ */
+
+.card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+  min-width: 0;
+}
+
+.card-elevated {
+  box-shadow: var(--shadow-md);
+}
+
+.card-interactive {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card-interactive:active {
+  transform: scale(0.98);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  padding: 12px 20px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: 48px;
+  line-height: 1.2;
+  text-align: center;
+  white-space: normal;
+  min-width: 0;
+  touch-action: manipulation;
+}
+
+.btn .material-symbols-rounded {
+  flex-shrink: 0;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: var(--text-inverse);
+}
+
+.btn-primary:active {
+  background: var(--primary-dark);
+}
+
+.btn-secondary {
+  background: var(--secondary);
+  color: var(--text-inverse);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--text-secondary);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: var(--text-inverse);
+}
+
+.btn-sm {
+  padding: 8px 14px;
+  font-size: 13px;
+  min-height: 40px;
+}
+
+.btn-lg {
+  padding: 16px 28px;
+  font-size: 16px;
+  min-height: 56px;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+/* ============================================
+   INPUTS
+   ============================================ */
+
+.input, .select, .textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 15px;
+  background: var(--surface-elevated);
+  color: var(--text-primary);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  min-height: 48px;
+}
+
+.input:focus, .select:focus, .textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: none;
+}
+
+.input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+/* ============================================
+   BADGES & LABELS
+   ============================================ */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.badge-primary { background: var(--primary-light); color: var(--primary); }
+.badge-success { background: var(--secondary-light); color: var(--secondary); }
+.badge-warning { background: var(--warning-light); color: #b06000; }
+.badge-danger { background: var(--danger-light); color: var(--danger); }
+.badge-info { background: color-mix(in srgb, var(--info) 15%, white); color: var(--info); }
+.badge-accent { background: color-mix(in srgb, var(--accent) 25%, white); color: var(--accent-contrast); }
+
+/* ============================================
+   LISTS
+   ============================================ */
+
+.list-item {
+  display: flex;
+  align-items: center;
+  padding: var(--space-md);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: background 0.15s ease;
+  min-height: 56px;
+}
+
+.list-item:active {
+  background: var(--border-light);
+}
+
+.list-item:last-child {
+  border-bottom: none;
+}
+
+/* ============================================
+   EMPTY STATES
+   ============================================ */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+  text-align: center;
+  color: var(--text-tertiary);
+  min-height: 160px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  margin: 0 16px;
+}
+
+.empty-state .material-symbols-rounded {
+  font-size: 48px;
+  margin-bottom: var(--space-md);
+  opacity: 0.5;
+}
+
+/* ============================================
+   LOADING & SKELETON
+   ============================================ */
+
+.skeleton {
+  background: linear-gradient(90deg, var(--border) 25%, var(--border-light) 50%, var(--border) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.slide-up {
+  animation: slideUp 0.3s ease forwards;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (min-width: 768px) {
+  #app {
+    max-width: 480px;
+    box-shadow: var(--shadow-lg);
+  }
+
+  body {
+    background: #0c0e08;
+  }
+}
+
+/* ============================================
+   ACCESSIBILITY
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus visible for keyboard navigation */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ============================================
+   PRINT
+   ============================================ */
+
+@media print {
+  #bottom-nav, .btn, .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: white;
+  }
+
+  .card {
+    box-shadow: none;
+    border: 1px solid #ccc;
+  }
+}
+
+
+/* ============================================
+   UX FIXES
+   ============================================ */
+
+/* Stat card empty state */
+.stat-card .value:empty::before,
+.stat-card .value[data-value="0"]::before {
+  content: '—';
+  color: var(--text-tertiary);
+}
+
+/* Button icon sizing in grids */
+.btn-outline.btn-sm .material-symbols-rounded {
+  font-size: 20px;
+}
+
+/* Appointment card action grouping */
+.appt-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.appt-actions .btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  min-height: 40px;
+}
