@@ -1832,6 +1832,21 @@ body.trip-active .toast-container {
   background: color-mix(in srgb, var(--primary) 8%, var(--bg));
 }
 
+.route-leg-retry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--warning, #b06000);
+  border-radius: var(--radius-sm);
+  background: var(--warning-light, transparent);
+  color: var(--warning, #b06000);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+}
+
 .route-leg-index {
   width: 26px;
   height: 26px;

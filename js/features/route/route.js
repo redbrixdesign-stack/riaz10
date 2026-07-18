@@ -367,7 +367,8 @@ const RouteFeature = {
     for (let i = startIndex; i < points.length - 1; i++) {
       const from = points[i];
       const to = points[i + 1];
-      const distanceKm = this.calculateLegKm(from.latLng, to.latLng);
+      const bothResolved = !!from.latLng && !!to.latLng;
+      const distanceKm = bothResolved ? this.calculateLegKm(from.latLng, to.latLng) : 0;
       legs.push({
         index: legs.length,
         from,
@@ -375,7 +376,11 @@ const RouteFeature = {
         distanceKm,
         etaMin: distanceKm > 0 ? Math.max(1, Math.round((distanceKm / 35) * 60)) : 0,
         appointmentId: to.type === 'appointment' ? to.appointment?.id : null,
-        isReturn: to.type === 'base'
+        isReturn: to.type === 'base',
+        // Which endpoint is missing coordinates, if any - used to tell "location
+        // couldn't be found" apart from "distance is genuinely ~0". Prefers
+        // reporting `to` since that's the stop the advisor is trying to reach.
+        unresolvedPoint: bothResolved ? null : (!to.latLng ? to : from)
       });
     }
 
@@ -665,6 +670,7 @@ const RouteFeature = {
   renderLegTimeline(plan) {
     if (!plan.legs?.length) return '';
     const activeIndex = plan.activeLeg?.index ?? 0;
+    const unresolvedCount = plan.legs.filter(leg => leg.unresolvedPoint).length;
 
     return `
       <div class="route-legs">
@@ -672,16 +678,32 @@ const RouteFeature = {
           <span>Next destination</span>
           <strong>${Utils.escapeHtml(plan.activeLeg?.from.label || 'Base')} → ${Utils.escapeHtml(plan.activeLeg?.to.label || 'Visit')}</strong>
         </div>
-        ${plan.legs.map((leg, index) => `
+        ${unresolvedCount > 0 ? `
+          <button class="route-leg-retry" onclick="RouteFeature.retryLocations()">
+            <span class="material-symbols-rounded" style="font-size:16px;">refresh</span>
+            ${unresolvedCount} location${unresolvedCount === 1 ? '' : 's'} couldn't be found - tap to retry
+          </button>
+        ` : ''}
+        ${plan.legs.map((leg, index) => {
+          const missingAddress = leg.unresolvedPoint && !leg.unresolvedPoint.address;
+          const status = leg.distanceKm > 0
+            ? `${Utils.formatDistance(leg.distanceKm)} · ${leg.etaMin} min`
+            : missingAddress
+              ? 'No address on this stop'
+              : leg.unresolvedPoint
+                ? 'Location not found'
+                : 'Distance pending';
+          return `
           <button class="route-leg ${index === activeIndex ? 'active' : ''}" onclick="RouteFeature.openLegRoute(${index})">
             <span class="route-leg-index">${leg.isReturn ? '<span class="material-symbols-rounded">home</span>' : index + 1}</span>
             <span class="route-leg-main">
               <strong>${Utils.escapeHtml(leg.from.label)} → ${Utils.escapeHtml(leg.to.label)}</strong>
-              <small>${leg.distanceKm > 0 ? Utils.formatDistance(leg.distanceKm) : 'Distance pending'} · ${leg.etaMin > 0 ? `${leg.etaMin} min` : 'ETA pending'}</small>
+              <small${leg.unresolvedPoint ? ' style="color:var(--warning,#b06000);"' : ''}>${status}</small>
             </span>
             <span class="material-symbols-rounded">navigation</span>
           </button>
-        `).join('')}
+        `;
+        }).join('')}
       </div>
     `;
   },
@@ -728,6 +750,15 @@ const RouteFeature = {
       this.init(); // re-attempt the script/CSS injection in case it failed the first time
     }
     await this.activate();
+  },
+
+  // Re-attempts geocoding for any stop that came back without coordinates
+  // (bad network moment, Nominatim rate limit, etc) and re-renders the whole
+  // route screen. ensureAppointmentCoords() already skips appointments that
+  // already have latLng, so this only touches the ones that failed.
+  async retryLocations() {
+    Toast.show('Looking up locations again…', 'info');
+    App.navigate('route');
   },
 
   async initMap() {
