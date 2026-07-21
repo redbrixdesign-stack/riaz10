@@ -70,7 +70,8 @@ const OCRFeature = {
           <div class="card">
             <div class="form-group"><label>Name</label><input type="text" class="input" id="ocr-manual-name" placeholder="Customer name"></div>
             <div class="form-group"><label>Phone</label><input type="tel" class="input" id="ocr-manual-phone" placeholder="Phone number"></div>
-            <div class="form-group"><label>Address</label><input type="text" class="input" id="ocr-manual-address" placeholder="Address"></div>
+            <div class="form-group"><label>Address</label><input type="text" class="input" id="ocr-manual-address" placeholder="House number and street, town"></div>
+            <div class="form-group"><label>Postcode</label><input type="text" class="input" id="ocr-manual-postcode" placeholder="e.g. M14 7FZ" style="text-transform:uppercase;"></div>
             <button class="btn btn-primary btn-block" onclick="OCRFeature.saveManual()">Save Customer</button>
           </div>
         </div>
@@ -148,12 +149,13 @@ const OCRFeature = {
       // Always show Name (it's required to save) even if extraction came up
       // empty, so a miss is an obviously-blank editable field, not a silently
       // vanished one - which is exactly what made this confusing to spot last time.
-      const orderedKeys = ['name', 'phone', 'address', 'customerNumber', 'email', 'appointmentDate', 'appointmentTime'];
+      const orderedKeys = ['name', 'phone', 'address', 'postcode', 'customerNumber', 'email', 'appointmentDate', 'appointmentTime'];
       const fieldsHtml = orderedKeys
-        .filter(k => k === 'name' || this.extractedData[k])
+        .filter(k => k === 'name' || k === 'postcode' || this.extractedData[k])
         .map(k => {
           const v = this.extractedData[k] || '';
-          return `<div class="form-group"><label style="text-transform:capitalize;">${Utils.escapeHtml(k.replace(/([A-Z])/g,' $1').trim())}</label><input type="text" class="input" id="ocr-${Utils.escapeAttr(k)}" value="${Utils.escapeAttr(v)}"></div>`;
+          const upper = k === 'postcode' ? ' style="text-transform:uppercase;"' : '';
+          return `<div class="form-group"><label style="text-transform:capitalize;">${Utils.escapeHtml(k.replace(/([A-Z])/g,' $1').trim())}</label><input type="text" class="input" id="ocr-${Utils.escapeAttr(k)}" value="${Utils.escapeAttr(v)}"${upper}></div>`;
         }).join('');
       document.getElementById('ocr-fields').innerHTML = fieldsHtml;
 
@@ -205,7 +207,7 @@ const OCRFeature = {
   parseText(text, leftColumnText = '') {
     const rawLines = text.split('\n').map(l => l.trim()).filter(l => l);
     const lines = rawLines.filter(l => !this.isChrome(l));
-    const data = { name: '', phone: '', address: '', customerNumber: '', email: '', appointmentDate: '', appointmentTime: '' };
+    const data = { name: '', phone: '', address: '', postcode: '', customerNumber: '', email: '', appointmentDate: '', appointmentTime: '' };
 
     const phoneRe = /(\+?44\s?)?(\(?\d{5}\)?\s?\d{3}\s?\d{3}|\(?\d{4}\)?\s?\d{3}\s?\d{3})/;
     const emailRe = /\S+@\S+\.\S+/;
@@ -253,9 +255,20 @@ const OCRFeature = {
         if (/^[A-Z]{2,}$/.test(candidate.replace(/\s/g, ''))) continue; // all-caps brand/logo line, not an address line
         addressParts.push(candidate);
       }
-      addressParts.push(addressLines[postcodeLineIndex]);
+      // UK addresses conventionally get their own postcode field, separate
+      // from the street/town line (e.g. a driver typing "M14 7FZ" straight
+      // into a sat-nav). Split it out here rather than leaving it buried at
+      // the end of one long address string. The postcode line sometimes has
+      // the town name run into it too (e.g. "Manchester M14 7ND" as a single
+      // OCR'd line) - keep that leading text as part of the address rather
+      // than silently dropping it.
+      const postcodeLine = addressLines[postcodeLineIndex];
+      const pcMatch = postcodeLine.match(postcodeRe);
+      const beforePostcode = pcMatch ? postcodeLine.slice(0, pcMatch.index).trim().replace(/[,;]+$/, '') : '';
+      if (beforePostcode) addressParts.push(beforePostcode);
       data.address = addressParts.join(', ');
-      usedAddressLines = new Set(addressParts);
+      data.postcode = pcMatch ? pcMatch[0].toUpperCase().replace(/\s+/g, ' ') : '';
+      usedAddressLines = new Set(addressParts.concat([postcodeLine]));
     }
 
     // ---- Customer number: prefer an explicit "Customer Number" label, since
@@ -393,18 +406,36 @@ const OCRFeature = {
     return { postcode, postcodeNormalized };
   },
 
+  // Prefers whatever's in the dedicated Postcode field (it's now editable on
+  // its own row), but still falls back to pulling one out of the address
+  // text - covers manual entry where someone types the postcode straight
+  // into the address box out of habit, or a scan where postcode splitting
+  // didn't find a clean anchor line.
+  resolvePostcode(explicitPostcode, address) {
+    if (explicitPostcode && explicitPostcode.trim()) {
+      const postcode = explicitPostcode.trim().toUpperCase();
+      const postcodeNormalized = typeof Utils.normalizePostcode === 'function'
+        ? Utils.normalizePostcode(postcode)
+        : postcode.replace(/\s/g, '');
+      return { postcode, postcodeNormalized };
+    }
+    return this.extractPostcodeFromAddress(address);
+  },
+
   async saveToCustomer() {
     const name = document.getElementById('ocr-name')?.value || '';
     const phone = document.getElementById('ocr-phone')?.value || '';
     const address = document.getElementById('ocr-address')?.value || '';
+    const postcodeInput = document.getElementById('ocr-postcode')?.value || '';
     const date = document.getElementById('ocr-appointmentDate')?.value || '';
     const time = document.getElementById('ocr-appointmentTime')?.value || '';
     if (!name) { Toast.show('Name is required', 'error'); return; }
     try {
-      const { postcode, postcodeNormalized } = this.extractPostcodeFromAddress(address);
+      const { postcode, postcodeNormalized } = this.resolvePostcode(postcodeInput, address);
+      const fullAddress = [address, postcode].filter(Boolean).join(', ');
       await DB.addCustomer({ firstName: name.split(' ')[0], lastName: name.split(' ').slice(1).join(' ') || '', fullName: name, phone, postcodeNormalized, address: { line1: address, postcode, postcodeNormalized }, source: 'company_system' });
       Toast.show('Customer saved', 'success');
-      App.navigate('appointments', {action: 'add', name, phone, address, date: date || undefined, time: time || undefined});
+      App.navigate('appointments', {action: 'add', name, phone, address: fullAddress, date: date || undefined, time: time || undefined});
     } catch (e) {
       Toast.show('Failed to save customer', 'error');
     }
@@ -414,12 +445,14 @@ const OCRFeature = {
     const name = document.getElementById('ocr-manual-name').value.trim();
     const phone = document.getElementById('ocr-manual-phone').value.trim();
     const address = document.getElementById('ocr-manual-address').value.trim();
+    const postcodeInput = document.getElementById('ocr-manual-postcode')?.value.trim() || '';
     if (!name) { Toast.show('Name is required', 'error'); return; }
     try {
-      const { postcode, postcodeNormalized } = this.extractPostcodeFromAddress(address);
+      const { postcode, postcodeNormalized } = this.resolvePostcode(postcodeInput, address);
+      const fullAddress = [address, postcode].filter(Boolean).join(', ');
       await DB.addCustomer({ firstName: name.split(' ')[0], lastName: name.split(' ').slice(1).join(' ') || '', fullName: name, phone, postcodeNormalized, address: { line1: address, postcode, postcodeNormalized }, source: 'manual' });
       Toast.show('Customer saved', 'success');
-      App.navigate('appointments', {action: 'add', name, phone, address});
+      App.navigate('appointments', {action: 'add', name, phone, address: fullAddress});
     } catch (e) {
       Toast.show('Failed to save customer', 'error');
     }
