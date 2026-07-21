@@ -149,13 +149,15 @@ const OCRFeature = {
       // Always show Name (it's required to save) even if extraction came up
       // empty, so a miss is an obviously-blank editable field, not a silently
       // vanished one - which is exactly what made this confusing to spot last time.
-      const orderedKeys = ['name', 'phone', 'address', 'postcode', 'customerNumber', 'email', 'appointmentDate', 'appointmentTime'];
+      const orderedKeys = ['name', 'phone', 'address', 'town', 'city', 'postcode', 'customerNumber', 'email', 'appointmentDate', 'appointmentTime'];
+      const fieldLabels = { address: 'Address Line 1', town: 'Town', city: 'City' };
       const fieldsHtml = orderedKeys
         .filter(k => k === 'name' || k === 'postcode' || this.extractedData[k])
         .map(k => {
           const v = this.extractedData[k] || '';
           const upper = k === 'postcode' ? ' style="text-transform:uppercase;"' : '';
-          return `<div class="form-group"><label style="text-transform:capitalize;">${Utils.escapeHtml(k.replace(/([A-Z])/g,' $1').trim())}</label><input type="text" class="input" id="ocr-${Utils.escapeAttr(k)}" value="${Utils.escapeAttr(v)}"${upper}></div>`;
+          const label = fieldLabels[k] || k.replace(/([A-Z])/g,' $1').trim();
+          return `<div class="form-group"><label style="text-transform:capitalize;">${Utils.escapeHtml(label)}</label><input type="text" class="input" id="ocr-${Utils.escapeAttr(k)}" value="${Utils.escapeAttr(v)}"${upper}></div>`;
         }).join('');
       document.getElementById('ocr-fields').innerHTML = fieldsHtml;
 
@@ -207,7 +209,7 @@ const OCRFeature = {
   parseText(text, leftColumnText = '') {
     const rawLines = text.split('\n').map(l => l.trim()).filter(l => l);
     const lines = rawLines.filter(l => !this.isChrome(l));
-    const data = { name: '', phone: '', address: '', postcode: '', customerNumber: '', email: '', appointmentDate: '', appointmentTime: '' };
+    const data = { name: '', phone: '', address: '', town: '', city: '', postcode: '', customerNumber: '', email: '', appointmentDate: '', appointmentTime: '' };
 
     const phoneRe = /(\+?44\s?)?(\(?\d{5}\)?\s?\d{3}\s?\d{3}|\(?\d{4}\)?\s?\d{3}\s?\d{3})/;
     const emailRe = /\S+@\S+\.\S+/;
@@ -246,14 +248,21 @@ const OCRFeature = {
       }
     }
     let usedAddressLines = new Set();
+    // Strips a trailing cluster of 1-3 stray symbols (icon glyphs, chevrons,
+    // the odd misread character) that OCR sometimes tacks onto the end of an
+    // otherwise-clean line - e.g. "Fallowfield &" or "Manchester §@". Doesn't
+    // touch normal punctuation like a comma or full stop.
+    const stripTrailingJunk = (s) => s.replace(/\s+[^\w\s,.'-]{1,3}$/, '').trim();
     if (postcodeLineIndex >= 0) {
       const addressParts = [];
+      const rawCandidates = [];
       for (let i = Math.max(0, postcodeLineIndex - 3); i < postcodeLineIndex; i++) {
         const candidate = addressLines[i];
         if (!candidate) continue;
         if (phoneRe.test(candidate) || emailRe.test(candidate) || timeOfDayRe.test(candidate)) continue;
         if (/^[A-Z]{2,}$/.test(candidate.replace(/\s/g, ''))) continue; // all-caps brand/logo line, not an address line
-        addressParts.push(candidate);
+        addressParts.push(stripTrailingJunk(candidate));
+        rawCandidates.push(candidate);
       }
       // UK addresses conventionally get their own postcode field, separate
       // from the street/town line (e.g. a driver typing "M14 7FZ" straight
@@ -264,11 +273,18 @@ const OCRFeature = {
       // than silently dropping it.
       const postcodeLine = addressLines[postcodeLineIndex];
       const pcMatch = postcodeLine.match(postcodeRe);
-      const beforePostcode = pcMatch ? postcodeLine.slice(0, pcMatch.index).trim().replace(/[,;]+$/, '') : '';
+      const beforePostcode = pcMatch ? stripTrailingJunk(postcodeLine.slice(0, pcMatch.index).trim().replace(/[,;]+$/, '')) : '';
       if (beforePostcode) addressParts.push(beforePostcode);
-      data.address = addressParts.join(', ');
       data.postcode = pcMatch ? pcMatch[0].toUpperCase().replace(/\s+/g, ' ') : '';
-      usedAddressLines = new Set(addressParts.concat([postcodeLine]));
+      usedAddressLines = new Set(rawCandidates.concat([postcodeLine]));
+      // Positional split, matching the normal UK form layout: house/street on
+      // its own row, then town, then city - rather than one long comma-joined
+      // string the person has to edit as a whole. Whatever's left over (rare -
+      // an extra line of noise) folds into the city field rather than being
+      // silently dropped.
+      data.address = addressParts[0] || '';
+      data.town = addressParts[1] || '';
+      data.city = addressParts.length > 3 ? addressParts.slice(2).join(', ') : (addressParts[2] || '');
     }
 
     // ---- Customer number: prefer an explicit "Customer Number" label, since
@@ -331,12 +347,19 @@ const OCRFeature = {
       // the same line sequence. Unbounded, the fallback has previously
       // grabbed a street name and a nearby restaurant's name off the map -
       // both looked like a plausible two-word title case name and both were
-      // wrong. Stopping the search at that boundary makes those specific
-      // failures structurally impossible, at the cost of sometimes leaving
-      // Name blank instead of guessing - which is the safer failure here,
-      // since the field is always shown and editable regardless.
-      const numberLineIdx = lines.findIndex(l => /customer\s*number/i.test(l));
-      const candidateLines = numberLineIdx >= 0 ? lines.slice(0, numberLineIdx) : lines;
+      // wrong. Two independent guards against that: restrict to the same
+      // left-column-only text used for the address (so right-side map labels
+      // are never even in the candidate pool, regardless of where they land
+      // in reading order), AND stop at the "Customer Number" boundary. Either
+      // guard alone turned out not to be enough on its own - together they
+      // leave Name blank rather than guessing when the real header didn't
+      // scan, which is the safer failure since the field is always shown
+      // and editable regardless.
+      const nameSearchPool = leftColumnText
+        ? leftColumnText.split('\n').map(l => l.trim()).filter(l => l && !this.isChrome(l))
+        : lines;
+      const numberLineIdx = nameSearchPool.findIndex(l => /customer\s*number/i.test(l));
+      const candidateLines = numberLineIdx >= 0 ? nameSearchPool.slice(0, numberLineIdx) : nameSearchPool;
       for (const line of candidateLines) {
         if (emailRe.test(line) || phoneRe.test(line) || postcodeRe.test(line) || timeOfDayRe.test(line)) continue;
         if (/\bnumber\b/i.test(line)) continue; // label line (Customer Number, Order Number, etc.), never a real name
@@ -441,14 +464,22 @@ const OCRFeature = {
     const name = document.getElementById('ocr-name')?.value || '';
     const phone = document.getElementById('ocr-phone')?.value || '';
     const address = document.getElementById('ocr-address')?.value || '';
+    const town = document.getElementById('ocr-town')?.value || '';
+    const city = document.getElementById('ocr-city')?.value || '';
     const postcodeInput = document.getElementById('ocr-postcode')?.value || '';
     const date = document.getElementById('ocr-appointmentDate')?.value || '';
     const time = document.getElementById('ocr-appointmentTime')?.value || '';
     if (!name) { Toast.show('Name is required', 'error'); return; }
     try {
-      const { postcode, postcodeNormalized } = this.resolvePostcode(postcodeInput, address);
-      const fullAddress = [address, postcode].filter(Boolean).join(', ');
-      await DB.addCustomer({ firstName: name.split(' ')[0], lastName: name.split(' ').slice(1).join(' ') || '', fullName: name, phone, postcodeNormalized, address: { line1: address, postcode, postcodeNormalized }, source: 'company_system' });
+      const line1 = [address, town, city].filter(Boolean).join(', ');
+      const { postcode, postcodeNormalized } = this.resolvePostcode(postcodeInput, line1);
+      // The full string (line1 + town + city + postcode) is what actually
+      // goes to the geocoder for routing, since a partial address without
+      // its postcode is far more likely to resolve to the wrong place or
+      // fail outright - splitting the fields on screen is for the person
+      // editing them, not for what gets sent to the map.
+      const fullAddress = [line1, postcode].filter(Boolean).join(', ');
+      await DB.addCustomer({ firstName: name.split(' ')[0], lastName: name.split(' ').slice(1).join(' ') || '', fullName: name, phone, postcodeNormalized, address: { line1: address, town, city, postcode, postcodeNormalized }, source: 'company_system' });
       Toast.show('Customer saved', 'success');
       App.navigate('appointments', {action: 'add', name, phone, address: fullAddress, date: date || undefined, time: time || undefined});
     } catch (e) {
