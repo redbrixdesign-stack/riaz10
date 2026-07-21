@@ -243,6 +243,7 @@ const OCRFeature = {
         break;
       }
     }
+    let usedAddressLines = new Set();
     if (postcodeLineIndex >= 0) {
       const addressParts = [];
       for (let i = Math.max(0, postcodeLineIndex - 3); i < postcodeLineIndex; i++) {
@@ -254,6 +255,7 @@ const OCRFeature = {
       }
       addressParts.push(addressLines[postcodeLineIndex]);
       data.address = addressParts.join(', ');
+      usedAddressLines = new Set(addressParts);
     }
 
     // ---- Customer number: prefer an explicit "Customer Number" label, since
@@ -305,11 +307,22 @@ const OCRFeature = {
       // "Jul") could get picked up as a name - a real first/last name is
       // essentially never 1-2 characters, so requiring 3+ rules that out.
       const monthDayAbbrev = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|Mon|Tue|Wed|Thu|Fri|Sat|Sun)$/i;
+      const streetSuffixRe = /\b(Road|Street|Avenue|Lane|Drive|Close|Way|Court|Place|Gardens|Grove|Crescent|Terrace|Square|Hill|Park|Row)\b\s*$/i;
       const titleCaseRunRe = /([A-Z][a-z'-]{2,}\s+){1,2}[A-Z][a-z'-]{2,}/;
       for (const line of lines) {
         if (emailRe.test(line) || phoneRe.test(line) || postcodeRe.test(line) || timeOfDayRe.test(line)) continue;
         if (/\bnumber\b/i.test(line)) continue; // label line (Customer Number, Order Number, etc.), never a real name
         if (line.length < 3 || line.length > 40) continue;
+        // A line already used to build the address (or one that's shaped like
+        // a street address - starts with a house number, or ends in "Road" /
+        // "Street" / etc.) is never a person's name, even if it happens to be
+        // two Title Case words. Without this, a garbled or missing name
+        // header on the real screen silently falls back to grabbing the
+        // street name instead - the field ends up populated (looks fine at a
+        // glance) but wrong, which is worse than an obviously empty field.
+        if (usedAddressLines.has(line)) continue;
+        if (/^\d/.test(line.trim())) continue;
+        if (streetSuffixRe.test(line)) continue;
         const m = line.match(titleCaseRunRe);
         if (m && m[0].trim().includes(' ') && !m[0].split(/\s+/).some(w => monthDayAbbrev.test(w))) {
           data.name = m[0].trim();
