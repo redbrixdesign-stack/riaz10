@@ -322,7 +322,22 @@ const OCRFeature = {
       const monthDayAbbrev = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|Mon|Tue|Wed|Thu|Fri|Sat|Sun)$/i;
       const streetSuffixRe = /\b(Road|Street|Avenue|Lane|Drive|Close|Way|Court|Place|Gardens|Grove|Crescent|Terrace|Square|Hill|Park|Row)\b\s*$/i;
       const titleCaseRunRe = /([A-Z][a-z'-]{2,}\s+){1,2}[A-Z][a-z'-]{2,}/;
-      for (const line of lines) {
+      // If the strict title match found nothing, the name header either
+      // failed to OCR or genuinely wasn't in frame. On this screen layout a
+      // real name only ever appears above the "Customer Number" line -
+      // everything after that is address text or, worse, a Google Map
+      // rendered alongside it with its own place-name labels ("Eat Meat
+      // Halal Steakhouse", park names, road names) that Tesseract reads in
+      // the same line sequence. Unbounded, the fallback has previously
+      // grabbed a street name and a nearby restaurant's name off the map -
+      // both looked like a plausible two-word title case name and both were
+      // wrong. Stopping the search at that boundary makes those specific
+      // failures structurally impossible, at the cost of sometimes leaving
+      // Name blank instead of guessing - which is the safer failure here,
+      // since the field is always shown and editable regardless.
+      const numberLineIdx = lines.findIndex(l => /customer\s*number/i.test(l));
+      const candidateLines = numberLineIdx >= 0 ? lines.slice(0, numberLineIdx) : lines;
+      for (const line of candidateLines) {
         if (emailRe.test(line) || phoneRe.test(line) || postcodeRe.test(line) || timeOfDayRe.test(line)) continue;
         if (/\bnumber\b/i.test(line)) continue; // label line (Customer Number, Order Number, etc.), never a real name
         if (line.length < 3 || line.length > 40) continue;
