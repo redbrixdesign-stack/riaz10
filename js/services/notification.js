@@ -24,9 +24,19 @@ const NotificationService = {
     return true;
   },
 
-  // Send SMS
+  // Send SMS - opens the device's SMS app with the message pre-filled.
+  // Sanitize the phone number before splicing into the sms: URL: a
+  // customer-supplied phone string could contain URI metacharacters
+  // (e.g. '?', '&', '=') that would otherwise end the phone part early
+  // and inject extra parameters into the URL.
   sendSMS(phone, message) {
-    window.location.href = `sms:${phone}?body=${encodeURIComponent(message)}`;
+    const cleanedPhone = String(phone || '').replace(/[^\d+]/g, '');
+    if (!cleanedPhone) {
+      Toast.show('No valid phone number', 'warning');
+      return false;
+    }
+    window.location.href = `sms:${cleanedPhone}?body=${encodeURIComponent(message || '')}`;
+    return true;
   },
 
   // Request push notification permission

@@ -134,6 +134,22 @@ const TalkFeature = {
     const now = new Date();
     const queue = [];
 
+    // Day-before reminders: confirmed visits happening tomorrow that haven't
+    // had a reminder sent yet. Kept separate from the outcome-driven nudge
+    // queue below since these aren't about following up on an outcome.
+    let dayBeforeQueue = [];
+    try {
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const upcoming2 = await DB.getUpcomingAppointments(5);
+      dayBeforeQueue = upcoming2.filter(a =>
+        a.status === 'confirmed' &&
+        !a.dayBeforeSent &&
+        new Date(a.date).toDateString() === tomorrow.toDateString() &&
+        (a.phone || a.customerId)
+      );
+    } catch (e) {}
+
     for (const appt of pipeline) {
       const daysSince = Utils.daysBetween(now, new Date(appt.date));
       let customer = null;
@@ -161,7 +177,22 @@ const TalkFeature = {
       <div style="padding:0 16px;">
         ${this.renderUrgentActions(nextId, nextName)}
 
-        ${queue.length === 0 ? `
+        ${dayBeforeQueue.length > 0 ? `
+        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin:16px 0 8px;">Tomorrow's reminders (${dayBeforeQueue.length})</div>
+        ${dayBeforeQueue.map(appt => `
+        <div class="card" style="margin-bottom:8px;border-left:3px solid var(--primary);">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="flex:1;min-width:0;">
+              <span style="font-weight:600;font-size:15px;">${Utils.escapeHtml(appt.clientName || 'Unknown')}</span>
+              <div style="font-size:13px;color:var(--text-secondary);margin-top:2px;">Visit tomorrow at ${Utils.formatTime(appt.date)}</div>
+            </div>
+            <button class="btn btn-sm btn-primary" style="flex-shrink:0;" onclick="TalkFeature.sendDayBefore(${appt.id})">
+              <span class="material-symbols-rounded" style="font-size:18px;">send</span>
+            </button>
+          </div>
+        </div>`).join('')}` : ''}
+
+        ${queue.length === 0 && dayBeforeQueue.length === 0 ? `
         <div class="empty-state" style="padding:48px 24px;">
           <span class="material-symbols-rounded">mark_email_read</span>
 	          <div style="font-weight:600;margin-bottom:4px;">All quiet for now.</div>
@@ -361,7 +392,9 @@ const TalkFeature = {
     });
     this.pendingMessage = {
       customerId: customer?.id || 0,
-      phone: whatsappPhone
+      phone: whatsappPhone,
+      appointmentId,
+      templateKey
     };
 
     const content = `<div class="sheet-handle"></div>
@@ -381,7 +414,7 @@ const TalkFeature = {
     App.openModal(content);
   },
 
-  confirmSend() {
+  async confirmSend() {
     const pending = this.pendingMessage;
     if (!pending) {
       Toast.show('No message ready', 'error');
@@ -392,7 +425,7 @@ const TalkFeature = {
       Toast.show('Message cannot be empty', 'error');
       return;
     }
-    const { customerId, phone } = pending;
+    const { customerId, phone, appointmentId, templateKey } = pending;
     const opened = NotificationService.sendWhatsApp(phone, message);
     if (!opened) return;
     // Record the attempt honestly. We can't confirm WhatsApp actually loaded
@@ -401,8 +434,15 @@ const TalkFeature = {
     if (customerId > 0) {
       DB.addCommunication({ customerId, type: 'whatsapp_attempted', template: null, content: message });
     }
+    if (templateKey === 'day_before' && appointmentId) {
+      try { await DB.db.appointments.update(appointmentId, { dayBeforeSent: true }); } catch (e) {}
+    }
     App.closeModal();
     Toast.show('Opened WhatsApp — check it sent', 'info');
+  },
+
+  sendDayBefore(appointmentId) {
+    return this.sendMessage(appointmentId, 'day_before');
   },
 
   async pickTemplateCustomer(key) {

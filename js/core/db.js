@@ -61,12 +61,20 @@ const DB = {
     // so mapping it to 'quoted' would wrongly trigger quote follow-up
     // messaging. Clear the outcome (visit stays logged, just un-set) and
     // flag it in notes so the history is still visible.
+    //
+    // IMPORTANT: must use `null` here, NOT `undefined`. Dexie's update()
+    // (and the bundled mini-Dexie shim in js/vendor/minidexie.js) implement
+    // field updates via Object.assign(target, changes). Object.assign
+    // SILENTLY SKIPS properties whose value is `undefined`, so writing
+    // `outcome: undefined` was a no-op - the old 'measure_only' value was
+    // left untouched, defeating the whole point of this migration. `null`
+    // is a real value and properly clears the field.
     const measureOnly = await this.db.appointments.where('outcome').equals('measure_only').toArray();
     for (const appt of measureOnly) {
       const existingNotes = appt.notes || '';
       const flag = '[Legacy outcome: Measure Only - re-review, no quote was given]';
       await this.db.appointments.update(appt.id, {
-        outcome: undefined,
+        outcome: null,
         notes: [existingNotes, flag].filter(Boolean).join('\n\n')
       });
     }

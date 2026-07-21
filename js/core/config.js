@@ -131,7 +131,8 @@ const CONFIG = {
     { id: 'measure', name: 'Measure', icon: 'straighten', badgeClass: 'badge-info' },
     { id: 'fitting', name: 'Fitting', icon: 'handyman', badgeClass: 'badge-success' },
     { id: 'follow_up', name: 'Follow Up', icon: 'phone', badgeClass: 'badge-warning' },
-    { id: 'review', name: 'Review', icon: 'rate_review', badgeClass: 'badge-accent' }
+    { id: 'review', name: 'Review', icon: 'rate_review', badgeClass: 'badge-accent' },
+    { id: 'service_call', name: 'Service Call', icon: 'build', badgeClass: 'badge-danger' }
   ],
 
   // Outcomes
@@ -176,11 +177,44 @@ const CONFIG = {
       { id: 'issues', name: 'Issues Reported', icon: 'error', nextAction: 'schedule_revisit' },
       { id: 'revisit', name: 'Re-visit Needed', icon: 'refresh', nextAction: 'schedule_revisit' },
       { id: 'refused', name: 'Client Refused', icon: 'block', nextAction: 'resolve_dispute' }
+    ],
+    review: [
+      { id: 'happy', name: 'Happy / No Issues', icon: 'thumb_up', nextAction: 'request_review' },
+      { id: 'minor_issue', name: 'Minor Issue - Fixed On Site', icon: 'build', nextAction: 'request_review' },
+      { id: 'needs_service_call', name: 'Needs Service Call', icon: 'event_repeat', nextAction: 'book_service_call' },
+      { id: 'review_left', name: 'Review Left', icon: 'star', nextAction: 'referral_ask' },
+      { id: 'customer_no_show', name: 'Customer No Show', icon: 'person_off', nextAction: 'rebook' }
+    ],
+    follow_up: [
+      { id: 'reached', name: 'Reached - Progressing', icon: 'call', nextAction: 'continue_follow_up' },
+      { id: 'no_answer', name: 'No Answer', icon: 'phone_missed', nextAction: 'retry_follow_up' },
+      { id: 'ordered', name: 'Ordered', icon: 'shopping_cart', nextAction: 'schedule_fitting' },
+      { id: 'lost', name: 'Lost / Not Proceeding', icon: 'cancel', nextAction: 'close_lost' }
+    ],
+    service_call: [
+      { id: 'resolved', name: 'Resolved On Site', icon: 'check_circle', nextAction: 'request_review' },
+      { id: 'parts_needed', name: 'Parts Needed', icon: 'inventory_2', nextAction: 'order_parts' },
+      { id: 'revisit_needed', name: 'Re-visit Needed', icon: 'refresh', nextAction: 'schedule_revisit' },
+      { id: 'access_issue', name: 'Access Issue', icon: 'key_off', nextAction: 'rebook' },
+      { id: 'not_a_fault', name: 'Not a Fault / Customer Error', icon: 'info', nextAction: 'close_lost' },
+      { id: 'customer_no_show', name: 'Customer No Show', icon: 'person_off', nextAction: 'rebook' }
     ]
   },
 
   // Communication templates
   templates: {
+    // Sent immediately after a visit is booked - introduces you, confirms the
+    // slot, and asks for anything needed ahead of time (clear windows,
+    // parking, extra info) so it doesn't have to be chased later.
+    booking_confirmed: {
+      consultation: "Hi {{firstName}}, thanks for booking! I've got you down for {{date}} at {{time}} at {{address}}. Ahead of the visit, could you make sure the windows we'll be looking at are clear of anything blocking access? If there's anywhere specific I should park, or anything else I should know, just reply here. — {{advisorName}}",
+      measure: "Hi {{firstName}}, thanks for booking! I'll be with you on {{date}} at {{time}} at {{address}} to measure up. Could you make sure the windows to be measured are clear so I can get accurate figures? Let me know if there's anywhere specific to park, or anything else useful to know. — {{advisorName}}",
+      fitting: "Hi {{firstName}}, your fitting is booked for {{date}} at {{time}} at {{address}}. Please could you clear the area around the windows being fitted? Let me know about parking or anything else ahead of time. — {{advisorName}}",
+      review: "Hi {{firstName}}, I've booked in a follow-up visit for {{date}} at {{time}} to check everything's looking good. Let me know if there's anywhere specific to park, or anything you'd like me to look at. — {{advisorName}}",
+      service_call: "Hi {{firstName}}, I've booked in to come and sort the issue on {{date}} at {{time}} at {{address}}. Could you make sure the area is clear so I can get straight to it? Let me know about parking or anything else useful. — {{advisorName}}"
+    },
+    // Sent the day before - a lighter reminder, not the full ask again.
+    day_before: "Hi {{firstName}}, just a reminder I'll be with you tomorrow at {{time}} at {{address}}. Let me know if anything's changed. — {{advisorName}}",
     confirmation: {
       consultation: "Hi {{firstName}}, just confirming our visit tomorrow at {{time}}. I'll see you at {{address}}. If anything changes, just reply here. — {{advisorName}}",
       measure: "Hi {{firstName}}, looking forward to measuring up for your {{productType}} tomorrow at {{time}}. — {{advisorName}}",

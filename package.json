@@ -1,0 +1,16 @@
+{
+  "name": "advisoros",
+  "version": "5.0.0",
+  "description": "The self-employed companion app for field service professionals. Offline-first PWA, no backend, no login.",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "build": "node build/minify.js",
+    "watch": "node build/minify.js --watch",
+    "serve": "python3 -m http.server 8000",
+    "clean": "node build/minify.js --clean"
+  },
+  "devDependencies": {
+    "terser": "^5.49.0"
+  }
+}

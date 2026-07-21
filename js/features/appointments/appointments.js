@@ -705,8 +705,8 @@ const AppointmentsFeature = {
 
   getAllowedTypesForDate(dateInput) {
     const mode = this.getDayMode(dateInput);
-    if (mode.kind === 'fitting') return ['fitting'];
-    if (mode.kind === 'sales') return ['consultation', 'measure', 'follow_up', 'review'];
+    if (mode.kind === 'fitting') return ['fitting', 'service_call'];
+    if (mode.kind === 'sales') return ['consultation', 'measure', 'follow_up', 'review', 'service_call'];
     return CONFIG.appointmentTypes.map(t => t.id);
   },
 
@@ -1118,6 +1118,9 @@ const AppointmentsFeature = {
     // drops into a 2-column grid below it.
     const heroId = appt.type === 'consultation' ? 'ordered'
                  : appt.type === 'fitting' ? 'completed'
+                 : appt.type === 'review' ? 'happy'
+                 : appt.type === 'service_call' ? 'resolved'
+                 : appt.type === 'follow_up' ? 'reached'
                  : 'measured';
     const hero = outcomes.find(o => o.id === heroId);
     const noVisitIds = ['customer_no_show', 'advisor_unavailable'];
@@ -1739,6 +1742,53 @@ const AppointmentsFeature = {
     }
   },
 
+  async offerBookingConfirmation(appointmentId) {
+    const appt = await DB.db.appointments.get(appointmentId);
+    if (!appt) { App.navigate('appointments'); return; }
+    const customer = appt.customerId ? await DB.db.customers.get(appt.customerId) : null;
+    const phone = customer?.phone || appt.phone;
+    const template = CONFIG.templates.booking_confirmed[appt.type];
+    const message = NotificationService.processTemplate(template, {
+      firstName: customer?.firstName || appt.clientName?.split(' ')[0] || 'there',
+      date: new Date(appt.date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }),
+      time: Utils.formatTime(appt.date),
+      address: appt.address || '',
+      advisorName: CONFIG.advisorName || 'Your Advisor'
+    });
+    const content = `<div class="sheet-handle"></div>
+      <div class="sheet-header"><h3>Send Booking Confirmation?</h3><button class="btn btn-ghost btn-sm" onclick="AppointmentsFeature.skipBookingConfirmation()"><span class="material-symbols-rounded">close</span></button></div>
+      <div class="sheet-body">
+        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;">Introduces you, confirms the visit, and asks about clear windows and parking.</div>
+        <textarea class="textarea" id="booking-confirm-message" style="min-height:130px;">${Utils.escapeHtml(message)}</textarea>
+        <div style="display:flex;gap:8px;margin-top:14px;">
+          <button class="btn btn-outline btn-block" onclick="AppointmentsFeature.skipBookingConfirmation()">Not Now</button>
+          <button class="btn btn-primary btn-block" onclick="AppointmentsFeature.sendBookingConfirmation('${Utils.escapeJsString(Utils.toWhatsAppPhone(phone) || '')}')">
+            <span class="material-symbols-rounded">chat</span>Send
+          </button>
+        </div>
+      </div>`;
+    App.openModal(content);
+  },
+
+  sendBookingConfirmation(whatsappPhone) {
+    const message = document.getElementById('booking-confirm-message')?.value.trim();
+    if (!whatsappPhone) {
+      Toast.show('No valid WhatsApp number for this customer', 'error');
+      App.closeModal();
+      App.navigate('appointments');
+      return;
+    }
+    const url = Utils.buildWhatsAppUrl(whatsappPhone, message);
+    if (url) window.open(url, '_blank');
+    App.closeModal();
+    App.navigate('appointments');
+  },
+
+  skipBookingConfirmation() {
+    App.closeModal();
+    App.navigate('appointments');
+  },
+
   async saveAppointment(forceDuplicate = false, draft = null) {
     const data = draft || this.readAppointmentDraft();
     if (!data) {
@@ -1832,7 +1882,7 @@ const AppointmentsFeature = {
         customerId = customer.id;
       }
 
-      await DB.addAppointment({
+      const newAppt = await DB.addAppointment({
         customerId,
         clientName: name,
         phone,
@@ -1846,6 +1896,10 @@ const AppointmentsFeature = {
       });
 
       Toast.show('Visit saved', 'success');
+      if (phone && CONFIG.templates.booking_confirmed[type]) {
+        this.offerBookingConfirmation(newAppt.id);
+        return;
+      }
       App.navigate('appointments');
     } catch (e) {
       console.error('Save visit error:', e);
@@ -2551,11 +2605,50 @@ const AppointmentsFeature = {
 
       App.closeModal();
       Toast.show('Outcome saved', 'success');
+
+      if (outcomeId === 'needs_service_call') {
+        this.offerServiceCallBooking(appt);
+        return;
+      }
+
       App.navigate('appointments', {id});
     } catch (e) {
       console.error('Save outcome error:', e);
       Toast.show('Failed to save outcome', 'error');
     }
+  },
+
+  offerServiceCallBooking(appt) {
+    const content = `<div class="sheet-handle"></div>
+      <div class="sheet-header"><h3>Book the Service Call?</h3><button class="btn btn-ghost btn-sm" onclick="AppointmentsFeature.skipServiceCallBooking(${appt.id})"><span class="material-symbols-rounded">close</span></button></div>
+      <div class="sheet-body">
+        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">Take you straight to a new visit for ${Utils.escapeHtml(appt.clientName || 'this customer')}, pre-filled with their details and set to Service Call. Pick the date and time on the next screen.</div>
+        <button class="btn btn-primary btn-block" onclick="AppointmentsFeature.bookServiceCallNow(${appt.id})">
+          <span class="material-symbols-rounded">build</span>Book Service Call
+        </button>
+        <button class="btn btn-outline btn-block" style="margin-top:8px;" onclick="AppointmentsFeature.skipServiceCallBooking(${appt.id})">
+          Not Now
+        </button>
+      </div>`;
+    App.openModal(content);
+  },
+
+  bookServiceCallNow(appointmentId) {
+    App.closeModal();
+    DB.db.appointments.get(appointmentId).then(appt => {
+      App.navigate('appointments', {
+        action: 'add',
+        type: 'service_call',
+        name: appt?.clientName || '',
+        phone: appt?.phone || '',
+        address: appt?.address || ''
+      });
+    });
+  },
+
+  skipServiceCallBooking(appointmentId) {
+    App.closeModal();
+    App.navigate('appointments', {id: appointmentId});
   },
 
   getOutcomeName(outcomeId, type) {

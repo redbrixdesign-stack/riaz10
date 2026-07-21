@@ -84,19 +84,36 @@ const Search = {
       } catch (e) { console.error('Customer search failed:', e); }
     }
 
-    // Search appointments
+    // Search appointments. Match if the customer already matched the query
+    // above (so searching "Smith" surfaces John Smith's past visits too),
+    // OR if the appointment's own notes contain the query.
     if (!options.types || options.types.includes('appointment')) {
       try {
+        const matchedCustomerIds = new Set(
+          results.filter(r => r.type === 'customer').map(r => r.id)
+        );
+
         const appointments = await DB.db.appointments
-          .filter(a => {
-            const customer = results.find(r => r.type === 'customer' && r.id === a.customerId);
-            return customer || a.notes?.toLowerCase().includes(normalized);
-          })
+          .filter(a => matchedCustomerIds.has(a.customerId) ||
+                       (a.notes && a.notes.toLowerCase().includes(normalized)))
           .limit(10)
           .toArray();
 
+        // Batch fetch the customers these appointments belong to, instead
+        // of an IndexedDB round-trip per appointment. The previous code
+        // re-fetched each customer individually - N+1 reads for a result
+        // set that was almost always just 1-3 distinct customers.
+        const neededCustomerIds = [...new Set(appointments.map(a => a.customerId))];
+        const customerMap = new Map();
+        if (neededCustomerIds.length) {
+          const fetched = await DB.db.customers.bulkGet
+            ? await DB.db.customers.bulkGet(neededCustomerIds)
+            : await Promise.all(neededCustomerIds.map(id => DB.db.customers.get(id)));
+          for (const c of fetched) if (c) customerMap.set(c.id, c);
+        }
+
         for (const appt of appointments) {
-          const customer = await DB.db.customers.get(appt.customerId);
+          const customer = customerMap.get(appt.customerId);
           results.push({
             type: 'appointment',
             id: appt.id,
@@ -122,8 +139,19 @@ const Search = {
           .limit(10)
           .toArray();
 
+        // Same batched fetch as appointments - one round-trip for all the
+        // order rows' customers, not one per order.
+        const neededCustomerIds = [...new Set(orders.map(o => o.customerId))];
+        const customerMap = new Map();
+        if (neededCustomerIds.length) {
+          const fetched = await DB.db.customers.bulkGet
+            ? await DB.db.customers.bulkGet(neededCustomerIds)
+            : await Promise.all(neededCustomerIds.map(id => DB.db.customers.get(id)));
+          for (const c of fetched) if (c) customerMap.set(c.id, c);
+        }
+
         for (const order of orders) {
-          const customer = await DB.db.customers.get(order.customerId);
+          const customer = customerMap.get(order.customerId);
           results.push({
             type: 'order',
             id: order.id,
