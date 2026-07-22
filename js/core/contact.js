@@ -11,10 +11,19 @@ const ContactFeature = {
       return;
     }
 
-    const whatsappPhone = Utils.toWhatsAppPhone(cleanedPhone);
-    const whatsappText = message ? `&text=${encodeURIComponent(message)}` : '';
-    const whatsappUrl = whatsappPhone ? `https://web.whatsapp.com/send?phone=${whatsappPhone}${whatsappText}` : '';
-    const telUrl = `tel:${cleanedPhone.replace(/[^\d+]/g, '')}`;
+    // web.whatsapp.com is the desktop-pairing URL - it doesn't reliably
+    // deep-link into the WhatsApp app on a phone, which is why this button
+    // "wasn't going through" on mobile even though the number itself was
+    // fine. wa.me is the one WhatsApp documents for opening the app
+    // directly on any platform - reuse the same builder Talk already uses,
+    // so both places agree on one correct link format.
+    const whatsappUrl = message ? Utils.buildWhatsAppUrl(cleanedPhone, message) : Utils.buildWhatsAppUrl(cleanedPhone);
+    // Normalize to +44... regardless of how the number is stored locally
+    // (07..., 0044..., with stray spaces/dashes) - a bare national number
+    // can fail silently on some devices, and this keeps Call and WhatsApp
+    // agreeing on the same underlying number.
+    const e164Phone = Utils.toE164Phone(cleanedPhone);
+    const telUrl = e164Phone ? `tel:${e164Phone}` : `tel:${cleanedPhone.replace(/[^\d+]/g, '')}`;
 
     const content = `
       <div class="sheet-handle"></div>

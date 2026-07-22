@@ -321,6 +321,17 @@ const RouteFeature = {
     return total;
   },
 
+  // A single leg further than this within a same-day local round almost
+  // certainly means the geocoder matched the wrong place entirely (a bare
+  // postcode district like "M14" with no street/town, or an address that
+  // lost too much detail during editing, can resolve to an unrelated
+  // location elsewhere in the country - or world). Real same-day advisor
+  // routes don't have 7,000-mile legs; when the maths says otherwise, that's
+  // a sign to distrust the coordinates, not to report them as fact. 160km
+  // (~100 miles) is generous enough for a legitimately long rural leg while
+  // still catching a wildly wrong match.
+  MAX_PLAUSIBLE_LEG_KM: 160,
+
   calculateDayLoopDistance(appointments, base = null) {
     const stops = appointments.filter(a => Array.isArray(a.latLng) && a.latLng.length === 2);
     if (stops.length === 0) return 0;
@@ -330,13 +341,20 @@ const RouteFeature = {
     const firstIndex = baseLatLng ? 0 : 1;
 
     for (let i = firstIndex; i < stops.length; i++) {
-      total += Geo.calculateDistance(current[0], current[1], stops[i].latLng[0], stops[i].latLng[1]);
+      const legKm = Geo.calculateDistance(current[0], current[1], stops[i].latLng[0], stops[i].latLng[1]);
+      // Skip this stop's distance entirely rather than adding an implausible
+      // figure to the day's total - better an undercount that's flagged
+      // elsewhere (via buildRouteLegs' unresolvedPoint) than a confidently
+      // wrong total.
+      if (legKm > this.MAX_PLAUSIBLE_LEG_KM) continue;
+      total += legKm;
       current = stops[i].latLng;
     }
 
     if (baseLatLng && stops.length > 0) {
       const last = stops[stops.length - 1].latLng;
-      total += Geo.calculateDistance(last[0], last[1], baseLatLng[0], baseLatLng[1]);
+      const returnLegKm = Geo.calculateDistance(last[0], last[1], baseLatLng[0], baseLatLng[1]);
+      if (returnLegKm <= this.MAX_PLAUSIBLE_LEG_KM) total += returnLegKm;
     }
 
     return total * 1.3;
@@ -368,7 +386,16 @@ const RouteFeature = {
       const from = points[i];
       const to = points[i + 1];
       const bothResolved = !!from.latLng && !!to.latLng;
-      const distanceKm = bothResolved ? this.calculateLegKm(from.latLng, to.latLng) : 0;
+      let distanceKm = bothResolved ? this.calculateLegKm(from.latLng, to.latLng) : 0;
+      // A "resolved" leg whose distance is wildly implausible for a same-day
+      // local round means the geocoder almost certainly matched the wrong
+      // place (see MAX_PLAUSIBLE_LEG_KM) - treat it the same as an
+      // unresolved point rather than presenting a confidently wrong
+      // distance/ETA, but keep a flag so the UI can say "looks wrong"
+      // instead of "not found", since those need different next steps for
+      // the person (fix the address vs. just retry the same one).
+      const implausible = bothResolved && distanceKm > this.MAX_PLAUSIBLE_LEG_KM;
+      if (implausible) distanceKm = 0;
       legs.push({
         index: legs.length,
         from,
@@ -377,10 +404,19 @@ const RouteFeature = {
         etaMin: distanceKm > 0 ? Math.max(1, Math.round((distanceKm / 35) * 60)) : 0,
         appointmentId: to.type === 'appointment' ? to.appointment?.id : null,
         isReturn: to.type === 'base',
-        // Which endpoint is missing coordinates, if any - used to tell "location
-        // couldn't be found" apart from "distance is genuinely ~0". Prefers
-        // reporting `to` since that's the stop the advisor is trying to reach.
-        unresolvedPoint: bothResolved ? null : (!to.latLng ? to : from)
+        // Which endpoint is missing (or, for an implausible leg, likely
+        // wrong) coordinates - used to tell "location couldn't be found"
+        // apart from "distance is genuinely ~0". For a missing point, prefer
+        // reporting `to` since that's the stop the advisor is trying to
+        // reach. For an implausible match, point at whichever endpoint is an
+        // actual appointment (not Base) - Base is geocoded once and rarely
+        // wrong, so the bad match is almost always the visit address.
+        unresolvedPoint: (bothResolved && !implausible)
+          ? null
+          : implausible
+            ? (to.type === 'appointment' ? to : from)
+            : (!to.latLng ? to : from),
+        implausible
       });
     }
 
@@ -671,6 +707,7 @@ const RouteFeature = {
     if (!plan.legs?.length) return '';
     const activeIndex = plan.activeLeg?.index ?? 0;
     const unresolvedCount = plan.legs.filter(leg => leg.unresolvedPoint).length;
+    const implausibleCount = plan.legs.filter(leg => leg.implausible).length;
 
     return `
       <div class="route-legs">
@@ -684,15 +721,23 @@ const RouteFeature = {
             ${unresolvedCount} location${unresolvedCount === 1 ? '' : 's'} couldn't be found - tap to retry
           </button>
         ` : ''}
+        ${implausibleCount > 0 ? `
+          <button class="route-leg-retry" onclick="RouteFeature.retryLocations()">
+            <span class="material-symbols-rounded" style="font-size:16px;">warning</span>
+            ${implausibleCount} location${implausibleCount === 1 ? '' : 's'} looked wrong (too far away) - check the address and retry
+          </button>
+        ` : ''}
         ${plan.legs.map((leg, index) => {
           const missingAddress = leg.unresolvedPoint && !leg.unresolvedPoint.address;
           const status = leg.distanceKm > 0
             ? `${Utils.formatDistance(leg.distanceKm)} · ${leg.etaMin} min`
-            : missingAddress
-              ? 'No address on this stop'
-              : leg.unresolvedPoint
-                ? 'Location not found'
-                : 'Distance pending';
+            : leg.implausible
+              ? 'Location looks wrong - check address'
+              : missingAddress
+                ? 'No address on this stop'
+                : leg.unresolvedPoint
+                  ? 'Location not found'
+                  : 'Distance pending';
           return `
           <button class="route-leg ${index === activeIndex ? 'active' : ''}" onclick="RouteFeature.openLegRoute(${index})">
             <span class="route-leg-index">${leg.isReturn ? '<span class="material-symbols-rounded">home</span>' : index + 1}</span>
@@ -758,6 +803,27 @@ const RouteFeature = {
   // already have latLng, so this only touches the ones that failed.
   async retryLocations() {
     Toast.show('Looking up locations again…', 'info');
+    // ensureAppointmentCoords skips any appointment that already has a
+    // latLng, on the assumption it's good. That's wrong for a leg flagged
+    // implausible - the coordinate is present but almost certainly wrong
+    // (see MAX_PLAUSIBLE_LEG_KM), so "retry" would otherwise silently do
+    // nothing and show the exact same bad result. Clear latLng on those
+    // specific appointments first so the next geocode actually runs.
+    try {
+      const today = Utils.getToday();
+      const appointments = await DB.getAppointmentsForDate(today.toISOString());
+      const base = await this.getBasePoint();
+      const plan = this.analyseDay(appointments, today, base);
+      const badIds = new Set(
+        (plan.legs || [])
+          .filter(leg => leg.implausible)
+          .map(leg => leg.unresolvedPoint?.appointment?.id)
+          .filter(Boolean)
+      );
+      for (const id of badIds) {
+        try { await DB.db.appointments.update(id, { latLng: null }); } catch (e) {}
+      }
+    } catch (e) {}
     App.navigate('route');
   },
 

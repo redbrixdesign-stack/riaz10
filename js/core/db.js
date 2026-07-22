@@ -125,6 +125,29 @@ const DB = {
     return { ...customer, id };
   },
 
+  // Deletes the customer plus everything keyed to them - appointments,
+  // orders, and communications. A customer row alone doesn't show up
+  // anywhere by itself; it's always reached through one of these related
+  // records, so leaving them behind after "deleting" a customer would just
+  // produce orphaned visits/orders that still show a name but silently fail
+  // to open (or worse, point at a different customer if IDs get reused).
+  // Returns how many of each were removed so the caller can tell the person
+  // what actually happened, not just "done".
+  async deleteCustomer(customerId) {
+    const [appts, orders, comms] = await Promise.all([
+      this.db.appointments.where('customerId').equals(customerId).toArray(),
+      this.db.orders.where('customerId').equals(customerId).toArray(),
+      this.db.communications.where('customerId').equals(customerId).toArray()
+    ]);
+    await Promise.all([
+      this.db.appointments.where('customerId').equals(customerId).delete(),
+      this.db.orders.where('customerId').equals(customerId).delete(),
+      this.db.communications.where('customerId').equals(customerId).delete()
+    ]);
+    await this.db.customers.delete(customerId);
+    return { appointments: appts.length, orders: orders.length, communications: comms.length };
+  },
+
   async searchCustomers(query) {
     const normalized = query.toLowerCase().trim();
 

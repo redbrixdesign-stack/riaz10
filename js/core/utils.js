@@ -245,6 +245,18 @@ const Utils = {
     return digits;
   },
 
+  // A tel: link built from whatever format the number happens to be stored
+  // in (local "07..." vs "+44 7..." vs digits with stray spaces/dashes from
+  // OCR) is unreliable - some devices/carriers mishandle a bare national
+  // number, especially once other punctuation is involved. Reuses the same
+  // UK-aware digit normalization as the WhatsApp link so Call and WhatsApp
+  // agree on what the "real" number is, then prefixes + for the standard
+  // international (E.164) form every phone dialer accepts unambiguously.
+  toE164Phone(phone, defaultCountry = CONFIG.country || 'GB') {
+    const digits = this.toWhatsAppPhone(phone, defaultCountry);
+    return digits ? `+${digits}` : '';
+  },
+
   buildWhatsAppUrl(phone, message = '') {
     const whatsappPhone = this.toWhatsAppPhone(phone);
     if (!whatsappPhone) return '';

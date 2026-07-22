@@ -981,7 +981,7 @@ const AppointmentsFeature = {
             </button>
           ` : ''}
           ${phone ? `
-            <a class="btn btn-outline btn-block" href="tel:${Utils.escapeAttr(phone)}">
+            <a class="btn btn-outline btn-block" href="tel:${Utils.escapeAttr(Utils.toE164Phone(phone) || phone)}">
               <span class="material-symbols-rounded">call</span>
               Call Customer
             </a>
@@ -1238,7 +1238,7 @@ const AppointmentsFeature = {
 
           <div style="display: flex; gap: 8px; margin-top: 16px;">
             ${phone ? `
-              <a class="btn btn-outline btn-sm" style="flex: 1; gap: 6px;" href="tel:${Utils.escapeAttr(phone)}">
+              <a class="btn btn-outline btn-sm" style="flex: 1; gap: 6px;" href="tel:${Utils.escapeAttr(Utils.toE164Phone(phone) || phone)}">
                 <span class="material-symbols-rounded" style="font-size: 18px;">call</span>
                 Call
               </a>
@@ -1298,8 +1298,53 @@ const AppointmentsFeature = {
             </div>
           `).join('')}
         </div>
+
+        <div style="margin: 16px; margin-top: 0;">
+          <button class="btn btn-danger btn-block btn-sm" onclick="AppointmentsFeature.confirmDeleteCustomer(${customer.id})">
+            <span class="material-symbols-rounded">delete</span>
+            Delete Customer
+          </button>
+        </div>
       </div>
     `;
+  },
+
+  async confirmDeleteCustomer(customerId) {
+    let customer = null;
+    let apptCount = 0;
+    try {
+      customer = await DB.db.customers.get(customerId);
+      apptCount = await DB.db.appointments.where('customerId').equals(customerId).count();
+    } catch (e) {}
+    if (!customer) { Toast.show('Customer not found', 'error'); return; }
+    const name = customer.fullName || `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'this customer';
+    const content = `<div class="sheet-handle"></div>
+      <div class="sheet-header"><h3>Delete ${Utils.escapeHtml(name)}?</h3><button class="btn btn-ghost btn-sm" onclick="App.closeModal()"><span class="material-symbols-rounded">close</span></button></div>
+      <div class="sheet-body">
+        <div style="font-size:14px;color:var(--text-secondary);margin-bottom:16px;">
+          This permanently deletes ${Utils.escapeHtml(name)}${apptCount > 0 ? ` and ${apptCount} linked visit${apptCount === 1 ? '' : 's'}` : ''}, along with any orders and messages on record for them. This can't be undone.
+        </div>
+        <button class="btn btn-danger btn-block" onclick="AppointmentsFeature.deleteCustomer(${customerId})">
+          <span class="material-symbols-rounded">delete</span>Delete Permanently
+        </button>
+        <button class="btn btn-outline btn-block" style="margin-top:8px;" onclick="App.closeModal()">Cancel</button>
+      </div>`;
+    App.openModal(content);
+  },
+
+  async deleteCustomer(customerId) {
+    try {
+      const result = await DB.deleteCustomer(customerId);
+      App.closeModal();
+      const parts = [];
+      if (result.appointments) parts.push(`${result.appointments} visit${result.appointments === 1 ? '' : 's'}`);
+      if (result.orders) parts.push(`${result.orders} order${result.orders === 1 ? '' : 's'}`);
+      Toast.show(parts.length ? `Customer deleted (also removed ${parts.join(', ')})` : 'Customer deleted', 'success');
+      App.navigate('appointments');
+    } catch (e) {
+      console.error('Delete customer error:', e);
+      Toast.show('Failed to delete customer', 'error');
+    }
   },
 
   async renderDetail(id) {
@@ -1747,12 +1792,14 @@ const AppointmentsFeature = {
     if (!appt) { App.navigate('appointments'); return; }
     const customer = appt.customerId ? await DB.db.customers.get(appt.customerId) : null;
     const phone = customer?.phone || appt.phone;
-    const template = CONFIG.templates.booking_confirmed[appt.type];
-    const message = NotificationService.processTemplate(template, {
+    const apptDate = new Date(appt.date);
+    const message = NotificationService.buildBookingConfirmationMessage({
       firstName: customer?.firstName || appt.clientName?.split(' ')[0] || 'there',
-      date: new Date(appt.date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }),
+      date: apptDate,
+      dateLabel: apptDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }),
       time: Utils.formatTime(appt.date),
       address: appt.address || '',
+      type: appt.type,
       advisorName: CONFIG.advisorName || 'Your Advisor'
     });
     const content = `<div class="sheet-handle"></div>
@@ -1896,7 +1943,8 @@ const AppointmentsFeature = {
       });
 
       Toast.show('Visit saved', 'success');
-      if (phone && CONFIG.templates.booking_confirmed[type]) {
+      const bookingAskTypes = ['consultation', 'measure', 'fitting', 'review', 'service_call'];
+      if (phone && bookingAskTypes.includes(type)) {
         this.offerBookingConfirmation(newAppt.id);
         return;
       }

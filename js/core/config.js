@@ -203,16 +203,12 @@ const CONFIG = {
 
   // Communication templates
   templates: {
-    // Sent immediately after a visit is booked - introduces you, confirms the
-    // slot, and asks for anything needed ahead of time (clear windows,
-    // parking, extra info) so it doesn't have to be chased later.
-    booking_confirmed: {
-      consultation: "Hi {{firstName}}, thanks for booking! I've got you down for {{date}} at {{time}} at {{address}}. Ahead of the visit, could you make sure the windows we'll be looking at are clear of anything blocking access? If there's anywhere specific I should park, or anything else I should know, just reply here. — {{advisorName}}",
-      measure: "Hi {{firstName}}, thanks for booking! I'll be with you on {{date}} at {{time}} at {{address}} to measure up. Could you make sure the windows to be measured are clear so I can get accurate figures? Let me know if there's anywhere specific to park, or anything else useful to know. — {{advisorName}}",
-      fitting: "Hi {{firstName}}, your fitting is booked for {{date}} at {{time}} at {{address}}. Please could you clear the area around the windows being fitted? Let me know about parking or anything else ahead of time. — {{advisorName}}",
-      review: "Hi {{firstName}}, I've booked in a follow-up visit for {{date}} at {{time}} to check everything's looking good. Let me know if there's anywhere specific to park, or anything you'd like me to look at. — {{advisorName}}",
-      service_call: "Hi {{firstName}}, I've booked in to come and sort the issue on {{date}} at {{time}} at {{address}}. Could you make sure the area is clear so I can get straight to it? Let me know about parking or anything else useful. — {{advisorName}}"
-    },
+    // Booking-confirmation messages are now built dynamically by
+    // NotificationService.buildBookingConfirmationMessage (see
+    // js/services/notification.js) - the wording adapts to how far off the
+    // visit is (today / tomorrow / this week / further out), which a fixed
+    // per-type string here couldn't do. Kept the day-before reminder as a
+    // plain template since that one's always sent with the same lead time.
     // Sent the day before - a lighter reminder, not the full ask again.
     day_before: "Hi {{firstName}}, just a reminder I'll be with you tomorrow at {{time}} at {{address}}. Let me know if anything's changed. — {{advisorName}}",
     confirmation: {

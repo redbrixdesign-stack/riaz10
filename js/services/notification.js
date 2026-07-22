@@ -13,6 +13,55 @@ const NotificationService = {
     return result;
   },
 
+  // A booking made three days out and a booking made the night before don't
+  // read the same way to the customer, even if the visit itself is
+  // identical - "looking forward to Thursday" sent on Monday feels normal,
+  // but the same phrasing sent an hour before a same-day visit feels off,
+  // and a generic line sent four days out misses the chance to say a
+  // reminder is coming so they don't have to hold the date in their head.
+  // This picks an opening and sign-off tuned to the actual gap between
+  // "now" and the visit, then wraps the same per-type practical ask
+  // (windows clear, parking, etc.) that's always needed regardless of
+  // timing - the personalization is in the framing, not the substance.
+  buildBookingConfirmationMessage({ firstName, date, dateLabel, time, address, type, advisorName }) {
+    const name = firstName || 'there';
+    const author = advisorName || 'Your Advisor';
+    let daysUntil = null;
+    if (date instanceof Date && !isNaN(date)) {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const visitDay = new Date(date); visitDay.setHours(0, 0, 0, 0);
+      daysUntil = Math.round((visitDay - today) / 86400000);
+    }
+    const tier = daysUntil === null ? 'soon' : daysUntil <= 0 ? 'today' : daysUntil === 1 ? 'tomorrow' : daysUntil <= 3 ? 'soon' : 'later';
+
+    const openings = {
+      today: `Hi ${name}, thanks for booking! I'll be with you today at ${time}.`,
+      tomorrow: `Hi ${name}, thanks for booking — looking forward to seeing you tomorrow at ${time}.`,
+      soon: `Hi ${name}, thanks for booking! I've got you down for ${dateLabel} at ${time}.`,
+      later: `Hi ${name}, thanks for booking! You're all set for ${dateLabel} at ${time} — that's a little way off yet, so I'll drop you a reminder closer to the day, but wanted to say hello now and flag a couple of things ahead of time:`
+    };
+
+    const asks = {
+      consultation: "It'd help if the windows we'll be looking at are clear of anything in the way — and if there's anywhere specific you'd like me to park, just let me know.",
+      measure: 'For accurate measurements, could you make sure the windows we\'re measuring are clear? Let me know if there\'s somewhere specific to park too.',
+      fitting: 'Could you clear the area around the windows being fitted before I arrive? Let me know about parking or anything else useful.',
+      review: "Let me know if there's anywhere specific to park, or anything in particular you'd like me to take a look at.",
+      service_call: "Could you make sure the area's clear so I can get straight to it? Let me know about parking too."
+    };
+
+    const closings = {
+      today: 'See you shortly!',
+      tomorrow: 'See you tomorrow!',
+      soon: 'Speak soon!',
+      later: "That's everything for now — see you then!"
+    };
+
+    const ask = asks[type] || asks.consultation;
+    const opening = openings[tier];
+    const closing = closings[tier];
+    return `${opening} ${ask} ${closing} — ${author}`;
+  },
+
   // Send WhatsApp message
   sendWhatsApp(phone, message) {
     const url = Utils.buildWhatsAppUrl(phone, message);

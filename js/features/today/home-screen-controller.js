@@ -766,8 +766,14 @@ const HomeScreenController = {
     const name = Utils.escapeHtml(active.clientName || 'Customer');
     const address = Utils.escapeHtml(active.address || '');
     const time = Utils.escapeHtml(Utils.formatTime(active.date));
-    const smsMessage = `Hi ${active.clientName || ''}, on my way to you now — see you around ${Utils.formatTime(active.date)}.`.trim();
-    const statusLabel = isOnSite ? 'On site' : isInTransit ? 'On the way' : 'Up next';
+    // A visit whose slot time has already passed and hasn't been marked
+    // on-site is "running late" rather than "up next" - the two need
+    // different messaging (see sendOnMyWayMessage) and a way to push the
+    // slot rather than silently keep showing a time that's already gone by.
+    // 5-minute grace period so the moment the slot starts doesn't instantly
+    // flip the label.
+    const isLate = !isOnSite && (Date.now() - new Date(active.date).getTime()) > 5 * 60 * 1000;
+    const statusLabel = isOnSite ? 'On site' : isLate ? 'Running late' : isInTransit ? 'On the way' : 'Up next';
 
     // On-site means driving there makes no sense — swap the nav button for
     // a direct link into the outcome/completion flow instead. Only possible
@@ -798,7 +804,7 @@ const HomeScreenController = {
         </div>
 
         <div class="hsc-vanmode-card">
-          <div class="hsc-vanmode-time">${time}</div>
+          <div class="hsc-vanmode-time">${time}${isLate ? ' <span style="font-size:13px;font-weight:600;color:var(--warning,#b06000);">· running late</span>' : ''}</div>
           <div class="hsc-vanmode-name">${name}</div>
           <div class="hsc-vanmode-address">${address || 'No address set'}</div>
         </div>
@@ -807,17 +813,62 @@ const HomeScreenController = {
 
         <button class="btn btn-outline btn-block hsc-vanmode-sms-btn"
                 type="button"
-                onclick="NotificationService.sendSMS('${Utils.escapeJsString(active.phone || '')}', '${Utils.escapeJsString(smsMessage)}')"
+                id="hsc-sms-btn-${active.id}"
+                onclick="HomeScreenController.sendOnMyWayMessage(${active.id})"
                 ${active.phone ? '' : 'disabled'}>
           <span class="material-symbols-rounded">sms</span>
-          Text ${name.split(' ')[0] || 'client'} I'm on my way
+          Text ${name.split(' ')[0] || 'client'} ${isLate ? "I'm running late" : "I'm on my way"}
         </button>
+
+        ${isLate ? `
+        <button class="btn btn-outline btn-block"
+                type="button"
+                onclick="AppointmentsFeature.openRescheduleModal(${active.id})">
+          <span class="material-symbols-rounded">edit_calendar</span>
+          Give a New Time
+        </button>
+        ` : ''}
 
         <div style="text-align: center;">
           ${this.renderAddVisitLink()}
         </div>
       </div>
     `;
+  },
+
+  // Builds the "on my way" / "running late" text at send time, not render
+  // time, since the right message depends on live info (a fresh ETA
+  // calculation) rather than what was true when the screen was drawn -
+  // someone might sit on this screen for 20 minutes before tapping the
+  // button, during which "on time" can quietly become "late" or a slow ETA
+  // calc could go stale. A slot time that's already passed is never
+  // repeated back to the customer as if it's still coming up - that's the
+  // core of what was going wrong before this fix.
+  async sendOnMyWayMessage(appointmentId) {
+    const btn = document.getElementById(`hsc-sms-btn-${appointmentId}`);
+    const originalHtml = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="material-symbols-rounded spin">progress_activity</span> Working out ETA…'; }
+    try {
+      const appt = await DB.db.appointments.get(appointmentId);
+      if (!appt) { Toast.show('Visit not found', 'error'); return; }
+      const isLate = (Date.now() - new Date(appt.date).getTime()) > 5 * 60 * 1000;
+      const firstName = (appt.clientName || '').split(' ')[0] || '';
+      let message;
+      if (isLate) {
+        let eta = null;
+        try { eta = await TalkFeature.getLiveEta(appt); } catch (e) {}
+        message = eta
+          ? `Hi ${firstName}, sorry for the delay — on my way now, should be with you in about ${eta.etaMin} min${eta.etaMin === 1 ? '' : 's'}.`.trim()
+          : `Hi ${firstName}, sorry, running a bit behind schedule today — I'll confirm a new time with you shortly.`.trim();
+      } else {
+        message = `Hi ${firstName}, on my way to you now — see you around ${Utils.formatTime(appt.date)}.`.trim();
+      }
+      NotificationService.sendSMS(appt.phone || '', message);
+    } catch (e) {
+      Toast.show('Could not prepare message', 'error');
+    } finally {
+      if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
+    }
   },
 
   buildProgressBar(done, total, width = 10) {
