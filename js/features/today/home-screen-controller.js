@@ -145,11 +145,41 @@ const HomeScreenController = {
     let base = null;
     try { base = await RouteFeature.getBasePoint(); } catch (e) {}
 
+    // The travel-time line wasn't showing at all before this - because
+    // appointments only ever get geocoded when the Route screen loads
+    // (RouteFeature.ensureAppointmentCoords), and Home never called it. A
+    // freshly-booked visit sat with no latLng indefinitely until someone
+    // happened to open Route first. Doing it here too means Home can show a
+    // travel estimate the first time you look, not just after a detour
+    // through another screen.
+    try { dayAppts = await RouteFeature.ensureAppointmentCoords(dayAppts); } catch (e) {}
+
+    // Chained, not all-from-base: the first stop is measured from base (an
+    // advisor's real starting point), but every stop after that is measured
+    // from the ONE BEFORE it - matching how the day actually drives, not
+    // "drive home and back out again before every visit". Precomputed here,
+    // in chronological order, before the list gets split into
+    // Morning/Afternoon/Evening groups for display - the chain has to follow
+    // time order regardless of which group a stop lands in.
+    const travelLabels = new Map();
+    let chainPoint = base?.latLng || null;
+    for (const a of dayAppts) {
+      if (chainPoint && Array.isArray(a.latLng) && a.latLng.length === 2) {
+        const km = RouteFeature.calculateLegKm(chainPoint, a.latLng);
+        const mins = Math.max(1, Math.round((km / 35) * 60));
+        travelLabels.set(a.id, `${mins} min`);
+      }
+      if (Array.isArray(a.latLng) && a.latLng.length === 2) chainPoint = a.latLng;
+    }
+
     let upNextCardHtml = '';
     if (isToday) {
       const active = dayAppts.find(a => a.status !== 'completed');
       if (active) upNextCardHtml = this.renderUpNextBanner(active);
     }
+
+    let followUpCount = 0;
+    try { followUpCount = await TalkFeature.getDueFollowUpCount(); } catch (e) {}
 
     const dayStripHtml = weekDays.map(d => {
       const isSelected = d.getTime() === selected.getTime();
@@ -165,10 +195,16 @@ const HomeScreenController = {
 
     const listHtml = dayAppts.length === 0
       ? `<div class="hsc-empty" style="margin-top:24px;">Nothing booked ${isToday ? 'today' : 'this day'}.</div>`
-      : this.renderGroupedVisitList(dayAppts, base);
+      : this.renderGroupedVisitList(dayAppts, travelLabels);
 
     return `
       <div class="hsc-root hsc-weekly fade-in">
+        <div class="hsc-week-toprow">
+          <button class="hsc-week-icon-btn" type="button" aria-label="Search visits" onclick="App.navigate('appointments')">
+            <span class="material-symbols-rounded">search</span>
+          </button>
+        </div>
+
         <div class="hsc-week-header">
           <button class="hsc-week-nav" type="button" aria-label="Previous day" onclick="HomeScreenController.shiftSelectedDay(-1)">
             <span class="material-symbols-rounded">chevron_left</span>
@@ -184,6 +220,14 @@ const HomeScreenController = {
 
         <div class="hsc-week-strip">${dayStripHtml}</div>
 
+        ${followUpCount > 0 ? `
+        <button class="hsc-followup-badge" type="button" onclick="App.navigate('talk')">
+          <span class="material-symbols-rounded">campaign</span>
+          ${followUpCount} follow-up${followUpCount === 1 ? '' : 's'} due
+          <span class="material-symbols-rounded" style="margin-left:auto;">chevron_right</span>
+        </button>
+        ` : ''}
+
         ${upNextCardHtml}
 
         <div class="hsc-week-list">${listHtml}</div>
@@ -195,7 +239,7 @@ const HomeScreenController = {
     `;
   },
 
-  renderGroupedVisitList(appts, base) {
+  renderGroupedVisitList(appts, travelLabels) {
     const groups = { Morning: [], Afternoon: [], Evening: [] };
     for (const a of appts) {
       const h = new Date(a.date).getHours();
@@ -205,28 +249,14 @@ const HomeScreenController = {
       .filter(([, list]) => list.length > 0)
       .map(([label, list]) => `
         <div class="hsc-week-group-label">${label}</div>
-        ${list.map(a => this.renderWeeklyVisitRow(a, base)).join('')}
+        ${list.map(a => this.renderWeeklyVisitRow(a, travelLabels.get(a.id))).join('')}
       `).join('');
   },
 
-  // A per-row distance-from-base estimate, not a live GPS calculation -
-  // browsing a whole day's list would mean several GPS/route calls at once
-  // if each row queried live position. The single "up next" banner above
-  // (renderUpNextBanner, today only) uses the real live ETA via
-  // TalkFeature.getLiveEta; this is deliberately the cheaper, static figure
-  // for everything else in the list.
-  estimateTravelLabel(appt, base) {
-    if (!base?.latLng || !Array.isArray(appt.latLng) || appt.latLng.length !== 2) return null;
-    const km = RouteFeature.calculateLegKm(base.latLng, appt.latLng);
-    const mins = Math.max(1, Math.round((km / 35) * 60));
-    return `${mins} min`;
-  },
-
-  renderWeeklyVisitRow(appt, base) {
+  renderWeeklyVisitRow(appt, travel) {
     const name = Utils.escapeHtml(appt.clientName || 'Customer');
     const address = Utils.escapeHtml(appt.address || 'No address set');
     const time = Utils.escapeHtml(Utils.formatTime(appt.date));
-    const travel = this.estimateTravelLabel(appt, base);
     const isDone = appt.status === 'completed';
     const phone = appt.phone || '';
 
@@ -1392,6 +1422,35 @@ const HomeScreenController = {
 
       /* Weekly calendar home screen */
       .hsc-weekly { gap: var(--space-sm); }
+      .hsc-week-toprow {
+        display: flex;
+        justify-content: flex-end;
+      }
+      .hsc-week-icon-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: 1px solid var(--border-light);
+        background: var(--surface);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+      .hsc-followup-badge {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        background: var(--warning-light, #fff3e0);
+        border: 1px solid var(--warning, #b06000);
+        color: var(--warning, #b06000);
+        border-radius: var(--radius-md);
+        padding: 10px 14px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
       .hsc-week-header {
         display: flex;
         align-items: center;

@@ -7,6 +7,12 @@ const AppointmentsFeature = {
   id: 'appointments',
   name: 'Visits',
   icon: 'calendar_month',
+  // No longer a bottom-nav tab (see the Home screen redesign) - the visit
+  // list/search/area-analysis screen this renders by default is now reached
+  // via the search icon on Home, and individual visits via the weekly
+  // calendar. Still fully navigable with App.navigate('appointments', ...)
+  // from anywhere; this only controls the persistent nav icon.
+  route: false,
 
   init() {
     // Nothing needed

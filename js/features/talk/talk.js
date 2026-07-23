@@ -7,6 +7,11 @@ const TalkFeature = {
   id: 'talk',
   name: 'Talk',
   icon: 'chat',
+  // No longer a bottom-nav tab (see the Home screen redesign) - the
+  // follow-up queue this screen builds is now surfaced as a badge on Home
+  // instead of needing its own persistent icon. Still fully navigable with
+  // App.navigate('talk') from anywhere; this only controls the nav icon.
+  route: false,
   pendingMessage: null,
 
   render(params = {}) {
