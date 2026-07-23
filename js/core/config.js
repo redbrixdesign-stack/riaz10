@@ -168,7 +168,10 @@ const CONFIG = {
       { id: 'cancelled', name: 'Cancelled', icon: 'cancel', nextAction: 'close_lost' }
     ],
     fitting: [
-      { id: 'completed', name: 'Completed', icon: 'check_circle', nextAction: 'request_review' },
+      { id: 'completed', name: 'Fitted', icon: 'check_circle', nextAction: 'request_review' },
+      { id: 'not_ready', name: 'Not Fitted - Customer Not Ready', icon: 'event_busy', nextAction: 'rebook' },
+      { id: 'advisor_unavailable', name: 'Not Fitted - Could Not Attend', icon: 'person_off', nextAction: 'rebook' },
+      { id: 'refused_child_safety', name: 'Not Fitted - Refused Child Safety Install', icon: 'warning', nextAction: 'log_compliance_refusal' },
       { id: 'partial', name: 'Partial', icon: 'timelapse', nextAction: 'schedule_return' },
       { id: 'customer_no_show', name: 'Customer No Show', icon: 'person_off', nextAction: 'rebook' },
       { id: 'spec_mismatch', name: 'Specification Mismatch', icon: 'rule', nextAction: 'resolve_spec' },

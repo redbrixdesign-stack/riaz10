@@ -471,9 +471,15 @@ const Geo = {
   },
 
   // Geocode address to lat/lng
+  // Matches a UK postcode anywhere in a free-text address string.
+  extractPostcode(address) {
+    const m = String(address || '').match(/\b([A-Z]{1,2}\d[A-Z\d]?)\s*(\d[A-Z]{2})\b/i);
+    return m ? `${m[1].toUpperCase()} ${m[2].toUpperCase()}` : null;
+  },
+
   async geocode(address) {
     try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`;
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=gb`;
       const response = await this._fetchWithRateLimit(url);
       const data = await response.json();
       if (data && data[0]) {
@@ -482,6 +488,30 @@ const Geo = {
           lng: parseFloat(data[0].lon),
           displayName: data[0].display_name
         };
+      }
+      // A real, correctly-written address can still come back empty here -
+      // Nominatim runs on OpenStreetMap's community-maintained data, which
+      // has much patchier building-level coverage than a commercial map
+      // provider (the kind a phone's own Maps app uses for turn-by-turn
+      // navigation). UK postcodes, by contrast, are a well-maintained
+      // reference dataset even in areas where individual addresses aren't
+      // fully mapped - so if the full address fails, retry with just the
+      // postcode. That's not as precise as the exact building, but it
+      // places the stop on the right street, which is what a same-day
+      // route actually needs - a lot better than "not found".
+      const postcode = this.extractPostcode(address);
+      if (postcode) {
+        const pcUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(postcode + ', UK')}&limit=1&countrycodes=gb`;
+        const pcResponse = await this._fetchWithRateLimit(pcUrl);
+        const pcData = await pcResponse.json();
+        if (pcData && pcData[0]) {
+          return {
+            lat: parseFloat(pcData[0].lat),
+            lng: parseFloat(pcData[0].lon),
+            displayName: pcData[0].display_name,
+            postcodeOnly: true
+          };
+        }
       }
       return null;
     } catch (err) {

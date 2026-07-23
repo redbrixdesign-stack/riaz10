@@ -2507,6 +2507,19 @@ const AppointmentsFeature = {
     const saleOutcome = outcomeId === 'ordered';
     const valueLabel = saleOutcome ? 'Sale Amount (&pound;)' : 'Quote Amount (&pound;)';
     const commissionHint = this.getCommissionHint();
+    // Stashed for updateOutcomeCommission's live preview - same data the old
+    // standalone Discount Impact tool needed, now fetched once right where
+    // it's actually relevant (recording a real sale) instead of a separate
+    // disconnected calculator the advisor had to re-enter the same figures
+    // into a second time.
+    if (saleOutcome) {
+      try {
+        const weekSales = await TodayFeature.getWeekSales();
+        this._outcomeDiscountContext = { weekSales, target: TaxCalculator.getRequiredWeeklySales(CONFIG.weeklyTarget) };
+      } catch (e) {
+        this._outcomeDiscountContext = null;
+      }
+    }
 
     // Show outcome detail modal
     const content = `
@@ -2525,10 +2538,15 @@ const AppointmentsFeature = {
           </div>
           ${saleOutcome ? `
             <div class="form-group">
+              <label>Discount Offered (%) <span style="font-weight:400;color:var(--text-tertiary);">- optional</span></label>
+              <input type="number" class="input" id="outcome-discount" placeholder="0" step="1" min="0" max="100" inputmode="decimal" oninput="AppointmentsFeature.updateOutcomeCommission()">
+            </div>
+            <div class="form-group">
               <label>Commission</label>
               <input type="text" class="input" id="outcome-commission" value="${Utils.formatCurrency(0)}" readonly aria-live="polite">
               <div class="hint">${Utils.escapeHtml(commissionHint)} Change this in Settings if your rate changes.</div>
             </div>
+            <div id="outcome-discount-breakdown"></div>
           ` : `
             <div class="hint" style="margin-top:-8px;margin-bottom:14px;">Quote value is kept on the table, but no commission is counted until it becomes an order.</div>
           `}
@@ -2588,11 +2606,38 @@ const AppointmentsFeature = {
   },
 
   updateOutcomeCommission() {
-    const value = parseFloat(document.getElementById('outcome-value')?.value || 0);
+    const valueEl = document.getElementById('outcome-value');
+    const discountEl = document.getElementById('outcome-discount');
     const commissionEl = document.getElementById('outcome-commission');
-    if (!commissionEl) return;
-    const commission = value > 0 ? TaxCalculator.estimateCommission(value) : 0;
+    const breakdownEl = document.getElementById('outcome-discount-breakdown');
+    if (!valueEl || !commissionEl) return;
+
+    const grossValue = parseFloat(valueEl.value) || 0;
+    const discountPct = discountEl ? Math.min(100, Math.max(0, parseFloat(discountEl.value) || 0)) : 0;
+    const netValue = grossValue * (1 - discountPct / 100);
+    const commission = netValue > 0 ? TaxCalculator.estimateCommission(netValue) : 0;
     commissionEl.value = Utils.formatCurrency(commission);
+
+    if (!breakdownEl) return;
+    if (discountPct <= 0 || grossValue <= 0) { breakdownEl.innerHTML = ''; return; }
+
+    const discountAmount = grossValue - netValue;
+    const ctx = this._outcomeDiscountContext;
+    const targetHtml = ctx ? (() => {
+      const projectedTotal = ctx.weekSales + netValue;
+      const stillHitsTarget = projectedTotal >= ctx.target;
+      return `<div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+        <span class="material-symbols-rounded" style="font-size:18px;color:${stillHitsTarget ? 'var(--secondary)' : 'var(--danger)'};">${stillHitsTarget ? 'check_circle' : 'warning'}</span>
+        <span style="font-size:12px;font-weight:600;color:${stillHitsTarget ? 'var(--secondary)' : 'var(--danger)'};">${stillHitsTarget ? 'Still on target' : 'Target may be at risk'} - ${Utils.formatCurrency(projectedTotal)} of ${Utils.formatCurrency(ctx.target)} this week</span>
+      </div>`;
+    })() : '';
+
+    breakdownEl.innerHTML = `
+      <div style="background:var(--bg);border-radius:12px;padding:12px 14px;margin-top:-8px;margin-bottom:14px;font-size:13px;color:var(--text-secondary);line-height:1.6;">
+        Discount: <strong>${Utils.formatCurrency(discountAmount)}</strong> · Sale after discount: <strong>${Utils.formatCurrency(netValue)}</strong>
+        ${targetHtml}
+      </div>
+    `;
   },
 
   getCommissionHint() {
@@ -2609,7 +2654,17 @@ const AppointmentsFeature = {
   },
 
   async saveOutcome(id, outcomeId) {
-    const value = parseFloat(document.getElementById('outcome-value')?.value || 0);
+    const grossValue = parseFloat(document.getElementById('outcome-value')?.value || 0);
+    const discountPct = outcomeId === 'ordered'
+      ? Math.min(100, Math.max(0, parseFloat(document.getElementById('outcome-discount')?.value || 0)))
+      : 0;
+    // The discount is applied here, at the one place a real sale value gets
+    // entered, rather than in a separate calculator the advisor had to
+    // duplicate the same figures into. `value` (what feeds weekly-target,
+    // tax, and order totals everywhere downstream) is always the actual
+    // discounted figure - grossValue/discountPercent are kept alongside it
+    // purely as a record of what was offered, not used in any calculation.
+    const value = discountPct > 0 ? grossValue * (1 - discountPct / 100) : grossValue;
     const commission = value > 0 && outcomeId === 'ordered'
       ? TaxCalculator.estimateCommission(value)
       : 0;
@@ -2625,7 +2680,8 @@ const AppointmentsFeature = {
       let appt = await DB.db.appointments.get(id);
       const existingNotes = appt.notes || '';
       const reasonText = reason ? `Reason: ${reason.replace(/_/g, ' ')}` : '';
-      const outcomeNote = [reasonText, notes ? `Outcome: ${notes}` : ''].filter(Boolean).join('\n');
+      const discountText = discountPct > 0 ? `Discount: ${discountPct}% off ${Utils.formatCurrency(grossValue)}` : '';
+      const outcomeNote = [reasonText, discountText, notes ? `Outcome: ${notes}` : ''].filter(Boolean).join('\n');
 
       await DB.db.appointments.update(id, {
         status: 'completed',
@@ -2633,6 +2689,8 @@ const AppointmentsFeature = {
         quoteReason: outcomeId === 'quoted' ? reason || undefined : appt.quoteReason,
         value: value || undefined,
         commission: commission || undefined,
+        grossValue: discountPct > 0 ? grossValue : undefined,
+        discountPercent: discountPct > 0 ? discountPct : undefined,
         notes: outcomeNote ? [existingNotes, outcomeNote].filter(Boolean).join('\n\n') : existingNotes,
         // Additive fields (see js/core/geo.js travelStatus comment) — a real
         // completion timestamp instead of inferring "now" from elsewhere,

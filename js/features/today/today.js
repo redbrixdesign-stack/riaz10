@@ -134,10 +134,6 @@ const TodayFeature = {
           <span class="material-symbols-rounded">receipt</span>
           Expense
         </button>
-        <button class="notebook-action" onclick="TodayFeature.openDiscountCalculator()">
-          <span class="material-symbols-rounded">percent</span>
-          Discount
-        </button>
         <button class="notebook-action" onclick="App.navigate('talk')">
           <span class="material-symbols-rounded">chat</span>
           Follow up
@@ -510,77 +506,6 @@ const TodayFeature = {
       const daysSince = Utils.daysBetween(now, p.date);
       return daysSince >= 3; // due for a nudge
     }).slice(0, 5);
-  },
-
-  // ── DISCOUNT CALCULATOR ──────────────────────────────────────────────────
-  async openDiscountCalculator() {
-    const weekSales = await this.getWeekSales();
-    const target = TaxCalculator.getRequiredWeeklySales(CONFIG.weeklyTarget);
-    const remaining = Math.max(0, target - weekSales);
-
-    const content = `
-      <div class="sheet-handle"></div>
-      <div class="sheet-header">
-        <h3>Discount Impact</h3>
-        <button class="btn btn-ghost btn-sm" onclick="App.closeModal()">
-          <span class="material-symbols-rounded">close</span>
-        </button>
-      </div>
-      <div class="sheet-body">
-        <div class="inset-dark" style="background: var(--bg); border-radius: 12px; padding: 14px; margin-bottom: 16px;">
-	          <div style="font-size: 12px; color: var(--text-tertiary);">Sales this week</div>
-	          <div style="font-size: 20px; font-weight: 700;">${Utils.formatCurrency(weekSales)} <span style="font-size: 13px; font-weight: 400; color: var(--text-tertiary);">of ${Utils.formatCurrency(target)} target</span></div>
-        </div>
-
-        <div class="form-group">
-          <label>Expected Order Value Before Discount (£)</label>
-          <input type="number" class="input" id="disc-value" placeholder="0.00" step="1" min="0" oninput="TodayFeature.calcDiscount()">
-        </div>
-        <div class="form-group">
-          <label>Discount Offered (%)</label>
-          <input type="number" class="input" id="disc-percent" placeholder="10" step="1" min="0" max="100" oninput="TodayFeature.calcDiscount()">
-        </div>
-
-        <div id="disc-result" style="margin-top: 16px;"></div>
-      </div>
-    `;
-    App.openModal(content);
-    this._discountContext = { weekSales, target, remaining };
-  },
-
-  calcDiscount() {
-    const valueEl = document.getElementById('disc-value');
-    const pctEl = document.getElementById('disc-percent');
-    const resultEl = document.getElementById('disc-result');
-    if (!valueEl || !pctEl || !resultEl) return;
-
-    const value = parseFloat(valueEl.value) || 0;
-    const pct = parseFloat(pctEl.value) || 0;
-    const discountAmount = value * (pct / 100);
-    const netValue = value - discountAmount;
-    const projectedCommission = TaxCalculator.estimateCommission(netValue);
-    const { weekSales, target } = this._discountContext || { weekSales: 0, target: TaxCalculator.getRequiredWeeklySales(CONFIG.weeklyTarget) };
-    const projectedTotal = weekSales + netValue;
-    const stillHitsTarget = projectedTotal >= target;
-
-    resultEl.innerHTML = `
-      <div style="background: ${stillHitsTarget ? 'var(--secondary-light)' : 'var(--danger-light)'}; border-radius: 12px; padding: 16px;">
-        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-          <span class="material-symbols-rounded" style="color: ${stillHitsTarget ? 'var(--secondary)' : 'var(--danger)'};">
-            ${stillHitsTarget ? 'check_circle' : 'warning'}
-          </span>
-          <span style="font-weight: 700; color: ${stillHitsTarget ? 'var(--secondary)' : 'var(--danger)'};">
-            ${stillHitsTarget ? 'Still on target' : 'Target may be at risk'}
-          </span>
-        </div>
-        <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
-          Discount amount: <strong>${Utils.formatCurrency(discountAmount)}</strong><br>
-          Order value after discount: <strong>${Utils.formatCurrency(netValue)}</strong><br>
-          Estimated commission: <strong>${Utils.formatCurrency(projectedCommission)}</strong><br>
-          Projected sales week: <strong>${Utils.formatCurrency(projectedTotal)}</strong> of ${Utils.formatCurrency(target)}
-        </div>
-      </div>
-    `;
   },
 
   // ── END OF DAY ────────────────────────────────────────────────────────────

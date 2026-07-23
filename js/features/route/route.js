@@ -70,6 +70,13 @@ const RouteFeature = {
     const distLabel = routeDistance > 0 ? Utils.formatDistance(routeDistance) : (hasVisits ? 'offline' : '--');
     const timeLabel = routeTime > 0 ? `${routeTime} min` : (hasVisits ? 'offline' : '--');
     const savingLabel = routeDistance > 0 ? Utils.formatCurrency(routeSaving) : (hasVisits ? 'offline' : '--');
+    // calculateDayLoopDistance silently skips any stop without coordinates -
+    // that's correct behaviour for the maths (you can't measure a distance
+    // to nowhere), but left as just a number on screen it reads as "today's
+    // total" when it might only be one stop out of three. Tax relief in
+    // particular is a real figure the person may rely on, so an
+    // undercounted total needs to say so, not just look confident.
+    const missingCount = appointments.filter(a => !Array.isArray(a.latLng) || a.latLng.length !== 2).length;
 
     return `
       <div class="fade-in route-screen">
@@ -106,6 +113,11 @@ const RouteFeature = {
               <span>Tax Relief</span>
             </div>
           </div>
+          ${missingCount > 0 ? `
+          <div id="route-partial-note" style="font-size:12px;color:var(--warning,#b06000);text-align:center;padding-top:8px;">
+            These totals only count ${appointments.length - missingCount} of ${appointments.length} stops - ${missingCount} location${missingCount === 1 ? '' : 's'} couldn't be placed on the map, see below.
+          </div>
+          ` : '<div id="route-partial-note"></div>'}
         </div>
 
         ${this.renderRoutePlan(plan)}
@@ -169,7 +181,7 @@ const RouteFeature = {
       return { address, latLng: CONFIG.businessLatLng };
     }
     try {
-      const geo = await this.withTimeout(Geo.geocode(address), 2500);
+      const geo = await this.withTimeout(Geo.geocode(address), 4000);
       if (geo) {
         CONFIG.businessLatLng = [geo.lat, geo.lng];
         this.persistBasePoint();
@@ -209,7 +221,13 @@ const RouteFeature = {
         continue;
       }
       try {
-        const geo = await this.withTimeout(Geo.geocode(appt.address), 1800);
+        // 4000ms, not the old 1800ms: geocode() may now make a second
+        // request (the postcode fallback) when the first comes back empty,
+        // and Geo's own throttle can add up to ~1200ms between the two. The
+        // old timeout was tight enough to cut the fallback off mid-flight on
+        // a real address that only the fallback could resolve - silently
+        // discarding a result that would have arrived a moment later.
+        const geo = await this.withTimeout(Geo.geocode(appt.address), 4000);
         if (geo) {
           const latLng = [geo.lat, geo.lng];
           try { await DB.db.appointments.update(appt.id, { latLng }); } catch (e) {}
@@ -963,10 +981,18 @@ const RouteFeature = {
     const distEl = document.getElementById('route-distance');
     const timeEl = document.getElementById('route-time');
     const savingEl = document.getElementById('route-saving');
+    const noteEl = document.getElementById('route-partial-note');
 
     if (distEl) distEl.textContent = Utils.formatDistance(distanceKm);
     if (timeEl) timeEl.textContent = `${Math.round(time)} min`;
     if (savingEl) savingEl.textContent = Utils.formatCurrency(mileageSaving);
+    if (noteEl) {
+      const missingCount = appointments.filter(a => !Array.isArray(a.latLng) || a.latLng.length !== 2).length;
+      noteEl.textContent = missingCount > 0
+        ? `These totals only count ${appointments.length - missingCount} of ${appointments.length} stops - ${missingCount} location${missingCount === 1 ? '' : 's'} couldn't be placed on the map, see below.`
+        : '';
+      noteEl.style.cssText = missingCount > 0 ? 'font-size:12px;color:var(--warning,#b06000);text-align:center;padding-top:8px;' : '';
+    }
   },
 
   async optimizeRoute() {

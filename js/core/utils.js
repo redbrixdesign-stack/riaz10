@@ -141,6 +141,9 @@ const Utils = {
         year: 'numeric'
       });
     }
+    if (format === 'weekday-short') {
+      return d.toLocaleDateString('en-GB', { weekday: 'short' });
+    }
     if (format === 'time') {
       return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     }
