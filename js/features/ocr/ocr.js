@@ -130,10 +130,10 @@ const OCRFeature = {
     }
 
     try {
-      const result = await this.withTimeout(
+      const result = await Utils.withTimeout(
         Tesseract.recognize(file, 'eng'),
         15000,
-        'OCR timed out'
+        { message: 'OCR timed out' }
       );
 
       // The Hillarys screens Riaz scans put a real address card on the left
@@ -202,7 +202,7 @@ const OCRFeature = {
           const v = this.extractedData[k] || '';
           const upper = k === 'postcode' ? ' style="text-transform:uppercase;"' : '';
           const label = fieldLabels[k] || k.replace(/([A-Z])/g,' $1').trim();
-          return `<div class="form-group"><label style="text-transform:capitalize;">${Utils.escapeHtml(label)}</label><input type="text" class="input" id="ocr-${Utils.escapeAttr(k)}" value="${Utils.escapeAttr(v)}"${upper}></div>`;
+          return `<div class="form-group"><label style="text-transform:capitalize;">${Utils.escapeHtml(label)}</label><input type="text" class="input" id="ocr-${Utils.escapeHtml(k)}" value="${Utils.escapeHtml(v)}"${upper}></div>`;
         }).join('')}`;
     document.getElementById('ocr-fields').innerHTML = fieldsHtml;
 
@@ -218,15 +218,6 @@ const OCRFeature = {
       </details>
     `;
     document.getElementById('ocr-fields').insertAdjacentHTML('afterend', rawTextHtml);
-  },
-
-  // Races a promise against a timeout so a slow/hung external call (Tesseract downloading
-  // its core+language files on first use) can't leave the UI stuck indefinitely.
-  withTimeout(promise, ms, timeoutMessage = 'Timed out') {
-    return Promise.race([
-      promise,
-      new Promise((_, reject) => setTimeout(() => reject(new Error(timeoutMessage)), ms))
-    ]);
   },
 
   // Lines that are screen furniture, not customer data - seen across CRM/job
@@ -730,12 +721,44 @@ const OCRFeature = {
       });
 
       if (typeof MessageScheduler !== 'undefined') MessageScheduler.reschedule();
-      Toast.show('Customer and visit saved', 'success');
+
+      // Warn-not-block validation: extracted values are saved as-is (a scan
+      // must never dead-end), but obviously off-looking fields get flagged so
+      // a bad OCR read isn't silently written into the customer record.
+      const issues = this.checkExtractedFields({ phone, postcode, date });
+      if (issues.length) {
+        Toast.show('Saved, but please double-check: ' + issues.join('; '), 'warning', 6000);
+      } else {
+        Toast.show('Customer and visit saved', 'success');
+      }
       App.navigate('appointments', { id: appointment.id });
     } catch (e) {
+      // The raw error (Dexie constraint strings, etc.) is noise to the
+      // person on the phone — log the detail, keep the message human.
       console.error('OCR save failed:', e);
-      Toast.show('Failed to save: ' + (e && e.message ? e.message : 'unknown error'), 'error');
+      Toast.show('Failed to save — please try again', 'error');
     }
+  },
+
+  // Shared warn-only sanity checks for scanned/manual fields. Returns a list
+  // of human-readable issues (empty when everything looks plausible). Never
+  // rejects anything — saving must keep working even when the OCR read badly.
+  checkExtractedFields({ phone, postcode, date }) {
+    const issues = [];
+    if (phone && !Utils.isValidPhone?.(phone)) issues.push('the phone number looks unusual');
+    if (postcode && !Utils.isValidPostcode?.(postcode)) issues.push('the postcode looks unusual');
+    if (date) {
+      const normalized = this.normalizeDateField(date);
+      if (!normalized) {
+        issues.push('the date couldn\'t be read — booked for today instead');
+      } else {
+        const farFuture = new Date(normalized + 'T00:00:00');
+        if (!isNaN(farFuture.getTime()) && farFuture.getTime() > Date.now() + 730 * 86400000) {
+          issues.push('the appointment date is more than 2 years away — please check it');
+        }
+      }
+    }
+    return issues;
   },
 
   async saveManual() {
@@ -785,11 +808,16 @@ const OCRFeature = {
       });
 
       if (typeof MessageScheduler !== 'undefined') MessageScheduler.reschedule();
-      Toast.show('Customer and visit saved', 'success');
+      const issues = this.checkExtractedFields({ phone, postcode });
+      if (issues.length) {
+        Toast.show('Saved, but please double-check: ' + issues.join('; '), 'warning', 6000);
+      } else {
+        Toast.show('Customer and visit saved', 'success');
+      }
       App.navigate('appointments', { id: appointment.id });
     } catch (e) {
       console.error('Manual save failed:', e);
-      Toast.show('Failed to save: ' + (e && e.message ? e.message : 'unknown error'), 'error');
+      Toast.show('Failed to save — please try again', 'error');
     }
   }
 };

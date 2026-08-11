@@ -2,13 +2,13 @@ const CACHE_NAME = 'advisoros-v6-10';
 const FONT_CACHE_NAME = 'advisoros-fonts-1';
 const STATIC_ASSETS = [
   './','index.html','css/core.css','css/components.css?v=13',
-  'js/vendor/dexie.min.js?v=1','js/vendor/minidexie.min.js?v=11',
-  'js/core/config.min.js?v=9','js/core/utils.min.js?v=5','js/core/db.min.js?v=14','js/core/geo.min.js?v=5','js/core/search.min.js?v=2','js/core/tax.min.js?v=2','js/core/app.min.js?v=6','js/core/contact.min.js?v=3',
-  'js/services/ai.min.js?v=2','js/services/notification.min.js?v=4','js/services/message-scheduler.min.js?v=1','js/services/export.min.js?v=2','js/services/weather.min.js?v=2',
-  'js/features/onboarding/onboarding.min.js?v=3','js/features/today/today.min.js?v=15','js/features/today/home-screen-controller.min.js?v=6','js/features/appointments/appointments.min.js?v=20','js/features/customer/customer.min.js?v=1','js/features/route/route.min.js?v=6',
-  'js/features/followups/followups.min.js?v=1','js/features/orders/orders.min.js?v=1',
-  'js/features/money/money.min.js?v=3','js/features/talk/talk.min.js?v=8','js/features/measure/measure.min.js?v=3',
-  'js/features/ocr/ocr.min.js?v=11','js/features/control/control.min.js?v=4','js/features/settings/settings.min.js?v=8'
+  'js/vendor/dexie.min.js?v=1','js/vendor/minidexie.min.js?v=12',
+  'js/core/config.min.js?v=9','js/core/utils.min.js?v=6','js/core/db.min.js?v=15','js/core/geo.min.js?v=6','js/core/search.min.js?v=2','js/core/tax.min.js?v=2','js/core/app.min.js?v=7','js/core/contact.min.js?v=3',
+  'js/services/ai.min.js?v=3','js/services/notification.min.js?v=5','js/services/message-scheduler.min.js?v=1','js/services/export.min.js?v=3','js/services/weather.min.js?v=3',
+  'js/features/onboarding/onboarding.min.js?v=4','js/features/today/today.min.js?v=16','js/features/today/home-screen-controller.min.js?v=7','js/features/appointments/appointments.min.js?v=21','js/features/customer/customer.min.js?v=2','js/features/route/route.min.js?v=7',
+  'js/features/followups/followups.min.js?v=1','js/features/orders/orders.min.js?v=2',
+  'js/features/money/money.min.js?v=4','js/features/talk/talk.min.js?v=9','js/features/measure/measure.min.js?v=4',
+  'js/features/ocr/ocr.min.js?v=12','js/features/control/control.min.js?v=4','js/features/settings/settings.min.js?v=9'
 ];
 
 const FONT_ORIGINS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
@@ -57,9 +57,15 @@ self.addEventListener('fetch', e => {
   // statement — a cache-first strategy here would keep serving old JS/CSS
   // indefinitely whenever the network is fine, contradicting the whole point
   // of shipping a fix. Falls back to cache (then to the app shell) only when
-  // the network genuinely isn't available.
+  // the network genuinely isn't available — or when it's stalled (captive
+  // portals, flaky WiFi), via the 6s timeout below. Without the timeout a
+  // request can hang for minutes on a connection that never actually fails,
+  // leaving the PWA stuck on a white screen instead of its cached shell.
   e.respondWith(
-    fetch(e.request).then(resp => {
+    Promise.race([
+      fetch(e.request),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('network timeout')), 6000))
+    ]).then(resp => {
       if (resp && resp.ok) caches.open(CACHE_NAME).then(c => c.put(e.request, resp.clone()));
       return resp;
     }).catch(() => caches.match(e.request).then(cached => cached || caches.match('index.html')))

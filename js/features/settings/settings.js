@@ -20,7 +20,7 @@ const SettingsFeature = {
           <div style="font-weight:600;margin-bottom:12px;">Your Details</div>
           <div class="form-group">
             <label>Name</label>
-            <input type="text" class="input" id="set-name" value="${Utils.escapeAttr(CONFIG.advisorName || '')}" placeholder="Your full name" onblur="SettingsFeature.setName(this.value)">
+            <input type="text" class="input" id="set-name" value="${Utils.escapeHtml(CONFIG.advisorName || '')}" placeholder="Your full name" onblur="SettingsFeature.setName(this.value)">
           </div>
           <div class="form-group">
             <label>Weekly Earnings Target (£)</label>
@@ -43,7 +43,7 @@ const SettingsFeature = {
           <div style="font-weight:600;margin-bottom:12px;">Company Branding</div>
           <div class="form-group" style="margin-bottom:0;">
             <label>Company Name</label>
-            <input type="text" class="input" id="set-company-name" value="${Utils.escapeAttr(CONFIG.companyName || '')}" placeholder="e.g. Your Company Ltd" onblur="SettingsFeature.setCompanyName(this.value)">
+            <input type="text" class="input" id="set-company-name" value="${Utils.escapeHtml(CONFIG.companyName || '')}" placeholder="e.g. Your Company Ltd" onblur="SettingsFeature.setCompanyName(this.value)">
             <div class="hint">Shown throughout the app in place of "AdvisorOS". Leave blank to use the default AdvisorOS branding.</div>
           </div>
         </div>
@@ -297,11 +297,11 @@ const SettingsFeature = {
 
         <div class="form-group" style="margin-top:10px;">
           <label>Proxy URL</label>
-          <input type="text" class="input" id="set-ai-url" value="${Utils.escapeAttr(ai.proxyUrl || '')}" placeholder="https://your-site.vercel.app/api/claude" onblur="SettingsFeature.setAIUrl(this.value)">
+          <input type="text" class="input" id="set-ai-url" value="${Utils.escapeHtml(ai.proxyUrl || '')}" placeholder="https://your-site.vercel.app/api/claude" onblur="SettingsFeature.setAIUrl(this.value)">
         </div>
         <div class="form-group">
           <label>Shared Secret (optional)</label>
-          <input type="password" class="input" id="set-ai-secret" value="${Utils.escapeAttr(ai.secret || '')}" placeholder="Only if your proxy requires X-AI-Key" onblur="SettingsFeature.setAISecret(this.value)">
+          <input type="password" class="input" id="set-ai-secret" value="" placeholder="${ai.secret ? 'Saved — leave blank to keep it' : 'Only if your proxy requires X-AI-Key'}" onblur="SettingsFeature.setAISecret(this.value)">
         </div>
         <div class="form-group">
           <label>OCR model (document reading)</label>
@@ -340,7 +340,12 @@ const SettingsFeature = {
   },
 
   setAISecret(value) {
-    CONFIG.ai = { ...(CONFIG.ai || {}), secret: value.trim() };
+    // The field never displays the stored secret (it renders empty), so a
+    // blank blur means "leave it as it is", not "delete it" — otherwise just
+    // tapping past the field would quietly wipe a working secret.
+    const trimmed = (value || '').trim();
+    if (!trimmed) return;
+    CONFIG.ai = { ...(CONFIG.ai || {}), secret: trimmed };
     this.persist();
     Toast.show('AI secret saved', 'success');
   },

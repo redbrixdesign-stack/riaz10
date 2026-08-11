@@ -288,7 +288,7 @@ const TalkFeature = {
     let usedLiveGPS = false;
 
     try {
-      const pos = await this.withTimeout(Geo.getCurrentPosition(), 4000);
+      const pos = await Utils.withTimeout(Geo.getCurrentPosition(), 4000, { resolveOnTimeout: null });
       if (pos) {
         fromLatLng = [pos.lat, pos.lng];
         usedLiveGPS = true;
@@ -297,7 +297,7 @@ const TalkFeature = {
 
     if (!fromLatLng) {
       try {
-        const base = await this.withTimeout(RouteFeature.getBasePoint(), 2500);
+        const base = await Utils.withTimeout(RouteFeature.getBasePoint(), 2500, { resolveOnTimeout: null });
         if (Array.isArray(base?.latLng)) fromLatLng = base.latLng;
       } catch (e) {}
     }
@@ -307,7 +307,7 @@ const TalkFeature = {
     let toLatLng = Array.isArray(appt.latLng) ? appt.latLng : null;
     if (!toLatLng && appt.address) {
       try {
-        const geo = await this.withTimeout(Geo.geocode(appt.address), 2500);
+        const geo = await Utils.withTimeout(Geo.geocode(appt.address), 2500, { resolveOnTimeout: null });
         if (geo) {
           toLatLng = [geo.lat, geo.lng];
           try { await DB.db.appointments.update(appt.id, { latLng: toLatLng }); } catch (e) {}
@@ -320,13 +320,6 @@ const TalkFeature = {
     if (!distanceKm || distanceKm <= 0) return null;
     const etaMin = Math.max(1, Math.round((distanceKm / 35) * 60));
     return { etaMin, distanceKm, usedLiveGPS };
-  },
-
-  withTimeout(promise, ms) {
-    return Promise.race([
-      promise,
-      new Promise(resolve => setTimeout(() => resolve(null), ms))
-    ]);
   },
 
   async sendMessage(appointmentId, templateKey, extraVars = {}) {

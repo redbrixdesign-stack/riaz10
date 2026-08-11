@@ -121,7 +121,7 @@ const CustomerFeature = {
 
           <div style="display: flex; gap: 8px; margin-top: 16px;">
             ${phone ? `
-              <a class="btn btn-outline btn-sm" style="flex: 1; gap: 6px;" href="tel:${Utils.escapeAttr(Utils.toE164Phone(phone) || phone)}">
+              <a class="btn btn-outline btn-sm" style="flex: 1; gap: 6px;" href="tel:${Utils.escapeHtml(Utils.toE164Phone(phone) || phone)}">
                 <span class="material-symbols-rounded" style="font-size: 18px;">call</span>
                 Call
               </a>

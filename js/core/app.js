@@ -405,12 +405,31 @@ const App = {
       lastGlobalErrorToast = now;
       Toast.show('Something went wrong there - your data is safe', 'error');
     };
+    // Persists escaped errors to a small localStorage ring buffer (capped at
+    // 50 entries). The console is invisible on a phone, so this is the one
+    // place a crash can be diagnosed later — the key is visible in devtools
+    // and clears with the rest of the app data on factory reset.
+    const logError = (err) => {
+      try {
+        const entry = {
+          at: new Date().toISOString(),
+          name: (err && err.name) || 'Error',
+          message: (err && (err.message || String(err))) || 'Unknown error',
+          stack: err && err.stack ? String(err.stack).split('\n').slice(0, 6).join(' | ') : ''
+        };
+        const prev = JSON.parse(localStorage.getItem('advisoros_error_log') || '[]');
+        prev.push(entry);
+        localStorage.setItem('advisoros_error_log', JSON.stringify(prev.slice(-50)));
+      } catch (e) { /* storage unavailable — nothing more to do */ }
+    };
     window.addEventListener('error', (e) => {
       console.error('Unhandled error:', e.error || e.message);
+      logError(e.error || new Error(e.message || 'window error'));
       notifyUnexpectedError();
     });
     window.addEventListener('unhandledrejection', (e) => {
       console.error('Unhandled promise rejection:', e.reason);
+      logError(e.reason instanceof Error ? e.reason : new Error(String(e.reason)));
       notifyUnexpectedError();
     });
   },

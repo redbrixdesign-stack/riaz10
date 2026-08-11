@@ -315,6 +315,22 @@ const Utils = {
     };
   },
 
+  // Races a promise against a timeout so a slow/hung external call (OCR,
+  // geocoding, GPS) can't leave the UI stuck indefinitely. Rejects with a
+  // TimeoutError by default; pass { resolveOnTimeout: value } to settle with
+  // a fallback value instead — the pattern the route/talk geocode callers
+  // use, where a null result is handled gracefully by the caller.
+  withTimeout(promise, ms, options = {}) {
+    const { resolveOnTimeout, message = 'Timed out' } = options;
+    return Promise.race([
+      promise,
+      new Promise((resolve, reject) => setTimeout(() => {
+        if (resolveOnTimeout !== undefined) resolve(resolveOnTimeout);
+        else reject(new Error(message));
+      }, ms))
+    ]);
+  },
+
   // Deep clone
   clone(obj) {
     return JSON.parse(JSON.stringify(obj));
@@ -384,10 +400,6 @@ const Utils = {
     if (!name) return 'there';
     const stripped = String(name).trim().replace(this.HONORIFICS, '');
     return stripped.split(/\s+/)[0] || 'there';
-  },
-
-  escapeAttr(value) {
-    return this.escapeHtml(value);
   },
 
   escapeJsString(value) {

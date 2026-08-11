@@ -219,7 +219,7 @@ const OrdersFeature = {
 
         <div class="form-group">
           <label>Supplier order no.</label>
-          <input type="text" class="input" id="order-supplier-number" value="${Utils.escapeAttr(order.supplierOrderNumber || '')}" placeholder="e.g. SUP-2026-0042">
+          <input type="text" class="input" id="order-supplier-number" value="${Utils.escapeHtml(order.supplierOrderNumber || '')}" placeholder="e.g. SUP-2026-0042">
           <button class="btn btn-outline btn-sm btn-block" style="margin-top:6px;" onclick="OrdersFeature.saveSupplierNumber(${order.id})"><span class="material-symbols-rounded" style="font-size:16px;">save</span>Save</button>
         </div>
 
@@ -234,7 +234,7 @@ const OrdersFeature = {
           <div class="divider-text">Record payment</div>
           <div class="form-row" style="margin-bottom:12px;">
             <div class="form-group" style="margin-bottom:0;">
-              <input type="number" class="input" id="order-payment-amount" step="0.01" min="0" placeholder="${Utils.escapeAttr(String((order.balanceDue || 0).toFixed(2)))}">
+              <input type="number" class="input" id="order-payment-amount" step="0.01" min="0" placeholder="${Utils.escapeHtml(String((order.balanceDue || 0).toFixed(2)))}">
             </div>
             <div class="form-group" style="margin-bottom:0;">
               <button class="btn btn-primary btn-block" onclick="OrdersFeature.recordPayment(${order.id})"><span class="material-symbols-rounded" style="font-size:18px;">payments</span>Pay ${Utils.formatCurrency(Math.min(order.depositPaid === 0 ? (order.depositRequired || 0) : (order.balanceDue || 0), order.balanceDue || 0))}</button>

@@ -256,7 +256,7 @@ const MoneyFeature = {
         </div>
         <div class="form-group">
           <label>Description</label>
-          <input type="text" class="input" id="edit-expense-description" placeholder="What was this for?" value="${Utils.escapeAttr(expense.description || '')}">
+          <input type="text" class="input" id="edit-expense-description" placeholder="What was this for?" value="${Utils.escapeHtml(expense.description || '')}">
         </div>
         ${expense.photo ? `
           <div class="form-group">
@@ -344,11 +344,11 @@ const MoneyFeature = {
       <div class="sheet-body">
         <div class="form-group">
           <label>From</label>
-          <input type="text" class="input" id="edit-trip-from" placeholder="Start location" value="${Utils.escapeAttr(trip.startLocation || '')}">
+          <input type="text" class="input" id="edit-trip-from" placeholder="Start location" value="${Utils.escapeHtml(trip.startLocation || '')}">
         </div>
         <div class="form-group">
           <label>To</label>
-          <input type="text" class="input" id="edit-trip-to" placeholder="Destination" value="${Utils.escapeAttr(trip.endLocation || '')}">
+          <input type="text" class="input" id="edit-trip-to" placeholder="Destination" value="${Utils.escapeHtml(trip.endLocation || '')}">
         </div>
         <div class="form-group">
           <label>Distance (${CONFIG.distanceUnit})</label>

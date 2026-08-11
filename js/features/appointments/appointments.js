@@ -748,19 +748,19 @@ const AppointmentsFeature = {
       <div class="sheet-body">
         <div class="form-group">
           <label>Name *</label>
-          <input type="text" class="input" id="edit-cust-name" autocomplete="name" value="${Utils.escapeAttr(name)}">
+          <input type="text" class="input" id="edit-cust-name" autocomplete="name" value="${Utils.escapeHtml(name)}">
         </div>
         <div class="form-group">
           <label>Phone</label>
-          <input type="tel" class="input" id="edit-cust-phone" inputmode="tel" autocomplete="tel" value="${Utils.escapeAttr(customer.phone || '')}">
+          <input type="tel" class="input" id="edit-cust-phone" inputmode="tel" autocomplete="tel" value="${Utils.escapeHtml(customer.phone || '')}">
         </div>
         <div class="form-group">
           <label>Email</label>
-          <input type="email" class="input" id="edit-cust-email" autocomplete="email" value="${Utils.escapeAttr(customer.email || '')}">
+          <input type="email" class="input" id="edit-cust-email" autocomplete="email" value="${Utils.escapeHtml(customer.email || '')}">
         </div>
         <div class="form-group">
           <label>Address *</label>
-          <input type="text" class="input" id="edit-cust-address" autocomplete="street-address" value="${Utils.escapeAttr(customer.address?.line1 || '')}">
+          <input type="text" class="input" id="edit-cust-address" autocomplete="street-address" value="${Utils.escapeHtml(customer.address?.line1 || '')}">
           <div class="hint">Include the postcode here, e.g. "12 Elm Street, Manchester, M14 5AB"</div>
         </div>
         <button class="btn btn-primary btn-block" onclick="AppointmentsFeature.saveEditCustomer(${customerId})">
@@ -985,7 +985,7 @@ const AppointmentsFeature = {
             </button>
           ` : ''}
           ${phone ? `
-            <a class="btn btn-outline btn-block" href="tel:${Utils.escapeAttr(Utils.toE164Phone(phone) || phone)}">
+            <a class="btn btn-outline btn-block" href="tel:${Utils.escapeHtml(Utils.toE164Phone(phone) || phone)}">
               <span class="material-symbols-rounded">call</span>
               Call Customer
             </a>
@@ -1109,13 +1109,17 @@ const AppointmentsFeature = {
   },
 
   getProbability(outcome, daysSince) {
-    const baseProb = CONFIG.probabilityDecay[0] || 0.8;
-
-    if (daysSince <= 0) return baseProb;
-    if (daysSince <= 3) return 0.6;
-    if (daysSince <= 7) return 0.4;
-    if (daysSince <= 14) return 0.2;
-    return 0.05;
+    // Decay thresholds are config-driven (CONFIG.probabilityDecay, keyed by
+    // "days since quote") so the ramp-down can be tuned in one place instead
+    // of being hardcoded here.
+    const decay = CONFIG.probabilityDecay || { 0: 0.8, 3: 0.6, 7: 0.4, 14: 0.2, 21: 0.05 };
+    const thresholds = Object.keys(decay).map(Number).sort((a, b) => a - b);
+    let probability = decay[0] ?? 0.8;
+    for (const threshold of thresholds) {
+      probability = decay[threshold];
+      if (daysSince <= threshold) break;
+    }
+    return probability;
   },
 
   renderOutcomeButtons(appt) {
@@ -1210,7 +1214,7 @@ const AppointmentsFeature = {
         <img src="${data}" alt="Captured photo" style="width:100%;max-height:45vh;object-fit:contain;border-radius:8px;background:var(--bg);">
         <div class="form-group" style="margin-top:12px;">
           <label>Caption (optional)</label>
-          <input type="text" class="input" id="photo-caption-input" value="${Utils.escapeAttr(Utils.formatDate(new Date(), 'long'))}" placeholder="e.g. Front windows with Juliet balcony">
+          <input type="text" class="input" id="photo-caption-input" value="${Utils.escapeHtml(Utils.formatDate(new Date(), 'long'))}" placeholder="e.g. Front windows with Juliet balcony">
         </div>
         <button class="btn btn-primary btn-block" onclick="AppointmentsFeature.saveCapturedPhoto()"><span class="material-symbols-rounded">save</span>Save to gallery</button>
       </div>`;
@@ -1278,7 +1282,7 @@ const AppointmentsFeature = {
         <img src="${this._photoSrc(p)}" alt="Customer photo" style="width:100%;max-height:55vh;object-fit:contain;border-radius:8px;background:var(--bg);">
         <div class="form-group" style="margin-top:12px;">
           <label>Caption</label>
-          <input type="text" class="input" id="photo-viewer-caption" value="${Utils.escapeAttr(caption)}">
+          <input type="text" class="input" id="photo-viewer-caption" value="${Utils.escapeHtml(caption)}">
         </div>
         <button class="btn btn-outline btn-sm btn-block" onclick="AppointmentsFeature.savePhotoCaption(${photoId})"><span class="material-symbols-rounded" style="font-size:16px;">save</span>Save caption</button>
         <div style="font-size:12px;color:var(--text-tertiary);text-align:center;margin:10px 0 4px;">Taken ${Utils.escapeHtml(Utils.formatDate(p.createdAt, 'long'))}</div>
@@ -1602,17 +1606,17 @@ const AppointmentsFeature = {
         <div style="padding: 16px;">
           <div class="form-group">
             <label>Customer Name *</label>
-            <input type="text" class="input" id="appt-name" autocomplete="name" placeholder="e.g. Sarah Johnson" value="${Utils.escapeAttr(scannedName)}">
+            <input type="text" class="input" id="appt-name" autocomplete="name" placeholder="e.g. Sarah Johnson" value="${Utils.escapeHtml(scannedName)}">
           </div>
 
           <div class="form-group">
             <label>Phone</label>
-            <input type="tel" class="input" id="appt-phone" inputmode="tel" autocomplete="tel" placeholder="07700 900123" value="${Utils.escapeAttr(scannedPhone)}">
+            <input type="tel" class="input" id="appt-phone" inputmode="tel" autocomplete="tel" placeholder="07700 900123" value="${Utils.escapeHtml(scannedPhone)}">
           </div>
 
           <div class="form-group">
             <label>Address *</label>
-            <input type="text" class="input" id="appt-address" autocomplete="street-address" placeholder="Full address" value="${Utils.escapeAttr(scannedAddress)}">
+            <input type="text" class="input" id="appt-address" autocomplete="street-address" placeholder="Full address" value="${Utils.escapeHtml(scannedAddress)}">
           </div>
 
           <button type="button" class="btn btn-outline btn-block visit-scan-button" onclick="App.navigate('ocr')">
@@ -2317,15 +2321,15 @@ const AppointmentsFeature = {
       <div class="sheet-body">
         <div class="form-group">
           <label>Customer Name *</label>
-          <input type="text" class="input" id="edit-detail-name" autocomplete="name" value="${Utils.escapeAttr(appt.clientName || '')}">
+          <input type="text" class="input" id="edit-detail-name" autocomplete="name" value="${Utils.escapeHtml(appt.clientName || '')}">
         </div>
         <div class="form-group">
           <label>Phone</label>
-          <input type="tel" class="input" id="edit-detail-phone" inputmode="tel" autocomplete="tel" value="${Utils.escapeAttr(appt.phone || '')}">
+          <input type="tel" class="input" id="edit-detail-phone" inputmode="tel" autocomplete="tel" value="${Utils.escapeHtml(appt.phone || '')}">
         </div>
         <div class="form-group">
           <label>Address *</label>
-          <input type="text" class="input" id="edit-detail-address" autocomplete="street-address" value="${Utils.escapeAttr(appt.address || '')}">
+          <input type="text" class="input" id="edit-detail-address" autocomplete="street-address" value="${Utils.escapeHtml(appt.address || '')}">
           <div class="hint">Include the postcode here, e.g. "12 Elm Street, Manchester, M14 5AB"</div>
         </div>
         <button class="btn btn-primary btn-block" onclick="AppointmentsFeature.saveEditDetails(${id})">

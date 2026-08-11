@@ -181,7 +181,7 @@ const RouteFeature = {
       return { address, latLng: CONFIG.businessLatLng };
     }
     try {
-      const geo = await this.withTimeout(Geo.geocode(address), 4000);
+      const geo = await Utils.withTimeout(Geo.geocode(address), 4000, { resolveOnTimeout: null });
       if (geo) {
         CONFIG.businessLatLng = [geo.lat, geo.lng];
         this.persistBasePoint();
@@ -202,13 +202,6 @@ const RouteFeature = {
     } catch (e) {}
   },
 
-  withTimeout(promise, ms) {
-    return Promise.race([
-      promise,
-      new Promise(resolve => setTimeout(() => resolve(null), ms))
-    ]);
-  },
-
   async ensureAppointmentCoords(appointments) {
     const updated = [];
     for (const appt of appointments) {
@@ -227,7 +220,7 @@ const RouteFeature = {
         // old timeout was tight enough to cut the fallback off mid-flight on
         // a real address that only the fallback could resolve - silently
         // discarding a result that would have arrived a moment later.
-        const geo = await this.withTimeout(Geo.geocode(appt.address), 4000);
+        const geo = await Utils.withTimeout(Geo.geocode(appt.address), 4000, { resolveOnTimeout: null });
         if (geo) {
           const latLng = [geo.lat, geo.lng];
           try { await DB.db.appointments.update(appt.id, { latLng }); } catch (e) {}

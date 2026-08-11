@@ -35,8 +35,8 @@ const ROOT = path.resolve(__dirname, '..');
 const TERSER_OPTS = {
   compress: {
     passes: 2,
-    drop_console: false,   // keep all console - this app logs to mean things
-    pure_funcs: []
+    drop_console: false,   // keep warn/error — the storage-warning path users actually need to see in shipped builds
+    pure_funcs: ['console.log', 'console.info']   // drop chatty debug logging, keep meaningful warnings
   },
   mangle: true,
   format: {

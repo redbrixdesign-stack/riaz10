@@ -100,6 +100,13 @@ const AIService = {
   // ---- OCR: extract customer/order fields from a photo ----
   async extractFromImage(file) {
     const { base64, mediaType } = await this._toBase64(file);
+    // Local guard mirroring the proxy's 2MB limit: the downscaled path
+    // stays small, but the raw-file fallback (createImageBitmap unavailable)
+    // can exceed it. Failing here with a clear message beats an opaque 413
+    // from the proxy — and the caller still falls back to Tesseract.
+    if (base64 && (base64.length * 3) / 4 > 2 * 1024 * 1024) {
+      return { ok: false, reason: 'too_large', message: 'That photo is too large to analyse — try a sharper, smaller shot' };
+    }
     const result = await this._request({
       type: 'ocr',
       model: this.config().ocrModel,

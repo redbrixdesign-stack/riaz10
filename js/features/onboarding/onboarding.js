@@ -36,7 +36,7 @@ const OnboardingFeature = {
 
           <div class="form-group">
             <label>Your Full Name *</label>
-            <input type="text" class="input" id="ob-name" placeholder="e.g. Riaz Ahmed" value="${Utils.escapeAttr(this.data.advisorName)}">
+            <input type="text" class="input" id="ob-name" placeholder="e.g. Riaz Ahmed" value="${Utils.escapeHtml(this.data.advisorName)}">
           </div>
 
           <div class="form-group">

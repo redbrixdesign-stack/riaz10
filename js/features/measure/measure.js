@@ -51,7 +51,7 @@ const MeasureFeature = {
         <div style="width:40px;"></div>
       </div>
       <div style="padding:16px;">
-        <div class="form-group"><label>Window / Location</label><input type="text" class="input" id="meas-name" placeholder="e.g. Living Room Bay - Left" value="${existing ? Utils.escapeAttr(existing.windowName || '') : ''}"></div>
+        <div class="form-group"><label>Window / Location</label><input type="text" class="input" id="meas-name" placeholder="e.g. Living Room Bay - Left" value="${existing ? Utils.escapeHtml(existing.windowName || '') : ''}"></div>
 
         <div class="form-group"><label>Fitting Type</label>
           <div class="segmented">

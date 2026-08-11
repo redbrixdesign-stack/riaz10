@@ -119,7 +119,18 @@ const ExportService = {
     await DB.importAll(backup.data);
 
     if (backup.config) {
-      Object.assign(CONFIG, backup.config);
+      // A backup file must never be able to inject arbitrary config: only
+      // keys that already exist in the running CONFIG get applied, and only
+      // when the incoming value's type matches the current one. (Legitimate
+      // backups were exported from CONFIG itself, so every real key survives
+      // this filter unchanged — corrupt or malicious files can't smuggle in
+      // new settings like a disabled AI or a zeroed deposit rule.)
+      for (const [key, value] of Object.entries(backup.config)) {
+        if (!(key in CONFIG)) continue;
+        if (value === null || value === undefined) continue;
+        if (typeof value !== typeof CONFIG[key]) continue;
+        CONFIG[key] = value;
+      }
       if (App.migrateConfig) App.migrateConfig();
       const savedConfig = {
         advisorName: CONFIG.advisorName,

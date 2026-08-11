@@ -9,9 +9,13 @@
      ANTHROPIC_API_KEY  required
      AI_SECRET          optional; if set, the app must send it in
                         the X-AI-Key header (keeps strangers from
-                        burning your quota via the public URL)
+                        burning your quota via the public URL).
+                        Strongly recommended in production.
       ALLOWED_ORIGIN     optional; if set, blocks requests whose
-                        Origin header isn't this exact value
+                        Origin header isn't this exact value.
+                        When unset the proxy stays open ("*") and
+                        logs a one-time warning — set it (plus
+                        AI_SECRET) before sharing the URL.
    ============================================================ */
 
 const ALLOWED_MODELS = [
@@ -97,6 +101,18 @@ function allowOrigin() {
   return process.env.ALLOWED_ORIGIN || '*';
 }
 
+// One-time console warning (visible in Vercel's function logs): the proxy
+// falls back to "*" when ALLOWED_ORIGIN isn't set, which lets any website
+// use the public URL and burn the API quota. Setting ALLOWED_ORIGIN (and/or
+// AI_SECRET) is the intended protection — the app never sends the API key,
+// only the PWA's own traffic should be able to reach this function.
+let warnedAboutDefaults = false;
+function warnAboutDefaults() {
+  if (warnedAboutDefaults) return;
+  warnedAboutDefaults = true;
+  console.error('[claude.mjs] ALLOWED_ORIGIN is not set — CORS defaults to "*". Set ALLOWED_ORIGIN to your site\'s origin (and AI_SECRET for a shared-secret guard) so strangers can\'t use this public URL.');
+}
+
 async function callAnthropic(model, system, userContent) {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -134,6 +150,10 @@ async function callAnthropic(model, system, userContent) {
 export async function handle(request) {
   const origin = typeof request.headers?.origin === 'string' ? request.headers.origin : null;
   const allowed = allowOrigin();
+
+  if (!process.env.ALLOWED_ORIGIN || !process.env.AI_SECRET) {
+    warnAboutDefaults();
+  }
 
   if (request.method === 'OPTIONS') {
     return { status: 204, headers: corsHeaders(origin), body: '' };
@@ -177,12 +197,18 @@ export async function handle(request) {
     if (typeof body.image !== 'string' || typeof body.mediaType !== 'string') {
       return json(400, { ok: false, error: 'bad_request', message: 'ocr requires image (base64) and mediaType' }, corsHeaders(origin));
     }
-    const bytes = Math.ceil((body.image.length * 3) / 4);
+    // Exact decoded byte count — the old length*3/4 approximation could be
+    // dodged by malformed base64 (whitespace, padding tricks).
+    const bytes = Buffer.from(body.image, 'base64').length;
     if (bytes > MAX_IMAGE_BYTES) {
       return json(413, { ok: false, error: 'too_large', message: `Image too large (${Math.round(bytes / 1024)} KB > ${MAX_IMAGE_BYTES / 1024} KB)` }, corsHeaders(origin));
     }
+    // NOTE: any client-supplied "instructions" text is deliberately NOT
+    // honored — text embedded in a scanned document (or sent by a tampered
+    // client) could otherwise override the system prompt. The extraction
+    // instruction is fixed, so the model only ever follows ocrSystemPrompt.
     userContent = [
-      { type: 'text', text: body.instructions || 'Extract the details from this photo.' },
+      { type: 'text', text: 'Extract the details from this photo.' },
       { type: 'image', source: { type: 'base64', media_type: body.mediaType, data: body.image } }
     ];
   } else {
