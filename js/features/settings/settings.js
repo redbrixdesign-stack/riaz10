@@ -293,11 +293,11 @@ const SettingsFeature = {
           </button>
         </div>
 
-        <div style="font-size:12px;color:var(--text-tertiary);margin-top:10px;line-height:1.5;">Works through your own serverless function (Netlify/Vercel), which holds the API key — it never ships inside this app. Deploy <code style="font-size:11px;">api/claude.mjs</code> (Vercel) or <code style="font-size:11px;">netlify/functions/claude.mjs</code> (Netlify) with your <code style="font-size:11px;">ANTHROPIC_API_KEY</code> environment variable, then paste the function URL below.</div>
+        <div style="font-size:12px;color:var(--text-tertiary);margin-top:10px;line-height:1.5;">Works through your own serverless function (Vercel), which holds the API key — it never ships inside this app. Deploy <code style="font-size:11px;">api/claude.mjs</code> (Vercel) with your <code style="font-size:11px;">ANTHROPIC_API_KEY</code> environment variable, then paste the function URL below.</div>
 
         <div class="form-group" style="margin-top:10px;">
           <label>Proxy URL</label>
-          <input type="text" class="input" id="set-ai-url" value="${Utils.escapeAttr(ai.proxyUrl || '')}" placeholder="https://your-site.netlify.app/.netlify/functions/claude" onblur="SettingsFeature.setAIUrl(this.value)">
+          <input type="text" class="input" id="set-ai-url" value="${Utils.escapeAttr(ai.proxyUrl || '')}" placeholder="https://your-site.vercel.app/api/claude" onblur="SettingsFeature.setAIUrl(this.value)">
         </div>
         <div class="form-group">
           <label>Shared Secret (optional)</label>

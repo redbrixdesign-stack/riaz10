@@ -119,10 +119,8 @@ const App = {
     }
 
     const host = status.hostname || '';
-    if (host.endsWith('.netlify.app') && host.includes('--')) {
-      status.warning = 'This looks like a Netlify preview or deploy URL. Data is separate on each preview. Use your main Netlify site URL for daily use.';
-    } else if (status.protocol === 'file:') {
-      status.warning = 'This is running from a local file. Use the Netlify HTTPS link on iPhone for reliable app storage.';
+    if (status.protocol === 'file:') {
+      status.warning = 'This is running from a local file. Use the Vercel HTTPS link on iPhone for reliable app storage.';
     } else if (!status.localStorage || !status.database || status.mode === 'memory') {
       status.warning = 'This browser is not giving the app reliable storage. Export backups often or try Safari without private browsing.';
     }

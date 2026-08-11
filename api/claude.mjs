@@ -10,11 +10,8 @@
      AI_SECRET          optional; if set, the app must send it in
                         the X-AI-Key header (keeps strangers from
                         burning your quota via the public URL)
-     ALLOWED_ORIGIN     optional; if set, blocks requests whose
+      ALLOWED_ORIGIN     optional; if set, blocks requests whose
                         Origin header isn't this exact value
-
-   NOTE: netlify/functions/claude.mjs is the same logic for
-   Netlify — keep the two files in sync.
    ============================================================ */
 
 const ALLOWED_MODELS = [

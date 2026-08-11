@@ -44,14 +44,11 @@ The Scan and Talk screens get an AI boost when enabled in Settings → Claude AI
 The app never holds an Anthropic API key — everything goes through **your own**
 serverless function, which you deploy once:
 
-1. **Netlify**: copy `netlify/functions/claude.mjs` into a functions directory,
-   set `ANTHROPIC_API_KEY` under Site settings → Environment variables, and
-   deploy. The proxy URL is `https://your-site.netlify.app/.netlify/functions/claude`.
-2. **Vercel**: copy `api/claude.mjs` to an `api/` folder, add `ANTHROPIC_API_KEY`
+1. **Vercel**: copy `api/claude.mjs` to an `api/` folder, add `ANTHROPIC_API_KEY`
    as an environment variable, redeploy. The proxy URL is
    `https://your-site.vercel.app/api/claude`.
 
-Optional hardening (both files support it):
+Optional hardening:
 
 | Variable          | Effect                                                        |
 | ----------------- | ------------------------------------------------------------- |
@@ -60,8 +57,7 @@ Optional hardening (both files support it):
 
 Then paste the proxy URL into Settings → Claude AI and enable it. The "Test
 connection" button verifies the whole path, and the card shows tokens/cost of
-the last call. `api/claude.mjs` and `netlify/functions/claude.mjs` must stay in
-sync (same core logic, different platform entry points).
+the last call.
 
 ## Project structure
 
@@ -91,7 +87,7 @@ Open `http://localhost:8000`. No install, no environment variables, no build.
 
 ## Deploying
 
-Any static host works (GitHub Pages, Netlify, S3 + CloudFront, etc.) — push
+Any static host works (GitHub Pages, S3 + CloudFront, etc.) — push
 the folder as-is. HTTPS is required for the service worker and geolocation
 to work.
 
