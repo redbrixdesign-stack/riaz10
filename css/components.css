@@ -1755,6 +1755,10 @@ body.trip-active .toast-container {
 
 .route-plan-metrics div {
   background: var(--bg);
+  --text-primary: #f5f4ea;
+  --text-secondary: #c3c9ae;
+  --text-tertiary: #838a6c;
+  color: var(--text-primary);
   border-radius: var(--radius-sm);
   padding: 8px;
   text-align: center;
@@ -1823,6 +1827,9 @@ body.trip-active .toast-container {
   border: 1px solid var(--border-light);
   border-radius: var(--radius-sm);
   background: var(--bg);
+  --text-primary: #f5f4ea;
+  --text-secondary: #c3c9ae;
+  --text-tertiary: #838a6c;
   color: var(--text-primary);
   text-align: left;
 }
@@ -1914,6 +1921,10 @@ body.trip-active .toast-container {
 .route-order {
   margin-top: 10px;
   background: var(--bg);
+  --text-primary: #f5f4ea;
+  --text-secondary: #c3c9ae;
+  --text-tertiary: #838a6c;
+  color: var(--text-primary);
   border-radius: var(--radius-sm);
   padding: 10px;
 }
