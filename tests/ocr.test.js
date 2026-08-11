@@ -133,6 +133,33 @@ console.log('normalizeDateField');
   }
 }
 
+console.log('normalizeTimeField + resolveVisitIso');
+{
+  const cases = {
+    '15:00': '15:00',
+    '9:00': '09:00',
+    '3:00 PM': '15:00',
+    '3:00 pm': '15:00',
+    '12:00 AM': '00:00',
+    '12:00 PM': '12:00',
+    '3pm': '15:00',
+    '09:15:30': '09:15',
+    '': '',
+    'evening': ''
+  };
+  for (const [input, expected] of Object.entries(cases)) {
+    const got = OCRFeature.normalizeTimeField(input);
+    ok(`normalizeTimeField(${JSON.stringify(input)}) -> ${JSON.stringify(expected)}`, got === expected, got);
+  }
+
+  const good = OCRFeature.resolveVisitIso('2026-08-11', '3:00 PM');
+  ok('resolveVisitIso converts 3:00 PM to 15:00 same day', good.time === '15:00' && new Date(good.iso).getHours() === 15, good);
+  const bad = OCRFeature.resolveVisitIso('not a date', '3:00 PM');
+  ok('resolveVisitIso falls back to today when date unusable', good.time === '15:00' && bad.iso.startsWith(sandbox.Utils.formatDate(new Date(), 'iso')), bad);
+  const badTime = OCRFeature.resolveVisitIso('2026-08-11', 'not a time');
+  ok('resolveVisitIso falls back to 09:00 when time unusable', badTime.time === '09:00' && new Date(badTime.iso).getHours() === 9, badTime);
+}
+
 console.log('duplicate prevention (findExistingVisit)');
 {
   const day = '2026-08-11';

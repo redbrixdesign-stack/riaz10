@@ -589,6 +589,52 @@ const OCRFeature = {
     }) || null;
   },
 
+  // The appointment time can arrive as "15:00", "3:00 PM", "15:00:00" or
+  // "3pm" depending on the engine — everything except 24h HH:MM breaks
+  // new Date(...) and kills the whole save. Normalize to HH:MM, else ''.
+  normalizeTimeField(value) {
+    if (!value) return '';
+    const v = String(value).trim();
+    let m = v.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM|am|pm)?\s*$/i);
+    if (!m) {
+      // "3pm" / "3PM" without a colon
+      m = v.match(/^(\d{1,2})\s*(AM|PM|am|pm)\s*$/i);
+      if (m) {
+        let hour = parseInt(m[1], 10);
+        if (hour < 1 || hour > 12) return '';
+        const isPM = /pm/i.test(m[2]);
+        if (isPM && hour < 12) hour += 12;
+        if (!isPM && hour === 12) hour = 0;
+        return `${String(hour).padStart(2, '0')}:00`;
+      }
+      return '';
+    }
+    let hour = parseInt(m[1], 10);
+    const minute = m[2];
+    if (hour > 23) return '';
+    if (m[3]) {
+      if (hour < 1 || hour > 12) return '';
+      const isPM = /pm/i.test(m[3]);
+      if (isPM && hour < 12) hour += 12;
+      if (!isPM && hour === 12) hour = 0;
+    }
+    return `${String(hour).padStart(2, '0')}:${minute}`;
+  },
+
+  // Builds the ISO date for a visit from the normalized fields, falling back
+  // to today 09:00 when either is unusable — a bad value must never abort
+  // the whole save (that used to surface as a dead-end "Failed to save").
+  resolveVisitIso(visitDate, visitTime) {
+    const time = this.normalizeTimeField(visitTime) || '09:00';
+    let d = new Date(visitDate + 'T' + time);
+    if (isNaN(d.getTime())) {
+      const fallback = Utils.formatDate(new Date(), 'iso');
+      d = new Date(fallback + 'T' + time);
+      if (isNaN(d.getTime())) d = new Date(fallback + 'T09:00');
+    }
+    return { iso: d.toISOString(), time };
+  },
+
   async saveToCustomer() {
     const name = document.getElementById('ocr-name')?.value || '';
     const phone = document.getElementById('ocr-phone')?.value || '';
@@ -650,12 +696,14 @@ const OCRFeature = {
         : [];
       const type = (allowed && allowed.length ? allowed[0] : CONFIG.appointmentTypes?.[0]?.id) || 'consultation';
 
+      const { iso: dateIso } = this.resolveVisitIso(visitDate, visitTime);
+
       const appointment = await DB.addAppointment({
         customerId: customer.id,
         clientName: name,
         phone,
         address: fullAddress,
-        date: new Date(visitDate + 'T' + visitTime).toISOString(),
+        date: dateIso,
         durationSlots: 1,
         type,
         source: 'company_system',
@@ -668,7 +716,7 @@ const OCRFeature = {
       App.navigate('appointments', { id: appointment.id });
     } catch (e) {
       console.error('OCR save failed:', e);
-      Toast.show('Failed to save customer', 'error');
+      Toast.show('Failed to save: ' + (e && e.message ? e.message : 'unknown error'), 'error');
     }
   },
 
@@ -722,7 +770,8 @@ const OCRFeature = {
       Toast.show('Customer and visit saved', 'success');
       App.navigate('appointments', { id: appointment.id });
     } catch (e) {
-      Toast.show('Failed to save customer', 'error');
+      console.error('Manual save failed:', e);
+      Toast.show('Failed to save: ' + (e && e.message ? e.message : 'unknown error'), 'error');
     }
   }
 };
