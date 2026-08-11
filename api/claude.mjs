@@ -39,7 +39,7 @@ Return ONLY a JSON object with exactly these keys, using empty strings when a fi
 - email: if present.
 - appointmentDate / appointmentTime: any booking, delivery or appointment date (ISO) and time shown.
 The photo may include a Google map with road labels, place names and buttons — only extract text that belongs to the order/customer details, never the map.
-Do not include any text outside the JSON.`,
+Return only the raw JSON object — never wrap it in markdown code fences, never add preamble or any other text.`,
 
   draft: `You write short, friendly, professional SMS/WhatsApp messages for a self-employed UK window coverings (blinds/curtains) field sales advisor.
 The user sends the customer and visit context as JSON. Write one warm, natural, personal message that fits the template goal and the sales context.

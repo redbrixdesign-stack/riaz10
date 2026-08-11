@@ -287,6 +287,33 @@ async function clientTests() {
   const raw = await svcOcrRaw.extractFromImage({});
   ok('client: non-JSON falls back to empty fields + raw text', raw.ok && raw.rawText === 'surfaced raw text' && Object.keys(raw.fields).length === 0);
 
+  // extractFromImage: Claude wrapped the JSON in markdown code fences (the
+  // real-world failure that blanked every field) — fields must still parse.
+  const fenced = '```json\n{"name":"Hilary Taylor","phone":"07982231682","postcode":"M21 0RL"}\n```';
+  const svcFenced = loadAiClient({
+    responder: async () => responseLike({ text: fenced, model: 'x', type: 'ocr' })
+  });
+  svcFenced._toBase64 = async () => ({ base64: 'QUJD', mediaType: 'image/jpeg' });
+  const f = await svcFenced.extractFromImage({});
+  ok('client: fenced JSON still maps fields', f.ok && f.fields.name === 'Hilary Taylor' && f.fields.postcode === 'M21 0RL', f.fields);
+
+  // extractFromImage: preamble prose + fences — the {...} slice path.
+  const messy = 'Here you go:\n```json\n{"name":"Bob","city":"Manchester"}\n```\nHope that helps!';
+  const svcMessy = loadAiClient({
+    responder: async () => responseLike({ text: messy, model: 'x', type: 'ocr' })
+  });
+  svcMessy._toBase64 = async () => ({ base64: 'QUJD', mediaType: 'image/jpeg' });
+  const m = await svcMessy.extractFromImage({});
+  ok('client: preamble + fences still map fields', m.ok && m.fields.name === 'Bob' && m.fields.city === 'Manchester' && m.fields.phone === '', m.fields);
+
+  // extractFromImage: extra keys are dropped, values trimmed.
+  const svcTrim = loadAiClient({
+    responder: async () => responseLike({ text: '{"name":"  Ann  ","customerNumber":"CUS-1","bogus":9}', model: 'x', type: 'ocr' })
+  });
+  svcTrim._toBase64 = async () => ({ base64: 'QUJD', mediaType: 'image/jpeg' });
+  const trimRes = await svcTrim.extractFromImage({});
+  ok('client: trims values and drops unknown keys', trimRes.ok && trimRes.fields.name === 'Ann' && trimRes.fields.customerNumber === 'CUS-1' && !('bogus' in trimRes.fields), trimRes.fields);
+
   // draftMessage passes stringified context.
   const svcDraft = loadAiClient({
     responder: async (payload) => {

@@ -110,19 +110,45 @@ const AIService = {
     if (!result.ok) return result;
 
     const rawText = result.data.text || '';
-    let fields = {};
-    try {
-      const parsed = JSON.parse(rawText);
-      const expected = ['name', 'phone', 'address', 'town', 'city', 'postcode', 'customerNumber', 'email', 'appointmentDate', 'appointmentTime'];
-      for (const key of expected) {
-        fields[key] = typeof parsed[key] === 'string' ? parsed[key].trim() : '';
-      }
-    } catch (e) {
-      // Model didn't return parseable JSON — surface the raw text so the
-      // user can still read it (same pattern as Tesseract's raw text panel).
-      fields = {};
-    }
+    const fields = this._parseFields(rawText);
     return { ok: true, fields, rawText, usage: result.data.usage };
+  },
+
+  // Claude sometimes wraps its JSON in markdown code fences or adds a line of
+  // preamble ("Here you go:"), which breaks a plain JSON.parse and blanks
+  // every field even though the extraction is perfect. Work down a ladder:
+  // raw JSON -> fence-stripped -> first {...} slice -> give up (the raw panel
+  // still shows what came back, so nothing is lost).
+  _parseFields(rawText) {
+    const expected = ['name', 'phone', 'address', 'town', 'city', 'postcode', 'customerNumber', 'email', 'appointmentDate', 'appointmentTime'];
+    const normalize = parsed => {
+      const out = {};
+      for (const key of expected) {
+        out[key] = typeof parsed[key] === 'string' ? parsed[key].trim() : '';
+      }
+      return out;
+    };
+    const tryParse = text => {
+      try {
+        const parsed = JSON.parse(text);
+        return parsed && typeof parsed === 'object' ? normalize(parsed) : null;
+      } catch (e) { return null; }
+    };
+
+    const direct = tryParse(rawText);
+    if (direct) return direct;
+
+    const fencing = rawText.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '').trim();
+    const stripped = tryParse(fencing);
+    if (stripped) return stripped;
+
+    const first = rawText.indexOf('{');
+    const last = rawText.lastIndexOf('}');
+    if (first !== -1 && last > first) {
+      const slice = tryParse(rawText.slice(first, last + 1));
+      if (slice) return slice;
+    }
+    return {};
   },
 
   // ---- draft: personalized follow-up / visit message ----
