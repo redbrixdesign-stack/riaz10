@@ -1736,8 +1736,12 @@ const AppointmentsFeature = {
   },
 
   renderAddForm(params = {}) {
-    const today = params.date || Utils.formatDate(new Date(), 'iso');
-    const selectedTime = params.time || '09:00';
+    // "undefined" can reach here via a stale hash URL (older builds serialised
+    // undefined params into the query string) - treat it like an absent value.
+    const paramDate = params.date && params.date !== 'undefined' ? params.date : '';
+    const paramTime = params.time && params.time !== 'undefined' ? params.time : '';
+    const today = paramDate || Utils.formatDate(new Date(), 'iso');
+    const selectedTime = paramTime || '09:00';
     const allowedTypes = this.getAllowedTypesForDate(today);
     const defaultType = allowedTypes.includes(params.type) ? params.type : allowedTypes[0];
     const mode = this.getDayMode(today + 'T00:00:00');

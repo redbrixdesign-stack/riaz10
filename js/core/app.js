@@ -231,8 +231,17 @@ const App = {
         params[key] = value;
       });
     }
-    const hasParams = Object.keys(params).length > 0;
-    const targetHash = hasParams ? `${featureId}?${new URLSearchParams(params).toString()}` : featureId;
+    // Drop undefined/null params before serialising. URLSearchParams turns
+    // an undefined VALUE into the string "undefined" (e.g. date=undefined),
+    // which downstream forms read as a real value and render into date/time
+    // inputs as an invalid value — leaving the form's date empty so the
+    // visit silently fails to save.
+    const cleanParams = {};
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== undefined && value !== null) cleanParams[key] = value;
+    }
+    const hasParams = Object.keys(cleanParams).length > 0;
+    const targetHash = hasParams ? `${featureId}?${new URLSearchParams(cleanParams).toString()}` : featureId;
 
     const feature = this.features.get(featureId);
     if (!feature) {
