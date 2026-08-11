@@ -233,7 +233,21 @@ const CONFIG = {
       referral: "Hi {{firstName}}, great to work with you on the {{productType}}. If you know anyone looking for window coverings, I'd love an intro — I offer £50 off their first order as a thank you. — {{advisorName}}"
     },
     on_my_way: "Hi {{firstName}}, I'm on my way and should be with you in about {{eta}}. See you soon! — {{advisorName}}",
-    running_late: "Hi {{firstName}}, running about {{delay}} minutes late due to traffic. Still on my way! — {{advisorName}}"
+    running_late: "Hi {{firstName}}, running about {{delay}} minutes late due to traffic. Still on my way! — {{advisorName}}",
+    // Fallback wording for the automated cadence (message-scheduler.js) when
+    // Claude AI is off — the AI drafts something warmer when it's enabled.
+    evening_before: "Hi {{firstName}}, just a quick one — I'm with you tomorrow at {{time}} at {{address}}. It'd help to know how many windows you're looking at and if you have specific blinds in mind. Any parking or anything else I should know about too? See you tomorrow! — {{advisorName}}",
+    morning_of: "Hi {{firstName}}, looking forward to seeing you today at {{time}}. If you get a chance, let me know how many windows and which blinds you're thinking of — and any parking or access notes. See you shortly! — {{advisorName}}"
+  },
+
+  // Automated message cadence around each visit (js/services/message-scheduler.js):
+  // evening-before and morning-of drafts fire at these UK times while the app
+  // is open, and the departure message fires when a trip starts. All three
+  // open the preview sheet for review — nothing is ever auto-sent.
+  autoMessages: {
+    enabled: false,
+    eveningHour: 18,   // day before the visit, UK time
+    morningHour: 8     // on the day of the visit, UK time
   },
 
   // Claude AI — OCR reads documents/photos, Talk drafts messages.

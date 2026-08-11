@@ -80,6 +80,12 @@ const App = {
       NotificationService._queueNextMorningBrief();
     }
 
+    // Automated message cadence (evening-before / morning-of drafts around
+    // each visit). Recomputes its timers fresh on every boot.
+    if (typeof MessageScheduler !== 'undefined') {
+      try { MessageScheduler.init(); } catch (e) { console.log('MessageScheduler init skipped:', e); }
+    }
+
     console.log('AdvisorOS v5.0 ready');
   },
 

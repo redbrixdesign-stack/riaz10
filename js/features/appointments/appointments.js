@@ -1949,6 +1949,7 @@ const AppointmentsFeature = {
       });
 
       Toast.show('Visit saved', 'success');
+      if (typeof MessageScheduler !== 'undefined') MessageScheduler.reschedule();
       const bookingAskTypes = ['consultation', 'measure', 'fitting', 'review', 'service_call'];
       if (phone && bookingAskTypes.includes(type)) {
         this.offerBookingConfirmation(newAppt.id);
@@ -2435,6 +2436,7 @@ const AppointmentsFeature = {
   async navigateToVisit(address, appointmentId) {
     window.open(Geo.buildNavigationUrl(address || ''), '_blank');
     await Geo.startTrip({ destinationAddress: address || '', appointmentId });
+    if (typeof MessageScheduler !== 'undefined') MessageScheduler.onDeparture(appointmentId);
   },
 
   async openEditNotesModal(id) {

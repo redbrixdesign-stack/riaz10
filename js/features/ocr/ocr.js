@@ -514,7 +514,7 @@ const OCRFeature = {
       // fail outright - splitting the fields on screen is for the person
       // editing them, not for what gets sent to the map.
       const fullAddress = [line1, postcode].filter(Boolean).join(', ');
-      await DB.addCustomer({ firstName: name.split(' ')[0], lastName: name.split(' ').slice(1).join(' ') || '', fullName: name, phone, postcodeNormalized, address: { line1: address, town, city, postcode, postcodeNormalized }, source: 'company_system' });
+      await DB.addCustomer({ firstName: Utils.firstNameFrom(name), lastName: String(name).trim().replace(Utils.HONORIFICS, '').split(/\s+/).slice(1).join(' ') || '', fullName: name, phone, postcodeNormalized, address: { line1: address, town, city, postcode, postcodeNormalized }, source: 'company_system' });
       Toast.show('Customer saved', 'success');
       App.navigate('appointments', {action: 'add', name, phone, address: fullAddress, date: date || undefined, time: time || undefined});
     } catch (e) {
@@ -531,7 +531,7 @@ const OCRFeature = {
     try {
       const { postcode, postcodeNormalized } = this.resolvePostcode(postcodeInput, address);
       const fullAddress = [address, postcode].filter(Boolean).join(', ');
-      await DB.addCustomer({ firstName: name.split(' ')[0], lastName: name.split(' ').slice(1).join(' ') || '', fullName: name, phone, postcodeNormalized, address: { line1: address, postcode, postcodeNormalized }, source: 'manual' });
+      await DB.addCustomer({ firstName: Utils.firstNameFrom(name), lastName: String(name).trim().replace(Utils.HONORIFICS, '').split(/\s+/).slice(1).join(' ') || '', fullName: name, phone, postcodeNormalized, address: { line1: address, postcode, postcodeNormalized }, source: 'manual' });
       Toast.show('Customer saved', 'success');
       App.navigate('appointments', {action: 'add', name, phone, address: fullAddress});
     } catch (e) {

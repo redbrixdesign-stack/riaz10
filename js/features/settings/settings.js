@@ -71,6 +71,8 @@ const SettingsFeature = {
 
         ${this.renderAICard()}
 
+        ${this.renderAutoMessagesCard()}
+
         ${this.renderCommissionCard()}
 
         <div class="card" style="margin-bottom:16px;">
@@ -167,6 +169,7 @@ const SettingsFeature = {
       measurementUnit: CONFIG.measurementUnit,
       commission: CONFIG.commission,
       ai: CONFIG.ai,
+      autoMessages: CONFIG.autoMessages,
       onboardingComplete: true
     };
     localStorage.setItem('advisoros_config', JSON.stringify(toSave));
@@ -215,6 +218,53 @@ const SettingsFeature = {
         </div>
       </div>
     `;
+  },
+
+  // ---- Automated Messages ----
+  renderAutoMessagesCard() {
+    const am = CONFIG.autoMessages || {};
+    const enabled = !!am.enabled;
+    return `
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-weight:600;">Automated Messages</div>
+            <div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">Drafts a message the evening before and morning of each visit (and an "on my way" draft when you start driving). Every draft opens the preview sheet for your review — nothing is ever sent on its own.</div>
+          </div>
+          <button class="btn btn-sm ${enabled ? 'btn-primary' : 'btn-outline'}" onclick="SettingsFeature.toggleAutoMessages()">
+            ${enabled ? 'On' : 'Off'}
+          </button>
+        </div>
+
+        ${enabled ? `
+          <div style="font-size:12px;color:var(--text-tertiary);margin-top:10px;line-height:1.5;">Drafts wait in the preview sheet until you send them, so even a time you miss while the app is closed is waiting for you the next time you open it. These fire along the same lines as the Morning Brief — best treated as a prompt, not an alarm.</div>
+
+          <div class="form-group" style="margin-top:10px;">
+            <label>Evening-before draft (day before the visit)</label>
+            <input type="time" class="input" id="set-msg-evening" value="${String(am.eveningHour ?? 18).padStart(2, '0')}:00" onchange="SettingsFeature.setAutoMessageHour('eveningHour', this.value)">
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Morning-of draft (visit day)</label>
+            <input type="time" class="input" id="set-msg-morning" value="${String(am.morningHour ?? 8).padStart(2, '0')}:00" onchange="SettingsFeature.setAutoMessageHour('morningHour', this.value)">
+          </div>
+        ` : ''}
+      </div>
+    `;
+  },
+
+  toggleAutoMessages() {
+    CONFIG.autoMessages = { ...(CONFIG.autoMessages || {}), enabled: !CONFIG.autoMessages.enabled };
+    this.persist();
+    if (typeof MessageScheduler !== 'undefined') MessageScheduler.reschedule();
+    Toast.show(CONFIG.autoMessages.enabled ? 'Automated Messages enabled' : 'Automated Messages turned off', 'success');
+    this.refreshInPlace();
+  },
+
+  setAutoMessageHour(key, value) {
+    const hour = parseInt((value || '18:00').split(':')[0], 10);
+    CONFIG.autoMessages = { ...(CONFIG.autoMessages || {}), [key]: Number.isFinite(hour) ? hour : 18 };
+    this.persist();
+    this.refreshInPlace();
   },
 
   // ---- AI (Claude) ----

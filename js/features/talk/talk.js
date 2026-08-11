@@ -387,7 +387,7 @@ const TalkFeature = {
     }
 
     const message = NotificationService.processTemplate(template, {
-      firstName: customer?.firstName || appt?.clientName?.split(' ')[0] || 'there',
+      firstName: Utils.firstNameFrom(customer?.firstName || appt?.clientName),
       productType: 'window coverings',
       time: appt ? Utils.formatTime(appt.date) : '',
       address: appt?.address || '',
@@ -402,6 +402,18 @@ const TalkFeature = {
       templateKey
     };
 
+    const etaHint = (templateKey === 'on_my_way' || templateKey === 'running_late')
+      ? (etaIsEstimateOnly ? "Couldn't work out a live ETA (location unavailable) - this is a placeholder, edit before sending." : "Time estimated from your current distance to this visit - double-check before sending.")
+      : null;
+    this.openPreviewSheet(message, this.pendingMessage, etaHint);
+  },
+
+  // Shared preview sheet for the Talk flow AND the automated message
+  // scheduler (js/services/message-scheduler.js): both draft a message,
+  // set this.pendingMessage, and hand the text over here. hint is optional
+  // footer text (ETA caveats, auto-draft notes).
+  openPreviewSheet(message, pending, hint = null) {
+    const { phone, templateKey } = pending;
     const content = `<div class="sheet-handle"></div>
       <div class="sheet-header"><h3>Preview Message</h3><button class="btn btn-ghost btn-sm" onclick="App.closeModal()"><span class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body">
@@ -409,10 +421,8 @@ const TalkFeature = {
         <button class="btn btn-sm ${AIService.isEnabled() ? 'btn-outline' : 'btn-ghost'}" style="margin-top:8px;" onclick="TalkFeature.aiDraft()">
           <span class="material-symbols-rounded" style="font-size:16px;">auto_awesome</span>AI draft
         </button>
-        ${(templateKey === 'on_my_way' || templateKey === 'running_late') ? `
-          <div style="font-size:12px;color:var(--text-tertiary);margin-top:6px;">
-            ${etaIsEstimateOnly ? "Couldn't work out a live ETA (location unavailable) - this is a placeholder, edit before sending." : "Time estimated from your current distance to this visit - double-check before sending."}
-          </div>
+        ${hint ? `
+          <div style="font-size:12px;color:var(--text-tertiary);margin-top:6px;">${Utils.escapeHtml(hint)}</div>
         ` : ''}
         <div style="font-size:13px;color:var(--text-secondary);margin:12px 0 16px;">Sending to: ${Utils.escapeHtml(Utils.formatPhone(phone))}</div>
         <button class="btn btn-primary btn-block" onclick="TalkFeature.confirmSend()">
@@ -490,14 +500,23 @@ const TalkFeature = {
     } catch (e) { /* ignore */ }
 
     const orderTotal = orders.reduce((sum, o) => sum + (o.total || 0), 0);
+    const advisorName = CONFIG.advisorName || 'Your Advisor';
+    const advisorIntro = CONFIG.companyName ? `${advisorName} from ${CONFIG.companyName}` : advisorName;
+    const visitTypeLabel = appt?.type
+      ? (CONFIG.appointmentTypes.find(t => t.id === appt.type)?.name || appt.type)
+      : 'visit';
     return {
       customerName: customer ? [customer.firstName, customer.lastName].filter(Boolean).join(' ') : (appt?.clientName || 'there'),
+      firstName: Utils.firstNameFrom(customer?.firstName || appt?.clientName),
       appointmentDate: appt?.date ? Utils.formatDate(appt.date) : '',
+      appointmentDay: appt?.date ? Utils.formatDate(appt.date, 'long') : '',
       appointmentTime: appt?.date ? Utils.formatTime(appt.date) : '',
+      visitType: visitTypeLabel,
       visitAddress: appt?.address || customer?.address || '',
       templateKey,
       templateText,
-      note: `The advisor's name is ${CONFIG.advisorName || 'not set'}.`,
+      advisorName,
+      advisorIntro,
       orderHistory: orders.length
         ? `Order history: ${orders.length} order(s), latest total £${orderTotal.toFixed(2)}.`
         : 'Order history: none.',

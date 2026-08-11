@@ -374,6 +374,18 @@ const Utils = {
     })[ch]);
   },
 
+  // First word of a person's name with common honorifics stripped, so
+  // "Ms Hilary Taylor" yields "Hilary" — greeting someone as "Hi Ms" is
+  // wrong, and it happens whenever the name came from a scan of a card
+  // that leads with a title (they almost all do).
+  HONORIFICS: /^(mr|mrs|ms|miss|mstr|dr|prof|rev|sir|lady|dame)\.?\s+/i,
+
+  firstNameFrom(name) {
+    if (!name) return 'there';
+    const stripped = String(name).trim().replace(this.HONORIFICS, '');
+    return stripped.split(/\s+/)[0] || 'there';
+  },
+
   escapeAttr(value) {
     return this.escapeHtml(value);
   },

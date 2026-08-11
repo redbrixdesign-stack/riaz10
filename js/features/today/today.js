@@ -595,6 +595,7 @@ const TodayFeature = {
     App.closeModal();
     window.open(Geo.buildNavigationUrl(address || '', origin || ''), '_blank');
     await Geo.startTrip({ destinationAddress: address || '', appointmentId });
+    if (typeof MessageScheduler !== 'undefined') MessageScheduler.onDeparture(appointmentId);
   },
 
   renderRoutePreview(appointments) {
