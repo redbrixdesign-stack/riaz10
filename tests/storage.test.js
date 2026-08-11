@@ -304,6 +304,25 @@ async function runDbJs(engine, tag) {
   ok(engine + ': customer gone after cascade', (await DB.db.customers.get(c.id)) === undefined);
   ok(engine + ': photos gone after customer cascade', (await DB.db.photos.count()) === 0);
 
+  // Mixed date storage: a Date object (older engines/imports) must appear in
+  // the day/range queries too — string-bounded index ranges silently skip it.
+  // The raw row is deliberately 1h ahead so it sits inside every window
+  // ("now" is captured after the add, so an exact-now row is at the edge).
+  const rawDate = new Date(Date.now() + 3600000);
+  const t = new Date(rawDate);
+  t.setHours(0, 0, 0, 0);
+  const tISO = t.toISOString();
+  await DB.addAppointment({ customerId: 1, clientName: 'Date Object Row', date: tISO, status: 'confirmed' });
+  await DB.db.appointments.add({ customerId: 2, clientName: 'Raw Date Row', date: rawDate, status: 'confirmed' });
+  const dayRows = await DB.getAppointmentsForDate(t);
+  ok(engine + ': day query finds ISO-string rows', dayRows.some(a => a.clientName === 'Date Object Row'));
+  ok(engine + ': day query finds Date-object rows', dayRows.some(a => a.clientName === 'Raw Date Row'), dayRows.map(a => a.clientName));
+  const rangeRows = await DB.getAppointmentsForRange(t, new Date(rawDate.getTime() + 86400000));
+  ok(engine + ': range query finds Date-object rows', rangeRows.some(a => a.clientName === 'Raw Date Row'));
+  const upcoming = await DB.getUpcomingAppointments(1);
+  ok(engine + ': upcoming finds Date-object rows', upcoming.some(a => a.clientName === 'Raw Date Row'));
+  await DB.db.appointments.filter(a => a.clientName === 'Raw Date Row').delete();
+
   // Factory reset: every table empties and app-prefixed localStorage keys go.
   sandbox.localStorage.setItem('advisoros_config', JSON.stringify({ advisorName: 'Riaz' }));
   sandbox.localStorage.setItem('advisoros_auto_visit_1', '1');

@@ -369,20 +369,26 @@ const DB = {
     return { ...appointment, id };
   },
 
+  // Appointment rows can hold `date` as a Date object (older storage
+  // engines, imports) or an ISO string (every current save path). A
+  // string-bounded index range (between) silently skips Date-object rows —
+  // IndexedDB orders Date keys before all strings — leaving that visit
+  // searchable by customer yet invisible in the diary, Today and the
+  // calendar. Compare in JS after parsing instead, so every storage shape
+  // lands in the right day/range.
+  _inDateWindow(value, start, end) {
+    const d = value instanceof Date ? value : new Date(value);
+    return !isNaN(d.getTime()) && d >= start && d <= end;
+  },
+
   async getAppointmentsForDate(date) {
     const start = new Date(date);
     start.setHours(0, 0, 0, 0);
     const end = new Date(date);
     end.setHours(23, 59, 59, 999);
 
-    // Bounds are explicit: Dexie's between() is upper-EXCLUSIVE by default
-    // (the bundled shim is inclusive), so without (true, true) a visit at
-    // exactly 23:59:59.999 would silently vanish from the day's list.
-    return await this.db.appointments
-      .where('date')
-      .between(start.toISOString(), end.toISOString(), true, true)
-      .and(a => a.status !== 'cancelled')
-      .toArray();
+    const rows = await this.db.appointments.toArray();
+    return rows.filter(a => a.status !== 'cancelled' && this._inDateWindow(a.date, start, end));
   },
 
   // Generic date-range fetch — used by the standard month calendar view.
@@ -392,11 +398,8 @@ const DB = {
     const end = new Date(endDate);
     end.setHours(23, 59, 59, 999);
 
-    return await this.db.appointments
-      .where('date')
-      .between(start.toISOString(), end.toISOString(), true, true)
-      .and(a => a.status !== 'cancelled')
-      .toArray();
+    const rows = await this.db.appointments.toArray();
+    return rows.filter(a => a.status !== 'cancelled' && this._inDateWindow(a.date, start, end));
   },
 
   async getUpcomingAppointments(days = 7) {
@@ -404,11 +407,8 @@ const DB = {
     const future = new Date();
     future.setDate(future.getDate() + days);
 
-    return await this.db.appointments
-      .where('date')
-      .between(now.toISOString(), future.toISOString(), true, true)
-      .and(a => a.status !== 'cancelled')
-      .toArray();
+    const rows = await this.db.appointments.toArray();
+    return rows.filter(a => a.status !== 'cancelled' && this._inDateWindow(a.date, now, future));
   },
 
   // Canonical weekly stats: sales value, earnings (commission) and order
@@ -421,11 +421,10 @@ const DB = {
   // none of them excluded cancelled visits, so cancelling a sold visit kept
   // counting toward the weekly target).
   async getWeekStats(startISO, endISO) {
-    const appts = await this.db.appointments
-      .where('date')
-      .between(startISO, endISO, true, true)
-      .and(a => a.status !== 'cancelled' && a.outcome === 'ordered')
-      .toArray();
+    const start = new Date(startISO);
+    const end = new Date(endISO);
+    const rows = await this.db.appointments.toArray();
+    const appts = rows.filter(a => a.status !== 'cancelled' && a.outcome === 'ordered' && this._inDateWindow(a.date, start, end));
 
     let sales = 0;
     let earnings = 0;
