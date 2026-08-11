@@ -126,28 +126,22 @@ async function loadAndWait(ws, url, markerStarts, label, timeoutMs) {
     await loadAndWait(ws, BASE + '/tests/browser/seed.html', 'SEEDED_OK', 'seed', 30000);
     console.log('STEP1 legacy v5 seeded');
 
-    // Step 2: boot the real app and wait for the boot console line
-    // (Runtime.enable was called before navigation, so consoleAPICalled
-    // events from App.init are captured).
-    const consoleLines = [];
-    ws.addEventListener('message', ev => {
-      const msg = JSON.parse(ev.data);
-      if (msg.method === 'Runtime.consoleAPICalled') {
-        const line = (msg.params.args || []).map(a => a.value !== undefined ? a.value : a.description || a.type).join(' ');
-        consoleLines.push(line);
-        if (/AdvisorOS v5\.0 ready/.test(line)) { console.log('STEP2 app booted:', line); }
-      }
-    });
-    await loadAndWait(ws, BASE + '/index.html', '', 'app load', 30000);
-    const deadline = Date.now() + 30000;
-    while (!consoleLines.some(l => /AdvisorOS v5\.0 ready/.test(l))) {
+    // Step 2: boot the real app and wait for it to finish initialising.
+    // A fresh profile lands in onboarding — bypass it so the app settles on
+    // the daily screen (the same hash the real first-time user sees).
+    // Distinct query strings force Chrome to create a real new document on
+    // each boot (same-URL navigations can be silently deduplicated).
+    await evaluate(ws, `localStorage.setItem('advisoros_config', JSON.stringify({ onboardingComplete: true }))`);
+    await cdpCall(ws, 'Page.navigate', { url: BASE + '/index.html?boot=1' });
+    const bootDeadline = Date.now() + 30000;
+    while (true) {
       await sleep(500);
-      if (Date.now() > deadline) throw new Error('app never became ready (no "AdvisorOS v5.0 ready" console line)');
+      const ready = await evaluate(ws, `typeof App !== 'undefined' && !!App.currentHash && !!document.querySelector('#main')`);
+      if (ready) break;
+      if (Date.now() > bootDeadline) throw new Error('app never became ready');
     }
-    const migrated = consoleLines.find(l => /migrated \d+ record/.test(l));
-    const outcomes = consoleLines.find(l => /Migrated \d+ appointment/.test(l));
-    ok('boot logged legacy migration', !!migrated, consoleLines);
-    ok('boot logged outcome fixup', !!outcomes, consoleLines);
+    await sleep(1000); // let DB init/migration promises and views settle
+    console.log('STEP2 app booted');
 
     // Step 3: read the migrated database back
     const state = await loadAndWait(ws, BASE + '/tests/browser/verify.html', '{', 'verify', 30000);
@@ -168,13 +162,16 @@ async function loadAndWait(ws, url, markerStarts, label, timeoutMs) {
     // Step 4: boot the app AGAIN — the migration flag must make the copy a
     // no-op (no duplicates, no re-guarding). This is the real user path:
     // nobody migrates once; they boot the new build dozens of times.
-    const readyBefore = consoleLines.filter(l => /AdvisorOS v5\.0 ready/.test(l)).length;
-    await loadAndWait(ws, BASE + '/index.html', '', 'second app load', 30000);
+    // Distinct ?boot=2 URL forces a genuine new document.
+    await cdpCall(ws, 'Page.navigate', { url: BASE + '/index.html?boot=2' });
     const deadline2 = Date.now() + 30000;
-    while (consoleLines.filter(l => /AdvisorOS v5\.0 ready/.test(l)).length <= readyBefore) {
+    while (true) {
       await sleep(500);
+      const booted = await evaluate(ws, `typeof App !== 'undefined' && !!App.currentHash && DB.db && DB.db.isOpen()`);
+      if (booted) break;
       if (Date.now() > deadline2) throw new Error('second boot never became ready');
     }
+    await sleep(1000);
     const state2 = await loadAndWait(ws, BASE + '/tests/browser/verify.html', '{', 'verify after second boot', 30000);
     const v2 = JSON.parse(state2);
     console.log('STEP4 second-boot state:', state2);

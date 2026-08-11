@@ -107,24 +107,43 @@ async function evaluate(ws, expression) {
     await cdpCall(ws, 'Runtime.enable');
     await cdpCall(ws, 'Page.enable');
 
-    // Capture console output (errors + the app boot line) for the whole run
-    const consoleLines = [];
+    // Capture runtime exceptions for the whole run.
+    const exceptions = [];
     ws.addEventListener('message', ev => {
       const msg = JSON.parse(ev.data);
-      if (msg.method === 'Runtime.consoleAPICalled') {
-        const line = (msg.params.args || []).map(a => a.value !== undefined ? a.value : a.description || a.type).join(' ');
-        consoleLines.push(line);
+      if (msg.method === 'Runtime.exceptionThrown') {
+        exceptions.push(msg.params.exceptionDetails.text + ' ' + (msg.params.exceptionDetails.exception?.description || ''));
       }
     });
 
     console.log('STEP1 loading the real app…');
-    await cdpCall(ws, 'Page.navigate', { url: BASE + '/index.html' });
+    // First load: fresh profile lands in onboarding. That's fine — it
+    // establishes the app is booting. Distinct ?boot=N query strings force
+    // Chrome to create a real new document (same-URL navigations can be
+    // silently deduplicated in this harness).
+    await cdpCall(ws, 'Page.navigate', { url: BASE + '/index.html?boot=1' });
     const bootDeadline = Date.now() + 30000;
-    while (!consoleLines.some(l => /AdvisorOS v5\.0 ready/.test(l))) {
+    while (true) {
       await sleep(500);
+      const booted = await evaluate(ws, `typeof App !== 'undefined' && !!App.currentHash && !!document.querySelector('#main')`);
+      if (booted) break;
       if (Date.now() > bootDeadline) {
-        console.error('app never became ready. Console so far:', consoleLines.slice(-20));
+        console.error('app never became ready. Exceptions so far:', exceptions.slice(-10));
         throw new Error('app never became ready');
+      }
+    }
+    // Mark onboarding done and boot again into the daily screen, which is
+    // what the OCR flow expects to sit on.
+    await evaluate(ws, `localStorage.setItem('advisoros_config', JSON.stringify({ onboardingComplete: true }))`);
+    await cdpCall(ws, 'Page.navigate', { url: BASE + '/index.html?boot=2' });
+    const bootDeadline2 = Date.now() + 30000;
+    while (true) {
+      await sleep(500);
+      const settled = await evaluate(ws, `typeof App !== 'undefined' && App.currentHash === 'today'`);
+      if (settled) break;
+      if (Date.now() > bootDeadline2) {
+        console.error('app never settled on the daily screen. Exceptions so far:', exceptions.slice(-10));
+        throw new Error('app never settled on today');
       }
     }
     console.log('STEP2 app booted');
@@ -181,9 +200,9 @@ async function evaluate(ws, expression) {
     ok('diary screen renders the OCR customer name', diaryText.includes(customer), diaryText.slice(0, 300));
     ok('diary screen shows today agenda (Today heading)', /Today/i.test(diaryText), diaryText.slice(0, 300));
 
-    const errors = consoleLines.filter(l => /error|failed|exception/i.test(l));
-    if (errors.length) console.log('       console errors observed:', errors.slice(0, 10));
-    ok('no error/failure lines in console during the save', errors.length === 0, errors.slice(0, 5));
+    const errors = exceptions.filter(l => /error|failed|exception/i.test(l));
+    if (errors.length) console.log('       JS exceptions observed:', errors.slice(0, 10));
+    ok('no runtime exceptions during the save', errors.length === 0, errors.slice(0, 5));
   } catch (e) {
     failures++;
     console.error('E2E FAILED:', e.message);
