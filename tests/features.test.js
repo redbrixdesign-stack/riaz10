@@ -60,8 +60,15 @@ global.DB = {
   getPipeline: async () => TABLES.appointments.filter(a =>
     ['quoted', 'thinking', 'partner', 'compare_quotes', 'expensive', 'customer_no_show', 'advisor_unavailable'].includes(a.outcome)
   ),
-  getUpcomingAppointments: async () => TABLES.appointments.filter(a => a.status === 'confirmed' && new Date(a.date) >= new Date(new Date().setHours(0, 0, 0, 0))),
-  getAppointmentsForDate: async () => [],
+  // Mirrors the real DB: starts at NOW (a 10:00 visit invisible after 10:00).
+  getUpcomingAppointments: async () => TABLES.appointments.filter(a => a.status !== 'cancelled' && new Date(a.date) >= new Date()),
+  // Mirrors the real DB: full day — this is what followups relies on to find
+  // this morning's unlogged visit.
+  getAppointmentsForDate: async () => {
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    const end = new Date(); end.setHours(23, 59, 59, 999);
+    return TABLES.appointments.filter(a => a.status !== 'cancelled' && new Date(a.date) >= start && new Date(a.date) <= end);
+  },
   getPhotosForCustomer: async () => []
 };
 global.ContactFeature = { open() {} };
@@ -141,6 +148,26 @@ const assert = (cond, msg) => { if (!cond) { console.error('FAIL:', msg); proces
   assert(html.includes('Lounge Bay'), 'Measurement row present in profile');
   assert(html.includes('Sarah Johnson'), 'Customer name present');
   assert(!html.includes('<script'), 'No raw script injection in profile');
+
+  // Talk: buildAiContext feeds the AI the real facts (quote value, measured
+  // windows, order/deposit figures, timings, history) — not generic filler.
+  TABLES.orders[0].balanceDue = 1250; // restore what the paid-column check mutated
+  const Talk = global.App.features.get('talk');
+  const ctx = await Talk.buildAiContext({ customerId: 1, appointmentId: 11, templateKey: 'follow_up.quote' });
+  assert(ctx.firstName === 'Sarah', 'Context carries first name');
+  assert(ctx.daysSince === 5, `daysSince counted from visit (got ${ctx.daysSince})`);
+  assert(ctx.quoteValue.includes('1,250'), 'Quote value reaches the context');
+  assert(ctx.windowScope.includes('Lounge Bay'), 'Measured window reaches the context');
+  assert(ctx.outcomeAction === 'Follow up on quote', 'Outcome action label reaches the context');
+  assert(ctx.depositLabel === 'deposit' && ctx.depositAmount.includes('625'), 'Deposit figure reaches the context');
+  assert(ctx.orderHistory.includes('due'), 'Order balance in history');
+  assert(ctx.lastSentDaysAgo === 2, `Days since last message counted (got ${ctx.lastSentDaysAgo})`);
+  assert(ctx.totalMessagesSent === 1, 'Message count reaches the context');
+  assert(ctx.recentMessages.includes('Hi'), 'Recent message content in context');
+
+  // Live ETA and running-late delay must survive into any AI draft.
+  const ctxEta = await Talk.buildAiContext({ customerId: 1, appointmentId: 12, templateKey: 'on_my_way', extraVars: { eta: '9 minutes', delay: '15' } });
+  assert(ctxEta.eta === '9 minutes' && ctxEta.delay === '15', 'Live ETA/delay thread into context');
 
   console.log(process.exitCode ? '\nSMOKE TEST FAILED' : '\nSMOKE TEST PASSED');
 })();

@@ -393,7 +393,11 @@ const TalkFeature = {
       customerId: customer?.id || 0,
       phone: whatsappPhone,
       appointmentId,
-      templateKey
+      templateKey,
+      // Computed facts (live ETA, running-late delay, order/deposit values)
+      // must survive into an AI draft too — an AI rewrite that drops "20
+      // minutes" or the deposit amount is worse than the template it replaced.
+      extraVars: { eta, delay, ...extraVars }
     };
 
     const etaHint = (templateKey === 'on_my_way' || templateKey === 'running_late')
@@ -467,21 +471,42 @@ const TalkFeature = {
     const customer = customerId ? await DB.db.customers.get(customerId) : null;
     const appt = appointmentId ? await DB.db.appointments.get(appointmentId) : null;
 
-    // Order history supports "your order is on its way" style draft contexts.
+    // Order history supports "your order is on its way" style draft contexts,
+    // and the deposit/balance figures make a payment reminder (or a
+    // post-fitting nudge) specific instead of generic.
     let orders = [];
     try {
       if (customerId) orders = await DB.db.orders.where('customerId').equals(customerId).toArray();
     } catch (e) { /* storage read failed — draft without it */ }
 
-    // Last two messages, for continuity ("following up on our last chat…").
+    // What was actually measured at this visit ("Lounge", "Bay window") —
+    // the real scope being quoted or fitted, so a follow-up can say
+    // "the blinds for your lounge" instead of "your window coverings".
+    let measurements = [];
+    try {
+      if (appt?.id) measurements = await DB.db.measurements.where('appointmentId').equals(appt.id).toArray();
+    } catch (e) { /* draft without measurements */ }
+
+    // Last few messages, for continuity ("following up on our last chat…").
+    // Each carries its sentAt date so a draft can honestly say "messaged you
+    // a few days back" — the customer reply itself isn't tracked, so the
+    // summary stays factual about what WE sent, never claims to know what
+    // happened on the customer's side.
+    let allMessages = [];
     let recentMessages = [];
     try {
       if (customerId) {
-        const all = await DB.db.communications.where('customerId').equals(customerId).toArray();
-        all.sort((a, b) => new Date(b.sentAt || 0) - new Date(a.sentAt || 0));
-        recentMessages = all.slice(0, 2).map(c => c.content || '').filter(Boolean);
+        allMessages = await DB.db.communications.where('customerId').equals(customerId).toArray();
+        allMessages.sort((a, b) => new Date(b.sentAt || 0) - new Date(a.sentAt || 0));
+        recentMessages = allMessages.slice(0, 4)
+          .map(c => ({ content: String(c.content || '').trim(), sentAt: c.sentAt || null }))
+          .filter(c => c.content);
       }
     } catch (e) { /* ignore */ }
+
+    orders.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    const latestOrder = orders[0] || null;
+    const orderTotal = orders.reduce((sum, o) => sum + (o.total || 0), 0);
 
     // The resolved template text (same lookup sendMessage uses) so the draft
     // can keep its goal while sounding human.
@@ -493,12 +518,26 @@ const TalkFeature = {
       templateText = typeof t === 'string' ? t : '';
     } catch (e) { /* ignore */ }
 
-    const orderTotal = orders.reduce((sum, o) => sum + (o.total || 0), 0);
     const advisorName = CONFIG.advisorName || 'Your Advisor';
     const advisorIntro = CONFIG.companyName ? `${advisorName} from ${CONFIG.companyName}` : advisorName;
     const visitTypeLabel = appt?.type
       ? (CONFIG.appointmentTypes.find(t => t.id === appt.type)?.name || appt.type)
       : 'visit';
+    const daysSince = appt?.date ? Utils.daysBetween(new Date(), new Date(appt.date)) : null;
+    const quoteValue = appt?.value && appt.value > 0 ? Utils.formatCurrency(appt.value) : '';
+    const windowScope = measurements.map(m => m.windowName).filter(Boolean).slice(0, 6).join(', ');
+    const outcomeAction = appt?.outcome ? (this.getTemplateForOutcome(appt.outcome)?.action || '') : '';
+    const customerArea = [customer?.address?.city, customer?.address?.postcode].filter(Boolean).join(', ');
+    const lastSentDaysAgo = recentMessages[0]?.sentAt
+      ? Utils.daysBetween(new Date(), new Date(recentMessages[0].sentAt))
+      : null;
+
+    // Facts the caller computed for the static template (live ETA, running
+    // late delay, payment_reminder order/deposit) must reach the AI too, or
+    // an AI draft silently drops them — sending "I'm on my way" with no ETA.
+    const extra = pending.extraVars || {};
+    const depositPaid = latestOrder?.depositPaid || 0;
+
     return {
       customerName: customer ? [customer.firstName, customer.lastName].filter(Boolean).join(' ') : (appt?.clientName || 'there'),
       firstName: Utils.firstNameFrom(customer?.firstName || appt?.clientName),
@@ -506,15 +545,33 @@ const TalkFeature = {
       appointmentDay: appt?.date ? Utils.formatDate(appt.date, 'long') : '',
       appointmentTime: appt?.date ? Utils.formatTime(appt.date) : '',
       visitType: visitTypeLabel,
-      visitAddress: appt?.address || customer?.address || '',
+      visitAddress: appt?.address || customer?.address?.line1 || '',
       templateKey,
       templateText,
       advisorName,
       advisorIntro,
+      quoteValue,
+      visitNotes: appt?.notes || '',
+      windowScope,
+      daysSince,
+      outcome: appt?.outcome || '',
+      outcomeAction,
+      customerArea,
+      leadSource: customer?.source || '',
+      eta: String(extra.eta || '').trim(),
+      delay: String(extra.delay || '').trim(),
+      supplierOrderNumber: String(latestOrder?.supplierOrderNumber || '').trim(),
+      depositAmount: Utils.formatCurrency(depositPaid > 0 ? (latestOrder?.balanceDue || 0) : (latestOrder?.depositRequired || 0)),
+      depositLabel: depositPaid > 0 ? 'balance' : 'deposit',
+      balanceDue: Utils.formatCurrency(latestOrder?.balanceDue || 0),
       orderHistory: orders.length
-        ? `Order history: ${orders.length} order(s), latest total £${orderTotal.toFixed(2)}.`
+        ? `Order history: ${orders.length} order(s)${latestOrder?.supplierOrderNumber ? `, supplier ref ${latestOrder.supplierOrderNumber}` : ''}, latest total ${Utils.formatCurrency(latestOrder?.total || orderTotal)}${depositPaid > 0 ? `, ${Utils.formatCurrency(depositPaid)} paid` : ''}${latestOrder?.balanceDue > 0 ? `, ${Utils.formatCurrency(latestOrder.balanceDue)} due` : ''}.`
         : 'Order history: none.',
-      recentMessages: recentMessages.length ? `Recent messages sent to this customer: ${recentMessages.join(' | ')}` : 'No previous messages.'
+      recentMessages: recentMessages.length
+        ? `Recent messages sent to this customer: ${recentMessages.map(m => `[${m.sentAt ? Utils.formatDate(m.sentAt, 'short') : 'sometime'}] "${m.content}"`).join(' | ')}`
+        : 'No previous messages.',
+      lastSentDaysAgo,
+      totalMessagesSent: allMessages.length
     };
   },
 

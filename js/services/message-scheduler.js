@@ -125,6 +125,7 @@ const MessageScheduler = {
     const phone = await this._resolvePhone(appt);
     if (!phone) return;
     const pending = { customerId: appt.customerId || 0, phone, appointmentId: appt.id, templateKey: 'on_my_way' };
+    if (etaText) pending.extraVars = { eta: etaText };
     const message = await this._buildMessage(appt, 'on_my_way', pending, { eta: etaText });
     if (!message) return;
     TalkFeature.pendingMessage = pending;

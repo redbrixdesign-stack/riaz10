@@ -25,14 +25,19 @@ const FollowupsFeature = {
     let pipeline = [];
     let orders = [];
     let upcoming = [];
+    let todayAppts = [];
     try { pipeline = await DB.getPipeline(); } catch (e) {}
     try { orders = await DB.db.orders.toArray(); } catch (e) {}
     try { upcoming = await DB.getUpcomingAppointments(5); } catch (e) {}
+    // getUpcomingAppointments starts at "now", so a visit earlier today would
+    // never surface — pull the full day separately for the outcome tasks.
+    try { todayAppts = await DB.getAppointmentsForDate(now.toISOString()); } catch (e) {}
 
     const customerIds = [...new Set([
       ...pipeline.map(a => a.customerId).filter(Boolean),
       ...orders.map(o => o.customerId).filter(Boolean),
-      ...upcoming.map(a => a.customerId).filter(Boolean)
+      ...upcoming.map(a => a.customerId).filter(Boolean),
+      ...todayAppts.map(a => a.customerId).filter(Boolean)
     ])];
     const customerMap = new Map();
     if (customerIds.length) {
@@ -49,9 +54,9 @@ const FollowupsFeature = {
     const tasks = [];
 
     // 1. Quote chases from visit outcomes (Talk's timing rules).
-    const upcomingIds = new Set(upcoming.map(a => a.id));
+    const skippableIds = new Set([...upcoming, ...todayAppts].map(a => a.id));
     for (const appt of pipeline) {
-      if (upcomingIds.has(appt.id)) continue;
+      if (skippableIds.has(appt.id)) continue;
       const match = (typeof TalkFeature !== 'undefined') ? TalkFeature.getTemplateForOutcome(appt.outcome) : null;
       if (!match) continue;
       const daysSince = Utils.daysBetween(now, new Date(appt.date));
@@ -89,8 +94,9 @@ const FollowupsFeature = {
       });
     }
 
-    // 3. Today's visits still needing an outcome logged.
-    for (const appt of upcoming) {
+    // 3. Today's visits still needing an outcome logged — from the full-day
+    //    list, not "upcoming" (that window starts at now).
+    for (const appt of todayAppts) {
       if (appt.status !== 'confirmed' || appt.outcome) continue;
       if (dayKey(appt.date) !== dayKey(now)) continue;
       tasks.push({
