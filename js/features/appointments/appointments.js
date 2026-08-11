@@ -1174,9 +1174,11 @@ const AppointmentsFeature = {
     let appts = [];
     let orders = [];
     let comms = [];
+    let photos = [];
     try { appts = await DB.db.appointments.where('customerId').equals(customerId).toArray(); } catch (e) {}
     try { orders = await DB.db.orders.where('customerId').equals(customerId).toArray(); } catch (e) {}
     try { comms = await DB.db.communications.where('customerId').equals(customerId).toArray(); } catch (e) {}
+    try { photos = await DB.getPhotosForCustomer(customerId); } catch (e) {}
 
     appts.sort((a, b) => new Date(a.date) - new Date(b.date));
     const firstVisit = appts[0];
@@ -1305,6 +1307,23 @@ const AppointmentsFeature = {
           `).join('')}
         </div>
 
+        <div class="card" style="margin: 16px; margin-top: 0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div style="font-size:13px;font-weight:600;color:var(--text-secondary);">Photos ${photos.length ? `(${photos.length})` : ''}</div>
+            <button class="btn btn-outline btn-sm" style="gap:6px;" aria-label="Add photo" onclick="document.getElementById('customer-photo-input').click()">
+              <span class="material-symbols-rounded" style="font-size:16px;">photo_camera</span>Add Photo
+            </button>
+          </div>
+          ${photos.length === 0 ? `
+            <div style="font-size:13px;color:var(--text-tertiary);text-align:center;padding:12px 0 4px;">No photos yet — windows, fronts, damage notes, anything useful to remember.</div>
+          ` : `
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
+              ${photos.map(p => this.renderPhotoThumb(p)).join('')}
+            </div>
+          `}
+          <input type="file" id="customer-photo-input" accept="image/*" capture="environment" style="display:none;" onchange="AppointmentsFeature.captureCustomerPhoto(event, ${customerId})">
+        </div>
+
         <div style="margin: 16px; margin-top: 0;">
           <button class="btn btn-danger btn-block btn-sm" onclick="AppointmentsFeature.confirmDeleteCustomer(${customer.id})">
             <span class="material-symbols-rounded">delete</span>
@@ -1315,12 +1334,162 @@ const AppointmentsFeature = {
     `;
   },
 
+  // ---- Customer photo gallery ----
+  // Photos are stored as base64 in IndexedDB (DB.addPhoto) and render
+  // directly as data URLs — no object URLs to track or revoke, and it works
+  // on both the Dexie and mini-Dexie storage engines.
+
+  renderPhotoThumb(p) {
+    return `<div style="position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--bg);" role="button" tabindex="0" aria-label="View photo" onclick="AppointmentsFeature.openPhotoViewer(${p.id}, ${p.customerId})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();AppointmentsFeature.openPhotoViewer(${p.id}, ${p.customerId});}">
+      <img src="${this._photoSrc(p)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">
+    </div>`;
+  },
+
+  _photoSrc(p) {
+    return `data:${p.mimeType || 'image/jpeg'};base64,${p.data}`;
+  },
+
+  // Camera/file picker on the phone's hardware camera; on desktop this falls
+  // back to a normal file picker. The picked photo is downscaled before
+  // saving so the gallery stays lean (rows of a few hundred KB).
+  async captureCustomerPhoto(event, customerId) {
+    const file = event?.target?.files?.[0];
+    if (event?.target) event.target.value = '';
+    if (!file) return;
+    let data;
+    try {
+      const blob = await this._downscaleImage(file);
+      data = await this._blobToDataUrl(blob);
+    } catch (e) {
+      console.error('Photo read failed:', e);
+      Toast.show('Could not read that image', 'error');
+      return;
+    }
+    this._capturePhoto = { customerId, data, mimeType: 'image/jpeg' };
+    const content = `<div class="sheet-handle"></div>
+      <div class="sheet-header"><h3>Save photo</h3><button class="btn btn-ghost btn-sm" onclick="App.closeModal(); AppointmentsFeature.discardCapture()"><span class="material-symbols-rounded">close</span></button></div>
+      <div class="sheet-body">
+        <img src="${data}" alt="Captured photo" style="width:100%;max-height:45vh;object-fit:contain;border-radius:8px;background:var(--bg);">
+        <div class="form-group" style="margin-top:12px;">
+          <label>Caption (optional)</label>
+          <input type="text" class="input" id="photo-caption-input" value="${Utils.escapeAttr(Utils.formatDate(new Date(), 'long'))}" placeholder="e.g. Front windows with Juliet balcony">
+        </div>
+        <button class="btn btn-primary btn-block" onclick="AppointmentsFeature.saveCapturedPhoto()"><span class="material-symbols-rounded">save</span>Save to gallery</button>
+      </div>`;
+    App.openModal(content);
+  },
+
+  discardCapture() {
+    this._capturePhoto = null;
+  },
+
+  _blobToDataUrl(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('encode failed'));
+      reader.onload = () => resolve(reader.result);
+      reader.readAsDataURL(blob);
+    });
+  },
+
+  _downscaleImage(file, maxSide = 1600, quality = 0.82) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('read failed'));
+      reader.onload = () => {
+        const img = new Image();
+        img.onerror = () => reject(new Error('decode failed'));
+        img.onload = () => {
+          const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob(b => (b ? resolve(b) : reject(new Error('encode failed'))), 'image/jpeg', quality);
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  },
+
+  async saveCapturedPhoto() {
+    const caption = (document.getElementById('photo-caption-input')?.value || '').trim();
+    const { customerId, data, mimeType } = this._capturePhoto || {};
+    if (!customerId || !data) return;
+    try {
+      await DB.addPhoto({ customerId, data, mimeType, caption });
+      this._capturePhoto = null;
+      App.closeModal();
+      Toast.show('Photo saved', 'success');
+      App.navigate('appointments', { customerId });
+    } catch (e) {
+      console.error('Save photo error:', e);
+      Toast.show('Failed to save photo', 'error');
+    }
+  },
+
+  async openPhotoViewer(photoId, customerId) {
+    let p = null;
+    try { p = await DB.db.photos.get(photoId); } catch (e) {}
+    if (!p) { Toast.show('Photo not found', 'error'); return; }
+    const caption = p.caption || Utils.formatDate(p.createdAt, 'long');
+    const content = `<div class="sheet-handle"></div>
+      <div class="sheet-header"><h3>Photo</h3><button class="btn btn-ghost btn-sm" onclick="App.closeModal()"><span class="material-symbols-rounded">close</span></button></div>
+      <div class="sheet-body">
+        <img src="${this._photoSrc(p)}" alt="Customer photo" style="width:100%;max-height:55vh;object-fit:contain;border-radius:8px;background:var(--bg);">
+        <div class="form-group" style="margin-top:12px;">
+          <label>Caption</label>
+          <input type="text" class="input" id="photo-viewer-caption" value="${Utils.escapeAttr(caption)}">
+        </div>
+        <button class="btn btn-outline btn-sm btn-block" onclick="AppointmentsFeature.savePhotoCaption(${photoId})"><span class="material-symbols-rounded" style="font-size:16px;">save</span>Save caption</button>
+        <div style="font-size:12px;color:var(--text-tertiary);text-align:center;margin:10px 0 4px;">Taken ${Utils.escapeHtml(Utils.formatDate(p.createdAt, 'long'))}</div>
+        <button class="btn btn-danger btn-sm btn-block" onclick="AppointmentsFeature.confirmDeletePhoto(${photoId}, ${customerId})"><span class="material-symbols-rounded" style="font-size:16px;">delete</span>Delete photo</button>
+      </div>`;
+    App.openModal(content);
+  },
+
+  async savePhotoCaption(photoId) {
+    const caption = (document.getElementById('photo-viewer-caption')?.value || '').trim();
+    try {
+      await DB.db.photos.update(photoId, { caption });
+      Toast.show('Caption saved', 'success');
+    } catch (e) {
+      console.error('Caption save error:', e);
+      Toast.show('Failed to save caption', 'error');
+    }
+  },
+
+  confirmDeletePhoto(photoId, customerId) {
+    const content = `<div class="sheet-handle"></div>
+      <div class="sheet-header"><h3>Delete photo?</h3><button class="btn btn-ghost btn-sm" onclick="App.closeModal()"><span class="material-symbols-rounded">close</span></button></div>
+      <div class="sheet-body">
+        <div style="font-size:14px;color:var(--text-secondary);margin-bottom:16px;">This permanently removes the photo from the customer's gallery. This can't be undone.</div>
+        <button class="btn btn-danger btn-block" onclick="AppointmentsFeature.deletePhoto(${photoId}, ${customerId})"><span class="material-symbols-rounded">delete</span>Delete Permanently</button>
+      </div>`;
+    App.openModal(content);
+  },
+
+  async deletePhoto(photoId, customerId) {
+    try {
+      await DB.deletePhoto(photoId);
+      App.closeModal();
+      Toast.show('Photo deleted', 'success');
+      App.navigate('appointments', { customerId });
+    } catch (e) {
+      console.error('Delete photo error:', e);
+      Toast.show('Failed to delete photo', 'error');
+    }
+  },
+
   async confirmDeleteCustomer(customerId) {
     let customer = null;
     let apptCount = 0;
+    let photoCount = 0;
     try {
       customer = await DB.db.customers.get(customerId);
       apptCount = await DB.db.appointments.where('customerId').equals(customerId).count();
+      photoCount = await DB.db.photos.where('customerId').equals(customerId).count();
     } catch (e) {}
     if (!customer) { Toast.show('Customer not found', 'error'); return; }
     const name = customer.fullName || `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'this customer';
@@ -1328,7 +1497,7 @@ const AppointmentsFeature = {
       <div class="sheet-header"><h3>Delete ${Utils.escapeHtml(name)}?</h3><button class="btn btn-ghost btn-sm" onclick="App.closeModal()"><span class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body">
         <div style="font-size:14px;color:var(--text-secondary);margin-bottom:16px;">
-          This permanently deletes ${Utils.escapeHtml(name)}${apptCount > 0 ? ` and ${apptCount} linked visit${apptCount === 1 ? '' : 's'}` : ''}, along with any orders and messages on record for them. This can't be undone.
+          This permanently deletes ${Utils.escapeHtml(name)}${apptCount > 0 ? ` and ${apptCount} linked visit${apptCount === 1 ? '' : 's'}` : ''}, along with any orders${photoCount > 0 ? `, ${photoCount} photo${photoCount === 1 ? '' : 's'}` : ''} and messages on record for them. This can't be undone.
         </div>
         <button class="btn btn-danger btn-block" onclick="AppointmentsFeature.deleteCustomer(${customerId})">
           <span class="material-symbols-rounded">delete</span>Delete Permanently

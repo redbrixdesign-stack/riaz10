@@ -261,6 +261,18 @@ async function runDbJs(engine, tag) {
   ok(engine + ': expense roundtrip', (await DB.getExpensesForPeriod(today, today)).some(e => e.id === exp.id));
 
   await DB.addCommunication({ customerId: c.id, type: 'sms', template: 'quote_followup' });
+
+  // Customer photos: base64 roundtrip, caption, per-customer fetch, and the
+  // cascade — a deleted customer takes their photos with them.
+  const photoData = Buffer.from('fake-jpeg-bytes-'.repeat(100)).toString('base64');
+  const ph = await DB.addPhoto({ customerId: c.id, data: photoData, caption: 'Front windows' });
+  ok(engine + ': photo stored with id and caption', ph.id > 0 && ph.caption === 'Front windows');
+  ok(engine + ': photo data roundtrip', (await DB.getPhotosForCustomer(c.id)).length === 1 && (await DB.db.photos.get(ph.id)).data === photoData);
+  ok(engine + ': photos are per customer', (await DB.getPhotosForCustomer(9999)).length === 0);
+  await DB.deletePhoto(ph.id);
+  ok(engine + ': photo deletable', (await DB.db.photos.count()) === 0);
+  await DB.addPhoto({ customerId: c.id, data: photoData, caption: 'Back yard' });
+
   const exported = await DB.exportAll();
   ok(engine + ': exportAll shape', Object.keys(exported).length === 7 && exported.customers.length === 3);
 
@@ -288,8 +300,9 @@ async function runDbJs(engine, tag) {
   ok(engine + ': rollback restores every table', JSON.stringify(failedCounts) === JSON.stringify(beforeCounts), { beforeCounts, failedCounts });
 
   const del = await DB.deleteCustomer(c.id);
-  ok(engine + ': deleteCustomer cascades', del.appointments >= 1 && del.orders === 1 && del.communications === 1, del);
+  ok(engine + ': deleteCustomer cascades', del.appointments >= 1 && del.orders === 1 && del.communications === 1 && del.photos === 1, del);
   ok(engine + ': customer gone after cascade', (await DB.db.customers.get(c.id)) === undefined);
+  ok(engine + ': photos gone after customer cascade', (await DB.db.photos.count()) === 0);
 }
 
 // ---------- Test: localStorage fallback migration (shim-era users) ----------

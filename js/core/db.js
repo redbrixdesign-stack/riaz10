@@ -34,6 +34,12 @@ const DB = {
       sequences: 'name'
     });
 
+    // Photos were added after the original v6 store — additive migration, so
+    // existing databases keep their data and simply gain the new table.
+    this.db.version(2).stores({
+      photos: '++id, customerId, createdAt'
+    });
+
     if (typeof this.db.open === 'function') {
       await this.db.open();
     }
@@ -274,13 +280,45 @@ const DB = {
       this.db.orders.where('customerId').equals(customerId).toArray(),
       this.db.communications.where('customerId').equals(customerId).toArray()
     ]);
+    const photoCount = await this.db.photos.where('customerId').equals(customerId).count();
     await Promise.all([
       this.db.appointments.where('customerId').equals(customerId).delete(),
       this.db.orders.where('customerId').equals(customerId).delete(),
-      this.db.communications.where('customerId').equals(customerId).delete()
+      this.db.communications.where('customerId').equals(customerId).delete(),
+      this.db.photos.where('customerId').equals(customerId).delete()
     ]);
     await this.db.customers.delete(customerId);
-    return { appointments: appts.length, orders: orders.length, communications: comms.length };
+    return { appointments: appts.length, orders: orders.length, communications: comms.length, photos: photoCount };
+  },
+
+  // ---- Customer photos (gallery stored in the local database) ----
+  // Photos arrive as base64 strings (the UI downscales + encodes them), not
+  // Blobs: the bundled mini-Dexie fallback serializes records through JSON,
+  // which would silently turn every Blob into an empty object. Base64 rides
+  // through both engines intact and renders straight into <img> data URLs.
+  // Photos are intentionally excluded from exportAll()/importAll() so
+  // backups stay lean text/JSON — re-adding them would need base64
+  // conversion and inflate every file.
+  async addPhoto({ customerId, data, mimeType = 'image/jpeg', caption = '' }) {
+    const photo = {
+      customerId,
+      data,
+      mimeType,
+      caption: caption || '',
+      createdAt: new Date().toISOString()
+    };
+    const id = await this.db.photos.add(photo);
+    return { ...photo, id };
+  },
+
+  async getPhotosForCustomer(customerId) {
+    const photos = await this.db.photos.where('customerId').equals(customerId).toArray();
+    photos.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return photos;
+  },
+
+  async deletePhoto(photoId) {
+    await this.db.photos.delete(photoId);
   },
 
   async searchCustomers(query) {
