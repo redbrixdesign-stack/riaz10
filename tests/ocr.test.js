@@ -133,6 +133,24 @@ console.log('normalizeDateField');
   }
 }
 
+console.log('rollStaleYearForward');
+{
+  const cases = {
+    '': '',
+    'garbage': 'garbage',
+    '2026-08-11': '2026-08-11',          // today — untouched
+    '2026-08-25': '2026-08-25',          // future — untouched
+    '2026-06-20': '2026-06-20',          // ~52 days back — within 60, untouched
+    '2025-08-11': '2026-08-11',          // exactly one year stale → rolled
+    '2024-08-11': '2026-08-11',          // two years stale → rolled
+    '2020-01-01': '2025-01-01'           // five+ years stale → capped at 5 rolls
+  };
+  for (const [input, expected] of Object.entries(cases)) {
+    const got = OCRFeature.rollStaleYearForward(input);
+    ok(`rollStaleYearForward(${JSON.stringify(input)}) -> ${JSON.stringify(expected)}`, got === expected, got);
+  }
+}
+
 console.log('normalizeTimeField + resolveVisitIso');
 {
   const cases = {

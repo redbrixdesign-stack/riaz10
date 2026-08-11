@@ -566,6 +566,24 @@ const OCRFeature = {
     return '';
   },
 
+  // Safety net against stale-year extraction: neither the AI nor Tesseract
+  // is guaranteed to see a year on the document, and a date without one can
+  // be resolved against the model's training data instead of reality — a
+  // visit booked "11 August" can silently land a year in the past and
+  // vanish from Home/Diary. Roll any implausibly old date forward one year
+  // at a time (max 5) until it's no longer more than 60 days behind today.
+  rollStaleYearForward(isoDate) {
+    if (!isoDate) return '';
+    const d = new Date(isoDate);
+    if (isNaN(d.getTime())) return isoDate;
+    const now = Date.now();
+    for (let i = 0; i < 5; i++) {
+      if (now - d.getTime() <= 60 * 86400000) break;
+      d.setFullYear(d.getFullYear() + 1);
+    }
+    return Utils.formatDate(d, 'iso');
+  },
+
   // Prevents the same document (or the same customer) creating a second
   // visit on the same date — scanning a doc twice, or saving it then
   // re-scanning, used to stack identical appointments in the diary with no
@@ -680,7 +698,7 @@ const OCRFeature = {
       // Saving from a scanned document should land the visit in the diary
       // immediately — no second form to stumble over. The extracted date
       // (or today, when only a business card was read) is used as-is.
-      const visitDate = this.normalizeDateField(date) || Utils.formatDate(new Date(), 'iso');
+      const visitDate = this.rollStaleYearForward(this.normalizeDateField(date) || Utils.formatDate(new Date(), 'iso'));
       const visitTime = time || '09:00';
 
       // A second scan of the same document must not stack a duplicate visit

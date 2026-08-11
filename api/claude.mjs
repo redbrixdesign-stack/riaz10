@@ -23,8 +23,13 @@ const ALLOWED_MODELS = [
 
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
-const SYSTEM_PROMPTS = {
-  ocr: `You extract structured details from photos of order screenshots and business cards taken by a UK window coverings field sales advisor.
+// The OCR prompt is generated per request so the model knows today's real
+// date. Without that anchor, a document that doesn't print a year gets one
+// guessed from the model's training data — a stale year, and the visit
+// silently books in the past and vanishes from Home/Diary.
+function ocrSystemPrompt(today) {
+  return `You extract structured details from photos of order screenshots and business cards taken by a UK window coverings field sales advisor.
+Today's real date is ${today} — use this, not any date you might otherwise assume, whenever you need to resolve a year that isn't printed on the document.
 Return ONLY a JSON object with exactly these keys, using empty strings when a field is not present in the image:
 {"name","phone","address","town","city","postcode","customerNumber","email","appointmentDate","appointmentTime"}
 - name: the customer's full name.
@@ -34,11 +39,13 @@ Return ONLY a JSON object with exactly these keys, using empty strings when a fi
 - postcode: the UK postcode, uppercase.
 - customerNumber: any customer/order reference (e.g. "CUS-2026-0001").
 - email: if present.
-- appointmentDate / appointmentTime: the REAL booking, delivery or appointment date (ISO, YYYY-MM-DD) and time shown. Screens often also display a phone status-bar clock/date or "previous appointment"/"last visit" history dates — never use those. Prefer the date on the line that mentions appointment/arriving. If the text gives a weekday, it must match the date's actual weekday; if not, treat it as a history or noise date.
+- appointmentDate / appointmentTime: the REAL booking, delivery or appointment date (ISO, YYYY-MM-DD) and time shown. Screens often also display a phone status-bar clock/date or "previous appointment"/"last visit" history dates — never use those. Prefer the date on the line that mentions appointment/arriving. If a date has no year printed, infer the year using today's real date above (${today}) as the reference point — not any other year. If the text gives a weekday, it must match the date's actual weekday; if not, treat it as a history or noise date.
 - If the only date in the image looks like history (yesterday, last week, last year), return it anyway — never invent or guess a different date, and never use "today".
 The photo may include a Google map with road labels, place names and buttons — only extract text that belongs to the order/customer details, never the map.
-Return only the raw JSON object — never wrap it in markdown code fences, never add preamble or any other text.`,
+Return only the raw JSON object — never wrap it in markdown code fences, never add preamble or any other text.`;
+}
 
+const SYSTEM_PROMPTS = {
   draft: `You write short, friendly, professional SMS/WhatsApp messages for a self-employed UK window coverings (blinds/curtains) field sales advisor.
 The user sends the customer and visit context as JSON. Write one warm, natural, personal message that fits the template goal and the sales context.
 Use the customer's first name (the "firstName" field) — never their title or surname, and never address them as "Ms"/"Mr". Keep it under 60 words unless the context requires more. Never invent facts that are not in the context.
@@ -186,7 +193,10 @@ export async function handle(request) {
   }
 
   try {
-    const { text, usage } = await callAnthropic(model, SYSTEM_PROMPTS[type], userContent);
+    const system = type === 'ocr'
+      ? ocrSystemPrompt(new Date().toISOString().slice(0, 10))
+      : SYSTEM_PROMPTS[type];
+    const { text, usage } = await callAnthropic(model, system, userContent);
     return json(200, { ok: true, text, usage: enrichUsage(usage, model), model, type }, corsHeaders(origin));
   } catch (err) {
     return json(502, { ok: false, error: err.code || 'proxy', message: err.message }, corsHeaders(origin));
