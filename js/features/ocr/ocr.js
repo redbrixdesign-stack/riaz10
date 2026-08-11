@@ -60,7 +60,7 @@ const OCRFeature = {
         </div>
         <div id="ocr-result" style="display:none;">
           <div class="divider-text">Extracted Data</div>
-          <div class="card"><div id="ocr-fields"></div><button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="OCRFeature.saveToCustomer()">Save to Customer</button></div>
+          <div class="card"><div id="ocr-fields"></div><button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="OCRFeature.saveToCustomer()">Save Customer &amp; Visit</button></div>
         </div>
         <div id="ocr-loading" style="display:none;text-align:center;padding:48px;">
           <div class="skeleton" style="width:48px;height:48px;border-radius:50%;margin:0 auto 16px;"></div>
@@ -514,10 +514,43 @@ const OCRFeature = {
       // fail outright - splitting the fields on screen is for the person
       // editing them, not for what gets sent to the map.
       const fullAddress = [line1, postcode].filter(Boolean).join(', ');
-      await DB.addCustomer({ firstName: Utils.firstNameFrom(name), lastName: String(name).trim().replace(Utils.HONORIFICS, '').split(/\s+/).slice(1).join(' ') || '', fullName: name, phone, postcodeNormalized, address: { line1: address, town, city, postcode, postcodeNormalized }, source: 'company_system' });
-      Toast.show('Customer saved', 'success');
-      App.navigate('appointments', {action: 'add', name, phone, address: fullAddress, date: date || undefined, time: time || undefined});
+
+      // An order screenshot can belong to a customer already on record —
+      // reuse them instead of creating a duplicate, exactly like the
+      // New Visit form does.
+      let customer = phone ? await DB.db.customers.where('phone').equals(phone).first() : null;
+      if (!customer) {
+        customer = await DB.addCustomer({ firstName: Utils.firstNameFrom(name), lastName: String(name).trim().replace(Utils.HONORIFICS, '').split(/\s+/).slice(1).join(' ') || '', fullName: name, phone, postcodeNormalized, address: { line1: address, town, city, postcode, postcodeNormalized }, source: 'company_system' });
+      }
+
+      // Saving from a scanned document should land the visit in the diary
+      // immediately — no second form to stumble over. The extracted date
+      // (or today, when only a business card was read) is used as-is.
+      const visitDate = date || Utils.formatDate(new Date(), 'iso');
+      const visitTime = time || '09:00';
+      const allowed = typeof AppointmentsFeature?.getAllowedTypesForDate === 'function'
+        ? AppointmentsFeature.getAllowedTypesForDate(visitDate + 'T00:00:00')
+        : [];
+      const type = (allowed && allowed.length ? allowed[0] : CONFIG.appointmentTypes?.[0]?.id) || 'consultation';
+
+      const appointment = await DB.addAppointment({
+        customerId: customer.id,
+        clientName: name,
+        phone,
+        address: fullAddress,
+        date: new Date(visitDate + 'T' + visitTime).toISOString(),
+        durationSlots: 1,
+        type,
+        source: 'company_system',
+        notes: '',
+        status: 'confirmed'
+      });
+
+      if (typeof MessageScheduler !== 'undefined') MessageScheduler.reschedule();
+      Toast.show('Customer and visit saved', 'success');
+      App.navigate('appointments', { id: appointment.id });
     } catch (e) {
+      console.error('OCR save failed:', e);
       Toast.show('Failed to save customer', 'error');
     }
   },
@@ -531,9 +564,38 @@ const OCRFeature = {
     try {
       const { postcode, postcodeNormalized } = this.resolvePostcode(postcodeInput, address);
       const fullAddress = [address, postcode].filter(Boolean).join(', ');
-      await DB.addCustomer({ firstName: Utils.firstNameFrom(name), lastName: String(name).trim().replace(Utils.HONORIFICS, '').split(/\s+/).slice(1).join(' ') || '', fullName: name, phone, postcodeNormalized, address: { line1: address, postcode, postcodeNormalized }, source: 'manual' });
-      Toast.show('Customer saved', 'success');
-      App.navigate('appointments', {action: 'add', name, phone, address: fullAddress});
+
+      let customer = phone ? await DB.db.customers.where('phone').equals(phone).first() : null;
+      if (!customer) {
+        customer = await DB.addCustomer({ firstName: Utils.firstNameFrom(name), lastName: String(name).trim().replace(Utils.HONORIFICS, '').split(/\s+/).slice(1).join(' ') || '', fullName: name, phone, postcodeNormalized, address: { line1: address, postcode, postcodeNormalized }, source: 'manual' });
+      }
+
+      // Same rule as the scanned flow: saving a customer books the visit
+      // too, so it shows up in the diary and Today immediately. No date
+      // was captured from a manual card, so it defaults to today at 09:00 —
+      // tap the visit to reschedule if the real one is different.
+      const visitDate = Utils.formatDate(new Date(), 'iso');
+      const allowed = typeof AppointmentsFeature?.getAllowedTypesForDate === 'function'
+        ? AppointmentsFeature.getAllowedTypesForDate(visitDate + 'T00:00:00')
+        : [];
+      const type = (allowed && allowed.length ? allowed[0] : CONFIG.appointmentTypes?.[0]?.id) || 'consultation';
+
+      const appointment = await DB.addAppointment({
+        customerId: customer.id,
+        clientName: name,
+        phone,
+        address: fullAddress,
+        date: new Date(visitDate + 'T09:00').toISOString(),
+        durationSlots: 1,
+        type,
+        source: 'manual',
+        notes: '',
+        status: 'confirmed'
+      });
+
+      if (typeof MessageScheduler !== 'undefined') MessageScheduler.reschedule();
+      Toast.show('Customer and visit saved', 'success');
+      App.navigate('appointments', { id: appointment.id });
     } catch (e) {
       Toast.show('Failed to save customer', 'error');
     }
