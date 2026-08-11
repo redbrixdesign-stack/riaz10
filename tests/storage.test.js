@@ -303,6 +303,17 @@ async function runDbJs(engine, tag) {
   ok(engine + ': deleteCustomer cascades', del.appointments >= 1 && del.orders === 1 && del.communications === 1 && del.photos === 1, del);
   ok(engine + ': customer gone after cascade', (await DB.db.customers.get(c.id)) === undefined);
   ok(engine + ': photos gone after customer cascade', (await DB.db.photos.count()) === 0);
+
+  // Factory reset: every table empties and app-prefixed localStorage keys go.
+  sandbox.localStorage.setItem('advisoros_config', JSON.stringify({ advisorName: 'Riaz' }));
+  sandbox.localStorage.setItem('advisoros_auto_visit_1', '1');
+  await DB.deleteAllData();
+  const afterWipe = await DB.exportAll();
+  const wipedCounts = Object.fromEntries(Object.keys(afterWipe).map(t => [t, afterWipe[t].length]));
+  const allEmpty = Object.values(wipedCounts).every(n => n === 0);
+  ok(engine + ': deleteAllData empties every table', allEmpty, wipedCounts);
+  ok(engine + ': deleteAllData removes advisoros localStorage keys',
+    sandbox.localStorage.getItem('advisoros_config') === null && sandbox.localStorage.getItem('advisoros_auto_visit_1') === null);
 }
 
 // ---------- Test: localStorage fallback migration (shim-era users) ----------

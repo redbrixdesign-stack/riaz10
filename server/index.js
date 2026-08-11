@@ -81,7 +81,7 @@ not present, never invent data, never guess a value you cannot actually read):
   "name": "", "phone": "", "address": "", "town": "", "city": "", "postcode": "",
   "customerNumber": "", "email": "", "appointmentDate": "", "appointmentTime": ""
 }
-appointmentDate must be ISO (YYYY-MM-DD) if present. appointmentTime must be 24h HH:MM if present.
+appointmentDate must be ISO (YYYY-MM-DD) if present, and must be the REAL appointment date - never a phone status-bar clock/date or a "previous appointment"/"last visit" history date (screens often show several dates; prefer the line that mentions appointment/arriving). If a weekday is printed, it must match the date's actual weekday. appointmentTime must be 24h HH:MM if present.
 Ignore map imagery, UI chrome, logos, and navigation labels - only read the actual customer/order card.`;
 
     const data = await callClaude({

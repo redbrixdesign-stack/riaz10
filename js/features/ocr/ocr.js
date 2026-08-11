@@ -192,20 +192,27 @@ const OCRFeature = {
 
     const orderedKeys = ['name', 'phone', 'address', 'town', 'city', 'postcode', 'customerNumber', 'email', 'appointmentDate', 'appointmentTime'];
     const fieldLabels = { address: 'Address Line 1', town: 'Town', city: 'City' };
-    const fieldsHtml = orderedKeys
-      .filter(k => k === 'name' || k === 'postcode' || this.extractedData[k])
-      .map(k => {
-        const v = this.extractedData[k] || '';
-        const upper = k === 'postcode' ? ' style="text-transform:uppercase;"' : '';
-        const label = fieldLabels[k] || k.replace(/([A-Z])/g,' $1').trim();
-        return `<div class="form-group"><label style="text-transform:capitalize;">${Utils.escapeHtml(label)}</label><input type="text" class="input" id="ocr-${Utils.escapeAttr(k)}" value="${Utils.escapeAttr(v)}"${upper}></div>`;
-      }).join('');
+    const fieldsHtml = `
+      <div id="ocr-save-error" style="display:none;background:var(--danger,#e5484d22);color:var(--danger,#e5484d);border:1px solid var(--danger,#e5484d44);border-radius:8px;padding:10px 12px;font-size:13px;margin-bottom:12px;">
+        A required field is missing — the highlighted boxes below must be filled in before saving.
+      </div>
+      ${orderedKeys
+        .filter(k => k === 'name' || k === 'postcode' || this.extractedData[k])
+        .map(k => {
+          const v = this.extractedData[k] || '';
+          const upper = k === 'postcode' ? ' style="text-transform:uppercase;"' : '';
+          const label = fieldLabels[k] || k.replace(/([A-Z])/g,' $1').trim();
+          return `<div class="form-group"><label style="text-transform:capitalize;">${Utils.escapeHtml(label)}</label><input type="text" class="input" id="ocr-${Utils.escapeAttr(k)}" value="${Utils.escapeAttr(v)}"${upper}></div>`;
+        }).join('')}`;
     document.getElementById('ocr-fields').innerHTML = fieldsHtml;
 
     // Collapsible raw text - if a field's wrong or missing, this shows exactly
     // what was actually read, so it's fixable on the spot rather than a guess.
+    // A fixed id + cleanup means scanning a second document in the same visit
+    // replaces the old block instead of stacking them.
+    document.getElementById('ocr-raw-text')?.remove();
     const rawTextHtml = `
-      <details style="margin-top:12px;">
+      <details id="ocr-raw-text" style="margin-top:12px;">
         <summary style="cursor:pointer;color:var(--text-secondary);font-size:13px;">Show raw scanned text</summary>
         <pre style="white-space:pre-wrap;font-size:12px;color:var(--text-secondary);background:var(--bg-secondary,#00000011);padding:8px;border-radius:8px;margin-top:8px;max-height:200px;overflow-y:auto;">${Utils.escapeHtml(this.lastRawText || '')}</pre>
       </details>
@@ -418,25 +425,53 @@ const OCRFeature = {
     }
 
     // ---- Appointment date: "<Weekday> <day> <Month>", e.g. "Monday 13 July" ----
+    // A real CRM screenshot can carry more than one date — a phone status-bar
+    // date, "previous appointment" / "last visit" history lines — and the
+    // first match in reading order isn't always the actual appointment (that's
+    // how a document reading "Tuesday 11 August" could end up booked on the
+    // 10th). So collect every "<Weekday> <day> <Month>" occurrence and rank
+    // them: hard-reject weekday/date mismatches (e.g. "Monday 11" when the
+    // 11th isn't a Monday), penalise history lines, prefer lines that mention
+    // the appointment, and break ties by closeness to today.
     const monthNames = 'Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec';
     const dateRe = new RegExp(`\\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*,?\\s+(\\d{1,2})(?:st|nd|rd|th)?\\s+(${monthNames})[a-z]*\\b`, 'i');
-    for (const line of lines) {
+    const weekdayIndex = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+    const now = new Date();
+    let bestDate = null;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
       if (timeOfDayRe.test(line)) continue; // status bar clock, e.g. "15:35 Sun 12 Jul" - not the appointment date
       const m = line.match(dateRe);
-      if (m) {
-        const day = parseInt(m[2], 10);
-        const monthIndex = monthNames.split('|').findIndex(mo => mo.toLowerCase() === m[3].slice(0, 3).toLowerCase());
-        if (monthIndex >= 0) {
-          const now = new Date();
-          let year = now.getFullYear();
-          let candidate = new Date(year, monthIndex, day);
-          // If that date is more than ~2 months in the past, it's probably next year's occurrence
-          if (candidate < now && (now - candidate) / 86400000 > 60) candidate = new Date(year + 1, monthIndex, day);
-          data.appointmentDate = Utils.formatDate(candidate, 'iso');
-        }
-        break;
+      if (!m) continue;
+      const day = parseInt(m[2], 10);
+      if (day < 1 || day > 31) continue;
+      const monthIndex = monthNames.split('|').findIndex(mo => mo.toLowerCase() === m[3].slice(0, 3).toLowerCase());
+      if (monthIndex < 0) continue;
+      let year = now.getFullYear();
+      const thisYear = new Date(year, monthIndex, day);
+      // If that date is more than ~2 months in the past, it's probably next year's occurrence
+      let candidate = thisYear;
+      if (candidate < now && (now - candidate) / 86400000 > 60) candidate = new Date(year + 1, monthIndex, day);
+      // The printed weekday must be the date's actual weekday — but a stale
+      // document can refer to next year's occurrence of that date, so check
+      // both years before rejecting the line (a mismatch means a stale or
+      // typo'd entry, not the appointment).
+      const printedWeekday = weekdayIndex[m[1].slice(0, 3).toLowerCase()];
+      if (printedWeekday !== thisYear.getDay() && printedWeekday !== new Date(year + 1, monthIndex, day).getDay()) continue;
+      const lower = line.toLowerCase();
+      let score = 0;
+      if (/appoint|arriv|visit|book|deliver|when|slot/.test(lower)) score += 4;
+      if (/previous|last|original|cancell|old|past/.test(lower)) score -= 4;
+      if (i === 0) score += 1; // real appointments usually sit near the top header
+      const diffDays = Math.abs(now - candidate) / 86400000;
+      if (diffDays < 1) score += 3;
+      else if (diffDays <= 7) score += 2;
+      else if (diffDays <= 31) score += 1;
+      if (!bestDate || score > bestDate.score || (score === bestDate.score && i > bestDate.index)) {
+        bestDate = { score, index: i, candidate };
       }
     }
+    data.appointmentDate = bestDate ? Utils.formatDate(bestDate.candidate, 'iso') : '';
 
     // ---- Appointment time: prefer an explicit "Arriving H:MMam/pm" slot start,
     // since that's the actual appointment time, not just any clock-shaped text ----
@@ -495,6 +530,65 @@ const OCRFeature = {
     return this.extractPostcodeFromAddress(address);
   },
 
+  // The date field can arrive in several shapes depending on which engine
+  // extracted it — "2026-08-11" from Claude, "11 Aug 2026" or a typed edit —
+  // and an unexpected shape used to flow straight into new Date(...) where
+  // toISOString() would throw and silently fail the whole save.
+  normalizeDateField(value) {
+    if (!value) return '';
+    const v = String(value).trim();
+    const iso = v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (iso) {
+      const y = +iso[1], m = +iso[2], d = +iso[3];
+      if (m >= 1 && m <= 12 && d >= 1 && d <= 31) return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    }
+    const dmy = v.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})$/);
+    if (dmy) {
+      let y = +dmy[3];
+      if (y < 100) y += 2000;
+      const m = +dmy[2], d = +dmy[1];
+      if (m >= 1 && m <= 12 && d >= 1 && d <= 31) return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    }
+    // "Tuesday 11 August" / "Tue 11 Aug 2026" — the generic Date() parser
+    // mangles these (V8 turns "Tuesday 11 August" into the year 2001), so
+    // parse weekday-prefixed dates explicitly with the current year when no
+    // year is printed.
+    const wdm = v.match(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*,?\s+(\d{1,2})(?:st|nd|rd|th)?\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*,?\s*(\d{4})?$/i);
+    if (wdm) {
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const monthIndex = months.findIndex(mo => mo.toLowerCase() === wdm[3].slice(0, 3).toLowerCase());
+      const y = wdm[4] ? +wdm[4] : new Date().getFullYear();
+      const d = new Date(y, monthIndex, +wdm[2]);
+      if (monthIndex >= 0 && !isNaN(d)) return Utils.formatDate(d, 'iso');
+    }
+    const parsed = new Date(v);
+    if (!isNaN(parsed)) return Utils.formatDate(parsed, 'iso');
+    return '';
+  },
+
+  // Prevents the same document (or the same customer) creating a second
+  // visit on the same date — scanning a doc twice, or saving it then
+  // re-scanning, used to stack identical appointments in the diary with no
+  // warning. Checks by customer id first, then falls back to phone/address
+  // matching on the day, which catches duplicates where the phone OCR'd
+  // differently on a later pass and a whole new customer row was created
+  // instead of reusing the existing one.
+  async findExistingVisit(customerId, isoDate, phone, address) {
+    const dayStart = new Date(isoDate + 'T00:00:00');
+    const byCustomer = await DB.db.appointments.where('customerId').equals(customerId).toArray();
+    const existing = byCustomer.find(a => a.status !== 'cancelled' && Utils.isSameDay(new Date(a.date), dayStart));
+    if (existing) return existing;
+    const phoneNorm = phone ? AppointmentsFeature.normalizePhone(phone) : '';
+    const addressNorm = address ? AppointmentsFeature.normalizeBookingText(address) : '';
+    if (!phoneNorm && !addressNorm) return null;
+    const all = await DB.getAppointmentsForDate(dayStart.toISOString());
+    return all.find(a => {
+      if (phoneNorm && AppointmentsFeature.normalizePhone(a.phone || '') === phoneNorm) return true;
+      if (addressNorm && AppointmentsFeature.normalizeBookingText(a.address || '') === addressNorm) return true;
+      return false;
+    }) || null;
+  },
+
   async saveToCustomer() {
     const name = document.getElementById('ocr-name')?.value || '';
     const phone = document.getElementById('ocr-phone')?.value || '';
@@ -504,7 +598,21 @@ const OCRFeature = {
     const postcodeInput = document.getElementById('ocr-postcode')?.value || '';
     const date = document.getElementById('ocr-appointmentDate')?.value || '';
     const time = document.getElementById('ocr-appointmentTime')?.value || '';
-    if (!name) { Toast.show('Name is required', 'error'); return; }
+    if (!name) {
+      // A missed extraction used to just flash a toast and return — easy to
+      // miss mid-demo, which reads as "it didn't save". Point straight at the
+      // blank field instead so the fix is obvious.
+      const nameField = document.getElementById('ocr-name');
+      if (nameField) {
+        nameField.style.outline = '2px solid var(--danger, #e5484d)';
+        nameField.focus();
+        nameField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      const banner = document.getElementById('ocr-save-error');
+      if (banner) banner.style.display = 'block';
+      Toast.show('Name is required — add the customer name above', 'error');
+      return;
+    }
     try {
       const line1 = [address, town, city].filter(Boolean).join(', ');
       const { postcode, postcodeNormalized } = this.resolvePostcode(postcodeInput, line1);
@@ -526,8 +634,17 @@ const OCRFeature = {
       // Saving from a scanned document should land the visit in the diary
       // immediately — no second form to stumble over. The extracted date
       // (or today, when only a business card was read) is used as-is.
-      const visitDate = date || Utils.formatDate(new Date(), 'iso');
+      const visitDate = this.normalizeDateField(date) || Utils.formatDate(new Date(), 'iso');
       const visitTime = time || '09:00';
+
+      // A second scan of the same document must not stack a duplicate visit
+      // on the same date — open the existing one instead.
+      const existing = await this.findExistingVisit(customer.id, visitDate, phone, [address, town, city].filter(Boolean).join(', '));
+      if (existing) {
+        Toast.show(`${existing.clientName || name} already has a visit that day — opened it instead of saving a duplicate`, 'warning');
+        App.navigate('appointments', { id: existing.id });
+        return;
+      }
       const allowed = typeof AppointmentsFeature?.getAllowedTypesForDate === 'function'
         ? AppointmentsFeature.getAllowedTypesForDate(visitDate + 'T00:00:00')
         : [];
@@ -575,6 +692,14 @@ const OCRFeature = {
       // was captured from a manual card, so it defaults to today at 09:00 —
       // tap the visit to reschedule if the real one is different.
       const visitDate = Utils.formatDate(new Date(), 'iso');
+
+      // Never stack a second visit for the same customer on the same day.
+      const existing = await this.findExistingVisit(customer.id, visitDate, phone, address);
+      if (existing) {
+        Toast.show(`${existing.clientName || name} already has a visit today — opened it instead of saving a duplicate`, 'warning');
+        App.navigate('appointments', { id: existing.id });
+        return;
+      }
       const allowed = typeof AppointmentsFeature?.getAllowedTypesForDate === 'function'
         ? AppointmentsFeature.getAllowedTypesForDate(visitDate + 'T00:00:00')
         : [];

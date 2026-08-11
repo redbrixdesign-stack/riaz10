@@ -118,6 +118,12 @@ const SettingsFeature = {
           <input type="file" id="import-file" accept=".json" style="display:none;" onchange="SettingsFeature.handleImport(event)">
         </div>
 
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+          <button class="btn btn-outline btn-sm" style="color:var(--danger,#e5484d);border-color:var(--danger,#e5484d66);" onclick="SettingsFeature.confirmWipe()">
+            <span class="material-symbols-rounded">delete_forever</span>Start fresh — delete all data
+          </button>
+        </div>
+
         <div style="margin-top:32px;text-align:center;color:var(--text-tertiary);font-size:13px;">
           <div>${CONFIG.companyName ? Utils.escapeHtml(CONFIG.companyName) + ' · ' : ''}AdvisorOS v5.0</div>
           <div style="margin-top:4px;">Your day, visits, follow-ups, and money in one place.</div>
@@ -501,7 +507,45 @@ const SettingsFeature = {
     if (!file) return;
     try { await ExportService.importBackup(file); Toast.show('Data imported', 'success'); } catch(err) { Toast.show('Import failed: ' + err.message, 'error'); }
   },
-  exportCSV() { ExportService.exportCSV('appointments'); ExportService.exportCSV('expenses'); ExportService.exportCSV('trips'); }
+  exportCSV() { ExportService.exportCSV('appointments'); ExportService.exportCSV('expenses'); ExportService.exportCSV('trips'); },
+
+  // First step of a factory reset: warn, then require a second deliberate tap
+  // on the actual delete button before anything is touched.
+  confirmWipe() {
+    const content = `
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <h3>Delete everything?</h3>
+        <button class="btn btn-ghost btn-sm" onclick="App.closeModal()">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+      <div class="sheet-body">
+        <div style="font-size:14px;color:var(--text-secondary);line-height:1.5;margin-bottom:14px;">
+          This permanently deletes every customer, visit, order, photo, expense and message — plus all your settings and targets. There is <strong>no undo</strong>, so export a backup first if you might need this data again.
+        </div>
+        <button class="btn btn-danger btn-block" onclick="SettingsFeature.confirmWipeFinal()">
+          <span class="material-symbols-rounded">warning</span> Yes — delete all my data
+        </button>
+        <button class="btn btn-outline btn-block" style="margin-top:10px;" onclick="App.closeModal()">Cancel</button>
+      </div>
+    `;
+    App.openModal(content);
+  },
+
+  async confirmWipeFinal() {
+    App.closeModal();
+    try {
+      await DB.deleteAllData();
+      Toast.show('All data deleted — starting fresh', 'success');
+      // Config, targets and onboarding flags are gone; reload boots back
+      // into the setup flow.
+      setTimeout(() => location.reload(), 600);
+    } catch (e) {
+      console.error('Wipe failed:', e);
+      Toast.show('Could not delete data — please try again', 'error');
+    }
+  }
 };
 
 App.registerFeature(SettingsFeature);

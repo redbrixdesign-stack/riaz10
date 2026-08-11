@@ -291,6 +291,22 @@ const DB = {
     return { appointments: appts.length, orders: orders.length, communications: comms.length, photos: photoCount };
   },
 
+  // ---- Full factory reset ----
+  // Clears every table (customers, visits, orders, photos, config, ...) plus
+  // all app-prefixed localStorage keys (config, auto-message flags, active
+  // trip), so the next page load boots back into onboarding. No undo —
+  // callers must confirm first.
+  async deleteAllData() {
+    const tables = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'photos', 'settings', 'sequences'];
+    await Promise.all(tables.map(t => this.db[t] ? this.db[t].clear() : Promise.resolve()));
+    const doomed = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.indexOf('advisoros') === 0) doomed.push(key);
+    }
+    doomed.forEach(key => localStorage.removeItem(key));
+  },
+
   // ---- Customer photos (gallery stored in the local database) ----
   // Photos arrive as base64 strings (the UI downscales + encodes them), not
   // Blobs: the bundled mini-Dexie fallback serializes records through JSON,
