@@ -70,7 +70,7 @@ const OCRFeature = {
           <div class="divider-text">Enter Manually</div>
           <div class="card">
             <div class="form-group"><label>Name</label><input type="text" class="input" id="ocr-manual-name" placeholder="Customer name"></div>
-            <div class="form-group"><label>Phone</label><input type="tel" class="input" id="ocr-manual-phone" placeholder="Phone number"></div>
+            <div class="form-group"><label>Phone</label><input type="tel" class="input" id="ocr-manual-phone" inputmode="tel" placeholder="Phone number"></div>
             <div class="form-group"><label>Address</label><input type="text" class="input" id="ocr-manual-address" placeholder="House number and street, town"></div>
             <div class="form-group"><label>Postcode</label><input type="text" class="input" id="ocr-manual-postcode" placeholder="e.g. M14 7FZ" style="text-transform:uppercase;"></div>
             <button class="btn btn-primary btn-block" onclick="OCRFeature.saveManual()">Save Customer</button>

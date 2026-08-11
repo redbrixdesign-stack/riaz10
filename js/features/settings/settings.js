@@ -24,7 +24,7 @@ const SettingsFeature = {
           </div>
           <div class="form-group">
             <label>Weekly Earnings Target (£)</label>
-            <input type="number" class="input" id="set-target" value="${CONFIG.weeklyTarget || 600}" step="10" min="0" onblur="SettingsFeature.setTarget(this.value)">
+            <input type="number" class="input" inputmode="decimal" id="set-target" value="${CONFIG.weeklyTarget || 600}" step="10" min="0" onblur="SettingsFeature.setTarget(this.value)">
             <div class="hint">What you want to take home this week. Everything else derives from this.</div>
           </div>
           <div class="form-group" style="margin-bottom:0;">
@@ -34,7 +34,7 @@ const SettingsFeature = {
           </div>
           <div class="form-group" style="margin-bottom:0;margin-top:14px;">
             <label>Minimum Hourly Value (&pound;)</label>
-            <input type="number" class="input" id="set-min-hourly" value="${CONFIG.minHourlyRate || ''}" placeholder="${TaxCalculator.getMinHourlyRate().rate.toFixed(0)} (estimated)" step="1" min="0" onblur="SettingsFeature.setMinHourlyRate(this.value)">
+            <input type="number" class="input" inputmode="decimal" id="set-min-hourly" value="${CONFIG.minHourlyRate || ''}" placeholder="${TaxCalculator.getMinHourlyRate().rate.toFixed(0)} (estimated)" step="1" min="0" onblur="SettingsFeature.setMinHourlyRate(this.value)">
             <div class="hint">What your time is worth, at minimum. Only used by "Check my floor" on a visit after a price objection — leave blank to use a rough estimate from your weekly target.</div>
           </div>
         </div>
@@ -203,18 +203,18 @@ const SettingsFeature = {
         ${mode === 'two_stage' ? `
           <div class="form-group">
             <label>Step 1: Reduce sale value by (%)</label>
-            <input type="number" class="input" id="set-commission-reduction" value="${commission.saleReductionRate ?? 20}" step="0.1" min="0" max="100" onblur="SettingsFeature.setSaleReductionRate(this.value)">
+            <input type="number" class="input" inputmode="decimal" id="set-commission-reduction" value="${commission.saleReductionRate ?? 20}" step="0.1" min="0" max="100" onblur="SettingsFeature.setSaleReductionRate(this.value)">
             <div class="hint">e.g. 20 means the net figure is 80% of the sale value.</div>
           </div>
           <div class="form-group" style="margin-bottom:0;">
             <label>Step 2: Commission on the net (%)</label>
-            <input type="number" class="input" id="set-commission-net" value="${commission.netCommissionRate ?? 15.25}" step="0.01" min="0" max="100" onblur="SettingsFeature.setNetCommissionRate(this.value)">
+            <input type="number" class="input" inputmode="decimal" id="set-commission-net" value="${commission.netCommissionRate ?? 15.25}" step="0.01" min="0" max="100" onblur="SettingsFeature.setNetCommissionRate(this.value)">
             <div class="hint">Applied to the net figure from Step 1.</div>
           </div>
         ` : `
           <div class="form-group" style="margin-bottom:0;">
             <label>Commission Rate (%)</label>
-            <input type="number" class="input" id="set-commission-simple" value="${commission.simpleRate ?? 10}" step="0.1" min="0" max="100" onblur="SettingsFeature.setSimpleCommissionRate(this.value)">
+            <input type="number" class="input" inputmode="decimal" id="set-commission-simple" value="${commission.simpleRate ?? 10}" step="0.1" min="0" max="100" onblur="SettingsFeature.setSimpleCommissionRate(this.value)">
             <div class="hint">Applied directly to the full sale value.</div>
           </div>
         `}

@@ -63,10 +63,10 @@ const MeasureFeature = {
         <div class="card" style="margin-bottom:16px;">
           <div style="font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px;"><span class="material-symbols-rounded">width</span>Width (${unit})</div>
           <div class="form-row">
-            <div class="form-group" style="margin-bottom:0;"><label>Top</label><input type="number" class="input" id="meas-w-top" placeholder="0" step="${step}" value="${v(existing?.widthTop)}" onchange="MeasureFeature.calculate()"></div>
-            <div class="form-group" style="margin-bottom:0;"><label>Middle</label><input type="number" class="input" id="meas-w-mid" placeholder="0" step="${step}" value="${v(existing?.widthMiddle)}" onchange="MeasureFeature.calculate()"></div>
+            <div class="form-group" style="margin-bottom:0;"><label>Top</label><input type="number" class="input" inputmode="decimal" id="meas-w-top" placeholder="0" step="${step}" value="${v(existing?.widthTop)}" onchange="MeasureFeature.calculate()"></div>
+            <div class="form-group" style="margin-bottom:0;"><label>Middle</label><input type="number" class="input" inputmode="decimal" id="meas-w-mid" placeholder="0" step="${step}" value="${v(existing?.widthMiddle)}" onchange="MeasureFeature.calculate()"></div>
           </div>
-          <div class="form-group" style="margin-top:12px;margin-bottom:0;"><label>Bottom</label><input type="number" class="input" id="meas-w-bot" placeholder="0" step="${step}" value="${v(existing?.widthBottom)}" onchange="MeasureFeature.calculate()"></div>
+          <div class="form-group" style="margin-top:12px;margin-bottom:0;"><label>Bottom</label><input type="number" class="input" inputmode="decimal" id="meas-w-bot" placeholder="0" step="${step}" value="${v(existing?.widthBottom)}" onchange="MeasureFeature.calculate()"></div>
           <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center;">
             <span style="font-size:13px;color:var(--text-secondary);">Least: <strong id="calc-w-least">--</strong></span>
             <span style="font-size:13px;color:var(--primary);font-weight:600;">Use: <strong id="calc-w-use">--</strong></span>
@@ -76,10 +76,10 @@ const MeasureFeature = {
         <div class="card" style="margin-bottom:16px;">
           <div style="font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px;"><span class="material-symbols-rounded">height</span>Drop (${unit})</div>
           <div class="form-row">
-            <div class="form-group" style="margin-bottom:0;"><label>Left</label><input type="number" class="input" id="meas-d-left" placeholder="0" step="${step}" value="${v(existing?.dropLeft)}" onchange="MeasureFeature.calculate()"></div>
-            <div class="form-group" style="margin-bottom:0;"><label>Centre</label><input type="number" class="input" id="meas-d-centre" placeholder="0" step="${step}" value="${v(existing?.dropCentre)}" onchange="MeasureFeature.calculate()"></div>
+            <div class="form-group" style="margin-bottom:0;"><label>Left</label><input type="number" class="input" inputmode="decimal" id="meas-d-left" placeholder="0" step="${step}" value="${v(existing?.dropLeft)}" onchange="MeasureFeature.calculate()"></div>
+            <div class="form-group" style="margin-bottom:0;"><label>Centre</label><input type="number" class="input" inputmode="decimal" id="meas-d-centre" placeholder="0" step="${step}" value="${v(existing?.dropCentre)}" onchange="MeasureFeature.calculate()"></div>
           </div>
-          <div class="form-group" style="margin-top:12px;margin-bottom:0;"><label>Right</label><input type="number" class="input" id="meas-d-right" placeholder="0" step="${step}" value="${v(existing?.dropRight)}" onchange="MeasureFeature.calculate()"></div>
+          <div class="form-group" style="margin-top:12px;margin-bottom:0;"><label>Right</label><input type="number" class="input" inputmode="decimal" id="meas-d-right" placeholder="0" step="${step}" value="${v(existing?.dropRight)}" onchange="MeasureFeature.calculate()"></div>
           <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center;">
             <span style="font-size:13px;color:var(--text-secondary);">Least: <strong id="calc-d-least">--</strong></span>
             <span style="font-size:13px;color:var(--primary);font-weight:600;">Use: <strong id="calc-d-use">--</strong></span>
@@ -89,8 +89,8 @@ const MeasureFeature = {
         <div class="card" style="margin-bottom:16px;">
           <div style="font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px;"><span class="material-symbols-rounded">square_foot</span>Diagonal Check</div>
           <div class="form-row">
-            <div class="form-group" style="margin-bottom:0;"><label>TL → BR (${unit})</label><input type="number" class="input" id="meas-diag-1" placeholder="0" step="${step}" value="${v(existing?.diagonalTlBr)}" onchange="MeasureFeature.calculate()"></div>
-            <div class="form-group" style="margin-bottom:0;"><label>TR → BL (${unit})</label><input type="number" class="input" id="meas-diag-2" placeholder="0" step="${step}" value="${v(existing?.diagonalTrBl)}" onchange="MeasureFeature.calculate()"></div>
+            <div class="form-group" style="margin-bottom:0;"><label>TL → BR (${unit})</label><input type="number" class="input" inputmode="decimal" id="meas-diag-1" placeholder="0" step="${step}" value="${v(existing?.diagonalTlBr)}" onchange="MeasureFeature.calculate()"></div>
+            <div class="form-group" style="margin-bottom:0;"><label>TR → BL (${unit})</label><input type="number" class="input" inputmode="decimal" id="meas-diag-2" placeholder="0" step="${step}" value="${v(existing?.diagonalTrBl)}" onchange="MeasureFeature.calculate()"></div>
           </div>
           <div style="margin-top:12px;display:flex;align-items:center;gap:8px;">
             <span id="diag-status-icon" class="material-symbols-rounded" style="color:var(--text-tertiary);">help</span>
@@ -98,7 +98,7 @@ const MeasureFeature = {
           </div>
         </div>
 
-        <div class="form-group"><label>Tolerance (${unit}) — for recess fitting</label><input type="number" class="input" id="meas-tolerance" value="${tolerance}" step="${step}" onchange="MeasureFeature.calculate()"></div>
+        <div class="form-group"><label>Tolerance (${unit}) — for recess fitting</label><input type="number" class="input" inputmode="decimal" id="meas-tolerance" value="${tolerance}" step="${step}" onchange="MeasureFeature.calculate()"></div>
         <div class="form-group"><label>Notes</label><textarea class="textarea" id="meas-notes" placeholder="e.g. Slight bow in sill, handle obstruction...">${existing ? Utils.escapeHtml(existing.notes || '') : ''}</textarea></div>
 
         <div class="form-group">

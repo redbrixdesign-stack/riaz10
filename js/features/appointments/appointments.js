@@ -2560,12 +2560,12 @@ const AppointmentsFeature = {
         ${moneyOutcome ? `
           <div class="form-group">
             <label>${valueLabel}</label>
-            <input type="number" class="input" id="outcome-value" placeholder="0.00" step="0.01" min="0" inputmode="decimal" autofocus oninput="AppointmentsFeature.updateOutcomeCommission()">
+            <input type="number" class="input" inputmode="decimal" id="outcome-value" placeholder="0.00" step="0.01" min="0" autofocus oninput="AppointmentsFeature.updateOutcomeCommission()">
           </div>
           ${saleOutcome ? `
             <div class="form-group">
               <label>Discount Offered (%) <span style="font-weight:400;color:var(--text-tertiary);">- optional</span></label>
-              <input type="number" class="input" id="outcome-discount" placeholder="0" step="1" min="0" max="100" inputmode="decimal" oninput="AppointmentsFeature.updateOutcomeCommission()">
+              <input type="number" class="input" inputmode="decimal" id="outcome-discount" placeholder="0" step="1" min="0" max="100" oninput="AppointmentsFeature.updateOutcomeCommission()">
             </div>
             <div class="form-group">
               <label>Commission</label>

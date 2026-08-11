@@ -52,7 +52,7 @@ const OnboardingFeature = {
           </p>
           <div class="form-group">
             <label>Weekly Net Earnings Goal (£)</label>
-            <input type="number" class="input" id="ob-target" placeholder="600" value="${this.data.weeklyTarget}" step="10" min="0" style="font-size: 24px; font-weight: 700; text-align: center;">
+            <input type="number" class="input" inputmode="decimal" id="ob-target" placeholder="600" value="${this.data.weeklyTarget}" step="10" min="0" style="font-size: 24px; font-weight: 700; text-align: center;">
           </div>
           <div style="display: flex; gap: 8px;">
             ${[400, 600, 800, 1000].map(v => `

@@ -440,6 +440,15 @@ button:not(:disabled):active,
   color: var(--text-tertiary);
 }
 
+/* iOS Safari auto-zooms the page whenever a focused field's font-size is
+   under 16px. Desktop keeps the denser 15px; touch devices (no hover)
+   get 16px so tapping any field never triggers the zoom. */
+@media (hover: none) {
+  .input, .select, .textarea {
+    font-size: 16px;
+  }
+}
+
 .textarea {
   min-height: 100px;
   resize: vertical;

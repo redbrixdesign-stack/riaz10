@@ -246,7 +246,7 @@ const MoneyFeature = {
       <div class="sheet-body">
         <div class="form-group">
           <label>Amount (&pound;)</label>
-          <input type="number" class="input" id="edit-expense-amount" placeholder="0.00" step="0.01" min="0" value="${expense.amount || ''}">
+          <input type="number" class="input" inputmode="decimal" id="edit-expense-amount" placeholder="0.00" step="0.01" min="0" value="${expense.amount || ''}">
         </div>
         <div class="form-group">
           <label>Category</label>
@@ -352,7 +352,7 @@ const MoneyFeature = {
         </div>
         <div class="form-group">
           <label>Distance (${CONFIG.distanceUnit})</label>
-          <input type="number" class="input" id="edit-trip-distance" step="0.1" min="0" value="${dist.toFixed(1)}">
+          <input type="number" class="input" inputmode="decimal" id="edit-trip-distance" step="0.1" min="0" value="${dist.toFixed(1)}">
         </div>
         <button class="btn btn-primary btn-block" onclick="MoneyFeature.saveEditTrip(${tripId})">
           Save Changes
@@ -438,7 +438,7 @@ const MoneyFeature = {
       <div class="sheet-body">
         <div class="form-group">
           <label>Amount (&pound;)</label>
-          <input type="number" class="input" id="expense-amount" placeholder="0.00" step="0.01" min="0">
+          <input type="number" class="input" inputmode="decimal" id="expense-amount" placeholder="0.00" step="0.01" min="0">
         </div>
         <div class="form-group">
           <label>Category</label>
@@ -537,7 +537,7 @@ const MoneyFeature = {
         <div class="divider-text">or enter manually</div>
         <div class="form-group">
           <label>Distance (${CONFIG.distanceUnit})</label>
-          <input type="number" class="input" id="trip-distance" placeholder="0.0" step="0.1" min="0">
+          <input type="number" class="input" inputmode="decimal" id="trip-distance" placeholder="0.0" step="0.1" min="0">
         </div>
         <button class="btn btn-outline btn-block" onclick="MoneyFeature.saveTrip()">
           Log Trip

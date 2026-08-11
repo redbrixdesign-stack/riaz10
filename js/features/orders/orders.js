@@ -234,7 +234,7 @@ const OrdersFeature = {
           <div class="divider-text">Record payment</div>
           <div class="form-row" style="margin-bottom:12px;">
             <div class="form-group" style="margin-bottom:0;">
-              <input type="number" class="input" id="order-payment-amount" step="0.01" min="0" placeholder="${Utils.escapeHtml(String((order.balanceDue || 0).toFixed(2)))}">
+              <input type="number" class="input" inputmode="decimal" id="order-payment-amount" step="0.01" min="0" placeholder="${Utils.escapeHtml(String((order.balanceDue || 0).toFixed(2)))}">
             </div>
             <div class="form-group" style="margin-bottom:0;">
               <button class="btn btn-primary btn-block" onclick="OrdersFeature.recordPayment(${order.id})"><span class="material-symbols-rounded" style="font-size:18px;">payments</span>Pay ${Utils.formatCurrency(Math.min(order.depositPaid === 0 ? (order.depositRequired || 0) : (order.balanceDue || 0), order.balanceDue || 0))}</button>
