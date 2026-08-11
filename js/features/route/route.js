@@ -59,8 +59,14 @@ const RouteFeature = {
     const base = await this.getBasePoint();
     appointments = await this.ensureAppointmentCoords(appointments);
     const plan = this.analyseDay(appointments, today, base);
-    const routeList = plan.optimized || appointments;
-    const routeDistance = plan.optimizedLegKm || plan.currentLegKm || 0;
+    // Canonical order is TIME order everywhere (list, legs, map markers):
+    // appointment times are confirmed commitments, so the numbered sequence
+    // the advisor reads in the list is the same sequence the legs and marker
+    // numbers follow. The geography-optimized order lives only in the
+    // "Route friend" suggestion block (and the optimize preview), where it's
+    // framed as "if customers can move".
+    const routeList = plan.appointments;
+    const routeDistance = plan.currentLegKm || 0;
     const routeTime = Math.max(0, Math.round((routeDistance / 35) * 60));
     const routeSaving = TaxCalculator.calculateMileageClaim(routeDistance);
     // If we have visits but no distance, we're offline (geocoding failed).
@@ -113,6 +119,11 @@ const RouteFeature = {
               <span>Tax Relief</span>
             </div>
           </div>
+          ${plan.savingKm >= 3 ? `
+          <div id="route-reorder-note" style="font-size:12px;color:var(--secondary);text-align:center;padding-top:8px;">
+            Reordering stops saves about ${Utils.formatDistance(plan.savingKm)} (${Math.round((plan.savingKm / 35) * 60)} min) — if times allow.
+          </div>
+          ` : ''}
           ${missingCount > 0 ? `
           <div id="route-partial-note" style="font-size:12px;color:var(--warning,#b06000);text-align:center;padding-top:8px;">
             These totals only count ${appointments.length - missingCount} of ${appointments.length} stops - ${missingCount} location${missingCount === 1 ? '' : 's'} couldn't be placed on the map, see below.
@@ -839,7 +850,9 @@ const RouteFeature = {
     const base = await this.getBasePoint();
     appointments = await this.ensureAppointmentCoords(appointments);
     const plan = this.analyseDay(appointments, today, base);
-    const mapAppointments = plan.optimized || appointments;
+    // Marker numbers must agree with the stop list on screen (which is time
+    // order) or "tap list row 3" / "leg 3" point at different stops.
+    const mapAppointments = plan.appointments;
 
     // Default center (UK)
     let center = [52.5, -1.5];
@@ -947,9 +960,10 @@ const RouteFeature = {
       this.map.fitBounds(bounds, { padding: [30, 30] });
     }
 
-    // Calculate route stats
-    this.drawRouteLine(plan.optimized, base);
-    this.updateRouteStats(plan.optimized, base);
+    // Map markers already follow time order; draw the line through the same
+    // sequence so the dashed route matches the numbered stops.
+    this.drawRouteLine(mapAppointments, base);
+    this.updateRouteStats(mapAppointments, base);
   },
 
   updateRouteStats(appointments, base = null) {
@@ -999,6 +1013,17 @@ const RouteFeature = {
     const base = await this.getBasePoint();
     appointments = await this.ensureAppointmentCoords(appointments);
     const optimized = this.optimizeDayLoopOrder(appointments, base);
+    const currentKm = this.calculateDayLoopDistance(this.sortByTime(appointments), base);
+    const optimizedKm = this.calculateDayLoopDistance(optimized, base);
+    const savingKm = Math.max(0, currentKm - optimizedKm);
+    if (savingKm >= 3) {
+      const mins = Math.round((savingKm / 35) * 60);
+      Toast.show(`Shortest drive saves ${Utils.formatDistance(savingKm)} (${mins} min) vs your booked order`, 'success');
+    } else if (currentKm > 0) {
+      Toast.show('Your booked order is already the shortest drive', 'info');
+    } else {
+      Toast.show('No distances to compare yet - check the locations', 'warning');
+    }
 
     // Clear existing markers
     this.markers.forEach(m => this.map.removeLayer(m));
@@ -1041,8 +1066,8 @@ const RouteFeature = {
     }
 
     this.drawRouteLine(optimized, base);
-
-    Toast.show('Shortest-drive order shown - may not match your booked appointment times', 'info');
+    // Stats follow the previewed loop so the numbers match what the map is
+    // showing. The stop list and legs stay in booked time order.
     this.updateRouteStats(optimized, base);
   },
 

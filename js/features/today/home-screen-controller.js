@@ -42,6 +42,13 @@ const HomeScreenController = {
 
     this.injectStylesOnce();
 
+    // First paint only: shell out the weekly layout so the screen never sits
+    // blank while appointments/geocoding load. Later 60s poll re-renders keep
+    // the previous content in place until the new data lands.
+    if (!container.querySelector('.hsc-root')) {
+      container.innerHTML = this.renderSkeleton();
+    }
+
     try {
       const html = await this.renderWeeklyHomeScreen(containerId);
       container.innerHTML = html;
@@ -290,6 +297,25 @@ const HomeScreenController = {
     return `
       <div class="hsc-root fade-in">
         <div class="hsc-empty">Couldn't load today's plan. Pull to refresh or check Settings → Data.</div>
+      </div>
+    `;
+  },
+
+  renderSkeleton() {
+    return `
+      <div class="hsc-root hsc-weekly fade-in" aria-busy="true" aria-label="Loading today's plan">
+        <div class="hsc-week-toprow">
+          <span class="skeleton" style="width:32px;height:32px;border-radius:50%;"></span>
+        </div>
+        <div class="hsc-week-header">
+          <span class="skeleton" style="width:32px;height:32px;border-radius:50%;"></span>
+          <span class="skeleton" style="width:150px;height:20px;border-radius:6px;"></span>
+          <span class="skeleton" style="width:32px;height:32px;border-radius:50%;"></span>
+        </div>
+        <div class="hsc-week-strip">
+          ${Array.from({ length: 7 }, () => '<span class="skeleton" style="height:44px;border-radius:var(--radius-md);"></span>').join('')}
+        </div>
+        ${Array.from({ length: 3 }, () => '<div class="skeleton" style="height:64px;border-radius:var(--radius-md);"></div>').join('')}
       </div>
     `;
   },

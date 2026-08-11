@@ -309,6 +309,31 @@ h4 { font-size: 15px; }
 }
 
 /* ============================================
+   TOUCH PRESSED-STATE
+   Every tappable control should visibly "give"
+   under the finger. A tiny scale-down + dim on
+   :active gives native-feeling feedback on
+   touch; skip the transform for users who
+   prefer reduced motion.
+   ============================================ */
+
+button:not(:disabled):active,
+[role="button"]:not([aria-disabled="true"]):active,
+.nav-item:active,
+.segment:active:not(:disabled) {
+  filter: brightness(0.93);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  button:not(:disabled):active,
+  [role="button"]:not([aria-disabled="true"]):active,
+  .nav-item:active,
+  .segment:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+}
+
+/* ============================================
    BUTTONS
    ============================================ */
 

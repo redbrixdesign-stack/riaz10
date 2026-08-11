@@ -11,6 +11,25 @@ const App = {
   modalStack: [],
   state: {},
 
+  // Generic loading shell shown while a feature's async render() resolves.
+  // Blocks mirror the standard screen layout (top header + card list) so the
+  // swap to real content doesn't jump the layout.
+  renderSkeleton(featureName = '') {
+    return `
+      <div class="fade-in skeleton-screen" aria-busy="true" aria-label="Loading ${Utils.escapeHtml(featureName || 'screen')}">
+        <div class="top-header">
+          <span class="skeleton" style="width:110px;height:22px;border-radius:6px;"></span>
+          <span class="skeleton" style="width:36px;height:36px;border-radius:50%;"></span>
+        </div>
+        <div style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+          ${Array.from({ length: 3 }, () => `
+            <div class="skeleton" style="height:72px;border-radius:var(--radius-md);"></div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  },
+
   // Initialize
   async init() {
     console.log('AdvisorOS v5.0 initializing...');
@@ -284,7 +303,10 @@ const App = {
       } else if (content instanceof HTMLElement) {
         main.appendChild(content);
       } else if (content && typeof content.then === 'function') {
-        // Handle async render
+        // Handle async render — show a skeleton shell while the promise
+        // resolves so the screen never sits blank (flickering white) on
+        // first paint.
+        main.innerHTML = App.renderSkeleton(feature.name || featureId);
         content.then(html => {
           if (typeof html === 'string') {
             main.innerHTML = html;
