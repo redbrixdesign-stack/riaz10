@@ -157,7 +157,7 @@ const MeasureFeature = {
     const dCentre = this.readMeasurement('meas-d-centre');
     const dRight = this.readMeasurement('meas-d-right');
     const dLeast = Math.min(dLeft, dCentre, dRight);
-    const dUse = this.fittingType === 'recess' ? dLeast : dLeast;
+    const dUse = dLeast;
     document.getElementById('calc-d-least').textContent = this.formatMeasurement(dLeast);
     document.getElementById('calc-d-use').textContent = this.formatMeasurement(dUse);
 

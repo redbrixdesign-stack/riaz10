@@ -591,7 +591,7 @@ const DB = {
       widthLeast,
       dropLeast,
       widthUsed: fittingType === 'recess' ? widthLeast - tolerance : widthLeast,
-      dropUsed: fittingType === 'recess' ? dropLeast : dropLeast,
+      dropUsed: dropLeast,
       diagonalVariance: Math.abs((data.diagonalTlBr || 0) - (data.diagonalTrBl || 0)),
       isSquare: Math.abs((data.diagonalTlBr || 0) - (data.diagonalTrBl || 0)) <= 5,
       createdAt: new Date().toISOString()

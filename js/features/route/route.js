@@ -325,20 +325,6 @@ const RouteFeature = {
     return null;
   },
 
-  calculateLegDistance(appointments) {
-    let total = 0;
-    const stops = appointments.filter(a => Array.isArray(a.latLng) && a.latLng.length === 2);
-    for (let i = 1; i < stops.length; i++) {
-      total += Geo.calculateDistance(
-        stops[i - 1].latLng[0],
-        stops[i - 1].latLng[1],
-        stops[i].latLng[0],
-        stops[i].latLng[1]
-      );
-    }
-    return total;
-  },
-
   // A single leg further than this within a same-day local round almost
   // certainly means the geocoder matched the wrong place entirely (a bare
   // postcode district like "M14" with no street/town, or an address that

@@ -499,19 +499,6 @@ const App = {
     });
   },
 
-  // Feature-to-feature communication
-  publish(event, data) {
-    this.features.forEach(feature => {
-      if (feature.onEvent && feature.onEvent[event]) {
-        try {
-          feature.onEvent[event](data);
-        } catch (e) {
-          console.error('Event handler error:', e);
-        }
-      }
-    });
-  },
-
   // Service worker
   async setupServiceWorker() {
     if ('serviceWorker' in navigator) {
@@ -523,46 +510,6 @@ const App = {
       }
     }
   },
-
-  // Utilities
-  formatCurrency(amount) {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: CONFIG.currency || 'GBP'
-    }).format(amount || 0);
-  },
-
-  formatDate(date, format = 'short') {
-    return Utils.formatDate(date, format);
-  },
-
-  formatDistance(km) {
-    return Utils.formatDistance(km);
-  },
-
-  generateId(prefix = 'id') {
-    return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  },
-
-  getToday() {
-    return Utils.getToday();
-  },
-
-  getTomorrow() {
-    return Utils.getTomorrow();
-  },
-
-  isSameDay(d1, d2) {
-    return Utils.isSameDay(d1, d2);
-  },
-
-  daysBetween(d1, d2) {
-    return Utils.daysBetween(d1, d2);
-  },
-
-  debounce(fn, ms) {
-    return Utils.debounce(fn, ms);
-  }
 };
 
 // Toast notification system
