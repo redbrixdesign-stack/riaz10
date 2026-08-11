@@ -410,24 +410,115 @@ const TalkFeature = {
   // scheduler (js/services/message-scheduler.js): both draft a message,
   // set this.pendingMessage, and hand the text over here. hint is optional
   // footer text (ETA caveats, auto-draft notes).
-  openPreviewSheet(message, pending, hint = null) {
+  //
+  // The sheet gathers the same context an AI draft would use (quote value,
+  // measured windows, order figures, conversation history) so the advisor
+  // sees WHY this message was written, WHAT was last said to the customer,
+  // and whether this is a duplicate nudge — compose with continuity, not in
+  // a vacuum.
+  async openPreviewSheet(message, pending, hint = null) {
     const { phone, templateKey } = pending;
+    this._aiDraftPrev = null;
+
+    let context = null;
+    try { context = await this.buildAiContext(pending); } catch (e) { /* sheet works without facts */ }
+
+    const facts = [
+      context?.quoteValue ? `Quote ${context.quoteValue}` : null,
+      context?.windowScope ? context.windowScope : null,
+      (context?.daysSince !== null && context?.daysSince !== undefined && context.daysSince >= 0) ? `Visited ${context.daysSince}d ago` : null,
+      context?.balanceDue && context.balanceDue !== '£0.00' ? `Balance ${context.balanceDue}` : null,
+      context?.depositAmount && context.depositLabel === 'deposit' && context.depositAmount !== '£0.00' ? `Deposit ${context.depositAmount}` : null
+    ].filter(Boolean).join(' · ');
+
+    // Same-customer messages ARE logged (sentAt), so a "you already nudged
+    // them" guard is honest — customer replies aren't tracked, so the hint
+    // never claims to know whether they answered.
+    const sentRecently = context?.lastSentDaysAgo !== null && context?.lastSentDaysAgo !== undefined
+      && context.lastSentDaysAgo >= 0 && context.lastSentDaysAgo <= 1;
+
+    // Same "what if" alternatives shown for outcome-driven nudges — switch
+    // the angle without losing the customer/visit context.
+    const ALTERNATIVES = {
+      quoted: ['follow_up.gentle', 'follow_up.discount'],
+      thinking: ['follow_up.quote', 'follow_up.partner'],
+      partner: ['follow_up.gentle', 'follow_up.quote'],
+      compare_quotes: ['follow_up.quote', 'follow_up.discount'],
+      expensive: ['follow_up.quote', 'follow_up.partner'],
+      customer_no_show: ['follow_up.apology'],
+      advisor_unavailable: ['follow_up.rebook']
+    };
+    const altKeys = context?.outcome ? (ALTERNATIVES[context.outcome] || []) : [];
+    // OUTCOME_TEMPLATE_MAP is keyed by outcome ("quoted"), but the chips
+    // above carry template keys ("follow_up.discount") — reverse-lookup so
+    // each chip gets its human action label.
+    const templateToOutcome = Object.entries(this.OUTCOME_TEMPLATE_MAP)
+      .reduce((m, [outcome, meta]) => { m[meta.template] = outcome; return m; }, {});
+
     const content = `<div class="sheet-handle"></div>
       <div class="sheet-header"><h3>Preview Message</h3><button class="btn btn-ghost btn-sm" onclick="App.closeModal()"><span class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body">
         <textarea class="textarea" id="talk-message-preview" style="min-height:110px;">${Utils.escapeHtml(message)}</textarea>
-        <button class="btn btn-sm ${AIService.isEnabled() ? 'btn-outline' : 'btn-ghost'}" style="margin-top:8px;" onclick="TalkFeature.aiDraft()">
-          <span class="material-symbols-rounded" style="font-size:16px;">auto_awesome</span>AI draft
-        </button>
+
+        <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;">
+          <button class="btn btn-sm ${AIService.isEnabled() ? 'btn-outline' : 'btn-ghost'}" onclick="TalkFeature.aiDraft()">
+            <span class="material-symbols-rounded" style="font-size:16px;">auto_awesome</span>Rewrite with AI
+          </button>
+          <div id="talk-ai-actions" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-sm btn-ghost" onclick="TalkFeature.regenerateDraft()">
+              <span class="material-symbols-rounded" style="font-size:16px;">refresh</span>Regenerate
+            </button>
+            <button class="btn btn-sm btn-ghost" onclick="TalkFeature.undoAiDraft()">
+              <span class="material-symbols-rounded" style="font-size:16px;">undo</span>Undo
+            </button>
+          </div>
+        </div>
+
         ${hint ? `
           <div style="font-size:12px;color:var(--text-tertiary);margin-top:6px;">${Utils.escapeHtml(hint)}</div>
         ` : ''}
+
+        ${facts ? `
+          <div style="font-size:12px;color:var(--text-secondary);margin-top:10px;">${Utils.escapeHtml(facts)}</div>
+        ` : ''}
+
+        ${sentRecently ? `
+          <div style="font-size:12px;color:var(--warning,#b06000);margin-top:6px;">You already messaged this customer ${context.lastSentDaysAgo === 0 ? 'today' : 'yesterday'} — check this isn't a duplicate nudge.</div>
+        ` : ''}
+
+        ${context?.lastMessages?.length ? `
+          <div class="card" style="background:var(--surface-elevated);padding:8px 10px;margin-top:10px;">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-tertiary);margin-bottom:4px;">Previously sent</div>
+            ${context.lastMessages.map(m => `
+              <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">${Utils.escapeHtml(m.when)} — ${Utils.escapeHtml(Utils.truncate(m.text, 90))}</div>
+            `).join('')}
+          </div>
+        ` : ''}
+
+        ${altKeys.length ? `
+          <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
+            ${altKeys.map(key => {
+              const label = this.OUTCOME_TEMPLATE_MAP[templateToOutcome[key]]?.action || key;
+              return `<button class="btn btn-outline btn-sm" onclick="TalkFeature.switchTemplate('${Utils.escapeJsString(key)}')">${Utils.escapeHtml(label)}</button>`;
+            }).join('')}
+          </div>
+        ` : ''}
+
         <div style="font-size:13px;color:var(--text-secondary);margin:12px 0 16px;">Sending to: ${Utils.escapeHtml(Utils.formatPhone(phone))}</div>
         <button class="btn btn-primary btn-block" onclick="TalkFeature.confirmSend()">
           <span class="material-symbols-rounded">chat</span>Open WhatsApp
         </button>
       </div>`;
     App.openModal(content);
+  },
+
+  // Different angle, same customer: close the current sheet and re-draft with
+  // the alternative template. The follow-up outcomes only get alternatives
+  // that make sense for their situation (defined in openPreviewSheet).
+  async switchTemplate(key) {
+    const pending = this.pendingMessage;
+    App.closeModal();
+    if (pending?.appointmentId) this.sendMessage(pending.appointmentId, key);
   },
 
   // Replaces the preview textarea contents with a Claude-drafted message
@@ -458,12 +549,32 @@ const TalkFeature = {
         Toast.show('AI returned an empty draft — try again', 'error');
         return;
       }
+      // Keep the first pre-AI text so "Undo" restores what the user had,
+      // not whatever the previous regenerate produced.
+      if (this._aiDraftPrev === null) {
+        this._aiDraftPrev = textarea.value;
+      }
       textarea.value = result.text;
+      const actions = document.getElementById('talk-ai-actions');
+      if (actions) actions.style.display = 'flex';
       Toast.show('Draft ready — review before sending', 'success');
     } catch (err) {
       console.warn('AI draft failed:', err);
       Toast.show('AI draft failed — try again', 'error');
     }
+  },
+
+  async regenerateDraft() {
+    await this.aiDraft();
+  },
+
+  // Restores the text that was in the box before the first AI rewrite.
+  undoAiDraft() {
+    const textarea = document.getElementById('talk-message-preview');
+    if (textarea && this._aiDraftPrev !== null) textarea.value = this._aiDraftPrev;
+    this._aiDraftPrev = null;
+    const actions = document.getElementById('talk-ai-actions');
+    if (actions) actions.style.display = 'none';
   },
 
   async buildAiContext(pending) {
@@ -570,6 +681,10 @@ const TalkFeature = {
       recentMessages: recentMessages.length
         ? `Recent messages sent to this customer: ${recentMessages.map(m => `[${m.sentAt ? Utils.formatDate(m.sentAt, 'short') : 'sometime'}] "${m.content}"`).join(' | ')}`
         : 'No previous messages.',
+      lastMessages: recentMessages.slice(0, 3).map(m => ({
+        text: m.content,
+        when: m.sentAt ? Utils.formatDate(m.sentAt, 'short') : ''
+      })),
       lastSentDaysAgo,
       totalMessagesSent: allMessages.length
     };

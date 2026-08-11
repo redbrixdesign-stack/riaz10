@@ -74,6 +74,7 @@ global.DB = {
 global.ContactFeature = { open() {} };
 global.OCRFeature = {};
 global.NotificationService = { processTemplate: (t, v) => t.replace(/{{(\w+)}}/g, (_, k) => v[k] || '') };
+global.AIService = { isEnabled: () => false, draftMessage: async () => ({ ok: false, message: 'off' }) };
 global.Geo = {};
 
 const now = new Date();
@@ -168,6 +169,21 @@ const assert = (cond, msg) => { if (!cond) { console.error('FAIL:', msg); proces
   // Live ETA and running-late delay must survive into any AI draft.
   const ctxEta = await Talk.buildAiContext({ customerId: 1, appointmentId: 12, templateKey: 'on_my_way', extraVars: { eta: '9 minutes', delay: '15' } });
   assert(ctxEta.eta === '9 minutes' && ctxEta.delay === '15', 'Live ETA/delay thread into context');
+
+  // Preview sheet v2: carries the facts, history and outcome alternatives so
+  // the advisor composes with context, not in a vacuum.
+  global.App.lastModal = null;
+  const prevOpenModal = global.App.openModal;
+  global.App.openModal = html => { global.App.lastModal = html; };
+  await Talk.openPreviewSheet('Hi Sarah, the quoting thing', { customerId: 1, appointmentId: 11, phone: '07700 900123', templateKey: 'follow_up.quote' });
+  const sheet = global.App.lastModal || '';
+  global.App.openModal = prevOpenModal;
+  assert(sheet.includes('Quote £1,250.00'), 'Sheet shows the quote amount');
+  assert(sheet.includes('Lounge Bay'), 'Sheet shows the measured window');
+  assert(sheet.includes('Visited 5d ago'), 'Sheet shows days since visit');
+  assert(sheet.includes('Previously sent') && sheet.includes('Hi'), 'Sheet shows recent message history');
+  assert(!sheet.includes('duplicate nudge'), 'No duplicate warning at 2 days since last message');
+  assert(sheet.includes('Gentle follow-up') && sheet.includes('Consider controlled discount'), 'Outcome alternatives offered for quoted');
 
   console.log(process.exitCode ? '\nSMOKE TEST FAILED' : '\nSMOKE TEST PASSED');
 })();
