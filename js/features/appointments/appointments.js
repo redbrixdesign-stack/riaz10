@@ -2692,27 +2692,59 @@ const AppointmentsFeature = {
       await DB.db.appointments.update(id, {
         status: 'completed',
         outcome: outcomeId,
-        quoteReason: outcomeId === 'quoted' ? reason || undefined : appt.quoteReason,
-        value: value || undefined,
-        commission: commission || undefined,
-        grossValue: discountPct > 0 ? grossValue : undefined,
-        discountPercent: discountPct > 0 ? discountPct : undefined,
+        // Fields that are being "cleared" use `null`, NOT `undefined` - the
+        // mini-Dexie shim skips undefined values silently while real Dexie
+        // deletes them, and `null` behaves identically in both.
+        quoteReason: outcomeId === 'quoted' ? reason || null : appt.quoteReason || null,
+        value: value > 0 ? value : null,
+        commission: commission > 0 ? commission : null,
+        grossValue: discountPct > 0 ? grossValue : null,
+        discountPercent: discountPct > 0 ? discountPct : null,
         notes: outcomeNote ? [existingNotes, outcomeNote].filter(Boolean).join('\n\n') : existingNotes,
         // Additive fields (see js/core/geo.js travelStatus comment) — a real
         // completion timestamp instead of inferring "now" from elsewhere,
         // and travelStatus cleared since the visit is finished, not on-site.
-        completedAt: Date.now(),
+        // completedAt is only stamped if absent: re-saving an outcome (e.g.
+        // editing a morning sale at 17:00) must not move "when the day was
+        // completed" - the home screen's closeout window reads this.
+        completedAt: appt.completedAt || Date.now(),
         travelStatus: null
       });
 
-      // If ordered, create order
-      if (outcomeId === 'ordered' && value > 0) {
-        await DB.addOrder({
-          customerId: appt.customerId,
-          appointmentId: id,
-          total: value,
-          status: 'deposit_pending'
-        });
+      // Order reconciliation: EXACTLY ONE order may exist per sale. Saving
+      // an 'ordered' outcome upserts the order keyed by appointmentId (so
+      // re-saving or correcting the value updates the existing order instead
+      // of creating a duplicate), and moving the outcome away from 'ordered'
+      // deletes the linked order so a reversed sale stops counting toward
+      // customer totals and the pipeline.
+      const linkedOrder = await DB.db.orders
+        .where('appointmentId')
+        .equals(id)
+        .first()
+        .catch(() => null);
+
+      if (outcomeId === 'ordered') {
+        if (value > 0) {
+          if (linkedOrder) {
+            const deposit = App.calculateDeposit(value);
+            await DB.db.orders.update(linkedOrder.id, {
+              total: value,
+              depositRequired: deposit.amount,
+              balanceDue: value,
+              status: 'deposit_pending'
+            });
+            await DB.refreshCustomerTotals(appt.customerId);
+          } else {
+            await DB.addOrder({
+              customerId: appt.customerId,
+              appointmentId: id,
+              total: value,
+              status: 'deposit_pending'
+            });
+          }
+        }
+      } else if (linkedOrder) {
+        await DB.removeOrder(linkedOrder.id);
       }
 
       App.closeModal();

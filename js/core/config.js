@@ -236,6 +236,19 @@ const CONFIG = {
     running_late: "Hi {{firstName}}, running about {{delay}} minutes late due to traffic. Still on my way! — {{advisorName}}"
   },
 
+  // Claude AI — OCR reads documents/photos, Talk drafts messages.
+  // Both go through the user's own serverless proxy (which holds the
+  // ANTHROPIC_API_KEY, never shipped into the PWA bundle) so it also
+  // works on Netlify public hosting where the browser would otherwise
+  // be blocked from calling api.anthropic.com directly (CORS).
+  ai: {
+    enabled: false,
+    proxyUrl: '',       // e.g. https://site.netlify.app/.netlify/functions/claude
+    secret: '',         // optional; sent as X-AI-Key header for non-Anthropic proxies
+    ocrModel: 'claude-sonnet-4-5',   // Vision — used for OCR extraction
+    draftModel: 'claude-haiku-4-5'   // Fast/cheap — used for Talk drafts
+  },
+
   // Probability decay (days since quote → probability)
   probabilityDecay: {
     0: 0.80,

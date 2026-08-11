@@ -406,6 +406,9 @@ const TalkFeature = {
       <div class="sheet-header"><h3>Preview Message</h3><button class="btn btn-ghost btn-sm" onclick="App.closeModal()"><span class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body">
         <textarea class="textarea" id="talk-message-preview" style="min-height:110px;">${Utils.escapeHtml(message)}</textarea>
+        <button class="btn btn-sm ${AIService.isEnabled() ? 'btn-outline' : 'btn-ghost'}" style="margin-top:8px;" onclick="TalkFeature.aiDraft()">
+          <span class="material-symbols-rounded" style="font-size:16px;">auto_awesome</span>AI draft
+        </button>
         ${(templateKey === 'on_my_way' || templateKey === 'running_late') ? `
           <div style="font-size:12px;color:var(--text-tertiary);margin-top:6px;">
             ${etaIsEstimateOnly ? "Couldn't work out a live ETA (location unavailable) - this is a placeholder, edit before sending." : "Time estimated from your current distance to this visit - double-check before sending."}
@@ -417,6 +420,89 @@ const TalkFeature = {
         </button>
       </div>`;
     App.openModal(content);
+  },
+
+  // Replaces the preview textarea contents with a Claude-drafted message
+  // written from the customer/visit context. The template remains the
+  // starting point; the draft is a suggestion the user reviews and edits.
+  async aiDraft() {
+    if (!AIService.isEnabled()) {
+      Toast.show('AI drafting is off — enable it in Settings first', 'warning');
+      return;
+    }
+    const pending = this.pendingMessage;
+    if (!pending) {
+      Toast.show('No message ready', 'error');
+      return;
+    }
+    const textarea = document.getElementById('talk-message-preview');
+    if (!textarea) return;
+
+    Toast.show('Drafting with AI…', 'info');
+    try {
+      const context = await this.buildAiContext(pending);
+      const result = await AIService.draftMessage(context);
+      if (!result.ok) {
+        Toast.show(result.reason === 'timeout' ? 'AI draft timed out — try again' : result.message || 'AI draft unavailable', 'error');
+        return;
+      }
+      if (!result.text) {
+        Toast.show('AI returned an empty draft — try again', 'error');
+        return;
+      }
+      textarea.value = result.text;
+      Toast.show('Draft ready — review before sending', 'success');
+    } catch (err) {
+      console.warn('AI draft failed:', err);
+      Toast.show('AI draft failed — try again', 'error');
+    }
+  },
+
+  async buildAiContext(pending) {
+    const { customerId, appointmentId, templateKey } = pending;
+    const customer = customerId ? await DB.db.customers.get(customerId) : null;
+    const appt = appointmentId ? await DB.db.appointments.get(appointmentId) : null;
+
+    // Order history supports "your order is on its way" style draft contexts.
+    let orders = [];
+    try {
+      if (customerId) orders = await DB.db.orders.where('customerId').equals(customerId).toArray();
+    } catch (e) { /* storage read failed — draft without it */ }
+
+    // Last two messages, for continuity ("following up on our last chat…").
+    let recentMessages = [];
+    try {
+      if (customerId) {
+        const all = await DB.db.communications.where('customerId').equals(customerId).toArray();
+        all.sort((a, b) => new Date(b.sentAt || 0) - new Date(a.sentAt || 0));
+        recentMessages = all.slice(0, 2).map(c => c.content || '').filter(Boolean);
+      }
+    } catch (e) { /* ignore */ }
+
+    // The resolved template text (same lookup sendMessage uses) so the draft
+    // can keep its goal while sounding human.
+    let templateText = '';
+    try {
+      const keys = templateKey.split('.');
+      let t = CONFIG.templates;
+      for (const k of keys) t = t?.[k];
+      templateText = typeof t === 'string' ? t : '';
+    } catch (e) { /* ignore */ }
+
+    const orderTotal = orders.reduce((sum, o) => sum + (o.total || 0), 0);
+    return {
+      customerName: customer ? [customer.firstName, customer.lastName].filter(Boolean).join(' ') : (appt?.clientName || 'there'),
+      appointmentDate: appt?.date ? Utils.formatDate(appt.date) : '',
+      appointmentTime: appt?.date ? Utils.formatTime(appt.date) : '',
+      visitAddress: appt?.address || customer?.address || '',
+      templateKey,
+      templateText,
+      note: `The advisor's name is ${CONFIG.advisorName || 'not set'}.`,
+      orderHistory: orders.length
+        ? `Order history: ${orders.length} order(s), latest total £${orderTotal.toFixed(2)}.`
+        : 'Order history: none.',
+      recentMessages: recentMessages.length ? `Recent messages sent to this customer: ${recentMessages.join(' | ')}` : 'No previous messages.'
+    };
   },
 
   async confirmSend() {

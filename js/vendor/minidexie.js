@@ -79,6 +79,41 @@
       return rows[0];
     }
 
+    async count() {
+      const rows = await this.table.toArray();
+      return rows.filter(row => this.groups.some(group => this._matchesGroup(row, group))).length;
+    }
+
+    // Sorts ALL matches first, then applies the limit - same semantics as
+    // Dexie's sortBy(), so limit() must not be applied before sorting.
+    async sortBy(field, direction = 'asc') {
+      const rows = await this.table.toArray();
+      const matches = rows.filter(row => this.groups.some(group => this._matchesGroup(row, group)));
+      matches.sort((a, b) => {
+        const av = fieldValue(a, field);
+        const bv = fieldValue(b, field);
+        if (av == null && bv == null) return 0;
+        if (av == null) return 1;
+        if (bv == null) return -1;
+        if (av < bv) return direction === 'desc' ? 1 : -1;
+        if (av > bv) return direction === 'desc' ? -1 : 1;
+        return 0;
+      });
+      if (this._reverse) matches.reverse();
+      return typeof this._limit === 'number' ? matches.slice(0, this._limit) : matches;
+    }
+
+    // Deletes every row matching the query (the where().equals().delete()
+    // chain DB.deleteCustomer relies on). Returns how many rows were removed.
+    async delete() {
+      const rows = await this.toArray();
+      const keys = rows.map(row => fieldValue(row, this.table.keyPath));
+      for (const key of keys) {
+        await this.table.delete(key);
+      }
+      return keys.length;
+    }
+
     async toArray() {
       const rows = await this.table.toArray();
       let matches = rows.filter(row => this.groups.some(group => this._matchesGroup(row, group)));
@@ -213,6 +248,16 @@
       return clone(rows || []);
     }
 
+    async bulkGet(keys) {
+      const store = await this._store('readonly');
+      return Promise.all((keys || []).map(key => this._req(store.get(key))));
+    }
+
+    async count() {
+      const store = await this._store('readonly');
+      return this._req(store.count());
+    }
+
     where(field) {
       const query = new MiniQuery(this);
       query.currentField = field;
@@ -293,6 +338,12 @@
     }
 
     async toArray() { return clone(this.rows); }
+
+    async bulkGet(keys) {
+      return Promise.all((keys || []).map(key => this.get(key)));
+    }
+
+    async count() { return this.rows.length; }
 
     where(field) {
       const query = new MiniQuery(this);

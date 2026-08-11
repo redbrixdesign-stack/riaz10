@@ -69,6 +69,8 @@ const SettingsFeature = {
           </div>
         </div>
 
+        ${this.renderAICard()}
+
         ${this.renderCommissionCard()}
 
         <div class="card" style="margin-bottom:16px;">
@@ -164,6 +166,7 @@ const SettingsFeature = {
       distanceUnit: CONFIG.distanceUnit,
       measurementUnit: CONFIG.measurementUnit,
       commission: CONFIG.commission,
+      ai: CONFIG.ai,
       onboardingComplete: true
     };
     localStorage.setItem('advisoros_config', JSON.stringify(toSave));
@@ -212,6 +215,104 @@ const SettingsFeature = {
         </div>
       </div>
     `;
+  },
+
+  // ---- AI (Claude) ----
+  renderAICard() {
+    const ai = CONFIG.ai || {};
+    const usage = AIService.lastUsage;
+    const usageLine = usage
+      ? `Last call: ${usage.type === 'ocr' ? 'OCR' : 'draft'} · ${(usage.input_tokens || 0).toLocaleString()}/${(usage.output_tokens || 0).toLocaleString()} tokens · ${Utils.formatCurrency(usage.cost ?? 0)}`
+      : 'No AI calls yet.';
+
+    return `
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-weight:600;">Claude AI</div>
+            <div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">Reads scanned documents (Scan screen) and drafts customer messages (Talk screen).</div>
+          </div>
+          <button class="btn btn-sm ${ai.enabled ? 'btn-primary' : 'btn-outline'}" onclick="SettingsFeature.toggleAI()">
+            ${ai.enabled ? 'On' : 'Off'}
+          </button>
+        </div>
+
+        <div style="font-size:12px;color:var(--text-tertiary);margin-top:10px;line-height:1.5;">Works through your own serverless function (Netlify/Vercel), which holds the API key — it never ships inside this app. Deploy <code style="font-size:11px;">api/claude.mjs</code> (Vercel) or <code style="font-size:11px;">netlify/functions/claude.mjs</code> (Netlify) with your <code style="font-size:11px;">ANTHROPIC_API_KEY</code> environment variable, then paste the function URL below.</div>
+
+        <div class="form-group" style="margin-top:10px;">
+          <label>Proxy URL</label>
+          <input type="text" class="input" id="set-ai-url" value="${Utils.escapeAttr(ai.proxyUrl || '')}" placeholder="https://your-site.netlify.app/.netlify/functions/claude" onblur="SettingsFeature.setAIUrl(this.value)">
+        </div>
+        <div class="form-group">
+          <label>Shared Secret (optional)</label>
+          <input type="password" class="input" id="set-ai-secret" value="${Utils.escapeAttr(ai.secret || '')}" placeholder="Only if your proxy requires X-AI-Key" onblur="SettingsFeature.setAISecret(this.value)">
+        </div>
+        <div class="form-group">
+          <label>OCR model (document reading)</label>
+          <select class="select" id="set-ai-ocr-model" onchange="SettingsFeature.setAIModel('ocrModel', this.value)">
+            <option value="claude-sonnet-4-5" ${ai.ocrModel === 'claude-sonnet-4-5' ? 'selected' : ''}>Claude Sonnet 4.5 — best accuracy</option>
+            <option value="claude-3-7-sonnet-latest" ${ai.ocrModel === 'claude-3-7-sonnet-latest' ? 'selected' : ''}>Claude Sonnet 3.7</option>
+            <option value="claude-haiku-4-5" ${ai.ocrModel === 'claude-haiku-4-5' ? 'selected' : ''}>Claude Haiku 4.5 — fastest/cheapest</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Draft model (message writing)</label>
+          <select class="select" id="set-ai-draft-model" onchange="SettingsFeature.setAIModel('draftModel', this.value)">
+            <option value="claude-haiku-4-5" ${ai.draftModel === 'claude-haiku-4-5' ? 'selected' : ''}>Claude Haiku 4.5 — fast & cheap</option>
+            <option value="claude-sonnet-4-5" ${ai.draftModel === 'claude-sonnet-4-5' ? 'selected' : ''}>Claude Sonnet 4.5 — higher quality</option>
+            <option value="claude-3-5-haiku-latest" ${ai.draftModel === 'claude-3-5-haiku-latest' ? 'selected' : ''}>Claude Haiku 3.5</option>
+          </select>
+        </div>
+
+        <div class="inset-dark" style="margin-top:12px;padding:10px 12px;background:var(--bg);border-radius:8px;font-size:12px;color:var(--text-secondary);">${Utils.escapeHtml(usageLine)}</div>
+        <button class="btn btn-outline btn-sm btn-block" style="margin-top:10px;" onclick="SettingsFeature.testAI()"><span class="material-symbols-rounded" style="font-size:16px;">bolt</span>Test connection</button>
+      </div>
+    `;
+  },
+
+  toggleAI() {
+    CONFIG.ai = { ...(CONFIG.ai || {}), enabled: !CONFIG.ai.enabled };
+    this.persist();
+    Toast.show(CONFIG.ai.enabled ? 'Claude AI enabled' : 'Claude AI turned off', 'success');
+    this.refreshInPlace();
+  },
+
+  setAIUrl(value) {
+    CONFIG.ai = { ...(CONFIG.ai || {}), proxyUrl: value.trim() };
+    this.persist();
+    Toast.show('AI proxy URL saved', 'success');
+  },
+
+  setAISecret(value) {
+    CONFIG.ai = { ...(CONFIG.ai || {}), secret: value.trim() };
+    this.persist();
+    Toast.show('AI secret saved', 'success');
+  },
+
+  setAIModel(key, value) {
+    CONFIG.ai = { ...(CONFIG.ai || {}), [key]: value };
+    this.persist();
+    Toast.show('AI model updated', 'success');
+  },
+
+  async testAI() {
+    const button = event?.currentTarget;
+    if (button) { button.disabled = true; button.textContent = 'Testing…'; }
+    try {
+      const result = await AIService.testConnection();
+      if (result.ok) {
+        Toast.show('Connected — ' + result.model + ' responded', 'success');
+      } else if (result.unavailable) {
+        Toast.show(result.reason === 'timeout' ? 'Connection timed out' : 'Proxy unreachable — check the URL', 'error');
+      } else {
+        Toast.show(result.message || 'Proxy error — check the URL and env vars', 'error');
+      }
+    } catch (err) {
+      Toast.show('Test failed: ' + err.message, 'error');
+    } finally {
+      if (button) { button.disabled = false; button.textContent = 'Test connection'; }
+      this.refreshInPlace();
+    }
   },
 
   // Re-render the settings screen into #main WITHOUT resetting scroll to the

@@ -27,6 +27,41 @@ backend, no login, all data stored locally on the device.
 - Service worker for offline caching, `manifest.json` for install-as-app
 - Leaflet for maps, Tesseract for OCR (both loaded from CDN with fallback)
 - OSRM + Nominatim for routing/geocoding (free public instances — see Limitations)
+- Claude AI (optional): OCR photo reading + message drafting via your own
+  serverless proxy (Anthropic's API can't be called from a browser)
+
+## Claude AI setup (optional)
+
+The Scan and Talk screens get an AI boost when enabled in Settings → Claude AI:
+
+- **Scan** — photos are read by Claude Sonnet instead of (or before) Tesseract,
+  which is far better with screenshots and business cards. If AI is off,
+  unreachable, or fails, it falls back to Tesseract automatically.
+- **Talk** — an "AI draft" button rewrites the queued template message with the
+  customer's name, visit details, order history, and your last messages as
+  context, so it reads naturally while staying accurate.
+
+The app never holds an Anthropic API key — everything goes through **your own**
+serverless function, which you deploy once:
+
+1. **Netlify**: copy `netlify/functions/claude.mjs` into a functions directory,
+   set `ANTHROPIC_API_KEY` under Site settings → Environment variables, and
+   deploy. The proxy URL is `https://your-site.netlify.app/.netlify/functions/claude`.
+2. **Vercel**: copy `api/claude.mjs` to an `api/` folder, add `ANTHROPIC_API_KEY`
+   as an environment variable, redeploy. The proxy URL is
+   `https://your-site.vercel.app/api/claude`.
+
+Optional hardening (both files support it):
+
+| Variable          | Effect                                                        |
+| ----------------- | ------------------------------------------------------------- |
+| `AI_SECRET`       | If set, requests must send it in the `X-AI-Key` header        |
+| `ALLOWED_ORIGIN`  | If set, only requests with this exact `Origin` are accepted   |
+
+Then paste the proxy URL into Settings → Claude AI and enable it. The "Test
+connection" button verifies the whole path, and the card shows tokens/cost of
+the last call. `api/claude.mjs` and `netlify/functions/claude.mjs` must stay in
+sync (same core logic, different platform entry points).
 
 ## Project structure
 

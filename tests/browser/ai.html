@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>AI E2E</title>
+</head>
+<body><pre id="out">RUNNING</pre>
+  <script src="../../js/core/config.js"></script>
+  <script src="../../js/services/ai.js"></script>
+  <script>
+    /* Runs the REAL AIService against the mock proxy on :8001 and reports
+       AI_OK (all green) or AI_FAILED:<results>. The marker text is written
+       to <pre id="out">; tests/browser/run.js watches for it. */
+    (async () => {
+      const out = document.getElementById('out');
+      const results = [];
+      const step = (label, cond) => results.push({ label, pass: !!cond });
+
+      CONFIG.ai = { enabled: true, proxyUrl: 'http://localhost:8001/claude', secret: '', ocrModel: 'claude-sonnet-4-5', draftModel: 'claude-haiku-4-5' };
+
+      try {
+        // 1. Ping through the mock proxy.
+        const t = await AIService.testConnection();
+        step('ping ok through mock proxy', t.ok && t.pong === 'pong', t);
+
+        // 2. Full image pipeline: canvas -> File -> _toBase64 (real
+        //    downscale path) -> mock proxy -> field mapping.
+        const canvas = document.createElement('canvas');
+        canvas.width = 400; canvas.height = 200;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 400, 200);
+        ctx.fillStyle = '#000'; ctx.font = '24px sans-serif';
+        ctx.fillText('Alice Smith', 20, 60);
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+        const file = new File([blob], 'card.png', { type: 'image/png' });
+        const ocr = await AIService.extractFromImage(file);
+        step('ocr fields mapped from real image', ocr.ok && ocr.fields.name === 'Alice Smith' && ocr.fields.phone === '', ocr);
+        step('ocr raw text surfaced', ocr.rawText === '{"name":"Alice Smith"}');
+
+        // 3. Draft through the mock proxy.
+        const d = await AIService.draftMessage({ customerName: 'Bob', note: 'test' });
+        step('draft returns text', d.ok && d.text === 'Hi Bob!', d);
+
+        // 4. Proxy error -> graceful { ok:false, message }.
+        CONFIG.ai.proxyUrl = 'http://localhost:8001/fail';
+        const bad = await AIService.testConnection();
+        step('proxy error degrades gracefully', !bad.ok && bad.message === 'mock: fail', bad);
+
+        // 5. Timeout -> graceful { ok:false, unavailable, reason:'timeout' }.
+        CONFIG.ai.proxyUrl = 'http://localhost:8001/slow';
+        const slow = await AIService.testConnection();
+        step('timeout degrades gracefully', !slow.ok && slow.unavailable && slow.reason === 'timeout', slow);
+
+        // 6. Usage recorded for the successful draft call.
+        step('usage recorded', AIService.lastUsage && AIService.lastUsage.cost === 0.00001, AIService.lastUsage);
+      } catch (e) {
+        results.push({ label: 'uncaught: ' + e.message, pass: false });
+      }
+
+      out.textContent = results.every(r => r.pass) ? 'AI_OK' : 'AI_FAILED:' + JSON.stringify(results);
+    })();
+  </script>
+</body>
+</html>

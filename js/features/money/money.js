@@ -146,15 +146,8 @@ const MoneyFeature = {
   async getWeekEarnings() {
     const start = Utils.getStartOfWeek();
     const end = Utils.getEndOfWeek();
-    const appts = await DB.db.appointments
-      .where('date')
-      .between(start.toISOString(), end.toISOString())
-      .and(a => a.outcome === 'ordered')
-      .toArray();
-    return appts.reduce((sum, a) => {
-      if (typeof a.commission === 'number' && a.commission > 0) return sum + a.commission;
-      return sum + TaxCalculator.estimateCommission(a.value || 0);
-    }, 0);
+    const stats = await DB.getWeekStats(start.toISOString(), end.toISOString());
+    return stats.earnings;
   },
 
   markSaved() { Toast.show('Marked as saved for this week', 'success'); },

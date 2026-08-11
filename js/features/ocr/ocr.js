@@ -55,6 +55,7 @@ const OCRFeature = {
           <button class="btn btn-primary btn-lg btn-block" onclick="document.getElementById('ocr-input').click()">
             <span class="material-symbols-rounded">photo_camera</span>Take Photo
           </button>
+          ${AIService.isEnabled() ? '<div style="font-size:12px;color:var(--text-tertiary);margin-top:10px;">Photos are analysed by Claude AI — you can turn this off in Settings.</div>' : ''}
           <input type="file" id="ocr-input" accept="image/*" capture="environment" style="display:none;" onchange="OCRFeature.processImage(event)">
         </div>
         <div id="ocr-result" style="display:none;">
@@ -63,7 +64,7 @@ const OCRFeature = {
         </div>
         <div id="ocr-loading" style="display:none;text-align:center;padding:48px;">
           <div class="skeleton" style="width:48px;height:48px;border-radius:50%;margin:0 auto 16px;"></div>
-          <div style="color:var(--text-secondary);">Reading document...</div>
+          <div id="ocr-loading-text" style="color:var(--text-secondary);">Reading document...</div>
         </div>
         <div id="ocr-manual" style="display:none;">
           <div class="divider-text">Enter Manually</div>
@@ -86,6 +87,27 @@ const OCRFeature = {
     document.getElementById('ocr-loading').style.display = 'block';
     document.getElementById('ocr-result').style.display = 'none';
     document.getElementById('ocr-manual').style.display = 'none';
+
+    // AI path first: Claude Vision reads the photo directly. Any failure
+    // (disabled, offline, error, timeout) falls through to Tesseract below,
+    // so the feature never regresses when AI isn't available.
+    if (AIService.isEnabled()) {
+      this.setLoadingText('Reading document with Claude AI…');
+      try {
+        const ai = await AIService.extractFromImage(file);
+        if (ai.ok) {
+          this.extractedData = ai.fields || {};
+          this.lastRawText = ai.rawText || '';
+          this.renderResult();
+          return;
+        }
+        console.warn('AI extraction unavailable, falling back to Tesseract:', ai.reason, ai.message);
+        this.setLoadingText('Reading document…');
+      } catch (err) {
+        console.warn('AI extraction failed, falling back to Tesseract:', err);
+        this.setLoadingText('Reading document…');
+      }
+    }
 
     // If the previous load attempt failed (e.g. app was opened offline),
     // retry now — connectivity may have returned since then.
@@ -149,33 +171,46 @@ const OCRFeature = {
       // Always show Name (it's required to save) even if extraction came up
       // empty, so a miss is an obviously-blank editable field, not a silently
       // vanished one - which is exactly what made this confusing to spot last time.
-      const orderedKeys = ['name', 'phone', 'address', 'town', 'city', 'postcode', 'customerNumber', 'email', 'appointmentDate', 'appointmentTime'];
-      const fieldLabels = { address: 'Address Line 1', town: 'Town', city: 'City' };
-      const fieldsHtml = orderedKeys
-        .filter(k => k === 'name' || k === 'postcode' || this.extractedData[k])
-        .map(k => {
-          const v = this.extractedData[k] || '';
-          const upper = k === 'postcode' ? ' style="text-transform:uppercase;"' : '';
-          const label = fieldLabels[k] || k.replace(/([A-Z])/g,' $1').trim();
-          return `<div class="form-group"><label style="text-transform:capitalize;">${Utils.escapeHtml(label)}</label><input type="text" class="input" id="ocr-${Utils.escapeAttr(k)}" value="${Utils.escapeAttr(v)}"${upper}></div>`;
-        }).join('');
-      document.getElementById('ocr-fields').innerHTML = fieldsHtml;
-
-      // Collapsible raw text - if a field's wrong or missing, this shows exactly
-      // what Tesseract actually read, so it's fixable on the spot rather than a guess.
-      const rawTextHtml = `
-        <details style="margin-top:12px;">
-          <summary style="cursor:pointer;color:var(--text-secondary);font-size:13px;">Show raw scanned text</summary>
-          <pre style="white-space:pre-wrap;font-size:12px;color:var(--text-secondary);background:var(--bg-secondary,#00000011);padding:8px;border-radius:8px;margin-top:8px;max-height:200px;overflow-y:auto;">${Utils.escapeHtml(this.lastRawText || '')}</pre>
-        </details>
-      `;
-      document.getElementById('ocr-fields').insertAdjacentHTML('afterend', rawTextHtml);
+      this.renderResult();
     } catch(err) {
       document.getElementById('ocr-loading').style.display = 'none';
       document.getElementById('ocr-manual').style.display = 'block';
       const timedOut = err && err.message === 'OCR timed out';
       Toast.show(timedOut ? 'OCR taking too long — please enter details manually.' : 'OCR failed. Please enter manually.', 'error');
     }
+  },
+
+  setLoadingText(text) {
+    const el = document.getElementById('ocr-loading-text');
+    if (el) el.textContent = text;
+  },
+
+  // Shared result renderer for both extraction engines (Claude / Tesseract).
+  renderResult() {
+    document.getElementById('ocr-loading').style.display = 'none';
+    document.getElementById('ocr-result').style.display = 'block';
+
+    const orderedKeys = ['name', 'phone', 'address', 'town', 'city', 'postcode', 'customerNumber', 'email', 'appointmentDate', 'appointmentTime'];
+    const fieldLabels = { address: 'Address Line 1', town: 'Town', city: 'City' };
+    const fieldsHtml = orderedKeys
+      .filter(k => k === 'name' || k === 'postcode' || this.extractedData[k])
+      .map(k => {
+        const v = this.extractedData[k] || '';
+        const upper = k === 'postcode' ? ' style="text-transform:uppercase;"' : '';
+        const label = fieldLabels[k] || k.replace(/([A-Z])/g,' $1').trim();
+        return `<div class="form-group"><label style="text-transform:capitalize;">${Utils.escapeHtml(label)}</label><input type="text" class="input" id="ocr-${Utils.escapeAttr(k)}" value="${Utils.escapeAttr(v)}"${upper}></div>`;
+      }).join('');
+    document.getElementById('ocr-fields').innerHTML = fieldsHtml;
+
+    // Collapsible raw text - if a field's wrong or missing, this shows exactly
+    // what was actually read, so it's fixable on the spot rather than a guess.
+    const rawTextHtml = `
+      <details style="margin-top:12px;">
+        <summary style="cursor:pointer;color:var(--text-secondary);font-size:13px;">Show raw scanned text</summary>
+        <pre style="white-space:pre-wrap;font-size:12px;color:var(--text-secondary);background:var(--bg-secondary,#00000011);padding:8px;border-radius:8px;margin-top:8px;max-height:200px;overflow-y:auto;">${Utils.escapeHtml(this.lastRawText || '')}</pre>
+      </details>
+    `;
+    document.getElementById('ocr-fields').insertAdjacentHTML('afterend', rawTextHtml);
   },
 
   // Races a promise against a timeout so a slow/hung external call (Tesseract downloading

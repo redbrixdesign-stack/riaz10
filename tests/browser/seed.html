@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>seed</title></head>
+<body>
+<script>
+// Seeds a legacy 'advisoros_v5' database exactly as the old shim used to
+// leave it: object stores with keyPath 'id' + autoIncrement, no indexes.
+// Uses raw IndexedDB so the seed is independent of the shim's behaviour.
+// Results are written into the DOM so CDP --dump-dom can assert on them.
+const STORE_NAMES = ['customers', 'appointments', 'orders', 'expenses',
+  'trips', 'measurements', 'communications', 'settings', 'sequences'];
+const req = indexedDB.open('advisoros_v5', 2);
+req.onupgradeneeded = () => {
+  const db = req.result;
+  for (const name of STORE_NAMES) {
+    if (!db.objectStoreNames.contains(name)) {
+      db.createObjectStore(name, { keyPath: 'id', autoIncrement: true });
+    }
+  }
+};
+req.onerror = () => { document.title = 'SEED_FAILED'; document.body.textContent = 'SEED_FAILED'; };
+req.onsuccess = () => {
+  const db = req.result;
+  const tx = db.transaction(STORE_NAMES, 'readwrite');
+  const now = Date.now();
+  tx.objectStore('customers').add({ firstName: 'Grace', lastName: 'Hopper', customerNumber: 'CUS-2026-0003', phone: '07700 900123' });
+  tx.objectStore('customers').add({ firstName: 'Ada', lastName: 'Lovelace', customerNumber: 'CUS-2026-0007', phone: '07700 900456' });
+  const a1 = tx.objectStore('appointments').add({ customerId: 1, date: new Date(now - 2 * 3600000).toISOString(), outcome: 'ordered', value: 900, status: 'completed' });
+  a1.onsuccess = () => {
+    tx.objectStore('orders').add({ customerId: 1, appointmentId: a1.result, orderNumber: 'ORD-2026-0001', total: 900, status: 'deposit_pending' });
+  };
+  tx.objectStore('appointments').add({ customerId: 2, date: new Date(now - 30 * 3600000).toISOString(), outcome: 'measured_quoted_sold', value: 500, status: 'completed' });
+  tx.objectStore('sequences').put({ name: 'customer', value: 0 });
+  tx.objectStore('sequences').put({ name: 'order', value: 0 });
+  tx.objectStore('settings').put({ key: 'config', value: { weeklyTarget: 600 } });
+  // A shim-era localStorage fallback row for a table that has NO IndexedDB
+  // rows (the fallback engine only engaged when IDB was unavailable, so
+  // mixed sources are the realistic case): 'advisoros:<dbName>:<table>'.
+  localStorage.setItem('advisoros:advisoros_v5:expenses', JSON.stringify({
+    nextId: 3,
+    rows: [{ id: 2, date: new Date(now - 3600000).toISOString(), category: 'fuel', amount: 42 }]
+  }));
+  tx.oncomplete = () => {
+    db.close();
+    document.title = 'SEEDED_OK';
+    document.body.textContent = 'SEEDED_OK';
+  };
+  tx.onerror = () => { document.title = 'SEED_FAILED'; document.body.textContent = 'SEED_FAILED'; };
+};
+</script>
+</body></html>

@@ -97,6 +97,31 @@ async function run() {
     }
     console.log(`  ✓ Built ${changed.length}/${sources.length} file(s)`);
   }
+  copyVendorDeps();
+}
+
+// Copies third-party libraries from node_modules into js/vendor/ so the app
+// stays offline-first (no CDN dependency). The shimmed index.html <script>
+// loads these before the app's own scripts. Source maps are stripped so a
+// missing .map file never 404s in devtools.
+function copyVendorDeps() {
+  const vendors = [
+    { src: 'node_modules/dexie/dist/dexie.min.js', out: 'js/vendor/dexie.min.js' }
+  ];
+  for (const v of vendors) {
+    const srcPath = path.join(ROOT, v.src);
+    if (!fs.existsSync(srcPath)) {
+      console.warn(`  ! vendor source missing: ${v.src} (run npm install)`);
+      continue;
+    }
+    const outPath = path.join(ROOT, v.out);
+    const content = fs.readFileSync(srcPath, 'utf8').replace(/\/\/# sourceMappingURL=[^\n]*/, '');
+    const previous = fs.existsSync(outPath) ? fs.readFileSync(outPath, 'utf8') : null;
+    if (previous !== content) {
+      fs.writeFileSync(outPath, content);
+      console.log(`  ⟳ vendor ${v.src} → ${v.out}`);
+    }
+  }
 }
 
 function watch() {

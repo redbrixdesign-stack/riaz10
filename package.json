@@ -8,9 +8,14 @@
     "build": "node build/minify.js",
     "watch": "node build/minify.js --watch",
     "serve": "python3 -m http.server 8000",
-    "clean": "node build/minify.js --clean"
+    "clean": "node build/minify.js --clean",
+    "test": "node tests/storage.test.js && node tests/ai.test.js",
+    "test:ai": "node tests/ai.test.js",
+    "test:browser": "node tests/browser/run.js"
   },
   "devDependencies": {
+    "dexie": "^4.0.11",
+    "fake-indexeddb": "^6.2.5",
     "terser": "^5.49.0"
   }
 }

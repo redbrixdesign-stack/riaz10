@@ -7,9 +7,17 @@ const DB = {
   db: null,
 
   async init() {
-    this.db = new Dexie('advisoros_v5');
+    // 'advisoros_v6' (NOT 'advisoros_v5'): the old storage engine (the
+    // bundled mini-Dexie shim) created its IndexedDB stores without any
+    // indexes under the name 'advisoros_v5'. Opening that same database with
+    // real Dexie and a declared schema would put the upgrade into
+    // unknown-schema territory - risky for user data. Instead we use a fresh
+    // database name and copy the old records across once (see
+    // _migrateFromLegacyDb), leaving the shim's database untouched as a
+    // safety net.
+    this.db = new Dexie('advisoros_v6');
 
-    this.db.version(2).stores({
+    this.db.version(1).stores({
       // Core tables
       customers: '++id, customerNumber, firstName, lastName, phone, email, postcodeNormalized, source, status, createdAt',
       appointments: '++id, customerId, date, type, status, outcome, source, createdAt',
@@ -29,6 +37,16 @@ const DB = {
     if (typeof this.db.open === 'function') {
       await this.db.open();
     }
+
+    // Real Dexie doesn't have storageMode; set it so the storage
+    // diagnostics (App.verifyStorage, Settings > Data) can report properly.
+    if (!this.db.storageMode) {
+      this.db.storageMode = ('indexedDB' in window && !!window.indexedDB) ? 'indexedDB' : 'memory';
+    }
+
+    // One-time copy of records left in the previous storage engine's
+    // database ('advisoros_v5', created by the bundled mini-Dexie shim).
+    await this._migrateFromLegacyDb();
 
     // Initialize sequences if not exist
     await this.initSequences();
@@ -85,6 +103,111 @@ const DB = {
     }
   },
 
+  // One-time migration from the previous storage engine. Everything up to
+  // v5.x stored records in an IndexedDB database named 'advisoros_v5'
+  // created by the bundled mini-Dexie shim (js/vendor/minidexie.js) - raw
+  // object stores, no indexes, same table names. On the first boot of the
+  // Dexie-backed version, copy every non-empty table into this database.
+  // The old database is left in place untouched as a safety net.
+  async _migrateFromLegacyDb() {
+    const LEGACY_DB = 'advisoros_v5';
+    const FLAG = '__v6_legacy_migrated__';
+    if (!('indexedDB' in window)) return;
+
+    try {
+      if (await this.getSetting(FLAG)) return;
+
+      const legacyDb = await new Promise((resolve, reject) => {
+        const req = indexedDB.open(LEGACY_DB);
+        req.onerror = () => reject(req.error);
+        req.onblocked = () => {};
+        req.onsuccess = () => resolve(req.result);
+      });
+
+      const tables = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'settings', 'sequences'];
+      let copied = 0;
+      for (const table of tables) {
+        // Never overwrite: this table already has data in the new database
+        // (e.g. an import/restore happened before the migration ran).
+        if (await this.db[table].count() > 0) continue;
+
+        let rows = null;
+        if (legacyDb.objectStoreNames.contains(table)) {
+          rows = await new Promise((resolve, reject) => {
+            const tx = legacyDb.transaction(table, 'readonly');
+            const req = tx.objectStore(table).getAll();
+            req.onerror = () => reject(req.error);
+            req.onsuccess = () => resolve(req.result || []);
+          });
+        }
+
+        // Users whose browser couldn't open IndexedDB (shim-era fallback)
+        // have their rows in localStorage under 'advisoros:<dbName>:<table>'
+        // instead of the legacy database. The old shim would only use this
+        // path when IDB was genuinely unavailable, so few users have it —
+        // but they'd otherwise boot to an empty app with no way back.
+        if (!rows || !rows.length) {
+          rows = this._readLegacyLocalStorageRows(table);
+        }
+
+        if (rows && rows.length) {
+          await this.db[table].bulkAdd(rows);
+          copied += rows.length;
+        }
+      }
+
+      // Guard the sequence counters: never start numbering below the highest
+      // number the migrated records already carry.
+      for (const name of ['customer', 'order']) {
+        const seq = await this.db.sequences.get(name);
+        if (!seq) continue;
+        const prefix = name === 'customer' ? 'CUS-' : 'ORD-';
+        const year = new Date().getFullYear();
+        const re = new RegExp(`^${prefix}\\d{4}-(\\d+)$`);
+        const maxSeq = Math.max(...(await this.db[name + 's'].toArray()).map(r => {
+          const m = String(r[name + 'Number'] || '').match(re);
+          return m ? parseInt(m[1], 10) : 0;
+        }));
+        if (maxSeq > seq.value) {
+          await this.db.sequences.update(name, { value: maxSeq });
+        }
+      }
+
+      // Close the legacy connection: leaving it open would block any later
+      // version upgrade of that database (and is the kind of connection the
+      // old engine itself would have kept around in other tabs).
+      legacyDb.close();
+
+      if (copied) {
+        console.log(`AdvisorOS: migrated ${copied} record(s) from the previous storage engine`);
+      }
+      await this.setSetting(FLAG, true);
+    } catch (e) {
+      // Nothing to migrate, or migration failed - either way the app runs
+      // fine with an empty database; don't block startup over it.
+      console.warn('AdvisorOS: legacy data migration skipped:', e);
+    }
+  },
+
+  // Shim-era localStorage fallback rows: 'advisoros:<dbName>:<table>' ->
+  // JSON { nextId, rows }. The dbName is unknown to us now, so match any
+  // 'advisoros:' key that ends in ':table'.
+  _readLegacyLocalStorageRows(table) {
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key || !key.startsWith('advisoros:') || !key.endsWith(':' + table)) continue;
+        const parsed = JSON.parse(localStorage.getItem(key));
+        if (parsed && Array.isArray(parsed.rows) && parsed.rows.length) {
+          return parsed.rows;
+        }
+      }
+    } catch (e) {
+      console.warn('AdvisorOS: legacy localStorage read failed for', table, e);
+    }
+    return null;
+  },
+
   async initSequences() {
     const sequences = ['customer', 'order'];
     for (const name of sequences) {
@@ -96,6 +219,18 @@ const DB = {
   },
 
   async getNextSequence(name) {
+    // Real Dexie: increment + read inside ONE readwrite transaction so two
+    // interleaved calls can never hand out the same number. (The mini-Dexie
+    // shim has no transaction() - fall back to the old update-then-read,
+    // which is fine there because its calls are serialized in practice.)
+    if (typeof this.db.transaction === 'function') {
+      return await this.db.transaction('rw', this.db.sequences, async () => {
+        const seq = await this.db.sequences.get(name);
+        const next = (seq ? seq.value : 0) + 1;
+        await this.db.sequences.put({ name, value: next });
+        return next;
+      });
+    }
     await this.db.sequences.update(name, seq => {
       seq.value += 1;
     });
@@ -186,9 +321,12 @@ const DB = {
     const end = new Date(date);
     end.setHours(23, 59, 59, 999);
 
+    // Bounds are explicit: Dexie's between() is upper-EXCLUSIVE by default
+    // (the bundled shim is inclusive), so without (true, true) a visit at
+    // exactly 23:59:59.999 would silently vanish from the day's list.
     return await this.db.appointments
       .where('date')
-      .between(start.toISOString(), end.toISOString())
+      .between(start.toISOString(), end.toISOString(), true, true)
       .and(a => a.status !== 'cancelled')
       .toArray();
   },
@@ -202,7 +340,7 @@ const DB = {
 
     return await this.db.appointments
       .where('date')
-      .between(start.toISOString(), end.toISOString())
+      .between(start.toISOString(), end.toISOString(), true, true)
       .and(a => a.status !== 'cancelled')
       .toArray();
   },
@@ -214,16 +352,47 @@ const DB = {
 
     return await this.db.appointments
       .where('date')
-      .between(now.toISOString(), future.toISOString())
+      .between(now.toISOString(), future.toISOString(), true, true)
       .and(a => a.status !== 'cancelled')
       .toArray();
+  },
+
+  // Canonical weekly stats: sales value, earnings (commission) and order
+  // count for a period, counting ONLY appointments that actually happened
+  // (status !== 'cancelled') AND were sold (outcome === 'ordered').
+  //
+  // This is the single source of truth for "how am I doing this week" -
+  // Today's dashboard, the Money screen and the Home screen all call this
+  // instead of running their own query (the old copies drifted apart, and
+  // none of them excluded cancelled visits, so cancelling a sold visit kept
+  // counting toward the weekly target).
+  async getWeekStats(startISO, endISO) {
+    const appts = await this.db.appointments
+      .where('date')
+      .between(startISO, endISO, true, true)
+      .and(a => a.status !== 'cancelled' && a.outcome === 'ordered')
+      .toArray();
+
+    let sales = 0;
+    let earnings = 0;
+    for (const a of appts) {
+      sales += a.value || 0;
+      if (typeof a.commission === 'number' && a.commission > 0) {
+        earnings += a.commission;
+      } else {
+        earnings += TaxCalculator.estimateCommission(a.value || 0);
+      }
+    }
+    return { sales, earnings, orderedCount: appts.length };
   },
 
   async getPipeline() {
     const now = new Date().toISOString();
 
     // FIX: Dexie 3 doesn't support sortBy() after filter/and
-    // Get results first, then sort in JavaScript
+    // Get results first, then sort in JavaScript.
+    // Cancelled visits are excluded so a cancelled quote/thinking lead can't
+    // keep generating follow-up nudges forever.
     const results = await this.db.appointments
       .where('outcome')
       .anyOf([
@@ -235,6 +404,7 @@ const DB = {
         'customer_no_show',
         'advisor_unavailable'
       ])
+      .and(a => a.status !== 'cancelled')
       .and(a => new Date(a.date) <= new Date(now))
       .toArray();
 
@@ -265,15 +435,44 @@ const DB = {
 
     const id = await this.db.orders.add(order);
 
-    // Update customer totals
+    // Customer totals are RECOMPUTED from the orders table rather than
+    // incremented inline here. The old increment-only approach drifted
+    // whenever an order was edited, deleted, or re-created (e.g. an outcome
+    // flipped away from 'ordered' and back), leaving customer value/count
+    // totals permanently wrong. Recompute keeps them correct for any order
+    // lifecycle - refreshCustomerTotals is the only writer of these fields.
     if (data.customerId) {
-      await this.db.customers.update(data.customerId, customer => {
-        customer.totalOrdersValue += (data.total || 0);
-        customer.orderCount += 1;
-      });
+      await this.refreshCustomerTotals(data.customerId);
     }
 
     return { ...order, id };
+  },
+
+  // Recomputes a customer's order aggregates from the orders table itself.
+  // Single source of truth: called after add/update/delete of any order.
+  async refreshCustomerTotals(customerId) {
+    if (!customerId) return;
+    const orders = await this.db.orders.where('customerId').equals(customerId).toArray();
+    const totalOrdersValue = orders.reduce((sum, o) => sum + (o.total || 0), 0);
+    const orderCount = orders.length;
+    const totalCommission = orders.reduce((sum, o) => sum + (o.commission || 0), 0);
+    await this.db.customers.update(customerId, {
+      totalOrdersValue,
+      orderCount,
+      totalCommission
+    });
+  },
+
+  // Deletes an order and refreshes the owning customer's totals.
+  // Returns the deleted order (or null if it didn't exist).
+  async removeOrder(orderId) {
+    const order = await this.db.orders.get(orderId);
+    if (!order) return null;
+    await this.db.orders.delete(orderId);
+    if (order.customerId) {
+      await this.refreshCustomerTotals(order.customerId);
+    }
+    return order;
   },
 
   // Expense operations
@@ -290,7 +489,7 @@ const DB = {
   async getExpensesForPeriod(startDate, endDate) {
     return await this.db.expenses
       .where('date')
-      .between(startDate, endDate)
+      .between(startDate, endDate, true, true)
       .toArray();
   },
 
@@ -310,7 +509,7 @@ const DB = {
   async getTripsForPeriod(startDate, endDate) {
     return await this.db.trips
       .where('date')
-      .between(startDate, endDate)
+      .between(startDate, endDate, true, true)
       .toArray();
   },
 
@@ -393,10 +592,30 @@ const DB = {
       }
     }
 
+    // On the real engine this is a single atomic readwrite transaction
+    // across every table: a failure anywhere aborts the whole import and
+    // the previous data comes back untouched. (The mini-Dexie shim fallback
+    // has no transaction(), so it keeps the snapshot-and-restore path below.)
+    if (typeof this.db.transaction === 'function') {
+      try {
+        await this.db.transaction('rw', tables.map(t => this.db[t]), async () => {
+          for (const table of tables) {
+            await this.db[table].clear();
+            if (data[table]) {
+              await this.db[table].bulkAdd(data[table]);
+            }
+          }
+        });
+      } catch (err) {
+        throw new Error('Import failed and was rolled back. Your previous data should be intact — please check Money, Visits and Customers.');
+      }
+      return;
+    }
+
     // Snapshot current data so a failure partway through the import (e.g. a
     // bad record on table 4 of 7) can be rolled back, instead of leaving some
     // tables replaced with the new backup and others cleared-but-not-refilled.
-    // Note: this isn't a true atomic DB transaction (the storage layer here
+    // Note: this isn't a true atomic DB transaction (the shim fallback
     // doesn't support one across tables) — it's a best-effort restore, and
     // rollback itself could theoretically fail (e.g. storage completely full).
     const snapshot = {};

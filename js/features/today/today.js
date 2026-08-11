@@ -192,26 +192,15 @@ const TodayFeature = {
   async getWeekEarnings() {
     const start = Utils.getStartOfWeek();
     const end = Utils.getEndOfWeek();
-    const appts = await DB.db.appointments
-      .where('date')
-      .between(start.toISOString(), end.toISOString())
-      .and(a => a.outcome === 'ordered')
-      .toArray();
-    return appts.reduce((sum, a) => {
-      if (typeof a.commission === 'number' && a.commission > 0) return sum + a.commission;
-      return sum + TaxCalculator.estimateCommission(a.value || 0);
-    }, 0);
+    const stats = await DB.getWeekStats(start.toISOString(), end.toISOString());
+    return stats.earnings;
   },
 
   async getWeekSales() {
     const start = Utils.getStartOfWeek();
     const end = Utils.getEndOfWeek();
-    const appts = await DB.db.appointments
-      .where('date')
-      .between(start.toISOString(), end.toISOString())
-      .and(a => a.outcome === 'ordered')
-      .toArray();
-    return appts.reduce((sum, a) => sum + (a.value || 0), 0);
+    const stats = await DB.getWeekStats(start.toISOString(), end.toISOString());
+    return stats.sales;
   },
 
   sortAppointments(appointments) {
@@ -538,7 +527,14 @@ const TodayFeature = {
     let appointments = [];
     try { appointments = await DB.getAppointmentsForDate(today.toISOString()); } catch (e) {}
     const completed = appointments.filter(a => a.outcome).length;
-    const earned = appointments.reduce((sum, a) => sum + (a.outcome === 'ordered' ? (a.value || 0) : 0), 0);
+    // "Earned" is commission, matching the Money screen - showing raw sale
+    // value here under the same word made the two screens disagree about
+    // what the advisor actually took home.
+    const earned = appointments.reduce((sum, a) => {
+      if (a.outcome !== 'ordered') return sum;
+      if (typeof a.commission === 'number' && a.commission > 0) return sum + a.commission;
+      return sum + TaxCalculator.estimateCommission(a.value || 0);
+    }, 0);
 
     const content = `
       <div class="sheet-handle"></div>
