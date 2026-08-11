@@ -30,6 +30,12 @@ const ControlFeature = {
           { icon: 'fact_check', label: 'End of Day', action: "TodayFeature.openEODModal()" }
         ])}
 
+        ${this.renderSection('Selling & service', [
+          { icon: 'view_kanban', label: 'Orders Board', action: "App.navigate('orders')" },
+          { icon: 'campaign', label: 'Follow-ups', action: "App.navigate('followups')" },
+          { icon: 'person_search', label: 'Find Customer', action: "App.navigate('appointments')" }
+        ])}
+
         ${this.renderSection('Plan & measure', [
           { icon: 'map', label: 'Route Planner', action: "App.navigate('route')" },
           { icon: 'straighten', label: 'Measure', action: "ControlFeature.openMeasurePicker()" },

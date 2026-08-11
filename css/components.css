@@ -310,7 +310,7 @@
 /* BADGE FIX: better dark mode contrast */
 .badge-warning {
   background: var(--warning-light);
-  color: #b06000;
+  color: #8f5410;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -1845,10 +1845,10 @@ body.trip-active .toast-container {
   gap: 8px;
   width: 100%;
   padding: 8px 10px;
-  border: 1px solid var(--warning, #b06000);
+  border: 1px solid var(--warning, #8f5410);
   border-radius: var(--radius-sm);
   background: var(--warning-light, transparent);
-  color: var(--warning, #b06000);
+  color: var(--warning, #8f5410);
   font-size: 12px;
   font-weight: 600;
   text-align: left;

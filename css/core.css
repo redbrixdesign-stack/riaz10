@@ -13,11 +13,11 @@
   --primary-light: #e9edda;
   --secondary: #4f6a2f;
   --secondary-light: #e6f0d8;
-  --warning: #9b6a22;
+  --warning: #8d5d0f;
   --warning-light: #f5ead8;
   --danger: #9a3d32;
   --danger-light: #f3dfdc;
-  --info: #566d76;
+  --info: #4a5d68;
 
   /* Lime accent — the "today" / highlight colour from the reference (used for
      selected calendar day, active nav, primary highlight moments). */
@@ -119,7 +119,7 @@
 .calendar-card {
   --text-primary: #1c1f16;
   --text-secondary: #5c6152;
-  --text-tertiary: #8b8579;
+  --text-tertiary: #6a6457;
   /* Elements below that don't set their own `color` inherit the RESOLVED
      value of `color`, not a live re-evaluation of --text-primary. Setting
      `color` explicitly here (not just the custom property) is what makes
@@ -438,7 +438,7 @@ h4 { font-size: 15px; }
 
 .badge-primary { background: var(--primary-light); color: var(--primary); }
 .badge-success { background: var(--secondary-light); color: var(--secondary); }
-.badge-warning { background: var(--warning-light); color: #b06000; }
+.badge-warning { background: var(--warning-light); color: #8f5410; }
 .badge-danger { background: var(--danger-light); color: var(--danger); }
 .badge-info { background: color-mix(in srgb, var(--info) 15%, white); color: var(--info); }
 .badge-accent { background: color-mix(in srgb, var(--accent) 25%, white); color: var(--accent-contrast); }

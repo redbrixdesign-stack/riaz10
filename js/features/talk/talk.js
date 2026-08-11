@@ -329,7 +329,7 @@ const TalkFeature = {
     ]);
   },
 
-  async sendMessage(appointmentId, templateKey) {
+  async sendMessage(appointmentId, templateKey, extraVars = {}) {
     let appt = null;
     let customer = null;
 
@@ -393,7 +393,8 @@ const TalkFeature = {
       address: appt?.address || '',
       advisorName: CONFIG.advisorName || 'Your Advisor',
       eta,
-      delay
+      delay,
+      ...extraVars
     });
     this.pendingMessage = {
       customerId: customer?.id || 0,

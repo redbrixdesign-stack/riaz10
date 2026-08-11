@@ -17,13 +17,22 @@ const MeasureFeature = {
   },
 
   async renderMeasureForm(appointmentId, measurementId) {
+    // URL-hash params arrive as raw strings and are interpolated into inline
+    // handlers below - only accept well-formed positive integers, never the
+    // raw value (a crafted #measure?appointmentId=1})alert(1)// link would
+    // otherwise execute inside the onclick attribute).
+    const safeAppointmentId = Number.isInteger(Number(appointmentId)) && Number(appointmentId) > 0 ? Number(appointmentId) : null;
+    const safeMeasurementId = Number.isInteger(Number(measurementId)) && Number(measurementId) > 0 ? Number(measurementId) : null;
+    if (!safeAppointmentId) {
+      return `<div class="empty-state"><span class="material-symbols-rounded">straighten</span><div>Select a visit to measure</div></div>`;
+    }
     const unit = this.getUnitLabel();
     let tolerance = this.mmToDisplay(10);
     const step = CONFIG.measurementUnit === 'inches' ? '0.125' : CONFIG.measurementUnit === 'cm' ? '0.1' : '1';
 
     let existing = null;
-    if (measurementId) {
-      try { existing = await DB.db.measurements.get(parseInt(measurementId) || measurementId); } catch (e) {}
+    if (safeMeasurementId) {
+      try { existing = await DB.db.measurements.get(safeMeasurementId); } catch (e) {}
       if (existing) {
         this.fittingType = existing.fittingType || 'recess';
         this.photoData = (existing.photos && existing.photos[0]) || null;
@@ -37,7 +46,7 @@ const MeasureFeature = {
 
     return `<div class="fade-in">
       <div class="top-header">
-        <button class="btn btn-ghost btn-sm" onclick="App.navigate('appointments',{id:${appointmentId}})"><span class="material-symbols-rounded">arrow_back</span></button>
+        <button class="btn btn-ghost btn-sm" onclick="App.navigate('appointments',{id:${safeAppointmentId}})"><span class="material-symbols-rounded">arrow_back</span></button>
         <h1 style="flex:1;text-align:center;font-size:18px;">${existing ? 'Edit Measurement' : 'Measure'}</h1>
         <div style="width:40px;"></div>
       </div>
@@ -99,9 +108,9 @@ const MeasureFeature = {
           <div id="meas-photo-preview" style="margin-top:8px;">${this.photoData ? `<img src="${this.photoData}" style="max-width:100%;border-radius:8px;">` : ''}</div>
         </div>
 
-        <button class="btn btn-primary btn-block" style="margin-top:8px;" onclick="MeasureFeature.save(${appointmentId}, ${existing ? existing.id : 'null'})">${existing ? 'Save Changes' : 'Save Measurement'}</button>
+        <button class="btn btn-primary btn-block" style="margin-top:8px;" onclick="MeasureFeature.save(${safeAppointmentId}, ${existing ? existing.id : 'null'})">${existing ? 'Save Changes' : 'Save Measurement'}</button>
         ${existing ? `
-          <button class="btn btn-danger btn-block" style="margin-top:8px;" onclick="MeasureFeature.deleteMeasurement(${existing.id}, ${appointmentId})">
+          <button class="btn btn-danger btn-block" style="margin-top:8px;" onclick="MeasureFeature.deleteMeasurement(${existing.id}, ${safeAppointmentId})">
             <span class="material-symbols-rounded">delete</span> Delete Measurement
           </button>
         ` : ''}

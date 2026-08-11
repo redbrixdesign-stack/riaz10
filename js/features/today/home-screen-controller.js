@@ -142,7 +142,11 @@ const HomeScreenController = {
     }
 
     let followUpCount = 0;
-    try { followUpCount = await TalkFeature.getDueFollowUpCount(); } catch (e) {}
+    try {
+      followUpCount = (typeof FollowupsFeature !== 'undefined')
+        ? await FollowupsFeature.getDueCount()
+        : await TalkFeature.getDueFollowUpCount();
+    } catch (e) {}
 
     const dayStripHtml = weekDays.map(d => {
       const isSelected = d.getTime() === selected.getTime();
@@ -184,9 +188,9 @@ const HomeScreenController = {
         <div class="hsc-week-strip">${dayStripHtml}</div>
 
         ${followUpCount > 0 ? `
-        <button class="hsc-followup-badge" type="button" onclick="App.navigate('talk')">
+        <button class="hsc-followup-badge" type="button" onclick="App.navigate('followups')">
           <span class="material-symbols-rounded">campaign</span>
-          ${followUpCount} follow-up${followUpCount === 1 ? '' : 's'} due
+          ${followUpCount} thing${followUpCount === 1 ? '' : 's'} due today
           <span class="material-symbols-rounded" style="margin-left:auto;">chevron_right</span>
         </button>
         ` : ''}

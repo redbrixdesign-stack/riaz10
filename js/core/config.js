@@ -232,6 +232,10 @@ const CONFIG = {
       review: "Hi {{firstName}}, hope you're enjoying your new {{productType}}! If you're happy with the work, I'd love a quick review. It really helps: [link] — {{advisorName}}",
       referral: "Hi {{firstName}}, great to work with you on the {{productType}}. If you know anyone looking for window coverings, I'd love an intro — I offer £50 off their first order as a thank you. — {{advisorName}}"
     },
+    // Deposit/payment reminder for a live order (used by the Follow-ups inbox
+    // and the Orders board's message button). Callers pass supplierOrderNumber
+    // and depositAmount via TalkFeature.sendMessage's extra variables.
+    payment_reminder: "Hi {{firstName}}, a quick one about your order{{supplierOrderNumber}} — the {{depositLabel}} of {{depositAmount}} is ready whenever you are. Just reply here to arrange it. — {{advisorName}}",
     on_my_way: "Hi {{firstName}}, I'm on my way and should be with you in about {{eta}}. See you soon! — {{advisorName}}",
     running_late: "Hi {{firstName}}, running about {{delay}} minutes late due to traffic. Still on my way! — {{advisorName}}",
     // Fallback wording for the automated cadence (message-scheduler.js) when
@@ -248,6 +252,13 @@ const CONFIG = {
     enabled: false,
     eveningHour: 18,   // day before the visit, UK time
     morningHour: 8     // on the day of the visit, UK time
+  },
+
+  // Follow-up inbox (js/features/followups): payment reminders become "due"
+  // this many days after an order was created. Quote-chase timing is driven
+  // by Talk's OUTCOME_TEMPLATE_MAP (with learned timing where available).
+  followups: {
+    paymentReminderDays: 3
   },
 
   // Claude AI — OCR reads documents/photos, Talk drafts messages.

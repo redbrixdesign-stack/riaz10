@@ -610,10 +610,8 @@ const AppointmentsFeature = {
   },
 
   async openCustomerRecord(customerId) {
-    // Was a smaller modal with its own duplicate implementation - now just
-    // opens the full customer profile screen instead of maintaining two
-    // different "view customer" experiences with different feature sets.
-    App.navigate('appointments', { customerId });
+    // Opens the full Customer 360 profile screen.
+    App.navigate('customer', { id: customerId });
   },
 
   buildSlots(start, end) {
@@ -816,7 +814,7 @@ const AppointmentsFeature = {
 
       App.closeModal();
       Toast.show('Customer updated', 'success');
-      App.navigate('appointments', { customerId });
+      App.navigate('customer', { id: customerId });
     } catch (e) {
       console.error('Save customer error:', e);
       Toast.show('Failed to save changes', 'error');
@@ -1071,14 +1069,17 @@ const AppointmentsFeature = {
     }
 
     if (type === 'customer') {
-      App.navigate('appointments', { customerId: id });
+      App.navigate('customer', { id });
       return;
     }
 
     if (type === 'order') {
       try {
         const order = await DB.db.orders.get(id);
-        if (order?.appointmentId) { App.navigate('appointments', { id: order.appointmentId }); return; }
+        if (order && typeof OrdersFeature !== 'undefined') {
+          App.navigate('orders', { id: order.id });
+          return;
+        }
       } catch (e) {}
       Toast.show('No linked visit found for this order', 'warning');
     }
@@ -1159,179 +1160,16 @@ const AppointmentsFeature = {
     `;
   },
 
+  // Customer 360 lives in its own feature now (js/features/customer/).
+  // This method is kept as a thin delegate so every existing caller (inline
+  // onclick handlers, old hashes like #appointments?customerId=N) still lands
+  // on the same, upgraded profile screen.
   async renderCustomerProfile(customerId) {
-    let customer = null;
-    try {
-      customer = await DB.db.customers.get(customerId);
-    } catch (e) {
-      console.error('Failed to load customer:', e);
+    const id = parseInt(customerId, 10);
+    if (!Number.isInteger(id) || id <= 0) {
+      return `<div class="empty-state"><span class="material-symbols-rounded">person_off</span><div>Customer not found</div></div>`;
     }
-
-    if (!customer) {
-      return `<div class="empty-state"><span class="material-symbols-rounded">error</span><div>Customer not found</div></div>`;
-    }
-
-    let appts = [];
-    let orders = [];
-    let comms = [];
-    let photos = [];
-    try { appts = await DB.db.appointments.where('customerId').equals(customerId).toArray(); } catch (e) {}
-    try { orders = await DB.db.orders.where('customerId').equals(customerId).toArray(); } catch (e) {}
-    try { comms = await DB.db.communications.where('customerId').equals(customerId).toArray(); } catch (e) {}
-    try { photos = await DB.getPhotosForCustomer(customerId); } catch (e) {}
-
-    appts.sort((a, b) => new Date(a.date) - new Date(b.date));
-    const firstVisit = appts[0];
-    const lastVisit = appts[appts.length - 1];
-    const totalValue = appts.reduce((sum, a) => sum + (a.outcome === 'ordered' ? (a.value || 0) : 0), 0);
-    const interests = Object.entries(this.extractBuyingInterests(appts)).sort((a, b) => b[1] - a[1]).slice(0, 5);
-
-    // One merged, chronological "everything that's happened with this
-    // person" timeline - visits, orders, and follow-up messages together,
-    // not three separate lists you have to mentally interleave yourself.
-    const timeline = [
-      ...appts.map(a => ({
-        date: a.date,
-        icon: CONFIG.appointmentTypes.find(t => t.id === a.type)?.icon || 'event',
-        title: CONFIG.appointmentTypes.find(t => t.id === a.type)?.name || a.type || 'Visit',
-        subtitle: a.outcome ? `Outcome: ${Utils.escapeHtml(a.outcome.replace(/_/g, ' '))}${a.value > 0 ? ` · ${Utils.formatCurrency(a.value)}` : ''}` : 'No outcome logged',
-        onclick: `App.navigate('appointments', {id: ${a.id}})`
-      })),
-      ...orders.map(o => ({
-        date: o.createdAt || o.date,
-        icon: 'receipt',
-        title: `Order ${Utils.escapeHtml(o.orderNumber || '')}`,
-        subtitle: `${Utils.escapeHtml(o.status || '')} · ${Utils.formatCurrency(o.total || 0)}`,
-        onclick: ''
-      })),
-      ...comms.map(c => ({
-        date: c.sentAt,
-        icon: 'chat',
-        title: 'Follow-up sent',
-        subtitle: Utils.escapeHtml((c.template || c.type || '').replace(/_/g, ' ')),
-        onclick: ''
-      }))
-    ].filter(item => item.date).sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    const phone = customer.phone || '';
-    const address = customer.address?.line1 || '';
-    const name = customer.fullName || `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'Customer';
-
-    return `
-      <div class="fade-in">
-        <div class="top-header">
-          <button class="btn btn-ghost btn-sm" onclick="App.navigate('appointments')">
-            <span class="material-symbols-rounded">arrow_back</span>
-          </button>
-          <h1 style="flex: 1; text-align: center; font-size: 18px;">Customer</h1>
-          <div style="width: 40px;"></div>
-        </div>
-
-        <div class="card" style="margin: 16px; margin-top: 8px;">
-          <div style="display: flex; align-items: center; gap: 16px;">
-            <div style="width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600;">
-              ${name.charAt(0).toUpperCase()}
-            </div>
-            <div style="flex: 1;">
-              <div style="font-size: 20px; font-weight: 600;">${Utils.escapeHtml(name)}</div>
-              <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">${Utils.escapeHtml(customer.customerNumber || '')}</div>
-            </div>
-            <button class="btn btn-ghost btn-sm" aria-label="Edit customer details" onclick="AppointmentsFeature.openEditCustomerModal(${customer.id})">
-              <span class="material-symbols-rounded">edit</span>
-            </button>
-          </div>
-
-          ${address ? `<div style="margin-top:12px;font-size:13px;color:var(--text-secondary);display:flex;align-items:center;gap:8px;"><span class="material-symbols-rounded" style="font-size:16px;">location_on</span>${Utils.escapeHtml(address)}</div>` : ''}
-          ${customer.email ? `<div style="margin-top:6px;font-size:13px;color:var(--text-secondary);display:flex;align-items:center;gap:8px;"><span class="material-symbols-rounded" style="font-size:16px;">mail</span>${Utils.escapeHtml(customer.email)}</div>` : ''}
-
-          <div style="display: flex; gap: 8px; margin-top: 16px;">
-            ${phone ? `
-              <a class="btn btn-outline btn-sm" style="flex: 1; gap: 6px;" href="tel:${Utils.escapeAttr(Utils.toE164Phone(phone) || phone)}">
-                <span class="material-symbols-rounded" style="font-size: 18px;">call</span>
-                Call
-              </a>
-              <button class="btn btn-outline btn-sm" style="flex: 1; gap: 6px;" onclick="ContactFeature.open({name: '${Utils.escapeJsString(name)}', phone: '${Utils.escapeJsString(phone)}'})">
-                <span class="material-symbols-rounded" style="font-size: 18px;">chat</span>
-                Message
-              </button>
-            ` : ''}
-            ${address ? `
-              <button class="btn btn-outline btn-sm" style="flex: 1; gap: 6px;" onclick="window.open('${Utils.escapeJsString(Geo.buildNavigationUrl(address))}', '_blank')">
-                <span class="material-symbols-rounded" style="font-size: 18px;">navigation</span>
-                Navigate
-              </button>
-            ` : ''}
-          </div>
-        </div>
-
-        <div class="card" style="margin: 16px; margin-top: 0;">
-          <div class="hsc-stat-row">
-            <div class="hsc-stat hsc-stat-clickable" role="button" tabindex="0" aria-label="View visit history" onclick="AppointmentsFeature.scrollToCustomerHistory()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();AppointmentsFeature.scrollToCustomerHistory();}">
-              <div class="hsc-stat-value">${appts.length}</div>
-              <div class="hsc-stat-label">Visits</div>
-            </div>
-            <div class="hsc-stat hsc-stat-clickable" role="button" tabindex="0" aria-label="View money and sales" onclick="App.navigate('money')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();App.navigate('money');}">
-              <div class="hsc-stat-value">${Utils.formatCurrency(totalValue)}</div>
-              <div class="hsc-stat-label">Total Ordered</div>
-            </div>
-            <div class="hsc-stat ${lastVisit ? 'hsc-stat-clickable' : ''}" ${lastVisit ? `role="button" tabindex="0" aria-label="Open last visit" onclick="App.navigate('appointments', {id: ${lastVisit.id}})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();App.navigate('appointments', {id: ${lastVisit.id}});}"` : ''}>
-              <div class="hsc-stat-value">${lastVisit ? Utils.formatDate(lastVisit.date, 'short') : '—'}</div>
-              <div class="hsc-stat-label">Last Visit</div>
-            </div>
-          </div>
-          ${firstVisit ? `<div style="font-size:12px;color:var(--text-tertiary);margin-top:10px;text-align:center;">Customer since ${Utils.formatDate(firstVisit.date, 'long')}</div>` : ''}
-        </div>
-
-        ${interests.length ? `
-          <div class="card" style="margin: 16px; margin-top: 0;">
-            <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:8px;">Buying Interest</div>
-            <div style="display:flex;flex-wrap:wrap;gap:6px;">
-              ${interests.map(([label, count]) => `<span class="chip">${Utils.escapeHtml(label)} · ${count}</span>`).join('')}
-            </div>
-          </div>
-        ` : ''}
-
-        <div class="card" id="customer-history-anchor" style="margin: 16px; margin-top: 0;">
-          <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:8px;">History</div>
-          ${timeline.length === 0 ? `
-            <div style="font-size:13px;color:var(--text-tertiary);text-align:center;padding:16px 0;">No visits, orders, or messages recorded yet</div>
-          ` : timeline.map(item => `
-            <div class="hsc-appt-row" ${item.onclick ? `onclick="${item.onclick}" style="cursor:pointer;"` : 'style="cursor:default;"'}>
-              <span class="material-symbols-rounded" style="color:var(--text-tertiary);">${item.icon}</span>
-              <span class="hsc-appt-details">
-                <span class="hsc-appt-name">${item.title}</span>
-                <span class="hsc-appt-address">${Utils.formatDate(item.date, 'short')} · ${item.subtitle}</span>
-              </span>
-              ${item.onclick ? '<span class="material-symbols-rounded hsc-appt-chevron">chevron_right</span>' : ''}
-            </div>
-          `).join('')}
-        </div>
-
-        <div class="card" style="margin: 16px; margin-top: 0;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-            <div style="font-size:13px;font-weight:600;color:var(--text-secondary);">Photos ${photos.length ? `(${photos.length})` : ''}</div>
-            <button class="btn btn-outline btn-sm" style="gap:6px;" aria-label="Add photo" onclick="document.getElementById('customer-photo-input').click()">
-              <span class="material-symbols-rounded" style="font-size:16px;">photo_camera</span>Add Photo
-            </button>
-          </div>
-          ${photos.length === 0 ? `
-            <div style="font-size:13px;color:var(--text-tertiary);text-align:center;padding:12px 0 4px;">No photos yet — windows, fronts, damage notes, anything useful to remember.</div>
-          ` : `
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
-              ${photos.map(p => this.renderPhotoThumb(p)).join('')}
-            </div>
-          `}
-          <input type="file" id="customer-photo-input" accept="image/*" capture="environment" style="display:none;" onchange="AppointmentsFeature.captureCustomerPhoto(event, ${customerId})">
-        </div>
-
-        <div style="margin: 16px; margin-top: 0;">
-          <button class="btn btn-danger btn-block btn-sm" onclick="AppointmentsFeature.confirmDeleteCustomer(${customer.id})">
-            <span class="material-symbols-rounded">delete</span>
-            Delete Customer
-          </button>
-        </div>
-      </div>
-    `;
+    return CustomerFeature.renderProfile(id);
   },
 
   // ---- Customer photo gallery ----
@@ -1422,7 +1260,7 @@ const AppointmentsFeature = {
       this._capturePhoto = null;
       App.closeModal();
       Toast.show('Photo saved', 'success');
-      App.navigate('appointments', { customerId });
+      App.navigate('customer', { id: customerId });
     } catch (e) {
       console.error('Save photo error:', e);
       Toast.show('Failed to save photo', 'error');
@@ -1475,7 +1313,7 @@ const AppointmentsFeature = {
       await DB.deletePhoto(photoId);
       App.closeModal();
       Toast.show('Photo deleted', 'success');
-      App.navigate('appointments', { customerId });
+      App.navigate('customer', { id: customerId });
     } catch (e) {
       console.error('Delete photo error:', e);
       Toast.show('Failed to delete photo', 'error');
@@ -1561,7 +1399,7 @@ const AppointmentsFeature = {
         <!-- Customer Info -->
         <div class="card" style="margin: 16px; margin-top: 8px;">
           <div style="display: flex; align-items: center; gap: 16px;">
-            <div style="display:flex;align-items:center;gap:16px;flex:1;min-width:0;${customer ? 'cursor:pointer;' : ''}" ${customer ? `role="button" tabindex="0" aria-label="View customer profile" onclick="App.navigate('appointments', {customerId: ${customer.id}})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();App.navigate('appointments', {customerId: ${customer.id}});}"` : ''}>
+            <div style="display:flex;align-items:center;gap:16px;flex:1;min-width:0;${customer ? 'cursor:pointer;' : ''}" ${customer ? `role="button" tabindex="0" aria-label="View customer profile" onclick="App.navigate('customer', {id: ${customer.id}})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();App.navigate('customer', {id: ${customer.id}});}"` : ''}>
               <div style="width: 56px; height: 56px; flex-shrink:0; border-radius: 50%; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600;">
                 ${appt.clientName ? Utils.escapeHtml(appt.clientName.charAt(0).toUpperCase()) : '?'}
               </div>
@@ -1738,8 +1576,11 @@ const AppointmentsFeature = {
   renderAddForm(params = {}) {
     // "undefined" can reach here via a stale hash URL (older builds serialised
     // undefined params into the query string) - treat it like an absent value.
-    const paramDate = params.date && params.date !== 'undefined' ? params.date : '';
-    const paramTime = params.time && params.time !== 'undefined' ? params.time : '';
+    // Date/time params are interpolated into input value attributes, so both
+    // must also match a strict pattern: a crafted #add?date="x link would
+    // otherwise break out of the attribute and inject markup/script.
+    const paramDate = params.date && /^\d{4}-\d{2}-\d{2}$/.test(params.date) ? params.date : '';
+    const paramTime = params.time && /^\d{2}:\d{2}$/.test(params.time) ? params.time : '';
     const today = paramDate || Utils.formatDate(new Date(), 'iso');
     const selectedTime = paramTime || '09:00';
     const allowedTypes = this.getAllowedTypesForDate(today);
