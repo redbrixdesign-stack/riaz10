@@ -116,7 +116,21 @@
 .notebook-page,
 .dropdown-menu,
 .empty-state,
-.calendar-card {
+.calendar-card,
+.kanban-summary-item,
+.kanban-col-header,
+.kanban-col-count,
+.kanban-card,
+.kanban-sheet-customer,
+.kanban-sheet-cell,
+.kanban-stage-step,
+.hsc-week-icon-btn,
+.hsc-week-nav,
+.hsc-upnext-banner,
+.hsc-week-row,
+.hsc-stat,
+.hsc-empty,
+.hsc-appt-row {
   --text-primary: #1c1f16;
   --text-secondary: #5c6152;
   --text-tertiary: #6a6457;

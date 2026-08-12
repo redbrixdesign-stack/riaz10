@@ -11,7 +11,6 @@ const OrdersFeature = {
   id: 'orders',
   name: 'Orders',
   icon: 'view_kanban',
-  STYLE_ID: 'orders-styles',
 
   STAGES: [
     { id: 'ordered', name: 'Ordered', icon: 'shopping_cart' },
@@ -27,8 +26,6 @@ const OrdersFeature = {
   },
 
   async renderAsync() {
-    this.injectStylesOnce();
-
     let pipeline = [];
     let orders = [];
     try { pipeline = await DB.getPipeline(); } catch (e) {}
@@ -57,11 +54,11 @@ const OrdersFeature = {
     const orderValue = stage => orderByStage[stage].reduce((s, o) => s + (o.total || 0), 0);
 
     const columns = [
-      { id: 'quoted', name: 'Quoted', icon: 'receipt_long', tint: 'var(--warning)', count: quoteCards.length, total: quotedValue },
-      { id: 'ordered', name: 'Ordered', icon: 'shopping_cart', tint: 'var(--primary)', count: orderByStage.ordered.length, total: orderValue('ordered') },
-      { id: 'delivered', name: 'Delivered', icon: 'local_shipping', tint: 'var(--info)', count: orderByStage.delivered.length, total: orderValue('delivered') },
-      { id: 'fitted', name: 'Fitted', icon: 'handyman', tint: 'var(--secondary)', count: orderByStage.fitted.length, total: orderValue('fitted') },
-      { id: 'paid', name: 'Paid', icon: 'payments', tint: 'var(--secondary)', count: orderByStage.paid.length, total: orderValue('paid') }
+      { id: 'quoted', name: 'Quoted', icon: 'receipt_long', count: quoteCards.length, total: quotedValue },
+      { id: 'ordered', name: 'Ordered', icon: 'shopping_cart', count: orderByStage.ordered.length, total: orderValue('ordered') },
+      { id: 'delivered', name: 'Delivered', icon: 'local_shipping', count: orderByStage.delivered.length, total: orderValue('delivered') },
+      { id: 'fitted', name: 'Fitted', icon: 'handyman', count: orderByStage.fitted.length, total: orderValue('fitted') },
+      { id: 'paid', name: 'Paid', icon: 'payments', count: orderByStage.paid.length, total: orderValue('paid') }
     ];
 
     const totalLive = columns.slice(0, 4).reduce((s, c) => s + c.count, 0);
@@ -70,7 +67,7 @@ const OrdersFeature = {
     return `
       <div class="fade-in">
         <div class="top-header">
-          <h1 style="flex:1;text-align:center;font-size:18px;">Orders</h1>
+          <h1 class="page-heading">Orders</h1>
         </div>
 
         <div class="kanban-summary">
@@ -101,9 +98,9 @@ const OrdersFeature = {
         ` : `
           <div class="kanban-scroll">
             ${columns.map(col => `
-              <div class="kanban-col">
-                <div class="kanban-col-header" style="border-top:3px solid ${col.tint};">
-                  <span class="material-symbols-rounded" style="font-size:16px;color:${col.tint};">${col.icon}</span>
+              <div class="kanban-col kanban-col--${col.id}">
+                <div class="kanban-col-header">
+                  <span class="material-symbols-rounded">${col.icon}</span>
                   <span class="kanban-col-name">${col.name}</span>
                   <span class="kanban-col-count">${col.count}</span>
                   ${col.total > 0 ? `<span class="kanban-col-total">${Utils.formatCurrency(col.total)}</span>` : ''}
@@ -133,8 +130,8 @@ const OrdersFeature = {
         </div>
         <div class="kanban-card-sub">${Utils.escapeHtml(this.outcomeLabel(appt.outcome))} · ${daysSince <= 0 ? 'today' : daysSince + 'd ago'}</div>
         <div class="kanban-card-actions">
-          ${tpl ? `<span class="kanban-card-action" role="button" tabindex="0" aria-label="Send follow-up" onclick="event.stopPropagation();TalkFeature.sendMessage(${appt.id}, '${Utils.escapeJsString(tpl.template)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();TalkFeature.sendMessage(${appt.id}, '${Utils.escapeJsString(tpl.template)}');}"><span class="material-symbols-rounded" style="font-size:15px;">send</span>Follow up</span>` : ''}
-          <span class="kanban-card-action" role="button" tabindex="0" aria-label="Open visit" onclick="event.stopPropagation();App.navigate('appointments', {id: ${appt.id}})"><span class="material-symbols-rounded" style="font-size:15px;">open_in_new</span>Visit</span>
+          ${tpl ? `<span class="kanban-card-action" role="button" tabindex="0" aria-label="Send follow-up" onclick="event.stopPropagation();TalkFeature.sendMessage(${appt.id}, '${Utils.escapeJsString(tpl.template)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();TalkFeature.sendMessage(${appt.id}, '${Utils.escapeJsString(tpl.template)}');}"><span class="material-symbols-rounded">send</span>Follow up</span>` : ''}
+          <span class="kanban-card-action" role="button" tabindex="0" aria-label="Open visit" onclick="event.stopPropagation();App.navigate('appointments', {id: ${appt.id}})"><span class="material-symbols-rounded">open_in_new</span>Visit</span>
         </div>
       </button>
     `;
@@ -153,9 +150,9 @@ const OrdersFeature = {
         <div class="kanban-card-sub">${Utils.escapeHtml(order.orderNumber || 'Order')}${order.supplierOrderNumber ? ` · ${Utils.escapeHtml(order.supplierOrderNumber)}` : ''}</div>
         <div class="kanban-card-actions">
           ${isPaid
-            ? `<span class="kanban-card-action"><span class="material-symbols-rounded" style="font-size:15px;">check_circle</span>Paid</span>`
-            : `<span class="kanban-card-action"><span class="material-symbols-rounded" style="font-size:15px;">payments</span>Owes ${Utils.formatCurrency(order.balanceDue || 0)}</span>`}
-          <span class="kanban-card-action"><span class="material-symbols-rounded" style="font-size:15px;">chevron_right</span></span>
+            ? `<span class="kanban-card-action"><span class="material-symbols-rounded">check_circle</span>Paid</span>`
+            : `<span class="kanban-card-action"><span class="material-symbols-rounded">payments</span>Owes ${Utils.formatCurrency(order.balanceDue || 0)}</span>`}
+          <span class="kanban-card-action"><span class="material-symbols-rounded">chevron_right</span></span>
         </div>
       </button>
     `;
@@ -189,20 +186,20 @@ const OrdersFeature = {
         <h3>Order ${Utils.escapeHtml(order.orderNumber || '')}</h3>
         <button class="btn btn-ghost btn-sm" onclick="App.closeModal()"><span class="material-symbols-rounded">close</span></button>
       </div>
-      <div class="sheet-body">
+      <div class="sheet-body kanban-sheet-body">
         <div class="kanban-sheet-customer" role="button" tabindex="0" onclick="App.navigate('customer', {id: ${order.customerId}})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();App.navigate('customer', {id: ${order.customerId}});}">
-          <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;flex-shrink:0;">${Utils.escapeHtml(name.charAt(0).toUpperCase())}</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-weight:600;">${Utils.escapeHtml(name)}</div>
-            <div style="font-size:12px;color:var(--text-secondary);">${customer ? Utils.escapeHtml(customer.customerNumber || '') : ''} ${customer ? '· tap for full profile' : ''}</div>
+          <div class="kanban-avatar">${Utils.escapeHtml(name.charAt(0).toUpperCase())}</div>
+          <div class="kanban-sheet-customer-body">
+            <div class="kanban-sheet-customer-name">${Utils.escapeHtml(name)}</div>
+            <div class="kanban-sheet-customer-meta">${customer ? Utils.escapeHtml(customer.customerNumber || '') : ''} ${customer ? '· tap for full profile' : ''}</div>
           </div>
-          ${phone ? `<button class="btn btn-outline btn-sm" onclick="event.stopPropagation();OrdersFeature.paymentMessage(${order.id})"><span class="material-symbols-rounded" style="font-size:16px;">chat</span>Message</button>` : ''}
+          ${phone ? `<button class="btn btn-outline btn-sm" onclick="event.stopPropagation();OrdersFeature.paymentMessage(${order.id})"><span class="material-symbols-rounded">chat</span>Message</button>` : ''}
         </div>
 
         <div class="kanban-stage-tracker">
           ${this.STAGES.map((s, i) => `
-            <div class="kanban-stage-step ${i <= stageIndex ? 'done' : ''}" style="border-color:${i <= stageIndex ? 'var(--secondary)' : 'var(--border-light)'};">
-              <span class="material-symbols-rounded" style="font-size:15px;">${i < stageIndex ? 'check' : s.icon}</span>
+            <div class="kanban-stage-step ${i <= stageIndex ? 'done' : ''}">
+              <span class="material-symbols-rounded">${i < stageIndex ? 'check' : s.icon}</span>
             </div>
             ${i < this.STAGES.length - 1 ? '<div class="kanban-stage-line"></div>' : ''}
           `).join('')}
@@ -224,7 +221,7 @@ const OrdersFeature = {
         </div>
 
         <div class="divider-text">Move along</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+        <div class="kanban-btn-grid">
           ${this.STAGES.filter(s => s.id !== 'paid').map(s => `
             <button class="btn ${stage === s.id ? 'btn-primary' : 'btn-outline'} btn-sm" onclick="OrdersFeature.setStage(${order.id}, '${s.id}')">${Utils.escapeHtml(s.name)}</button>
           `).join('')}
@@ -240,18 +237,18 @@ const OrdersFeature = {
               <button class="btn btn-primary btn-block" onclick="OrdersFeature.recordPayment(${order.id})"><span class="material-symbols-rounded" style="font-size:18px;">payments</span>Pay ${Utils.formatCurrency(Math.min(order.depositPaid === 0 ? (order.depositRequired || 0) : (order.balanceDue || 0), order.balanceDue || 0))}</button>
             </div>
           </div>
-          <button class="btn btn-outline btn-sm btn-block" style="margin-bottom:12px;" onclick="OrdersFeature.recordFullPayment(${order.id})"><span class="material-symbols-rounded" style="font-size:16px;">task_alt</span>Mark fully paid (${Utils.formatCurrency(order.balanceDue || 0)})</button>
+          <button class="btn btn-outline btn-sm btn-block" style="margin-bottom:12px;" onclick="OrdersFeature.recordFullPayment(${order.id})"><span class="material-symbols-rounded">task_alt</span>Mark fully paid (${Utils.formatCurrency(order.balanceDue || 0)})</button>
         ` : `
-          <div class="card" style="background:var(--secondary-light);margin-bottom:12px;">
-            <strong style="color:var(--secondary);"><span class="material-symbols-rounded" style="font-size:16px;vertical-align:text-bottom;">check_circle</span> Fully paid</strong>
-            <div style="font-size:13px;color:var(--text-secondary);margin-top:2px;">No balance remaining on this order.</div>
+          <div class="card kanban-paid-card">
+            <strong><span class="material-symbols-rounded">check_circle</span> Fully paid</strong>
+            <div class="kanban-paid-card-note">No balance remaining on this order.</div>
           </div>
         `}
 
         <div class="divider-text">Links</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-          ${order.appointmentId ? `<button class="btn btn-outline btn-sm" onclick="App.closeModal();App.navigate('appointments', {id: ${order.appointmentId}})"><span class="material-symbols-rounded" style="font-size:16px;">event</span>Linked visit</button>` : ''}
-          ${order.customerId ? `<button class="btn btn-outline btn-sm" onclick="App.closeModal();App.navigate('customer', {id: ${order.customerId}})"><span class="material-symbols-rounded" style="font-size:16px;">person</span>Customer 360</button>` : ''}
+        <div class="kanban-btn-grid">
+          ${order.appointmentId ? `<button class="btn btn-outline btn-sm" onclick="App.closeModal();App.navigate('appointments', {id: ${order.appointmentId}})"><span class="material-symbols-rounded">event</span>Linked visit</button>` : ''}
+          ${order.customerId ? `<button class="btn btn-outline btn-sm" onclick="App.closeModal();App.navigate('customer', {id: ${order.customerId}})"><span class="material-symbols-rounded">person</span>Customer 360</button>` : ''}
         </div>
       </div>
     `;
@@ -374,167 +371,6 @@ const OrdersFeature = {
         setTimeout(() => this.openOrderSheet(id), 120);
       }
     }
-  },
-
-  injectStylesOnce() {
-    if (document.getElementById(this.STYLE_ID)) return;
-    const style = document.createElement('style');
-    style.id = this.STYLE_ID;
-    style.textContent = `
-      .kanban-summary {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 8px;
-        padding: 0 16px 12px;
-      }
-      .kanban-summary-item {
-        background: var(--surface);
-        border: 1px solid var(--border-light);
-        border-radius: var(--radius-md);
-        padding: 10px 6px;
-        text-align: center;
-      }
-      .kanban-summary-value { font-size: 16px; font-weight: 700; color: var(--text-primary); }
-      .kanban-summary-label { font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.03em; margin-top: 2px; }
-
-      .kanban-scroll {
-        display: flex;
-        gap: 10px;
-        overflow-x: auto;
-        padding: 0 16px 24px;
-        -webkit-overflow-scrolling: touch;
-      }
-      .kanban-col {
-        flex: 1 0 264px;
-        max-width: 300px;
-        display: flex;
-        flex-direction: column;
-      }
-      .kanban-col-header {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        background: var(--surface);
-        border: 1px solid var(--border-light);
-        border-radius: var(--radius-md) var(--radius-md) 0 0;
-        padding: 10px 12px;
-      }
-      .kanban-col-name { font-size: 13px; font-weight: 700; color: var(--text-primary); }
-      .kanban-col-count {
-        margin-left: auto;
-        background: var(--surface-muted, var(--border-light));
-        color: var(--text-primary);
-        font-size: 11px;
-        font-weight: 700;
-        border-radius: 10px;
-        padding: 1px 8px;
-      }
-      .kanban-col-total { font-size: 11px; color: var(--text-tertiary); white-space: nowrap; }
-      .kanban-col-body {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        padding: 8px;
-        background: rgba(255,255,255,0.25);
-        border: 1px solid var(--border-light);
-        border-top: none;
-        border-radius: 0 0 var(--radius-md) var(--radius-md);
-        min-height: 80px;
-      }
-      .kanban-empty {
-        font-size: 12px;
-        color: var(--text-tertiary);
-        text-align: center;
-        padding: 14px 0;
-      }
-      .kanban-card {
-        display: block;
-        width: 100%;
-        text-align: left;
-        background: var(--surface-elevated);
-        border: 1px solid var(--border-light);
-        border-radius: var(--radius-md);
-        padding: 10px 12px;
-        cursor: pointer;
-        font-family: var(--font-body);
-        box-shadow: var(--shadow-sm);
-      }
-      .kanban-card-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-      .kanban-card-name {
-        font-size: 14px;
-        font-weight: 700;
-        color: var(--text-primary);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .kanban-card-value { font-size: 13px; font-weight: 700; color: var(--text-primary); flex-shrink: 0; }
-      .kanban-card-sub { font-size: 12px; color: var(--text-secondary); margin-top: 3px; }
-      .kanban-card-actions {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-top: 8px;
-        padding-top: 8px;
-        border-top: 1px solid var(--border-light);
-      }
-      .kanban-card-action {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        font-size: 12px;
-        font-weight: 600;
-        color: var(--secondary);
-        cursor: pointer;
-      }
-
-      .kanban-sheet-customer {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        background: var(--surface);
-        border: 1px solid var(--border-light);
-        border-radius: var(--radius-md);
-        padding: 10px 12px;
-        margin-bottom: 12px;
-        cursor: pointer;
-      }
-      .kanban-stage-tracker {
-        display: flex;
-        align-items: center;
-        margin-bottom: 14px;
-      }
-      .kanban-stage-step {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        border: 2px solid var(--border-light);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--text-secondary);
-        flex-shrink: 0;
-        background: var(--surface-elevated);
-      }
-      .kanban-stage-step.done { color: var(--secondary); }
-      .kanban-stage-line { flex: 1; height: 2px; background: var(--border-light); }
-      .kanban-sheet-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 8px;
-        margin-bottom: 14px;
-      }
-      .kanban-sheet-cell {
-        background: var(--surface);
-        border: 1px solid var(--border-light);
-        border-radius: var(--radius-md);
-        padding: 8px;
-        text-align: center;
-      }
-      .kanban-sheet-label { font-size: 10px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.03em; }
-      .kanban-sheet-value { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-top: 2px; }
-    `;
-    document.head.appendChild(style);
   }
 };
 
