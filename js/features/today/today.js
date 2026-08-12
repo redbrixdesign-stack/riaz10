@@ -80,7 +80,7 @@ const TodayFeature = {
         </button>
       </div>
       <div class="sheet-body">
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
+        <div class="grid-2 gap-12 mb-20" >
           <div class="stat-card">
             <div class="value">${Utils.formatCurrency(earned)}</div>
             <div class="label">Earned Today</div>

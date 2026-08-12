@@ -98,52 +98,52 @@ const CustomerFeature = {
           <button class="btn btn-ghost btn-sm" onclick="App.navigate('appointments')">
             <span class="material-symbols-rounded">arrow_back</span>
           </button>
-          <h1 style="flex: 1; text-align: center; font-size: 18px;">Customer 360</h1>
-          <div style="width: 40px;"></div>
+          <h1 class="page-heading" >Customer 360</h1>
+          <div class="w-40" ></div>
         </div>
 
-        <div class="card" style="margin: 16px; margin-top: 8px;">
-          <div style="display: flex; align-items: center; gap: 16px;">
-            <div style="width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600;">
+        <div class="card card-page-gap" >
+          <div class="flex items-center gap-md" >
+            <div class="avatar-56" >
               ${Utils.escapeHtml(name.charAt(0).toUpperCase())}
             </div>
-            <div style="flex: 1;">
-              <div style="font-size: 20px; font-weight: 600;">${Utils.escapeHtml(name)}</div>
-              <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">${Utils.escapeHtml(customer.customerNumber || '')}</div>
+            <div class="flex-1" >
+              <div class="fs-20 fw-600" >${Utils.escapeHtml(name)}</div>
+              <div class="fs-13 text-secondary mt-2" >${Utils.escapeHtml(customer.customerNumber || '')}</div>
             </div>
             <button class="btn btn-ghost btn-sm" aria-label="Edit customer details" onclick="AppointmentsFeature.openEditCustomerModal(${customer.id})">
               <span class="material-symbols-rounded">edit</span>
             </button>
           </div>
 
-          ${address ? `<div style="margin-top:12px;font-size:13px;color:var(--text-secondary);display:flex;align-items:center;gap:8px;"><span class="material-symbols-rounded" style="font-size:16px;">location_on</span>${Utils.escapeHtml(address)}</div>` : ''}
-          ${customer.email ? `<div style="margin-top:6px;font-size:13px;color:var(--text-secondary);display:flex;align-items:center;gap:8px;"><span class="material-symbols-rounded" style="font-size:16px;">mail</span>${Utils.escapeHtml(customer.email)}</div>` : ''}
+          ${address ? `<div class="mt-12 fs-13 text-secondary flex items-center gap-sm" ><span class="material-symbols-rounded fs-16" >location_on</span>${Utils.escapeHtml(address)}</div>` : ''}
+          ${customer.email ? `<div class="mt-6 fs-13 text-secondary flex items-center gap-sm" ><span class="material-symbols-rounded fs-16" >mail</span>${Utils.escapeHtml(customer.email)}</div>` : ''}
 
-          <div style="display: flex; gap: 8px; margin-top: 16px;">
+          <div class="flex gap-sm mt-md" >
             ${phone ? `
-              <a class="btn btn-outline btn-sm" style="flex: 1; gap: 6px;" href="tel:${Utils.escapeHtml(Utils.toE164Phone(phone) || phone)}">
-                <span class="material-symbols-rounded" style="font-size: 18px;">call</span>
+              <a class="btn btn-outline btn-sm flex-1 gap-6"  href="tel:${Utils.escapeHtml(Utils.toE164Phone(phone) || phone)}">
+                <span class="material-symbols-rounded fs-18" >call</span>
                 Call
               </a>
-              <button class="btn btn-outline btn-sm" style="flex: 1; gap: 6px;" onclick="ContactFeature.open({name: '${Utils.escapeJsString(name)}', phone: '${Utils.escapeJsString(phone)}'})">
-                <span class="material-symbols-rounded" style="font-size: 18px;">chat</span>
+              <button class="btn btn-outline btn-sm flex-1 gap-6"  onclick="ContactFeature.open({name: '${Utils.escapeJsString(name)}', phone: '${Utils.escapeJsString(phone)}'})">
+                <span class="material-symbols-rounded fs-18" >chat</span>
                 Message
               </button>
             ` : ''}
             ${address ? `
-              <button class="btn btn-outline btn-sm" style="flex: 1; gap: 6px;" onclick="window.open('${Utils.escapeJsString(Geo.buildNavigationUrl(address))}', '_blank')">
-                <span class="material-symbols-rounded" style="font-size: 18px;">navigation</span>
+              <button class="btn btn-outline btn-sm flex-1 gap-6"  onclick="window.open('${Utils.escapeJsString(Geo.buildNavigationUrl(address))}', '_blank')">
+                <span class="material-symbols-rounded fs-18" >navigation</span>
                 Navigate
               </button>
             ` : ''}
-            <button class="btn btn-outline btn-sm" style="flex: 1; gap: 6px;" onclick="App.navigate('appointments', {action: 'add', name: '${Utils.escapeJsString(name)}', phone: '${Utils.escapeJsString(phone)}', address: '${Utils.escapeJsString(address)}'})">
-              <span class="material-symbols-rounded" style="font-size: 18px;">add</span>
+            <button class="btn btn-outline btn-sm flex-1 gap-6"  onclick="App.navigate('appointments', {action: 'add', name: '${Utils.escapeJsString(name)}', phone: '${Utils.escapeJsString(phone)}', address: '${Utils.escapeJsString(address)}'})">
+              <span class="material-symbols-rounded fs-18" >add</span>
               Visit
             </button>
           </div>
         </div>
 
-        <div class="card" style="margin: 16px; margin-top: 0;">
+        <div class="card card-page" >
           <div class="hsc-stat-row">
             <div class="hsc-stat hsc-stat-clickable" role="button" tabindex="0" aria-label="View visit history" onclick="CustomerFeature.scrollToHistory()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();CustomerFeature.scrollToHistory();}">
               <div class="hsc-stat-value">${appts.length}</div>
@@ -162,24 +162,24 @@ const CustomerFeature = {
               <div class="hsc-stat-label">Owed</div>
             </div>
           </div>
-          ${firstVisit ? `<div style="font-size:12px;color:var(--text-tertiary);margin-top:10px;text-align:center;">Customer since ${Utils.formatDate(firstVisit.date, 'long')}${lastVisit ? ` · Last visit ${Utils.formatDate(lastVisit.date, 'short')}` : ''}</div>` : ''}
+          ${firstVisit ? `<div class="fs-12 text-tertiary mt-10 text-center" >Customer since ${Utils.formatDate(firstVisit.date, 'long')}${lastVisit ? ` · Last visit ${Utils.formatDate(lastVisit.date, 'short')}` : ''}</div>` : ''}
         </div>
 
         ${outstandingQuotes.length ? `
-          <div class="card" style="margin: 16px; margin-top: 0;">
-            <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:8px;">Outstanding quotes (${outstandingQuotes.length})</div>
+          <div class="card card-page" >
+            <div class="fs-13 fw-600 text-secondary mb-sm" >Outstanding quotes (${outstandingQuotes.length})</div>
             ${outstandingQuotes.map(a => {
               const daysSince = Utils.daysBetween(now, new Date(a.date));
               const tpl = (typeof TalkFeature !== 'undefined') ? TalkFeature.getTemplateForOutcome(a.outcome) : null;
               return `
-                <div class="area-customer-row" style="width:100%;text-align:left;margin-bottom:6px;">
-                  <span class="material-symbols-rounded" style="color:var(--warning);">receipt_long</span>
-                  <span style="flex:1;min-width:0;">
+                <div class="area-customer-row w-full text-left mb-6" >
+                  <span class="material-symbols-rounded text-warning" >receipt_long</span>
+                  <span class="flex-1 min-w-0" >
                     <strong>${Utils.escapeHtml(a.clientName || 'Customer')} · ${Utils.formatCurrency(a.value || 0)}</strong>
                     <small>${Utils.formatDate(a.date, 'short')} · ${daysSince <= 0 ? 'today' : daysSince + 'd ago'} · ${Utils.escapeHtml(this.getOutcomeName(a.outcome))}</small>
                   </span>
-                  ${tpl ? `<button class="btn btn-outline btn-sm" onclick="TalkFeature.sendMessage(${a.id}, '${Utils.escapeJsString(tpl.template)}')"><span class="material-symbols-rounded" style="font-size:16px;">send</span></button>` : ''}
-                  <button class="btn btn-ghost btn-sm" onclick="App.navigate('appointments', {id: ${a.id}})"><span class="material-symbols-rounded" style="font-size:18px;">chevron_right</span></button>
+                  ${tpl ? `<button class="btn btn-outline btn-sm" onclick="TalkFeature.sendMessage(${a.id}, '${Utils.escapeJsString(tpl.template)}')"><span class="material-symbols-rounded fs-16" >send</span></button>` : ''}
+                  <button class="btn btn-ghost btn-sm" onclick="App.navigate('appointments', {id: ${a.id}})"><span class="material-symbols-rounded fs-18" >chevron_right</span></button>
                 </div>
               `;
             }).join('')}
@@ -187,39 +187,39 @@ const CustomerFeature = {
         ` : ''}
 
         ${orders.length ? `
-          <div class="card" style="margin: 16px; margin-top: 0;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <div style="font-size:13px;font-weight:600;color:var(--text-secondary);">Orders (${orders.length})</div>
+          <div class="card card-page" >
+            <div class="flex items-center justify-between mb-sm" >
+              <div class="fs-13 fw-600 text-secondary" >Orders (${orders.length})</div>
               <button class="btn btn-ghost btn-sm" aria-label="Open orders board" onclick="App.navigate('orders')">
                 <span class="material-symbols-rounded">view_kanban</span>
               </button>
             </div>
             ${orders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).map(o => `
-              <button class="area-customer-row" style="width:100%;text-align:left;margin-bottom:6px;" onclick="OrdersFeature.openOrderSheet(${o.id})">
-                <span class="material-symbols-rounded" style="color:var(--secondary);">receipt</span>
-                <span style="flex:1;min-width:0;">
+              <button class="area-customer-row w-full text-left mb-6"  onclick="OrdersFeature.openOrderSheet(${o.id})">
+                <span class="material-symbols-rounded text-success" >receipt</span>
+                <span class="flex-1 min-w-0" >
                   <strong>${Utils.escapeHtml(o.orderNumber || 'Order')}</strong>
                   <small>${Utils.formatCurrency(o.total || 0)} · ${Utils.escapeHtml(this.orderStageLabel(o))}${(o.balanceDue || 0) > 0 ? ` · owes ${Utils.formatCurrency(o.balanceDue)}` : ''}</small>
                 </span>
-                <span class="material-symbols-rounded" style="color:var(--text-tertiary);">chevron_right</span>
+                <span class="material-symbols-rounded text-tertiary" >chevron_right</span>
               </button>
             `).join('')}
           </div>
         ` : ''}
 
         ${measurements.length ? `
-          <div class="card" style="margin: 16px; margin-top: 0;">
-            <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:8px;">Measurements (${measurements.length})</div>
+          <div class="card card-page" >
+            <div class="fs-13 fw-600 text-secondary mb-sm" >Measurements (${measurements.length})</div>
             ${measurements.map(m => {
               const visit = apptById.get(m.appointmentId);
               return `
-                <button class="area-customer-row" style="width:100%;text-align:left;margin-bottom:6px;" onclick="App.navigate('measure', {appointmentId: ${m.appointmentId}, measurementId: ${m.id}})">
+                <button class="area-customer-row w-full text-left mb-6"  onclick="App.navigate('measure', {appointmentId: ${m.appointmentId}, measurementId: ${m.id}})">
                   <span class="material-symbols-rounded">straighten</span>
-                  <span style="flex:1;min-width:0;">
+                  <span class="flex-1 min-w-0" >
                     <strong>${Utils.escapeHtml(m.windowName || 'Window')}</strong>
                     <small>${Utils.formatMeasurement(m.widthUsed || 0)} × ${Utils.formatMeasurement(m.dropUsed || 0)} · ${m.fittingType === 'exact' ? 'Exact' : 'Recess'}${visit ? ` · ${Utils.formatDate(visit.date, 'short')}` : ''}</small>
                   </span>
-                  <span class="material-symbols-rounded" style="color:var(--text-tertiary);">chevron_right</span>
+                  <span class="material-symbols-rounded text-tertiary" >chevron_right</span>
                 </button>
               `;
             }).join('')}
@@ -227,21 +227,21 @@ const CustomerFeature = {
         ` : ''}
 
         ${interests.length ? `
-          <div class="card" style="margin: 16px; margin-top: 0;">
-            <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:8px;">Buying Interest</div>
-            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          <div class="card card-page" >
+            <div class="fs-13 fw-600 text-secondary mb-sm" >Buying Interest</div>
+            <div class="flex wrap gap-6" >
               ${interests.map(([label, count]) => `<span class="chip">${Utils.escapeHtml(label)} · ${count}</span>`).join('')}
             </div>
           </div>
         ` : ''}
 
-        <div class="card" id="customer-history-anchor" style="margin: 16px; margin-top: 0;">
-          <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:8px;">History</div>
+        <div class="card card-page" id="customer-history-anchor" >
+          <div class="fs-13 fw-600 text-secondary mb-sm" >History</div>
           ${timeline.length === 0 ? `
-            <div style="font-size:13px;color:var(--text-tertiary);text-align:center;padding:16px 0;">No visits, orders, or messages recorded yet</div>
+            <div class="fs-13 text-tertiary text-center py-16" >No visits, orders, or messages recorded yet</div>
           ` : timeline.map(item => `
-            <div class="hsc-appt-row" ${item.onclick ? `onclick="${item.onclick}" style="cursor:pointer;"` : 'style="cursor:default;"'}>
-              <span class="material-symbols-rounded" style="color:var(--text-tertiary);">${item.icon}</span>
+            <div class="hsc-appt-row cursor-pointer cursor-default" ${item.onclick ? `onclick="${item.onclick}" ` : ''}>
+              <span class="material-symbols-rounded text-tertiary" >${item.icon}</span>
               <span class="hsc-appt-details">
                 <span class="hsc-appt-name">${item.title}</span>
                 <span class="hsc-appt-address">${Utils.formatDate(item.date, 'short')} · ${item.subtitle}</span>
@@ -251,24 +251,24 @@ const CustomerFeature = {
           `).join('')}
         </div>
 
-        <div class="card" style="margin: 16px; margin-top: 0;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-            <div style="font-size:13px;font-weight:600;color:var(--text-secondary);">Photos ${photos.length ? `(${photos.length})` : ''}</div>
+        <div class="card card-page" >
+          <div class="flex items-center justify-between mb-sm" >
+            <div class="fs-13 fw-600 text-secondary" >Photos ${photos.length ? `(${photos.length})` : ''}</div>
             <button class="btn btn-outline btn-sm" style="gap:6px;" aria-label="Add photo" onclick="document.getElementById('customer-photo-input').click()">
-              <span class="material-symbols-rounded" style="font-size:16px;">photo_camera</span>Add Photo
+              <span class="material-symbols-rounded fs-16" >photo_camera</span>Add Photo
             </button>
           </div>
           ${photos.length === 0 ? `
-            <div style="font-size:13px;color:var(--text-tertiary);text-align:center;padding:12px 0 4px;">No photos yet — windows, fronts, damage notes, anything useful to remember.</div>
+            <div class="fs-13 text-tertiary text-center pt-12 pb-4" >No photos yet — windows, fronts, damage notes, anything useful to remember.</div>
           ` : `
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
+            <div class="grid-3 gap-6" >
               ${photos.map(p => this.renderPhotoThumb(p)).join('')}
             </div>
           `}
           <input type="file" id="customer-photo-input" accept="image/*" capture="environment" style="display:none;" onchange="AppointmentsFeature.captureCustomerPhoto(event, ${customerId})">
         </div>
 
-        <div style="margin: 16px; margin-top: 0;">
+        <div class="card-page" >
           <button class="btn btn-danger btn-block btn-sm" onclick="AppointmentsFeature.confirmDeleteCustomer(${customer.id})">
             <span class="material-symbols-rounded">delete</span>
             Delete Customer
@@ -295,8 +295,8 @@ const CustomerFeature = {
   },
 
   renderPhotoThumb(p) {
-    return `<div style="position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--bg);" role="button" tabindex="0" aria-label="View photo" onclick="AppointmentsFeature.openPhotoViewer(${p.id}, ${p.customerId})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();AppointmentsFeature.openPhotoViewer(${p.id}, ${p.customerId});}">
-      <img src="data:${p.mimeType || 'image/jpeg'};base64,${p.data}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">
+    return `<div class="photo-tile"  role="button" tabindex="0" aria-label="View photo" onclick="AppointmentsFeature.openPhotoViewer(${p.id}, ${p.customerId})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();AppointmentsFeature.openPhotoViewer(${p.id}, ${p.customerId});}">
+      <img class="img-cover" src="data:${p.mimeType || 'image/jpeg'};base64,${p.data}" alt="" >
     </div>`;
   }
 };

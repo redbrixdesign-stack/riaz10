@@ -44,27 +44,27 @@ const OCRFeature = {
     return `<div class="fade-in">
       <div class="top-header">
         <button class="btn btn-ghost btn-sm" onclick="App.navigate('appointments', {action: 'add'})"><span class="material-symbols-rounded">arrow_back</span></button>
-        <h1 style="flex:1;text-align:center;font-size:18px;">Scan Document</h1>
-        <div style="width:40px;"></div>
+        <h1 class="page-heading" >Scan Document</h1>
+        <div class="w-40" ></div>
       </div>
-      <div style="padding:16px;">
-        <div style="text-align:center;padding:32px 24px;">
-          <span class="material-symbols-rounded" style="font-size:64px;color:var(--text-tertiary);margin-bottom:16px;">document_scanner</span>
-          <div style="font-weight:600;margin-bottom:8px;">Capture from Order Screenshot or Business Card</div>
-          <div style="font-size:13px;color:var(--text-secondary);margin-bottom:24px;">Take a photo and we'll extract the details automatically</div>
+      <div class="p-md" >
+        <div class="center-box" >
+          <span class="material-symbols-rounded fs-64 text-tertiary mb-md" >document_scanner</span>
+          <div class="fw-600 mb-sm" >Capture from Order Screenshot or Business Card</div>
+          <div class="fs-13 text-secondary mb-lg" >Take a photo and we'll extract the details automatically</div>
           <button class="btn btn-primary btn-lg btn-block" onclick="document.getElementById('ocr-input').click()">
             <span class="material-symbols-rounded">photo_camera</span>Take Photo
           </button>
-          ${AIService.isEnabled() ? '<div style="font-size:12px;color:var(--text-tertiary);margin-top:10px;">Photos are analysed by Claude AI — you can turn this off in Settings.</div>' : ''}
+          ${AIService.isEnabled() ? '<div class="fs-12 text-tertiary mt-10" >Photos are analysed by Claude AI — you can turn this off in Settings.</div>' : ''}
           <input type="file" id="ocr-input" accept="image/*" style="display:none;" onchange="OCRFeature.processImage(event)">
         </div>
         <div id="ocr-result" style="display:none;">
           <div class="divider-text">Extracted Data</div>
-          <div class="card"><div id="ocr-fields"></div><button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="OCRFeature.saveToCustomer()">Save Customer &amp; Visit</button></div>
+          <div class="card"><div id="ocr-fields"></div><button class="btn btn-primary btn-block mt-md"  onclick="OCRFeature.saveToCustomer()">Save Customer &amp; Visit</button></div>
         </div>
         <div id="ocr-loading" style="display:none;text-align:center;padding:48px;">
-          <div class="skeleton" style="width:48px;height:48px;border-radius:50%;margin:0 auto 16px;"></div>
-          <div id="ocr-loading-text" style="color:var(--text-secondary);">Reading document...</div>
+          <div class="skeleton w-48 h-48 round mx-auto mb-md" ></div>
+          <div class="text-secondary" id="ocr-loading-text" >Reading document...</div>
         </div>
         <div id="ocr-manual" style="display:none;">
           <div class="divider-text">Enter Manually</div>
@@ -72,7 +72,7 @@ const OCRFeature = {
             <div class="form-group"><label>Name</label><input type="text" class="input" id="ocr-manual-name" placeholder="Customer name"></div>
             <div class="form-group"><label>Phone</label><input type="tel" class="input" id="ocr-manual-phone" inputmode="tel" placeholder="Phone number"></div>
             <div class="form-group"><label>Address</label><input type="text" class="input" id="ocr-manual-address" placeholder="House number and street, town"></div>
-            <div class="form-group"><label>Postcode</label><input type="text" class="input" id="ocr-manual-postcode" placeholder="e.g. M14 7FZ" style="text-transform:uppercase;"></div>
+            <div class="form-group"><label>Postcode</label><input type="text" class="input text-uppercase" id="ocr-manual-postcode" placeholder="e.g. M14 7FZ" ></div>
             <button class="btn btn-primary btn-block" onclick="OCRFeature.saveManual()">Save Customer</button>
           </div>
         </div>
@@ -202,7 +202,7 @@ const OCRFeature = {
           const v = this.extractedData[k] || '';
           const upper = k === 'postcode' ? ' style="text-transform:uppercase;"' : '';
           const label = fieldLabels[k] || k.replace(/([A-Z])/g,' $1').trim();
-          return `<div class="form-group"><label style="text-transform:capitalize;">${Utils.escapeHtml(label)}</label><input type="text" class="input" id="ocr-${Utils.escapeHtml(k)}" value="${Utils.escapeHtml(v)}"${upper}></div>`;
+          return `<div class="form-group"><label class="text-capitalize" >${Utils.escapeHtml(label)}</label><input type="text" class="input" id="ocr-${Utils.escapeHtml(k)}" value="${Utils.escapeHtml(v)}"${upper}></div>`;
         }).join('')}`;
     document.getElementById('ocr-fields').innerHTML = fieldsHtml;
 
@@ -212,9 +212,9 @@ const OCRFeature = {
     // replaces the old block instead of stacking them.
     document.getElementById('ocr-raw-text')?.remove();
     const rawTextHtml = `
-      <details id="ocr-raw-text" style="margin-top:12px;">
-        <summary style="cursor:pointer;color:var(--text-secondary);font-size:13px;">Show raw scanned text</summary>
-        <pre style="white-space:pre-wrap;font-size:12px;color:var(--text-secondary);background:var(--bg-secondary,#00000011);padding:8px;border-radius:8px;margin-top:8px;max-height:200px;overflow-y:auto;">${Utils.escapeHtml(this.lastRawText || '')}</pre>
+      <details class="mt-12" id="ocr-raw-text" >
+        <summary class="cursor-pointer text-secondary fs-13" >Show raw scanned text</summary>
+        <pre class="raw-text fs-12 text-secondary" >${Utils.escapeHtml(this.lastRawText || '')}</pre>
       </details>
     `;
     document.getElementById('ocr-fields').insertAdjacentHTML('afterend', rawTextHtml);

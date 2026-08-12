@@ -179,58 +179,58 @@ const TalkFeature = {
     return `<div class="fade-in">
       <div class="top-header"><h1>Talk</h1></div>
 
-      <div style="padding:0 16px;">
+      <div class="px-md" >
         ${this.renderUrgentActions(nextId, nextName)}
 
         ${dayBeforeQueue.length > 0 ? `
-        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin:16px 0 8px;">Tomorrow's reminders (${dayBeforeQueue.length})</div>
+        <div class="section-label" >Tomorrow's reminders (${dayBeforeQueue.length})</div>
         ${dayBeforeQueue.map(appt => `
-        <div class="card" style="margin-bottom:8px;border-left:3px solid var(--primary);">
-          <div style="display:flex;align-items:center;gap:12px;">
-            <div style="flex:1;min-width:0;">
-              <span style="font-weight:600;font-size:15px;">${Utils.escapeHtml(appt.clientName || 'Unknown')}</span>
-              <div style="font-size:13px;color:var(--text-secondary);margin-top:2px;">Visit tomorrow at ${Utils.formatTime(appt.date)}</div>
+        <div class="card mb-sm accent-left" >
+          <div class="flex items-center gap-12" >
+            <div class="flex-1 min-w-0" >
+              <span class="fw-600 fs-15" >${Utils.escapeHtml(appt.clientName || 'Unknown')}</span>
+              <div class="fs-13 text-secondary mt-2" >Visit tomorrow at ${Utils.formatTime(appt.date)}</div>
             </div>
-            <button class="btn btn-sm btn-primary" style="flex-shrink:0;" onclick="TalkFeature.sendDayBefore(${appt.id})">
-              <span class="material-symbols-rounded" style="font-size:18px;">send</span>
+            <button class="btn btn-sm btn-primary shrink-0"  onclick="TalkFeature.sendDayBefore(${appt.id})">
+              <span class="material-symbols-rounded fs-18" >send</span>
             </button>
           </div>
         </div>`).join('')}` : ''}
 
         ${queue.length === 0 && dayBeforeQueue.length === 0 ? `
-        <div class="empty-state" style="padding:48px 24px;">
+        <div class="empty-state empty-state-lg" >
           <span class="material-symbols-rounded">mark_email_read</span>
-	          <div style="font-weight:600;margin-bottom:4px;">All quiet for now.</div>
-	          <div style="font-size:13px;">Nothing pressing. A friendly check-in never hurts if you have a spare minute.</div>
+	          <div class="fw-600 mb-xs" >All quiet for now.</div>
+	          <div class="fs-13" >Nothing pressing. A friendly check-in never hurts if you have a spare minute.</div>
 	        </div>` : `
-	        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin:16px 0 8px;">Worth a nudge (${queue.length})</div>
+	        <div class="section-label" >Worth a nudge (${queue.length})</div>
         ${queue.map(item => `
         <div class="card" style="margin-bottom:8px;border-left:3px solid ${item.priority === 'high' ? 'var(--danger)' : 'var(--warning)'};">
-          <div style="display:flex;align-items:center;gap:12px;">
-            <div style="flex:1;min-width:0;">
-              <div style="display:flex;align-items:center;gap:8px;">
-                <span style="font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${Utils.escapeHtml(item.appointment.clientName || 'Unknown')}</span>
-                ${item.priority === 'high' ? `<span class="badge badge-danger" style="font-size:10px;flex-shrink:0;">High</span>` : ''}
-                <span class="badge badge-warning" style="font-size:10px;flex-shrink:0;">${item.daysSince}d ago</span>
+          <div class="flex items-center gap-12" >
+            <div class="flex-1 min-w-0" >
+              <div class="flex items-center gap-sm" >
+                <span class="fw-600 fs-15 ellipsis" >${Utils.escapeHtml(item.appointment.clientName || 'Unknown')}</span>
+                ${item.priority === 'high' ? `<span class="badge badge-danger fs-10 shrink-0" >High</span>` : ''}
+                <span class="badge badge-warning fs-10 shrink-0" >${item.daysSince}d ago</span>
               </div>
-              <div style="font-size:13px;color:var(--text-secondary);margin-top:2px;">${item.action} · ${this.getReasonText(item.appointment.outcome, item.daysSince)}</div>
+              <div class="fs-13 text-secondary mt-2" >${item.action} · ${this.getReasonText(item.appointment.outcome, item.daysSince)}</div>
               ${item.learned ? `
-                <div style="font-size:11px;color:var(--secondary);margin-top:2px;">
-                  <span class="material-symbols-rounded" style="font-size:12px;vertical-align:text-bottom;">insights</span>
+                <div class="fs-11 text-success mt-2" >
+                  <span class="material-symbols-rounded fs-12 vtext-bottom" >insights</span>
                   Learned from ${item.sampleSize} past deals - typically closed in ${item.medianDaysToConversion}d
                 </div>
               ` : ''}
             </div>
-            <button class="btn btn-sm btn-primary" style="flex-shrink:0;" onclick="TalkFeature.sendMessage(${item.appointment.id}, '${item.template}')">
-              <span class="material-symbols-rounded" style="font-size:18px;">send</span>
+            <button class="btn btn-sm btn-primary shrink-0"  onclick="TalkFeature.sendMessage(${item.appointment.id}, '${item.template}')">
+              <span class="material-symbols-rounded fs-18" >send</span>
             </button>
           </div>
         </div>`).join('')}`}
       </div>
 
-      <div style="padding:16px;">
+      <div class="p-md" >
         <div class="divider-text">Templates</div>
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+        <div class="grid-2 gap-sm" >
           <button class="btn btn-outline btn-sm" onclick="TalkFeature.pickTemplateCustomer('follow_up.quote')"><span class="material-symbols-rounded">replay</span>Quote Follow-up</button>
           <button class="btn btn-outline btn-sm" onclick="TalkFeature.pickTemplateCustomer('post_sale.review')"><span class="material-symbols-rounded">star</span>Review Request</button>
         </div>
@@ -244,23 +244,23 @@ const TalkFeature = {
   renderUrgentActions(nextId, nextName) {
     if (!nextId) {
       return `
-        <div class="card" style="margin-top:12px;margin-bottom:4px;">
-          <div style="font-size:13px;color:var(--text-secondary);">Add a visit to enable one-tap "On my way" and "Running late" messages.</div>
+        <div class="card mt-12 mb-xs" >
+          <div class="fs-13 text-secondary" >Add a visit to enable one-tap "On my way" and "Running late" messages.</div>
         </div>
       `;
     }
     return `
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px;margin-bottom:4px;">
+      <div class="grid-2 gap-sm mt-12 mb-xs" >
         <button class="btn btn-primary btn-sm" onclick="TalkFeature.sendMessage(${nextId}, 'on_my_way')">
-          <span class="material-symbols-rounded" style="font-size:18px;">directions_walk</span>
+          <span class="material-symbols-rounded fs-18" >directions_walk</span>
           On My Way
         </button>
         <button class="btn btn-outline btn-sm" onclick="TalkFeature.sendMessage(${nextId}, 'running_late')">
-          <span class="material-symbols-rounded" style="font-size:18px;">timer</span>
+          <span class="material-symbols-rounded fs-18" >timer</span>
           Running Late
         </button>
       </div>
-      <div style="font-size:11px;color:var(--text-tertiary);margin:4px 2px 0;">To ${Utils.escapeHtml(nextName)}</div>
+      <div class="fs-11 text-tertiary mt-xs mx-2 mb-0" >To ${Utils.escapeHtml(nextName)}</div>
     `;
   },
 
@@ -460,43 +460,43 @@ const TalkFeature = {
       <div class="sheet-body">
         <textarea class="textarea" id="talk-message-preview" style="min-height:110px;">${Utils.escapeHtml(message)}</textarea>
 
-        <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;">
+        <div class="flex items-center gap-sm mt-sm wrap" >
           <button class="btn btn-sm ${AIService.isEnabled() ? 'btn-outline' : 'btn-ghost'}" onclick="TalkFeature.aiDraft()">
-            <span class="material-symbols-rounded" style="font-size:16px;">auto_awesome</span>Rewrite with AI
+            <span class="material-symbols-rounded fs-16" >auto_awesome</span>Rewrite with AI
           </button>
           <div id="talk-ai-actions" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;">
             <button class="btn btn-sm btn-ghost" onclick="TalkFeature.regenerateDraft()">
-              <span class="material-symbols-rounded" style="font-size:16px;">refresh</span>Regenerate
+              <span class="material-symbols-rounded fs-16" >refresh</span>Regenerate
             </button>
             <button class="btn btn-sm btn-ghost" onclick="TalkFeature.undoAiDraft()">
-              <span class="material-symbols-rounded" style="font-size:16px;">undo</span>Undo
+              <span class="material-symbols-rounded fs-16" >undo</span>Undo
             </button>
           </div>
         </div>
 
         ${hint ? `
-          <div style="font-size:12px;color:var(--text-tertiary);margin-top:6px;">${Utils.escapeHtml(hint)}</div>
+          <div class="fs-12 text-tertiary mt-6" >${Utils.escapeHtml(hint)}</div>
         ` : ''}
 
         ${facts ? `
-          <div style="font-size:12px;color:var(--text-secondary);margin-top:10px;">${Utils.escapeHtml(facts)}</div>
+          <div class="fs-12 text-secondary mt-10" >${Utils.escapeHtml(facts)}</div>
         ` : ''}
 
         ${sentRecently ? `
-          <div style="font-size:12px;color:var(--warning,#b06000);margin-top:6px;">You already messaged this customer ${context.lastSentDaysAgo === 0 ? 'today' : 'yesterday'} — check this isn't a duplicate nudge.</div>
+          <div class="fs-12 text-warning mt-6" >You already messaged this customer ${context.lastSentDaysAgo === 0 ? 'today' : 'yesterday'} — check this isn't a duplicate nudge.</div>
         ` : ''}
 
         ${context?.lastMessages?.length ? `
-          <div class="card" style="background:var(--surface-elevated);padding:8px 10px;margin-top:10px;">
-            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-tertiary);margin-bottom:4px;">Previously sent</div>
+          <div class="card bg-surface-elevated pad-8-10 mt-10" >
+            <div class="fs-11 fw-700 text-uppercase ls-em04 text-tertiary mb-xs" >Previously sent</div>
             ${context.lastMessages.map(m => `
-              <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">${Utils.escapeHtml(m.when)} — ${Utils.escapeHtml(Utils.truncate(m.text, 90))}</div>
+              <div class="fs-12 text-secondary mb-xs" >${Utils.escapeHtml(m.when)} — ${Utils.escapeHtml(Utils.truncate(m.text, 90))}</div>
             `).join('')}
           </div>
         ` : ''}
 
         ${altKeys.length ? `
-          <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
+          <div class="flex gap-6 mt-10 wrap" >
             ${altKeys.map(key => {
               const label = this.OUTCOME_TEMPLATE_MAP[templateToOutcome[key]]?.action || key;
               return `<button class="btn btn-outline btn-sm" onclick="TalkFeature.switchTemplate('${Utils.escapeJsString(key)}')">${Utils.escapeHtml(label)}</button>`;
@@ -504,7 +504,7 @@ const TalkFeature = {
           </div>
         ` : ''}
 
-        <div style="font-size:13px;color:var(--text-secondary);margin:12px 0 16px;">Sending to: ${Utils.escapeHtml(Utils.formatPhone(phone))}</div>
+        <div class="fs-13 text-secondary mt-12 mb-md" >Sending to: ${Utils.escapeHtml(Utils.formatPhone(phone))}</div>
         <button class="btn btn-primary btn-block" onclick="TalkFeature.confirmSend()">
           <span class="material-symbols-rounded">chat</span>Open WhatsApp
         </button>
@@ -742,13 +742,13 @@ const TalkFeature = {
     const content = `<div class="sheet-handle"></div>
       <div class="sheet-header"><h3>Choose Customer</h3><button class="btn btn-ghost btn-sm" onclick="App.closeModal()"><span class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body">
-        <div style="display:flex;flex-direction:column;gap:8px;">
+        <div class="flex flex-col gap-sm" >
           ${visits.map(visit => `
-            <button class="list-item" style="border:1px solid var(--border-light);border-radius:8px;text-align:left;" onclick="App.closeModal(); TalkFeature.sendMessage(${visit.id}, '${Utils.escapeJsString(key)}')">
-              <span class="material-symbols-rounded" style="color:var(--primary);margin-right:12px;">person</span>
-              <span style="flex:1;min-width:0;">
-                <span style="display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${Utils.escapeHtml(visit.clientName || 'Unknown')}</span>
-                <span style="display:block;font-size:12px;color:var(--text-tertiary);">${Utils.formatDate(visit.date, 'datetime')}</span>
+            <button class="list-item bordered-8 text-left"  onclick="App.closeModal(); TalkFeature.sendMessage(${visit.id}, '${Utils.escapeJsString(key)}')">
+              <span class="material-symbols-rounded text-brand mr-12" >person</span>
+              <span class="flex-1 min-w-0" >
+                <span class="block fw-600 ellipsis" >${Utils.escapeHtml(visit.clientName || 'Unknown')}</span>
+                <span class="block fs-12 text-tertiary" >${Utils.formatDate(visit.date, 'datetime')}</span>
               </span>
             </button>
           `).join('')}

@@ -90,10 +90,10 @@ const OrdersFeature = {
         </div>
 
         ${quoteCards.length === 0 && orders.length === 0 ? `
-          <div class="empty-state" style="padding:48px 24px;">
+          <div class="empty-state empty-state-lg" >
             <span class="material-symbols-rounded">view_kanban</span>
-            <div style="font-weight:600;margin-bottom:4px;">No orders yet.</div>
-            <div style="font-size:13px;">Log an "Ordered" outcome on a visit and the sale appears here.</div>
+            <div class="fw-600 mb-xs" >No orders yet.</div>
+            <div class="fs-13" >Log an "Ordered" outcome on a visit and the sale appears here.</div>
           </div>
         ` : `
           <div class="kanban-scroll">
@@ -217,7 +217,7 @@ const OrdersFeature = {
         <div class="form-group">
           <label>Supplier order no.</label>
           <input type="text" class="input" id="order-supplier-number" value="${Utils.escapeHtml(order.supplierOrderNumber || '')}" placeholder="e.g. SUP-2026-0042">
-          <button class="btn btn-outline btn-sm btn-block" style="margin-top:6px;" onclick="OrdersFeature.saveSupplierNumber(${order.id})"><span class="material-symbols-rounded" style="font-size:16px;">save</span>Save</button>
+          <button class="btn btn-outline btn-sm btn-block mt-6"  onclick="OrdersFeature.saveSupplierNumber(${order.id})"><span class="material-symbols-rounded fs-16" >save</span>Save</button>
         </div>
 
         <div class="divider-text">Move along</div>
@@ -229,15 +229,15 @@ const OrdersFeature = {
 
         ${!isPaid ? `
           <div class="divider-text">Record payment</div>
-          <div class="form-row" style="margin-bottom:12px;">
-            <div class="form-group" style="margin-bottom:0;">
+          <div class="form-row mb-12" >
+            <div class="form-group mb-0" >
               <input type="number" class="input" inputmode="decimal" id="order-payment-amount" step="0.01" min="0" placeholder="${Utils.escapeHtml(String((order.balanceDue || 0).toFixed(2)))}">
             </div>
-            <div class="form-group" style="margin-bottom:0;">
-              <button class="btn btn-primary btn-block" onclick="OrdersFeature.recordPayment(${order.id})"><span class="material-symbols-rounded" style="font-size:18px;">payments</span>Pay ${Utils.formatCurrency(Math.min(order.depositPaid === 0 ? (order.depositRequired || 0) : (order.balanceDue || 0), order.balanceDue || 0))}</button>
+            <div class="form-group mb-0" >
+              <button class="btn btn-primary btn-block" onclick="OrdersFeature.recordPayment(${order.id})"><span class="material-symbols-rounded fs-18" >payments</span>Pay ${Utils.formatCurrency(Math.min(order.depositPaid === 0 ? (order.depositRequired || 0) : (order.balanceDue || 0), order.balanceDue || 0))}</button>
             </div>
           </div>
-          <button class="btn btn-outline btn-sm btn-block" style="margin-bottom:12px;" onclick="OrdersFeature.recordFullPayment(${order.id})"><span class="material-symbols-rounded">task_alt</span>Mark fully paid (${Utils.formatCurrency(order.balanceDue || 0)})</button>
+          <button class="btn btn-outline btn-sm btn-block mb-12"  onclick="OrdersFeature.recordFullPayment(${order.id})"><span class="material-symbols-rounded">task_alt</span>Mark fully paid (${Utils.formatCurrency(order.balanceDue || 0)})</button>
         ` : `
           <div class="card kanban-paid-card">
             <strong><span class="material-symbols-rounded">check_circle</span> Fully paid</strong>

@@ -26,11 +26,11 @@ const OnboardingFeature = {
 
   render() {
     return `
-      <div class="fade-in" style="min-height: 100vh; display: flex; flex-direction: column;">
-        <div style="flex: 1; padding: 32px 24px 100px;">
-          <div style="font-size: 40px; margin-bottom: 8px;">👋</div>
-          <h1 style="font-size: 26px; font-weight: 700; margin-bottom: 8px;">Welcome to AdvisorOS</h1>
-          <p style="color: var(--text-secondary); margin-bottom: 28px; line-height: 1.5;">
+      <div class="fade-in minh-screen flex flex-col" >
+        <div class="flex-1 pad-scroll" >
+          <div class="fs-40 mb-sm" >👋</div>
+          <h1 class="fs-26 fw-700 mb-sm" >Welcome to AdvisorOS</h1>
+          <p class="text-secondary mb-28 lh-150" >
             It adapts to you — you don't adapt to it. Everything below can be changed later in Settings, so don't overthink it.
           </p>
 
@@ -46,30 +46,30 @@ const OnboardingFeature = {
             </select>
           </div>
 
-          <div class="divider-text" style="margin-top:28px;">Weekly Target</div>
-          <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 16px; line-height: 1.5;">
+          <div class="divider-text mt-28" >Weekly Target</div>
+          <p class="text-secondary fs-13 mb-md lh-150" >
             Powers your morning brief — how far you are from target, and whether you can afford to discount a job.
           </p>
           <div class="form-group">
             <label>Weekly Net Earnings Goal (£)</label>
-            <input type="number" class="input" inputmode="decimal" id="ob-target" placeholder="600" value="${this.data.weeklyTarget}" step="10" min="0" style="font-size: 24px; font-weight: 700; text-align: center;">
+            <input type="number" class="input fs-24 fw-700 text-center" inputmode="decimal" id="ob-target" placeholder="600" value="${this.data.weeklyTarget}" step="10" min="0" >
           </div>
-          <div style="display: flex; gap: 8px;">
+          <div class="flex gap-sm" >
             ${[400, 600, 800, 1000].map(v => `
-              <button type="button" class="btn btn-outline btn-sm" style="flex:1;" onclick="OnboardingFeature.setTargetPreset(${v})">£${v}</button>
+              <button type="button" class="btn btn-outline btn-sm flex-1"  onclick="OnboardingFeature.setTargetPreset(${v})">£${v}</button>
             `).join('')}
           </div>
 
-          <div class="divider-text" style="margin-top:28px;">Home / Business Base</div>
-          <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 16px; line-height: 1.5;">
+          <div class="divider-text mt-28" >Home / Business Base</div>
+          <p class="text-secondary fs-13 mb-md lh-150" >
             Powers route distances, ETAs, mileage tax relief, and the weather glance on Home. Optional — leave blank and add it later if you'd rather.
           </p>
           <div class="form-group">
             <textarea class="textarea" id="ob-address" placeholder="e.g. 12 Example Street, Manchester M14 7FZ" style="min-height:70px;">${Utils.escapeHtml(this.data.businessAddress || '')}</textarea>
           </div>
 
-          <div class="divider-text" style="margin-top:28px;">Distance Unit</div>
-          <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 16px; line-height: 1.5;">
+          <div class="divider-text mt-28" >Distance Unit</div>
+          <p class="text-secondary fs-13 mb-md lh-150" >
             UK mileage tax relief is calculated in miles: 55p/mile for the first 10,000 business miles (2026/27).
           </p>
           <div class="segmented" id="ob-distance-segmented">
@@ -77,8 +77,8 @@ const OnboardingFeature = {
             <button type="button" class="segment ${this.data.distanceUnit === 'km' ? 'active' : ''}" data-value="km" onclick="OnboardingFeature.setUnit('distanceUnit', 'km', 'ob-distance-segmented')">Kilometres</button>
           </div>
 
-          <div class="divider-text" style="margin-top:28px;">Measurement Unit</div>
-          <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 16px; line-height: 1.5;">
+          <div class="divider-text mt-28" >Measurement Unit</div>
+          <p class="text-secondary fs-13 mb-md lh-150" >
             Used when you measure a window for blinds/curtains on a visit.
           </p>
           <div class="segmented" id="ob-measurement-segmented">
@@ -87,11 +87,11 @@ const OnboardingFeature = {
             <button type="button" class="segment ${this.data.measurementUnit === 'inches' ? 'active' : ''}" data-value="inches" onclick="OnboardingFeature.setUnit('measurementUnit', 'inches', 'ob-measurement-segmented')">in</button>
           </div>
 
-          <button class="btn btn-primary btn-block" style="margin-top: 32px;" onclick="OnboardingFeature.finish()">
+          <button class="btn btn-primary btn-block mt-xl"  onclick="OnboardingFeature.finish()">
             Start Using AdvisorOS <span class="material-symbols-rounded">check</span>
           </button>
 
-          <button class="btn btn-outline btn-block" style="margin-top: 10px;" onclick="OnboardingFeature.importBackup()">
+          <button class="btn btn-outline btn-block mt-10"  onclick="OnboardingFeature.importBackup()">
             <span class="material-symbols-rounded">restore</span>
             Restore Backup Instead
           </button>

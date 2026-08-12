@@ -115,17 +115,17 @@ const RouteFeature = {
               <span>Est. Time</span>
             </div>
             <div class="route-stat">
-              <strong style="color: var(--secondary);" id="route-saving">${savingLabel}</strong>
+              <strong class="text-success"  id="route-saving">${savingLabel}</strong>
               <span>Tax Relief</span>
             </div>
           </div>
           ${plan.savingKm >= 3 ? `
-          <div id="route-reorder-note" style="font-size:12px;color:var(--secondary);text-align:center;padding-top:8px;">
+          <div class="fs-12 text-success text-center pt-sm" id="route-reorder-note" >
             Reordering stops saves about ${Utils.formatDistance(plan.savingKm)} (${Math.round((plan.savingKm / 35) * 60)} min) — if times allow.
           </div>
           ` : ''}
           ${missingCount > 0 ? `
-          <div id="route-partial-note" style="font-size:12px;color:var(--warning,#b06000);text-align:center;padding-top:8px;">
+          <div class="fs-12 text-warning text-center pt-sm" id="route-partial-note" >
             These totals only count ${appointments.length - missingCount} of ${appointments.length} stops - ${missingCount} location${missingCount === 1 ? '' : 's'} couldn't be placed on the map, see below.
           </div>
           ` : '<div id="route-partial-note"></div>'}
@@ -135,8 +135,8 @@ const RouteFeature = {
 
         <!-- Map Container -->
         <div id="route-map" class="route-map">
-          <div id="route-map-loading" style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-tertiary);">
-            <span class="material-symbols-rounded" style="font-size: 48px; margin-bottom: 8px;">map</span>
+          <div class="flex items-center justify-center h-full text-tertiary" id="route-map-loading" >
+            <span class="material-symbols-rounded fs-48 mb-sm" >map</span>
             <div>Loading map...</div>
           </div>
         </div>
@@ -144,19 +144,19 @@ const RouteFeature = {
         <!-- Appointment List — always rendered from local data -->
         <div class="route-list">
           ${appointments.length === 0 ? `
-            <div class="empty-state" style="padding: 24px;">
+            <div class="empty-state p-lg" >
               <span class="material-symbols-rounded">location_off</span>
               <div>No visits today</div>
             </div>
           ` : routeList.map((a, i) => `
             <div class="list-item" onclick="RouteFeature.focusMarker(${i})">
               <div class="route-stop-number">${i + 1}</div>
-              <div style="flex: 1; min-width: 0;">
-                <div style="font-weight: 500; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${Utils.escapeHtml(a.clientName || 'Unknown')}</div>
-                <div style="font-size: 12px; color: var(--text-tertiary);">${Utils.formatTime(a.date)} · ${Utils.escapeHtml(this.getAreaLabel(a))} · ${Utils.escapeHtml(Utils.truncate(a.address || '', 24))}</div>
+              <div class="flex-1 min-w-0" >
+                <div class="fw-500 fs-14 ellipsis" >${Utils.escapeHtml(a.clientName || 'Unknown')}</div>
+                <div class="fs-12 text-tertiary" >${Utils.formatTime(a.date)} · ${Utils.escapeHtml(this.getAreaLabel(a))} · ${Utils.escapeHtml(Utils.truncate(a.address || '', 24))}</div>
               </div>
               <button class="btn btn-sm btn-ghost" onclick="event.stopPropagation(); window.open('${Utils.escapeJsString(Geo.buildNavigationUrl(a.address || '', CONFIG.businessAddress || ''))}', '_blank')">
-                <span class="material-symbols-rounded" style="font-size: 18px;">navigation</span>
+                <span class="material-symbols-rounded fs-18" >navigation</span>
               </button>
             </div>
           `).join('')}
@@ -671,8 +671,8 @@ const RouteFeature = {
       <div class="route-plan">
         <div class="route-plan-head">
           <div>
-            <div style="font-weight:700;">Route friend</div>
-            <div style="font-size:12px;color:var(--text-tertiary);">${plan.mode === 'fitting' ? 'Fitting day' : plan.mode === 'sales' ? 'Sales day' : 'Mixed day'} · ${areaNames.length || 0} area${areaNames.length === 1 ? '' : 's'}</div>
+            <div class="fw-700" >Route friend</div>
+            <div class="fs-12 text-tertiary" >${plan.mode === 'fitting' ? 'Fitting day' : plan.mode === 'sales' ? 'Sales day' : 'Mixed day'} · ${areaNames.length || 0} area${areaNames.length === 1 ? '' : 's'}</div>
           </div>
           <span class="badge" style="background:${toneColor};color:white;">${Utils.escapeHtml(plan.efficiency.label)}</span>
         </div>
@@ -696,7 +696,7 @@ const RouteFeature = {
 
         ${orderChanged ? `
           <div class="route-order">
-            <div style="font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;">If customers can move, I would try this order</div>
+            <div class="fs-12 fw-700 text-secondary mb-6" >If customers can move, I would try this order</div>
             ${plan.optimized.map((appt, index) => `
               <div class="route-order-row">
                 <span>${index + 1}</span>
@@ -725,13 +725,13 @@ const RouteFeature = {
         </div>
         ${unresolvedCount > 0 ? `
           <button class="route-leg-retry" onclick="RouteFeature.retryLocations()">
-            <span class="material-symbols-rounded" style="font-size:16px;">refresh</span>
+            <span class="material-symbols-rounded fs-16" >refresh</span>
             ${unresolvedCount} location${unresolvedCount === 1 ? '' : 's'} couldn't be found - tap to retry
           </button>
         ` : ''}
         ${implausibleCount > 0 ? `
           <button class="route-leg-retry" onclick="RouteFeature.retryLocations()">
-            <span class="material-symbols-rounded" style="font-size:16px;">warning</span>
+            <span class="material-symbols-rounded fs-16" >warning</span>
             ${implausibleCount} location${implausibleCount === 1 ? '' : 's'} looked wrong (too far away) - check the address and retry
           </button>
         ` : ''}
@@ -751,7 +751,7 @@ const RouteFeature = {
             <span class="route-leg-index">${leg.isReturn ? '<span class="material-symbols-rounded">home</span>' : index + 1}</span>
             <span class="route-leg-main">
               <strong>${Utils.escapeHtml(leg.from.label)} → ${Utils.escapeHtml(leg.to.label)}</strong>
-              <small${leg.unresolvedPoint ? ' style="color:var(--warning,#b06000);"' : ''}>${status}</small>
+              <small class="text-warning"${leg.unresolvedPoint ? ' ' : ''}>${status}</small>
             </span>
             <span class="material-symbols-rounded">navigation</span>
           </button>
@@ -774,11 +774,11 @@ const RouteFeature = {
         if (!mapEl) return; // user already navigated away before the timeout fired
         const offline = !navigator.onLine;
         mapEl.innerHTML = `
-          <div class="empty-state" style="height: 100%;">
+          <div class="empty-state h-full" >
             <span class="material-symbols-rounded">${offline ? 'wifi_off' : 'map'}</span>
             <div>${offline ? 'Map unavailable offline' : 'Map failed to load'}</div>
-            <div style="font-size: 13px;">${offline ? 'Check your connection' : 'This can happen if the map service is temporarily unreachable'}</div>
-            <button class="btn btn-outline btn-sm" style="margin-top:12px;" onclick="RouteFeature.retryMap()">Try again</button>
+            <div class="fs-13" >${offline ? 'Check your connection' : 'This can happen if the map service is temporarily unreachable'}</div>
+            <button class="btn btn-outline btn-sm mt-12"  onclick="RouteFeature.retryMap()">Try again</button>
           </div>
         `;
         return;
@@ -792,8 +792,8 @@ const RouteFeature = {
     const mapEl = document.getElementById('route-map');
     if (mapEl) {
       mapEl.innerHTML = `
-        <div id="route-map-loading" style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-tertiary);">
-          <span class="material-symbols-rounded" style="font-size: 48px; margin-bottom: 8px;">map</span>
+        <div class="flex items-center justify-center h-full text-tertiary" id="route-map-loading" >
+          <span class="material-symbols-rounded fs-48 mb-sm" >map</span>
           <div>Loading map...</div>
         </div>
       `;
@@ -890,7 +890,7 @@ const RouteFeature = {
     } catch (e) {
       console.error('Map init failed:', e);
       mapEl.innerHTML = `
-        <div class="empty-state" style="height: 100%;">
+        <div class="empty-state h-full" >
           <span class="material-symbols-rounded">map</span>
           <div>Could not load map</div>
         </div>
@@ -906,12 +906,12 @@ const RouteFeature = {
       const baseMarker = L.marker(base.latLng).addTo(this.map);
       const baseIcon = L.divIcon({
         className: 'custom-marker',
-        html: `<div style="width: 30px; height: 30px; border-radius: 50%; background: var(--text-primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">H</div>`,
+        html: `<div class="avatar-30" >H</div>`,
         iconSize: [30, 30],
         iconAnchor: [15, 15]
       });
       baseMarker.setIcon(baseIcon);
-      baseMarker.bindPopup(`<div style="font-weight:600;">Business base</div><div style="font-size:12px;">${Utils.escapeHtml(base.address || '')}</div>`);
+      baseMarker.bindPopup(`<div class="fw-600" >Business base</div><div class="fs-12" >${Utils.escapeHtml(base.address || '')}</div>`);
       bounds.extend(base.latLng);
     }
 
@@ -936,15 +936,15 @@ const RouteFeature = {
       if (latLng) {
         const marker = L.marker(latLng).addTo(this.map);
         marker.bindPopup(`
-          <div style="font-weight: 600;">${Utils.escapeHtml(appt.clientName || 'Unknown')}</div>
-          <div style="font-size: 12px;">${Utils.formatTime(appt.date)}</div>
-          <div style="font-size: 12px;">${Utils.escapeHtml(appt.address || '')}</div>
+          <div class="fw-600" >${Utils.escapeHtml(appt.clientName || 'Unknown')}</div>
+          <div class="fs-12" >${Utils.formatTime(appt.date)}</div>
+          <div class="fs-12" >${Utils.escapeHtml(appt.address || '')}</div>
         `);
 
         // Add numbered icon
         const icon = L.divIcon({
           className: 'custom-marker',
-          html: `<div style="width: 28px; height: 28px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">${i + 1}</div>`,
+          html: `<div class="avatar-28" >${i + 1}</div>`,
           iconSize: [28, 28],
           iconAnchor: [14, 14]
         });
@@ -1049,11 +1049,11 @@ const RouteFeature = {
         marker.setIcon(icon);
 
         marker.bindPopup(`
-          <div style="font-weight: 600;">${Utils.escapeHtml(appt.clientName || 'Unknown')}</div>
-          <div style="font-size: 12px;">${Utils.formatTime(appt.date)}</div>
-          <div style="font-size: 12px;">${Utils.escapeHtml(appt.address || '')}</div>
-          ${i === 0 ? '<div style="font-size: 11px; color: var(--secondary); margin-top: 4px;">First after base</div>' : ''}
-          <div style="font-size: 10px; color: var(--text-tertiary); margin-top: 4px;">Shortest-drive order - check against booked time</div>
+          <div class="fw-600" >${Utils.escapeHtml(appt.clientName || 'Unknown')}</div>
+          <div class="fs-12" >${Utils.formatTime(appt.date)}</div>
+          <div class="fs-12" >${Utils.escapeHtml(appt.address || '')}</div>
+          ${i === 0 ? '<div class="fs-11 text-success mt-xs" >First after base</div>' : ''}
+          <div class="fs-10 text-tertiary mt-xs" >Shortest-drive order - check against booked time</div>
         `);
 
         this.markers.push(marker);

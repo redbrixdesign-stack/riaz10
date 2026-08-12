@@ -86,7 +86,7 @@ const AppointmentsFeature = {
         </div>
 
         <!-- Tabs -->
-        <div style="padding: 0 16px;">
+        <div class="px-md" >
           <div class="tabs" id="appt-tabs">
             <button class="tab active" data-tab="diary" onclick="AppointmentsFeature.switchTab('diary')">Diary</button>
             <button class="tab" data-tab="upcoming" onclick="AppointmentsFeature.switchTab('upcoming')">Upcoming</button>
@@ -97,7 +97,7 @@ const AppointmentsFeature = {
         </div>
 
         <!-- Diary View -->
-        <div id="appt-diary" style="padding: 0 16px;">
+        <div class="px-md" id="appt-diary" >
           ${diaryHtml}
         </div>
 
@@ -106,9 +106,9 @@ const AppointmentsFeature = {
           ${sortedDates.length === 0 ? `
             <div class="empty-state">
               <span class="material-symbols-rounded">event</span>
-              <div style="font-weight: 600; margin-bottom: 4px;">No upcoming visits</div>
-              <div style="font-size: 13px;">Add your first visit to get started</div>
-              <button class="btn btn-primary btn-sm" style="margin-top: 16px;" onclick="AppointmentsFeature.showAddModal()">
+              <div class="fw-600 mb-xs" >No upcoming visits</div>
+              <div class="fs-13" >Add your first visit to get started</div>
+              <button class="btn btn-primary btn-sm mt-md"  onclick="AppointmentsFeature.showAddModal()">
                 <span class="material-symbols-rounded">add</span>
                 Add Visit
               </button>
@@ -120,8 +120,8 @@ const AppointmentsFeature = {
             const label = isToday ? 'Today' : isTomorrow ? 'Tomorrow' : date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
 
             return `
-              <div style="padding: 0 16px; margin-bottom: 8px;">
-                <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; margin-top: 8px;">${label}</div>
+              <div class="px-md mb-sm" >
+                <div class="fs-12 fw-600 text-secondary text-uppercase ls-05 mb-sm mt-sm" >${label}</div>
                 ${grouped[dateKey].map(appt => this.renderAppointmentCard(appt)).join('')}
               </div>
             `;
@@ -217,8 +217,8 @@ const AppointmentsFeature = {
       const dayNum = cursor.getDate();
       const weekday = cursor.toLocaleDateString('en-GB', { weekday: 'short' });
       cells += `
-        <button class="${classes.join(' ')}" style="aspect-ratio:auto;min-height:56px;flex-direction:column;gap:2px;padding:6px 2px;" onclick="AppointmentsFeature.selectCalendarDate('${key}')">
-          <span style="font-size:10px;color:var(--text-tertiary);text-transform:uppercase;">${weekday}</span>
+        <button class="${classes.join(' ')} aspect-auto minh-56 flex-col gap-2 pad-6-2"  onclick="AppointmentsFeature.selectCalendarDate('${key}')">
+          <span class="fs-10 text-tertiary text-uppercase" >${weekday}</span>
           <span class="calendar-cell-num">${dayNum}</span>
           ${count > 0 ? `<span class="calendar-cell-dot">${count > 3 ? '3+' : count}</span>` : ''}
         </button>
@@ -227,12 +227,12 @@ const AppointmentsFeature = {
     }
 
     return `
-      <div class="card calendar-card" style="margin-bottom:12px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-          <div style="font-size:13px;font-weight:700;">Next 7 days</div>
-          <button class="btn btn-ghost btn-sm" style="min-height:32px;padding:0 8px;" onclick="App.navigate('appointments')">Full diary <span class="material-symbols-rounded" style="font-size:16px;">chevron_right</span></button>
+      <div class="card calendar-card mb-12" >
+        <div class="flex items-center justify-between mb-sm" >
+          <div class="fs-13 fw-700" >Next 7 days</div>
+          <button class="btn btn-ghost btn-sm minh-32 px-sm"  onclick="App.navigate('appointments')">Full diary <span class="material-symbols-rounded fs-16" >chevron_right</span></button>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;">
+        <div class="grid-7 gap-xs" >
           ${cells}
         </div>
       </div>
@@ -310,7 +310,7 @@ const AppointmentsFeature = {
     }
 
     return `
-      <div class="card calendar-card" style="margin-bottom:12px;">
+      <div class="card calendar-card mb-12" >
         <div class="calendar-header">
           <button class="btn btn-ghost btn-sm" aria-label="Previous month" onclick="AppointmentsFeature.shiftCalendarMonth(-1)">
             <span class="material-symbols-rounded">chevron_left</span>
@@ -339,15 +339,15 @@ const AppointmentsFeature = {
     const salesValue = dayAppointments.reduce((sum, a) => sum + (a.value || 0), 0);
 
     const summaryCard = `
-      <div class="card" style="margin-bottom:12px;">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+      <div class="card mb-12" >
+        <div class="flex items-start justify-between gap-12" >
           <div>
-            <div style="font-weight:700;">${Utils.escapeHtml(label)}</div>
-            <div style="font-size:13px;color:var(--text-secondary);margin-top:2px;">${Utils.escapeHtml(mode.friendLine)}</div>
+            <div class="fw-700" >${Utils.escapeHtml(label)}</div>
+            <div class="fs-13 text-secondary mt-2" >${Utils.escapeHtml(mode.friendLine)}</div>
           </div>
           <span class="badge ${mode.kind === 'fitting' ? 'badge-success' : mode.kind === 'sales' ? 'badge-primary' : 'badge-warning'}">${Utils.escapeHtml(mode.label)}</span>
         </div>
-        <div class="stats-grid" style="margin-top:12px;gap:8px;">
+        <div class="stats-grid mt-12 gap-sm" >
           <div class="stat-card stat-card-clickable" role="button" tabindex="0" aria-label="Jump to today's visit list" onclick="AppointmentsFeature.scrollToVisitsList()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();AppointmentsFeature.scrollToVisitsList();}">
             <div class="value">${dayAppointments.length || '—'}</div><div class="label">Booked</div>
           </div>
@@ -369,8 +369,8 @@ const AppointmentsFeature = {
     }
 
     return summaryCard + `
-      <div id="appt-visits-list-anchor" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">Visits</div>
+      <div class="flex items-center justify-between mb-sm" id="appt-visits-list-anchor" >
+        <div class="fs-12 fw-600 text-secondary text-uppercase ls-05" >Visits</div>
         <button class="btn btn-sm btn-outline" onclick="AppointmentsFeature.addAt('${selectedKey}', '')">
           <span class="material-symbols-rounded">add</span> Add
         </button>
@@ -379,8 +379,8 @@ const AppointmentsFeature = {
       ${dayAppointments.length === 0 ? `
         <div class="empty-state">
           <span class="material-symbols-rounded">event_available</span>
-          <div style="font-weight:600;margin-bottom:4px;">Nothing booked</div>
-          <div style="font-size:13px;">Tap Add to book a visit on this day</div>
+          <div class="fw-600 mb-xs" >Nothing booked</div>
+          <div class="fs-13" >Tap Add to book a visit on this day</div>
         </div>
       ` : dayAppointments.map(appt => this.renderAppointmentCard(appt)).join('')}
     `;
@@ -401,12 +401,12 @@ const AppointmentsFeature = {
 
   renderAreaSearch() {
     return `
-      <div class="card" style="margin-bottom:12px;">
-        <div style="font-weight:700;margin-bottom:6px;">Area intelligence</div>
-        <div style="font-size:13px;color:var(--text-secondary);line-height:1.45;margin-bottom:14px;">
+      <div class="card mb-12" >
+        <div class="fw-700 mb-6" >Area intelligence</div>
+        <div class="fs-13 text-secondary lh-145 mb-14" >
           Search a postcode area before booking. I will show previous customers, outcomes, buying signals and conversion patterns.
         </div>
-        <div class="form-group" style="margin-bottom:10px;">
+        <div class="form-group mb-10" >
           <label>Postcode or area</label>
           <input class="input" id="area-query" placeholder="e.g. M14 or M14 7FZ" onkeydown="if(event.key==='Enter')AppointmentsFeature.runAreaSearch()">
         </div>
@@ -489,21 +489,21 @@ const AppointmentsFeature = {
         <div class="empty-state">
           <span class="material-symbols-rounded">travel_explore</span>
           <div>No local history yet</div>
-          <div style="font-size:13px;">First visit in ${Utils.escapeHtml(report.area)} will start building the picture.</div>
+          <div class="fs-13" >First visit in ${Utils.escapeHtml(report.area)} will start building the picture.</div>
         </div>
       `;
     }
 
     return `
-      <div class="card" style="margin-bottom:12px;">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+      <div class="card mb-12" >
+        <div class="flex items-start justify-between gap-12" >
           <div>
-            <div style="font-weight:700;">${Utils.escapeHtml(report.area)}</div>
-            <div style="font-size:13px;color:var(--text-secondary);margin-top:2px;">${report.customers.length} customer${report.customers.length === 1 ? '' : 's'} · ${report.visits} visit${report.visits === 1 ? '' : 's'}</div>
+            <div class="fw-700" >${Utils.escapeHtml(report.area)}</div>
+            <div class="fs-13 text-secondary mt-2" >${report.customers.length} customer${report.customers.length === 1 ? '' : 's'} · ${report.visits} visit${report.visits === 1 ? '' : 's'}</div>
           </div>
           <span class="badge ${report.conversion >= 0.5 ? 'badge-success' : report.conversion >= 0.25 ? 'badge-warning' : 'badge-primary'}">${Math.round(report.conversion * 100)}% conversion</span>
         </div>
-        <div class="stats-grid" style="margin-top:12px;gap:8px;">
+        <div class="stats-grid mt-12 gap-sm" >
           <div class="stat-card stat-card-clickable" role="button" tabindex="0" aria-label="View customer records" onclick="AppointmentsFeature.scrollToAreaCustomers()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();AppointmentsFeature.scrollToAreaCustomers();}"><div class="value">${report.sold || '—'}</div><div class="label">Sold</div></div>
           <div class="stat-card stat-card-clickable" role="button" tabindex="0" aria-label="View customer records" onclick="AppointmentsFeature.scrollToAreaCustomers()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();AppointmentsFeature.scrollToAreaCustomers();}"><div class="value">${report.quotes || '—'}</div><div class="label">Quotes</div></div>
           <div class="stat-card stat-card-clickable" role="button" tabindex="0" aria-label="View money and sales" onclick="App.navigate('money')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();App.navigate('money');}"><div class="value">${report.avgSale ? Utils.formatCurrency(report.avgSale).replace('.00', '') : '—'}</div><div class="label">Avg Sale</div></div>
@@ -511,29 +511,29 @@ const AppointmentsFeature = {
         </div>
       </div>
 
-      <div class="card" style="margin-bottom:12px;">
-        <div style="font-weight:700;margin-bottom:10px;">What this area tends to do</div>
+      <div class="card mb-12" >
+        <div class="fw-700 mb-10" >What this area tends to do</div>
         ${report.behaviours.length ? report.behaviours.map(text => `
           <div class="area-insight-row">
             <span class="material-symbols-rounded">insights</span>
             <span>${Utils.escapeHtml(text)}</span>
           </div>
-        `).join('') : `<div style="font-size:13px;color:var(--text-secondary);">Not enough history yet for behaviour patterns.</div>`}
+        `).join('') : `<div class="fs-13 text-secondary" >Not enough history yet for behaviour patterns.</div>`}
       </div>
 
-      <div class="card" style="margin-bottom:12px;">
-        <div style="font-weight:700;margin-bottom:10px;">Signals</div>
+      <div class="card mb-12" >
+        <div class="fw-700 mb-10" >Signals</div>
         <div class="area-chip-row">
           ${topInterests.length ? topInterests.map(([label, count]) => `<span class="chip">${Utils.escapeHtml(label)} · ${count}</span>`).join('') : '<span class="chip">No buying-interest notes yet</span>'}
         </div>
-        <div class="area-chip-row" style="margin-top:8px;">
+        <div class="area-chip-row mt-sm" >
           ${topOutcomes.map(([label, count]) => `<span class="chip">${Utils.escapeHtml(this.getOutcomeName(label, 'consultation'))} · ${count}</span>`).join('')}
           ${topSources.map(([label, count]) => `<span class="chip">${Utils.escapeHtml(label.replace(/_/g, ' '))} · ${count}</span>`).join('')}
         </div>
       </div>
 
       <div class="card" id="area-customers-anchor">
-        <div style="font-weight:700;margin-bottom:10px;">Customer records</div>
+        <div class="fw-700 mb-10" >Customer records</div>
         ${report.customers.length ? report.customers.map(customer => `
           <button class="area-customer-row" onclick="AppointmentsFeature.openCustomerRecord(${customer.id})">
             <span class="material-symbols-rounded">person</span>
@@ -543,7 +543,7 @@ const AppointmentsFeature = {
             </span>
             <span class="material-symbols-rounded">chevron_right</span>
           </button>
-        `).join('') : `<div style="font-size:13px;color:var(--text-secondary);">No customer records match this area yet.</div>`}
+        `).join('') : `<div class="fs-13 text-secondary" >No customer records match this area yet.</div>`}
       </div>
     `;
   },
@@ -828,15 +828,15 @@ const AppointmentsFeature = {
     // users. Completed visits with an outcome show the outcome label instead.
     let statusBadge = '';
     if (appt.outcome) {
-      statusBadge = `<span class="badge badge-success" style="font-size: 10px;">${this.getOutcomeName(appt.outcome, appt.type)}</span>`;
+      statusBadge = `<span class="badge badge-success fs-10" >${this.getOutcomeName(appt.outcome, appt.type)}</span>`;
     } else if (appt.status === 'cancelled') {
-      statusBadge = `<span class="badge badge-danger" style="font-size: 10px;">Cancelled</span>`;
+      statusBadge = `<span class="badge badge-danger fs-10" >Cancelled</span>`;
     } else if (appt.status === 'completed') {
-      statusBadge = `<span class="badge badge-success" style="font-size: 10px;">Done</span>`;
+      statusBadge = `<span class="badge badge-success fs-10" >Done</span>`;
     } else if (appt.status === 'confirmed') {
-      statusBadge = `<span class="badge badge-primary" style="font-size: 10px;">Confirmed</span>`;
+      statusBadge = `<span class="badge badge-primary fs-10" >Confirmed</span>`;
     } else {
-      statusBadge = `<span class="badge badge-warning" style="font-size: 10px;">Pending</span>`;
+      statusBadge = `<span class="badge badge-warning fs-10" >Pending</span>`;
     }
 
     return `
@@ -848,7 +848,7 @@ const AppointmentsFeature = {
           <div class="visit-main">
             <div class="visit-title-row">
               <span class="visit-title">${Utils.escapeHtml(appt.clientName || 'Unknown')}</span>
-              <span class="badge ${typeConfig.badgeClass || 'badge-primary'}" style="font-size: 10px; padding: 2px 8px; flex-shrink: 0;">${Utils.escapeHtml(typeConfig.name)}</span>
+              <span class="badge ${typeConfig.badgeClass || 'badge-primary'} fs-10 pill-pad shrink-0" >${Utils.escapeHtml(typeConfig.name)}</span>
             </div>
             <div class="visit-meta">
               ${Utils.formatTime(appt.date)} · ${appt.address ? Utils.escapeHtml(Utils.truncate(appt.address, 30)) : 'No address'}
@@ -885,22 +885,22 @@ const AppointmentsFeature = {
 
     return `
       ${hot.length > 0 ? `
-        <div style="margin-bottom: 16px;">
-          <div style="font-size: 12px; font-weight: 600; color: var(--danger); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Hot — Close This Week</div>
+        <div class="mb-md" >
+          <div class="fs-12 fw-600 text-danger text-uppercase ls-05 mb-sm" >Hot — Close This Week</div>
           ${hot.map(a => this.renderPipelineCard(a)).join('')}
         </div>
       ` : ''}
 
       ${warm.length > 0 ? `
-        <div style="margin-bottom: 16px;">
-          <div style="font-size: 12px; font-weight: 600; color: var(--warning); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Warm — Follow Up</div>
+        <div class="mb-md" >
+          <div class="fs-12 fw-600 text-warning text-uppercase ls-05 mb-sm" >Warm — Follow Up</div>
           ${warm.map(a => this.renderPipelineCard(a)).join('')}
         </div>
       ` : ''}
 
       ${cool.length > 0 ? `
-        <div style="margin-bottom: 16px;">
-          <div style="font-size: 12px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Cool — At Risk</div>
+        <div class="mb-md" >
+          <div class="fs-12 fw-600 text-tertiary text-uppercase ls-05 mb-sm" >Cool — At Risk</div>
           ${cool.map(a => this.renderPipelineCard(a)).join('')}
         </div>
       ` : ''}
@@ -909,7 +909,7 @@ const AppointmentsFeature = {
         <div class="empty-state">
           <span class="material-symbols-rounded">trending_up</span>
           <div>No follow-ups waiting</div>
-          <div style="font-size: 13px;">Complete visits to build your follow-up list</div>
+          <div class="fs-13" >Complete visits to build your follow-up list</div>
         </div>
       ` : ''}
     `;
@@ -946,38 +946,38 @@ const AppointmentsFeature = {
       <div class="sheet-header">
         <div>
           <h3>${Utils.escapeHtml(appt.clientName || 'Customer')}</h3>
-          <div style="font-size: 13px; color: var(--text-tertiary);">${Utils.escapeHtml(appt.address || 'No address set')}</div>
+          <div class="fs-13 text-tertiary" >${Utils.escapeHtml(appt.address || 'No address set')}</div>
         </div>
         <button class="btn btn-ghost btn-sm" onclick="App.closeModal()">
           <span class="material-symbols-rounded">close</span>
         </button>
       </div>
       <div class="sheet-body">
-        <div class="card" style="margin-top: 12px;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="card mt-12" >
+          <div class="flex justify-between items-center" >
             <span class="badge ${meta.badgeClass}">${Utils.escapeHtml(meta.label)}</span>
-            <span style="font-size: 13px; color: var(--text-tertiary);">${daysSince} day${daysSince === 1 ? '' : 's'} ago</span>
+            <span class="fs-13 text-tertiary" >${daysSince} day${daysSince === 1 ? '' : 's'} ago</span>
           </div>
           ${match && match.learned ? `
-            <div style="font-size: 11px; color: var(--secondary); margin-top: 6px;">
-              <span class="material-symbols-rounded" style="font-size: 12px; vertical-align: text-bottom;">insights</span>
+            <div class="fs-11 text-success mt-6" >
+              <span class="material-symbols-rounded fs-12 vtext-bottom" >insights</span>
               Learned from ${match.sampleSize} past deals - typically closed in ${match.medianDaysToConversion}d
             </div>
           ` : ''}
           ${appt.value > 0 ? `
-            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-light); display: flex; justify-content: space-between;">
-              <span style="color: var(--text-secondary);">Quote total</span>
+            <div class="mt-10 top-divider-10 flex justify-between" >
+              <span class="text-secondary" >Quote total</span>
               <strong>${Utils.formatCurrency(appt.value)}</strong>
             </div>
           ` : ''}
           ${appt.notes ? `
-            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-light); font-size: 13px; color: var(--text-secondary);">
+            <div class="mt-10 top-divider-10 fs-13 text-secondary" >
               ${Utils.escapeHtml(appt.notes)}
             </div>
           ` : ''}
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
+        <div class="flex flex-col gap-sm mt-md" >
           ${match ? `
             <button class="btn btn-primary btn-block" onclick="App.closeModal(); TalkFeature.sendMessage(${appt.id}, '${match.template}')">
               <span class="material-symbols-rounded">send</span>
@@ -990,7 +990,7 @@ const AppointmentsFeature = {
               Call Customer
             </a>
           ` : `
-            <div style="font-size: 12px; color: var(--text-tertiary); text-align: center;">No phone number on file</div>
+            <div class="fs-12 text-tertiary text-center" >No phone number on file</div>
           `}
         </div>
       </div>
@@ -1010,8 +1010,8 @@ const AppointmentsFeature = {
       <div class="sheet-body">
         <input type="search" class="input" id="customer-search-input" placeholder="Name, postcode, phone, or product..."
                oninput="AppointmentsFeature.debouncedCustomerSearch(this.value)" autocomplete="off">
-        <div id="customer-search-results" style="margin-top:12px;">
-          <div style="font-size:13px;color:var(--text-tertiary);text-align:center;padding:24px 0;">
+        <div class="mt-12" id="customer-search-results" >
+          <div class="fs-13 text-tertiary text-center py-24" >
             Try a name, postcode (e.g. M14), phone number, or product (e.g. "roman blinds")
           </div>
         </div>
@@ -1031,7 +1031,7 @@ const AppointmentsFeature = {
     if (!resultsEl) return;
 
     if (!query || query.trim().length < 2) {
-      resultsEl.innerHTML = `<div style="font-size:13px;color:var(--text-tertiary);text-align:center;padding:24px 0;">Keep typing (2+ characters)...</div>`;
+      resultsEl.innerHTML = `<div class="fs-13 text-tertiary text-center py-24" >Keep typing (2+ characters)...</div>`;
       return;
     }
 
@@ -1040,17 +1040,17 @@ const AppointmentsFeature = {
       results = await Search.search(query);
     } catch (e) {
       console.error('Search failed:', e);
-      resultsEl.innerHTML = `<div style="font-size:13px;color:var(--danger);text-align:center;padding:24px 0;">Search failed - try again</div>`;
+      resultsEl.innerHTML = `<div class="fs-13 text-danger text-center py-24" >Search failed - try again</div>`;
       return;
     }
 
     if (results.length === 0) {
-      resultsEl.innerHTML = `<div style="font-size:13px;color:var(--text-tertiary);text-align:center;padding:24px 0;">No matches for "${Utils.escapeHtml(query)}"</div>`;
+      resultsEl.innerHTML = `<div class="fs-13 text-tertiary text-center py-24" >No matches for "${Utils.escapeHtml(query)}"</div>`;
       return;
     }
 
     resultsEl.innerHTML = results.map(r => `
-      <button class="area-customer-row" style="width:100%;text-align:left;" onclick="AppointmentsFeature.openSearchResult('${r.type}', ${r.id})">
+      <button class="area-customer-row w-full text-left"  onclick="AppointmentsFeature.openSearchResult('${r.type}', ${r.id})">
         <span class="material-symbols-rounded">${r.icon}</span>
         <span>
           <strong>${Utils.escapeHtml(r.title)}</strong>
@@ -1102,7 +1102,7 @@ const AppointmentsFeature = {
               </div>
             ` : ''}
           </div>
-          <span class="material-symbols-rounded" style="color: var(--text-tertiary); flex-shrink: 0;">chevron_right</span>
+          <span class="material-symbols-rounded text-tertiary shrink-0" >chevron_right</span>
         </div>
       </div>
     `;
@@ -1141,7 +1141,7 @@ const AppointmentsFeature = {
     const renderButton = (o, primary = false) => `
       <button class="btn ${primary ? 'btn-primary' : 'btn-outline'} ${primary ? 'btn-block' : 'btn-sm'}" style="${primary ? 'margin-bottom:12px;' : 'justify-content: flex-start; text-align: left;'}"
               onclick="AppointmentsFeature.captureOutcome(${appt.id}, '${o.id}')">
-        <span class="material-symbols-rounded" style="font-size: 18px;">${o.icon}</span>
+        <span class="material-symbols-rounded fs-18" >${o.icon}</span>
         ${o.name}
       </button>
     `;
@@ -1149,14 +1149,14 @@ const AppointmentsFeature = {
     return `
       ${hero ? renderButton(hero, true) : ''}
       ${rest.length > 0 ? `
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+        <div class="grid-2 gap-sm" >
           ${rest.map(o => renderButton(o, false)).join('')}
         </div>
       ` : ''}
       ${noVisitOutcomes.length > 0 ? `
-        <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border);">
-          <div style="font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 8px;">Visit didn't happen</div>
-          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+        <div class="mt-md top-divider-strong" >
+          <div class="fs-11 ls-em05 text-uppercase text-secondary mb-sm" >Visit didn't happen</div>
+          <div class="grid-2 gap-sm" >
             ${noVisitOutcomes.map(o => renderButton(o, false)).join('')}
           </div>
         </div>
@@ -1182,8 +1182,8 @@ const AppointmentsFeature = {
   // on both the Dexie and mini-Dexie storage engines.
 
   renderPhotoThumb(p) {
-    return `<div style="position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--bg);" role="button" tabindex="0" aria-label="View photo" onclick="AppointmentsFeature.openPhotoViewer(${p.id}, ${p.customerId})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();AppointmentsFeature.openPhotoViewer(${p.id}, ${p.customerId});}">
-      <img src="${this._photoSrc(p)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">
+    return `<div class="photo-tile"  role="button" tabindex="0" aria-label="View photo" onclick="AppointmentsFeature.openPhotoViewer(${p.id}, ${p.customerId})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();AppointmentsFeature.openPhotoViewer(${p.id}, ${p.customerId});}">
+      <img class="img-cover" src="${this._photoSrc(p)}" alt="" >
     </div>`;
   },
 
@@ -1211,8 +1211,8 @@ const AppointmentsFeature = {
     const content = `<div class="sheet-handle"></div>
       <div class="sheet-header"><h3>Save photo</h3><button class="btn btn-ghost btn-sm" onclick="App.closeModal(); AppointmentsFeature.discardCapture()"><span class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body">
-        <img src="${data}" alt="Captured photo" style="width:100%;max-height:45vh;object-fit:contain;border-radius:8px;background:var(--bg);">
-        <div class="form-group" style="margin-top:12px;">
+        <img class="img-contain maxh-45" src="${data}" alt="Captured photo" >
+        <div class="form-group mt-12" >
           <label>Caption (optional)</label>
           <input type="text" class="input" id="photo-caption-input" value="${Utils.escapeHtml(Utils.formatDate(new Date(), 'long'))}" placeholder="e.g. Front windows with Juliet balcony">
         </div>
@@ -1279,14 +1279,14 @@ const AppointmentsFeature = {
     const content = `<div class="sheet-handle"></div>
       <div class="sheet-header"><h3>Photo</h3><button class="btn btn-ghost btn-sm" onclick="App.closeModal()"><span class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body">
-        <img src="${this._photoSrc(p)}" alt="Customer photo" style="width:100%;max-height:55vh;object-fit:contain;border-radius:8px;background:var(--bg);">
-        <div class="form-group" style="margin-top:12px;">
+        <img class="img-contain maxh-55" src="${this._photoSrc(p)}" alt="Customer photo" >
+        <div class="form-group mt-12" >
           <label>Caption</label>
           <input type="text" class="input" id="photo-viewer-caption" value="${Utils.escapeHtml(caption)}">
         </div>
-        <button class="btn btn-outline btn-sm btn-block" onclick="AppointmentsFeature.savePhotoCaption(${photoId})"><span class="material-symbols-rounded" style="font-size:16px;">save</span>Save caption</button>
-        <div style="font-size:12px;color:var(--text-tertiary);text-align:center;margin:10px 0 4px;">Taken ${Utils.escapeHtml(Utils.formatDate(p.createdAt, 'long'))}</div>
-        <button class="btn btn-danger btn-sm btn-block" onclick="AppointmentsFeature.confirmDeletePhoto(${photoId}, ${customerId})"><span class="material-symbols-rounded" style="font-size:16px;">delete</span>Delete photo</button>
+        <button class="btn btn-outline btn-sm btn-block" onclick="AppointmentsFeature.savePhotoCaption(${photoId})"><span class="material-symbols-rounded fs-16" >save</span>Save caption</button>
+        <div class="fs-12 text-tertiary text-center mt-10 mb-xs" >Taken ${Utils.escapeHtml(Utils.formatDate(p.createdAt, 'long'))}</div>
+        <button class="btn btn-danger btn-sm btn-block" onclick="AppointmentsFeature.confirmDeletePhoto(${photoId}, ${customerId})"><span class="material-symbols-rounded fs-16" >delete</span>Delete photo</button>
       </div>`;
     App.openModal(content);
   },
@@ -1306,7 +1306,7 @@ const AppointmentsFeature = {
     const content = `<div class="sheet-handle"></div>
       <div class="sheet-header"><h3>Delete photo?</h3><button class="btn btn-ghost btn-sm" onclick="App.closeModal()"><span class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body">
-        <div style="font-size:14px;color:var(--text-secondary);margin-bottom:16px;">This permanently removes the photo from the customer's gallery. This can't be undone.</div>
+        <div class="fs-14 text-secondary mb-md" >This permanently removes the photo from the customer's gallery. This can't be undone.</div>
         <button class="btn btn-danger btn-block" onclick="AppointmentsFeature.deletePhoto(${photoId}, ${customerId})"><span class="material-symbols-rounded">delete</span>Delete Permanently</button>
       </div>`;
     App.openModal(content);
@@ -1338,13 +1338,13 @@ const AppointmentsFeature = {
     const content = `<div class="sheet-handle"></div>
       <div class="sheet-header"><h3>Delete ${Utils.escapeHtml(name)}?</h3><button class="btn btn-ghost btn-sm" onclick="App.closeModal()"><span class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body">
-        <div style="font-size:14px;color:var(--text-secondary);margin-bottom:16px;">
+        <div class="fs-14 text-secondary mb-md" >
           This permanently deletes ${Utils.escapeHtml(name)}${apptCount > 0 ? ` and ${apptCount} linked visit${apptCount === 1 ? '' : 's'}` : ''}, along with any orders${photoCount > 0 ? `, ${photoCount} photo${photoCount === 1 ? '' : 's'}` : ''} and messages on record for them. This can't be undone.
         </div>
         <button class="btn btn-danger btn-block" onclick="AppointmentsFeature.deleteCustomer(${customerId})">
           <span class="material-symbols-rounded">delete</span>Delete Permanently
         </button>
-        <button class="btn btn-outline btn-block" style="margin-top:8px;" onclick="App.closeModal()">Cancel</button>
+        <button class="btn btn-outline btn-block mt-sm"  onclick="App.closeModal()">Cancel</button>
       </div>`;
     App.openModal(content);
   },
@@ -1396,21 +1396,21 @@ const AppointmentsFeature = {
           <button class="btn btn-ghost btn-sm" onclick="App.navigate('appointments')">
             <span class="material-symbols-rounded">arrow_back</span>
           </button>
-          <h1 style="flex: 1; text-align: center; font-size: 18px;">Visit</h1>
-          <div style="width: 40px;"></div>
+          <h1 class="page-heading" >Visit</h1>
+          <div class="w-40" ></div>
         </div>
 
         <!-- Customer Info -->
-        <div class="card" style="margin: 16px; margin-top: 8px;">
-          <div style="display: flex; align-items: center; gap: 16px;">
+        <div class="card card-page-gap" >
+          <div class="flex items-center gap-md" >
             <div style="display:flex;align-items:center;gap:16px;flex:1;min-width:0;${customer ? 'cursor:pointer;' : ''}" ${customer ? `role="button" tabindex="0" aria-label="View customer profile" onclick="App.navigate('customer', {id: ${customer.id}})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();App.navigate('customer', {id: ${customer.id}});}"` : ''}>
-              <div style="width: 56px; height: 56px; flex-shrink:0; border-radius: 50%; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600;">
+              <div class="avatar-56 shrink-0" >
                 ${appt.clientName ? Utils.escapeHtml(appt.clientName.charAt(0).toUpperCase()) : '?'}
               </div>
-              <div style="flex: 1; min-width:0;">
-                <div style="font-size: 20px; font-weight: 600;">${Utils.escapeHtml(appt.clientName || 'Unknown')}</div>
+              <div class="flex-1 min-w-0" >
+                <div class="fs-20 fw-600" >${Utils.escapeHtml(appt.clientName || 'Unknown')}</div>
                 ${customer ? `
-                  <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">${Utils.escapeHtml(customer.customerNumber || '')} · View profile</div>
+                  <div class="fs-13 text-secondary mt-2" >${Utils.escapeHtml(customer.customerNumber || '')} · View profile</div>
                 ` : ''}
               </div>
             </div>
@@ -1420,17 +1420,17 @@ const AppointmentsFeature = {
           </div>
 
           ${contactPhone ? `
-            <div style="display: flex; gap: 8px; margin-top: 16px;">
-              <button class="btn btn-outline btn-sm" style="flex: 1; gap: 6px;" onclick="ContactFeature.open({name: '${Utils.escapeJsString(appt.clientName || 'Customer')}', phone: '${Utils.escapeJsString(contactPhone)}'})">
-                <span class="material-symbols-rounded" style="font-size: 18px;">chat</span>
+            <div class="flex gap-sm mt-md" >
+              <button class="btn btn-outline btn-sm flex-1 gap-6"  onclick="ContactFeature.open({name: '${Utils.escapeJsString(appt.clientName || 'Customer')}', phone: '${Utils.escapeJsString(contactPhone)}'})">
+                <span class="material-symbols-rounded fs-18" >chat</span>
                 Contact
               </button>
               ${(() => {
                 const match = (typeof TalkFeature !== 'undefined') ? TalkFeature.getTemplateForOutcome(appt.outcome) : null;
                 if (!match) return '';
                 return `
-                  <button class="btn btn-outline btn-sm" style="flex: 1; gap: 6px;" onclick="TalkFeature.sendMessage(${appt.id}, '${Utils.escapeJsString(match.template)}')">
-                    <span class="material-symbols-rounded" style="font-size: 18px;">forward_to_inbox</span>
+                  <button class="btn btn-outline btn-sm flex-1 gap-6"  onclick="TalkFeature.sendMessage(${appt.id}, '${Utils.escapeJsString(match.template)}')">
+                    <span class="material-symbols-rounded fs-18" >forward_to_inbox</span>
                     ${Utils.escapeHtml(match.action)}
                   </button>
                 `;
@@ -1440,32 +1440,32 @@ const AppointmentsFeature = {
         </div>
 
         <!-- Visit Details -->
-        <div class="card" style="margin: 16px; margin-top: 0;">
-          <div style="display: flex; flex-direction: column; gap: 16px;">
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <span class="material-symbols-rounded" style="color: var(--text-tertiary);">event</span>
+        <div class="card card-page" >
+          <div class="flex flex-col gap-md" >
+            <div class="flex items-center gap-12" >
+              <span class="material-symbols-rounded text-tertiary" >event</span>
               <div>
-                <div style="font-weight: 500;">${Utils.formatDate(appt.date, 'long')}</div>
-                <div style="font-size: 13px; color: var(--text-secondary);">${Utils.formatTime(appt.date)}${this.getVisitDurationLabel(appt)}</div>
+                <div class="fw-500" >${Utils.formatDate(appt.date, 'long')}</div>
+                <div class="fs-13 text-secondary" >${Utils.formatTime(appt.date)}${this.getVisitDurationLabel(appt)}</div>
               </div>
             </div>
 
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <span class="material-symbols-rounded" style="color: var(--text-tertiary);">${typeConfig?.icon || 'event'}</span>
+            <div class="flex items-center gap-12" >
+              <span class="material-symbols-rounded text-tertiary" >${typeConfig?.icon || 'event'}</span>
               <div>
-                <div style="font-weight: 500;">${Utils.escapeHtml(typeConfig?.name || appt.type)}</div>
-                <div style="font-size: 13px; color: var(--text-secondary);">${appt.source === 'company_system' ? 'From company lead system' : 'Self-generated'}</div>
+                <div class="fw-500" >${Utils.escapeHtml(typeConfig?.name || appt.type)}</div>
+                <div class="fs-13 text-secondary" >${appt.source === 'company_system' ? 'From company lead system' : 'Self-generated'}</div>
               </div>
             </div>
 
             ${appt.address ? `
-              <div style="display: flex; align-items: flex-start; gap: 12px;">
-                <span class="material-symbols-rounded" style="color: var(--text-tertiary); margin-top: 2px;">location_on</span>
-                <div style="flex: 1;">
-                  <div style="font-weight: 500;">${Utils.escapeHtml(appt.address)}</div>
+              <div class="flex items-start gap-12" >
+                <span class="material-symbols-rounded text-tertiary mt-2" >location_on</span>
+                <div class="flex-1" >
+                  <div class="fw-500" >${Utils.escapeHtml(appt.address)}</div>
                 </div>
-                <button class="btn btn-ghost btn-sm" aria-label="Edit address" style="flex-shrink:0;" onclick="AppointmentsFeature.openEditDetailsModal(${appt.id})">
-                  <span class="material-symbols-rounded" style="font-size:18px;">edit</span>
+                <button class="btn btn-ghost btn-sm shrink-0" aria-label="Edit address"  onclick="AppointmentsFeature.openEditDetailsModal(${appt.id})">
+                  <span class="material-symbols-rounded fs-18" >edit</span>
                 </button>
               </div>
             ` : ''}
@@ -1473,9 +1473,9 @@ const AppointmentsFeature = {
         </div>
 
         ${measurements.length ? `
-          <div class="card" style="margin: 16px; margin-top: 0;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <div style="font-size:13px;font-weight:600;color:var(--text-secondary);">Measurements</div>
+          <div class="card card-page" >
+            <div class="flex items-center justify-between mb-sm" >
+              <div class="fs-13 fw-600 text-secondary" >Measurements</div>
               <button class="btn btn-ghost btn-sm" aria-label="Add another measurement" onclick="App.navigate('measure', {appointmentId: ${appt.id}})">
                 <span class="material-symbols-rounded">add</span>
               </button>
@@ -1494,9 +1494,9 @@ const AppointmentsFeature = {
         ` : ''}
 
         ${appt.status !== 'cancelled' ? `
-          <div style="padding:0 16px;margin-bottom:16px;">
+          <div class="px-md mb-md" >
             <div class="divider-text">Manage</div>
-            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:10px;">
+            <div class="grid-3 gap-sm mb-10" >
               ${appt.address ? `
                 <button class="btn btn-outline btn-sm" onclick="AppointmentsFeature.navigateToVisit('${Utils.escapeJsString(appt.address)}', ${appt.id})">
                   <span class="material-symbols-rounded">navigation</span>
@@ -1518,38 +1518,38 @@ const AppointmentsFeature = {
             </button>
           </div>
         ` : `
-          <div style="padding:0 16px;margin-bottom:16px;">
-            <div class="card" style="background:var(--danger-light);">
-              <strong style="color:var(--danger);">Cancelled</strong>
-              <div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">This visit is kept in the record, but removed from live planning.</div>
+          <div class="px-md mb-md" >
+            <div class="card bg-danger-light" >
+              <strong class="text-danger" >Cancelled</strong>
+              <div class="fs-13 text-secondary mt-xs" >This visit is kept in the record, but removed from live planning.</div>
             </div>
           </div>
         `}
 
         <!-- Outcome Section -->
         ${appt.status === 'confirmed' ? `
-          <div style="padding: 0 16px;">
+          <div class="px-md" >
             <div class="divider-text">Outcome</div>
             ${this.renderOutcomeButtons(appt)}
           </div>
         ` : appt.outcome ? `
-          <div style="padding: 0 16px;">
+          <div class="px-md" >
             <div class="divider-text">Outcome</div>
-            <div class="card" style="background: var(--secondary-light);">
-              <div style="display: flex; align-items: center; gap: 12px;">
-                <span class="material-symbols-rounded" style="color: var(--secondary);">check_circle</span>
-                <div style="flex:1;">
-                  <div style="font-weight: 600;">${this.getOutcomeName(appt.outcome, appt.type)}</div>
-                  ${appt.value > 0 ? `<div style="font-size: 13px; color: var(--secondary);">${Utils.formatCurrency(appt.value)}</div>` : ''}
-                  ${appt.quoteReason ? `<div style="font-size: 13px; color: var(--text-secondary); margin-top:2px;">${Utils.escapeHtml(this.getQuoteReasonLabel(appt.quoteReason))}</div>` : ''}
+            <div class="card bg-success-light" >
+              <div class="flex items-center gap-12" >
+                <span class="material-symbols-rounded text-success" >check_circle</span>
+                <div class="flex-1" >
+                  <div class="fw-600" >${this.getOutcomeName(appt.outcome, appt.type)}</div>
+                  ${appt.value > 0 ? `<div class="fs-13 text-success" >${Utils.formatCurrency(appt.value)}</div>` : ''}
+                  ${appt.quoteReason ? `<div class="fs-13 text-secondary mt-2" >${Utils.escapeHtml(this.getQuoteReasonLabel(appt.quoteReason))}</div>` : ''}
                 </div>
                 <button class="btn btn-ghost btn-sm" aria-label="Change outcome" onclick="AppointmentsFeature.openChangeOutcomeModal(${appt.id})">
                   <span class="material-symbols-rounded">edit</span>
                 </button>
               </div>
               ${appt.quoteReason === 'expensive' ? `
-                <button class="btn btn-outline btn-sm btn-block" style="margin-top:10px;" onclick="AppointmentsFeature.openFloorCheckModal(${appt.id})">
-                  <span class="material-symbols-rounded" style="font-size:18px;">calculate</span>
+                <button class="btn btn-outline btn-sm btn-block mt-10"  onclick="AppointmentsFeature.openFloorCheckModal(${appt.id})">
+                  <span class="material-symbols-rounded fs-18" >calculate</span>
                   Check my floor
                 </button>
               ` : ''}
@@ -1558,19 +1558,19 @@ const AppointmentsFeature = {
         ` : ''}
 
         <!-- Notes -->
-        <div style="padding: 0 16px; margin-top: 16px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;">
-            <div class="divider-text" style="margin-bottom:0;">Notes</div>
+        <div class="px-md mt-md" >
+          <div class="flex items-center justify-between" >
+            <div class="divider-text mb-0" >Notes</div>
             <button class="btn btn-ghost btn-sm" aria-label="${appt.notes ? 'Edit notes' : 'Add notes'}" onclick="AppointmentsFeature.openEditNotesModal(${appt.id})">
               <span class="material-symbols-rounded">${appt.notes ? 'edit' : 'add'}</span>
             </button>
           </div>
           ${appt.notes ? `
-            <div class="card inset-dark" style="background: var(--bg);">
-              <div style="font-size: 14px; color: var(--text-secondary); white-space: pre-wrap;">${Utils.escapeHtml(appt.notes)}</div>
+            <div class="card inset-dark bg-bg" >
+              <div class="fs-14 text-secondary prewrap" >${Utils.escapeHtml(appt.notes)}</div>
             </div>
           ` : `
-            <div style="font-size:13px;color:var(--text-tertiary);">No notes yet.</div>
+            <div class="fs-13 text-tertiary" >No notes yet.</div>
           `}
         </div>
       </div>
@@ -1599,11 +1599,11 @@ const AppointmentsFeature = {
           <button class="btn btn-ghost btn-sm" onclick="App.navigate('appointments')">
             <span class="material-symbols-rounded">arrow_back</span>
           </button>
-          <h1 style="flex: 1; text-align: center; font-size: 18px;">New Visit</h1>
-          <div style="width: 40px;"></div>
+          <h1 class="page-heading" >New Visit</h1>
+          <div class="w-40" ></div>
         </div>
 
-        <div style="padding: 16px;">
+        <div class="p-md" >
           <div class="form-group">
             <label>Customer Name *</label>
             <input type="text" class="input" id="appt-name" autocomplete="name" placeholder="e.g. Sarah Johnson" value="${Utils.escapeHtml(scannedName)}">
@@ -1623,7 +1623,7 @@ const AppointmentsFeature = {
             <span class="material-symbols-rounded">document_scanner</span>
             Scan customer details
           </button>
-          <div class="hint" style="margin-top:-4px;margin-bottom:16px;">Use this for a paper note, screenshot, business card or order document.</div>
+          <div class="hint mt-neg-4 mb-md" >Use this for a paper note, screenshot, business card or order document.</div>
 
 	          <div class="form-row">
 	            <div class="form-group">
@@ -1651,8 +1651,8 @@ const AppointmentsFeature = {
 	              </button>
 	            </div>
 	          </div>
-	          <div class="hint" id="visit-day-advice" style="margin-top:-8px;margin-bottom:8px;">${Utils.escapeHtml(mode.friendLine)}</div>
-	          <div class="hint" id="travel-room-advice" style="margin-bottom:16px;">Rough area-based check of the gap before and after this visit.</div>
+	          <div class="hint mt-neg-8 mb-sm" id="visit-day-advice" >${Utils.escapeHtml(mode.friendLine)}</div>
+	          <div class="hint mb-md" id="travel-room-advice" >Rough area-based check of the gap before and after this visit.</div>
 
           <div class="form-group">
             <label>Parking / Access</label>
@@ -1678,7 +1678,7 @@ const AppointmentsFeature = {
             <textarea class="textarea" id="appt-notes" placeholder="Rooms, product interest, objections, future opportunity..."></textarea>
           </div>
 
-          <button class="btn btn-primary btn-block" id="appt-save-btn" style="margin-top: 8px;" onclick="AppointmentsFeature.saveAppointment()">
+          <button class="btn btn-primary btn-block mt-sm" id="appt-save-btn"  onclick="AppointmentsFeature.saveAppointment()">
             Save Visit
           </button>
         </div>
@@ -1829,9 +1829,9 @@ const AppointmentsFeature = {
     const content = `<div class="sheet-handle"></div>
       <div class="sheet-header"><h3>Send Booking Confirmation?</h3><button class="btn btn-ghost btn-sm" onclick="AppointmentsFeature.skipBookingConfirmation()"><span class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body">
-        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;">Introduces you, confirms the visit, and asks about clear windows and parking.</div>
+        <div class="fs-13 text-secondary mb-sm" >Introduces you, confirms the visit, and asks about clear windows and parking.</div>
         <textarea class="textarea" id="booking-confirm-message" style="min-height:130px;">${Utils.escapeHtml(message)}</textarea>
-        <div style="display:flex;gap:8px;margin-top:14px;">
+        <div class="flex gap-sm mt-14" >
           <button class="btn btn-outline btn-block" onclick="AppointmentsFeature.skipBookingConfirmation()">Not Now</button>
           <button class="btn btn-primary btn-block" onclick="AppointmentsFeature.sendBookingConfirmation('${Utils.escapeJsString(Utils.toWhatsAppPhone(phone) || '')}')">
             <span class="material-symbols-rounded">chat</span>Send
@@ -2054,12 +2054,12 @@ const AppointmentsFeature = {
         </button>
       </div>
       <div class="sheet-body">
-        <div style="font-size:14px;color:var(--text-secondary);line-height:1.5;margin-bottom:14px;">
+        <div class="fs-14 text-secondary lh-150 mb-14" >
           This may still work, but I would check the driving time before committing it.
         </div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px;">
+        <div class="flex flex-col gap-sm mb-18" >
           ${warnings.map(text => `
-            <div style="border:1px solid var(--border-light);border-radius:var(--radius-sm);padding:10px;background:var(--warning-light);font-size:13px;line-height:1.4;">
+            <div class="note-warning fs-13 lh-140" >
               ${Utils.escapeHtml(text)}
             </div>
           `).join('')}
@@ -2067,7 +2067,7 @@ const AppointmentsFeature = {
         <button class="btn btn-primary btn-block" onclick="AppointmentsFeature.confirmTravelWarning()">
           Save anyway
         </button>
-        <button class="btn btn-outline btn-block" style="margin-top:10px;" onclick="App.closeModal();">
+        <button class="btn btn-outline btn-block mt-10"  onclick="App.closeModal();">
           Adjust time
         </button>
       </div>
@@ -2159,21 +2159,21 @@ const AppointmentsFeature = {
         </button>
       </div>
       <div class="sheet-body">
-        <div style="font-size:14px;color:var(--text-secondary);line-height:1.5;margin-bottom:14px;">
+        <div class="fs-14 text-secondary lh-150 mb-14" >
           This may still be a genuine second visit, but I found something close enough to check before saving.
         </div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px;">
+        <div class="flex flex-col gap-sm mb-18" >
           ${warnings.map(w => `
-            <div class="inset-dark" style="border:1px solid var(--border-light);border-radius:var(--radius-sm);padding:10px;background:var(--bg);">
-              <div style="font-weight:700;color:var(--text-primary);">${Utils.escapeHtml(w.title)}</div>
-              <div style="font-size:12px;color:var(--text-tertiary);margin-top:2px;">${Utils.escapeHtml(w.detail)}</div>
+            <div class="inset-dark note-dark" >
+              <div class="fw-700 text-primary" >${Utils.escapeHtml(w.title)}</div>
+              <div class="fs-12 text-tertiary mt-2" >${Utils.escapeHtml(w.detail)}</div>
             </div>
           `).join('')}
         </div>
         <button class="btn btn-primary btn-block" onclick="AppointmentsFeature.confirmDuplicateSave()">
           Save anyway
         </button>
-        <button class="btn btn-outline btn-block" style="margin-top:10px;" onclick="App.closeModal();">
+        <button class="btn btn-outline btn-block mt-10"  onclick="App.closeModal();">
           Check details
         </button>
       </div>
@@ -2400,7 +2400,7 @@ const AppointmentsFeature = {
         </button>
       </div>
       <div class="sheet-body">
-        <div style="font-size:14px;color:var(--text-secondary);line-height:1.5;margin-bottom:14px;">
+        <div class="fs-14 text-secondary lh-150 mb-14" >
           I will keep this in the customer record, but remove it from live diary, route and targets.
         </div>
         <div class="form-group">
@@ -2511,7 +2511,7 @@ const AppointmentsFeature = {
         </button>
       </div>
       <div class="sheet-body">
-        <div class="hint" style="margin-top:-4px;margin-bottom:14px;">Picking an outcome below replaces the current one.</div>
+        <div class="hint mt-neg-4 mb-14" >Picking an outcome below replaces the current one.</div>
         ${this.renderOutcomeButtons(appt)}
       </div>
     `;
@@ -2564,7 +2564,7 @@ const AppointmentsFeature = {
           </div>
           ${saleOutcome ? `
             <div class="form-group">
-              <label>Discount Offered (%) <span style="font-weight:400;color:var(--text-tertiary);">- optional</span></label>
+              <label>Discount Offered (%) <span class="fw-400 text-tertiary" >- optional</span></label>
               <input type="number" class="input" inputmode="decimal" id="outcome-discount" placeholder="0" step="1" min="0" max="100" oninput="AppointmentsFeature.updateOutcomeCommission()">
             </div>
             <div class="form-group">
@@ -2574,7 +2574,7 @@ const AppointmentsFeature = {
             </div>
             <div id="outcome-discount-breakdown"></div>
           ` : `
-            <div class="hint" style="margin-top:-8px;margin-bottom:14px;">Quote value is kept on the table, but no commission is counted until it becomes an order.</div>
+            <div class="hint mt-neg-8 mb-14" >Quote value is kept on the table, but no commission is counted until it becomes an order.</div>
           `}
         ` : ''}
 
@@ -2594,7 +2594,7 @@ const AppointmentsFeature = {
           </div>
         ` : outcomeId === 'windows_too_high' ? `
           <div class="form-group">
-            <label>What's the access/safety issue? <span style="color: var(--danger, #c0392b);">*</span></label>
+            <label>What's the access/safety issue? <span class="text-danger" >*</span></label>
             <select class="select" id="outcome-reason" required>
               <option value="">Select issue...</option>
               <option value="too_high_unsafe">Too high to reach safely</option>
@@ -2605,7 +2605,7 @@ const AppointmentsFeature = {
           </div>
         ` : ['other_no_sale', 'out_of_range', 'spec_mismatch', 'not_looking_for'].includes(outcomeId) ? `
           <div class="form-group">
-            <label>Reason${outcomeId === 'other_no_sale' ? ' <span style="color: var(--danger, #c0392b);">*</span>' : ''}</label>
+            <label>Reason${outcomeId === 'other_no_sale' ? ' <span class="text-danger" >*</span>' : ''}</label>
             <select class="select" id="outcome-reason" ${outcomeId === 'other_no_sale' ? 'required' : ''}>
               <option value="">Select reason...</option>
               <option value="price">Price too high</option>
@@ -2652,14 +2652,14 @@ const AppointmentsFeature = {
     const targetHtml = ctx ? (() => {
       const projectedTotal = ctx.weekSales + netValue;
       const stillHitsTarget = projectedTotal >= ctx.target;
-      return `<div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+      return `<div class="flex items-center gap-sm mt-sm" >
         <span class="material-symbols-rounded" style="font-size:18px;color:${stillHitsTarget ? 'var(--secondary)' : 'var(--danger)'};">${stillHitsTarget ? 'check_circle' : 'warning'}</span>
         <span style="font-size:12px;font-weight:600;color:${stillHitsTarget ? 'var(--secondary)' : 'var(--danger)'};">${stillHitsTarget ? 'Still on target' : 'Target may be at risk'} - ${Utils.formatCurrency(projectedTotal)} of ${Utils.formatCurrency(ctx.target)} this week</span>
       </div>`;
     })() : '';
 
     breakdownEl.innerHTML = `
-      <div style="background:var(--bg);border-radius:12px;padding:12px 14px;margin-top:-8px;margin-bottom:14px;font-size:13px;color:var(--text-secondary);line-height:1.6;">
+      <div class="dark-note-12 mt-neg-8 mb-14 fs-13 text-secondary lh-160" >
         Discount: <strong>${Utils.formatCurrency(discountAmount)}</strong> · Sale after discount: <strong>${Utils.formatCurrency(netValue)}</strong>
         ${targetHtml}
       </div>
@@ -2786,11 +2786,11 @@ const AppointmentsFeature = {
     const content = `<div class="sheet-handle"></div>
       <div class="sheet-header"><h3>Book the Service Call?</h3><button class="btn btn-ghost btn-sm" onclick="AppointmentsFeature.skipServiceCallBooking(${appt.id})"><span class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body">
-        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">Take you straight to a new visit for ${Utils.escapeHtml(appt.clientName || 'this customer')}, pre-filled with their details and set to Service Call. Pick the date and time on the next screen.</div>
+        <div class="fs-13 text-secondary mb-md" >Take you straight to a new visit for ${Utils.escapeHtml(appt.clientName || 'this customer')}, pre-filled with their details and set to Service Call. Pick the date and time on the next screen.</div>
         <button class="btn btn-primary btn-block" onclick="AppointmentsFeature.bookServiceCallNow(${appt.id})">
           <span class="material-symbols-rounded">build</span>Book Service Call
         </button>
-        <button class="btn btn-outline btn-block" style="margin-top:8px;" onclick="AppointmentsFeature.skipServiceCallBooking(${appt.id})">
+        <button class="btn btn-outline btn-block mt-sm"  onclick="AppointmentsFeature.skipServiceCallBooking(${appt.id})">
           Not Now
         </button>
       </div>`;
@@ -2843,7 +2843,7 @@ const AppointmentsFeature = {
         </button>
       </div>
       <div class="sheet-body" id="floor-check-body">
-        <div style="text-align:center;padding:32px 0;color:var(--text-tertiary);">Working it out...</div>
+        <div class="center-box-tertiary" >Working it out...</div>
       </div>
     `);
 
@@ -2878,28 +2878,28 @@ const AppointmentsFeature = {
     if (!bodyEl()) return; // modal was closed while we were working this out
 
     bodyEl().innerHTML = `
-      <div class="hint" style="margin-top:-4px;margin-bottom:14px;">
+      <div class="hint mt-neg-4 mb-14" >
         This is a walk-away line, not something to offer. Hold rack rate first — this is only for when the deal is genuinely about to be lost.
       </div>
-      <div class="card inset-dark" style="background: var(--bg);margin-bottom:12px;">
-        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
-          <span style="color:var(--text-secondary);">Round trip</span>
+      <div class="card inset-dark bg-bg mb-12" >
+        <div class="flex justify-between fs-13 mb-6" >
+          <span class="text-secondary" >Round trip</span>
           <span>${floor.roundTripKm.toFixed(1)} km &middot; ${Utils.formatCurrency(floor.tripCost)}</span>
         </div>
-        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
-          <span style="color:var(--text-secondary);">Time (drive + visit)</span>
+        <div class="flex justify-between fs-13 mb-6" >
+          <span class="text-secondary" >Time (drive + visit)</span>
           <span>${Math.round(floor.totalMinutes)} min &middot; ${Utils.formatCurrency(floor.timeCost)}</span>
         </div>
-        <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;border-top:1px solid var(--border-light);padding-top:8px;margin-top:2px;">
+        <div class="flex justify-between fs-13 fw-700 top-divider-8 mt-2" >
           <span>Minimum commission worth taking</span>
           <span>${Utils.formatCurrency(floor.minCommission)}</span>
         </div>
       </div>
       ${floor.minSaleValue !== null ? `
-        <div class="card" style="margin-bottom:12px;">
-          <div style="font-size:13px;color:var(--text-secondary);">Floor sale price</div>
-          <div style="font-size:22px;font-weight:800;">${Utils.formatCurrency(floor.minSaleValue)}</div>
-          ${quoted > 0 ? `<div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">Your quote of ${Utils.formatCurrency(quoted)} would pay ${Utils.formatCurrency(quotedCommission)} commission.</div>` : ''}
+        <div class="card mb-12" >
+          <div class="fs-13 text-secondary" >Floor sale price</div>
+          <div class="fs-22 fw-800" >${Utils.formatCurrency(floor.minSaleValue)}</div>
+          ${quoted > 0 ? `<div class="fs-12 text-secondary mt-xs" >Your quote of ${Utils.formatCurrency(quoted)} would pay ${Utils.formatCurrency(quotedCommission)} commission.</div>` : ''}
         </div>
       ` : `
         <div class="hint">Can't work out a floor price — your commission rate is set to 0% in Settings.</div>

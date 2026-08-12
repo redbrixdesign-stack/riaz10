@@ -156,30 +156,30 @@ const FollowupsFeature = {
     return `
       <div class="fade-in">
         <div class="top-header">
-          <h1 style="flex:1;text-align:center;font-size:18px;">Follow-ups</h1>
+          <h1 class="page-heading" >Follow-ups</h1>
         </div>
-        <div style="padding:0 16px 24px;">
+        <div class="px-md pb-lg" >
           ${due.length === 0 && later.length === 0 ? `
-            <div class="empty-state" style="padding:48px 24px;">
+            <div class="empty-state empty-state-lg" >
               <span class="material-symbols-rounded">mark_email_read</span>
-              <div style="font-weight:600;margin-bottom:4px;">All caught up.</div>
-              <div style="font-size:13px;">Quotes to chase, payments to collect and visit reminders will all land here when they're due.</div>
+              <div class="fw-600 mb-xs" >All caught up.</div>
+              <div class="fs-13" >Quotes to chase, payments to collect and visit reminders will all land here when they're due.</div>
             </div>
           ` : ''}
 
           ${due.length ? `
-            <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin:16px 0 8px;">Due now (${due.length})</div>
+            <div class="section-label" >Due now (${due.length})</div>
             ${due.map(t => this.renderTaskCard(t)).join('')}
           ` : ''}
 
           ${later.length ? `
-            <div style="font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin:16px 0 8px;">Not due yet (${later.length})</div>
+            <div class="section-label" >Not due yet (${later.length})</div>
             ${later.map(t => this.renderTaskCard(t, true)).join('')}
           ` : ''}
 
-          <div style="margin-top:20px;">
+          <div class="mt-20" >
             <div class="divider-text">Quick opens</div>
-            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+            <div class="grid-2 gap-sm" >
               <button class="btn btn-outline btn-sm" onclick="App.navigate('orders')"><span class="material-symbols-rounded">view_kanban</span>Orders board</button>
               <button class="btn btn-outline btn-sm" onclick="App.navigate('talk')"><span class="material-symbols-rounded">chat</span>Talk</button>
             </div>
@@ -207,22 +207,22 @@ const FollowupsFeature = {
 
     return `
       <div class="fup-card" style="border-left:3px solid ${accent};opacity:${muted ? '0.65' : '1'};">
-        <div style="display:flex;align-items:flex-start;gap:12px;">
+        <div class="flex items-start gap-12" >
           <span class="material-symbols-rounded" style="color:${accent};margin-top:2px;">${icons[task.kind] || 'campaign'}</span>
-          <div style="flex:1;min-width:0;">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span style="font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</span>
-              ${task.kind === 'payment' ? '<span class="badge badge-warning" style="font-size:10px;flex-shrink:0;">Payment</span>' : ''}
-              ${task.kind === 'visit_today' ? '<span class="badge badge-primary" style="font-size:10px;flex-shrink:0;">Today</span>' : ''}
-              ${task.priority === 'high' ? '<span class="badge badge-danger" style="font-size:10px;flex-shrink:0;">High</span>' : ''}
+          <div class="flex-1 min-w-0" >
+            <div class="flex items-center gap-sm" >
+              <span class="fw-600 fs-15 ellipsis" >${name}</span>
+              ${task.kind === 'payment' ? '<span class="badge badge-warning fs-10 shrink-0" >Payment</span>' : ''}
+              ${task.kind === 'visit_today' ? '<span class="badge badge-primary fs-10 shrink-0" >Today</span>' : ''}
+              ${task.priority === 'high' ? '<span class="badge badge-danger fs-10 shrink-0" >High</span>' : ''}
             </div>
-            <div style="font-size:13px;color:var(--text-secondary);margin-top:2px;">${Utils.escapeHtml(task.action)}</div>
-            <div style="font-size:12px;color:var(--text-tertiary);margin-top:2px;">${meta}</div>
+            <div class="fs-13 text-secondary mt-2" >${Utils.escapeHtml(task.action)}</div>
+            <div class="fs-12 text-tertiary mt-2" >${meta}</div>
           </div>
         </div>
-        <div style="display:flex;gap:8px;margin-top:10px;">
+        <div class="flex gap-sm mt-10" >
           ${this.renderPrimaryAction(task)}
-          ${task.customer ? `<button class="btn btn-ghost btn-sm" aria-label="Open customer profile" onclick="App.navigate('customer', {id: ${task.customer.id}})"><span class="material-symbols-rounded" style="font-size:18px;">person</span></button>` : ''}
+          ${task.customer ? `<button class="btn btn-ghost btn-sm" aria-label="Open customer profile" onclick="App.navigate('customer', {id: ${task.customer.id}})"><span class="material-symbols-rounded fs-18" >person</span></button>` : ''}
         </div>
       </div>
     `;
@@ -231,35 +231,35 @@ const FollowupsFeature = {
   renderPrimaryAction(task) {
     if (task.kind === 'quote') {
       return `
-        <button class="btn btn-sm btn-primary" style="flex:1;" onclick="TalkFeature.sendMessage(${task.appointment.id}, '${Utils.escapeJsString(task.template)}')">
-          <span class="material-symbols-rounded" style="font-size:16px;">send</span>Follow up
+        <button class="btn btn-sm btn-primary flex-1"  onclick="TalkFeature.sendMessage(${task.appointment.id}, '${Utils.escapeJsString(task.template)}')">
+          <span class="material-symbols-rounded fs-16" >send</span>Follow up
         </button>
-        <button class="btn btn-sm btn-outline" style="flex:1;" onclick="App.navigate('appointments', {id: ${task.appointment.id}})">Visit</button>
+        <button class="btn btn-sm btn-outline flex-1"  onclick="App.navigate('appointments', {id: ${task.appointment.id}})">Visit</button>
       `;
     }
     if (task.kind === 'payment') {
       const order = task.order;
       return `
-        <button class="btn btn-sm btn-primary" style="flex:1;" onclick="OrdersFeature.openOrderSheet(${order.id})">
-          <span class="material-symbols-rounded" style="font-size:16px;">payments</span>Collect
+        <button class="btn btn-sm btn-primary flex-1"  onclick="OrdersFeature.openOrderSheet(${order.id})">
+          <span class="material-symbols-rounded fs-16" >payments</span>Collect
         </button>
         ${order.appointmentId ? `
-          <button class="btn btn-sm btn-outline" style="flex:1;" onclick="OrdersFeature.paymentMessage(${order.id})">
-            <span class="material-symbols-rounded" style="font-size:16px;">send</span>Message
+          <button class="btn btn-sm btn-outline flex-1"  onclick="OrdersFeature.paymentMessage(${order.id})">
+            <span class="material-symbols-rounded fs-16" >send</span>Message
           </button>
         ` : ''}
       `;
     }
     if (task.kind === 'visit_today') {
       return `
-        <button class="btn btn-sm btn-primary" style="flex:1;" onclick="App.navigate('appointments', {id: ${task.appointment.id}})">
-          <span class="material-symbols-rounded" style="font-size:16px;">fact_check</span>Log outcome
+        <button class="btn btn-sm btn-primary flex-1"  onclick="App.navigate('appointments', {id: ${task.appointment.id}})">
+          <span class="material-symbols-rounded fs-16" >fact_check</span>Log outcome
         </button>
       `;
     }
     return `
-      <button class="btn btn-sm btn-primary" style="flex:1;" onclick="TalkFeature.sendDayBefore(${task.appointment.id})">
-        <span class="material-symbols-rounded" style="font-size:16px;">send</span>Send reminder
+      <button class="btn btn-sm btn-primary flex-1"  onclick="TalkFeature.sendDayBefore(${task.appointment.id})">
+        <span class="material-symbols-rounded fs-16" >send</span>Send reminder
       </button>
     `;
   },

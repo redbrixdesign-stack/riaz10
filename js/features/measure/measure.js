@@ -47,10 +47,10 @@ const MeasureFeature = {
     return `<div class="fade-in">
       <div class="top-header">
         <button class="btn btn-ghost btn-sm" onclick="App.navigate('appointments',{id:${safeAppointmentId}})"><span class="material-symbols-rounded">arrow_back</span></button>
-        <h1 style="flex:1;text-align:center;font-size:18px;">${existing ? 'Edit Measurement' : 'Measure'}</h1>
-        <div style="width:40px;"></div>
+        <h1 class="page-heading" >${existing ? 'Edit Measurement' : 'Measure'}</h1>
+        <div class="w-40" ></div>
       </div>
-      <div style="padding:16px;">
+      <div class="p-md" >
         <div class="form-group"><label>Window / Location</label><input type="text" class="input" id="meas-name" placeholder="e.g. Living Room Bay - Left" value="${existing ? Utils.escapeHtml(existing.windowName || '') : ''}"></div>
 
         <div class="form-group"><label>Fitting Type</label>
@@ -60,41 +60,41 @@ const MeasureFeature = {
           </div>
         </div>
 
-        <div class="card" style="margin-bottom:16px;">
-          <div style="font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px;"><span class="material-symbols-rounded">width</span>Width (${unit})</div>
+        <div class="card mb-md" >
+          <div class="fw-600 mb-12 flex items-center gap-sm" ><span class="material-symbols-rounded">width</span>Width (${unit})</div>
           <div class="form-row">
-            <div class="form-group" style="margin-bottom:0;"><label>Top</label><input type="number" class="input" inputmode="decimal" id="meas-w-top" placeholder="0" step="${step}" value="${v(existing?.widthTop)}" onchange="MeasureFeature.calculate()"></div>
-            <div class="form-group" style="margin-bottom:0;"><label>Middle</label><input type="number" class="input" inputmode="decimal" id="meas-w-mid" placeholder="0" step="${step}" value="${v(existing?.widthMiddle)}" onchange="MeasureFeature.calculate()"></div>
+            <div class="form-group mb-0" ><label>Top</label><input type="number" class="input" inputmode="decimal" id="meas-w-top" placeholder="0" step="${step}" value="${v(existing?.widthTop)}" onchange="MeasureFeature.calculate()"></div>
+            <div class="form-group mb-0" ><label>Middle</label><input type="number" class="input" inputmode="decimal" id="meas-w-mid" placeholder="0" step="${step}" value="${v(existing?.widthMiddle)}" onchange="MeasureFeature.calculate()"></div>
           </div>
-          <div class="form-group" style="margin-top:12px;margin-bottom:0;"><label>Bottom</label><input type="number" class="input" inputmode="decimal" id="meas-w-bot" placeholder="0" step="${step}" value="${v(existing?.widthBottom)}" onchange="MeasureFeature.calculate()"></div>
-          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center;">
-            <span style="font-size:13px;color:var(--text-secondary);">Least: <strong id="calc-w-least">--</strong></span>
-            <span style="font-size:13px;color:var(--primary);font-weight:600;">Use: <strong id="calc-w-use">--</strong></span>
+          <div class="form-group mt-12 mb-0" ><label>Bottom</label><input type="number" class="input" inputmode="decimal" id="meas-w-bot" placeholder="0" step="${step}" value="${v(existing?.widthBottom)}" onchange="MeasureFeature.calculate()"></div>
+          <div class="mt-12 top-divider flex justify-between items-center" >
+            <span class="fs-13 text-secondary" >Least: <strong id="calc-w-least">--</strong></span>
+            <span class="fs-13 text-brand fw-600" >Use: <strong id="calc-w-use">--</strong></span>
           </div>
         </div>
 
-        <div class="card" style="margin-bottom:16px;">
-          <div style="font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px;"><span class="material-symbols-rounded">height</span>Drop (${unit})</div>
+        <div class="card mb-md" >
+          <div class="fw-600 mb-12 flex items-center gap-sm" ><span class="material-symbols-rounded">height</span>Drop (${unit})</div>
           <div class="form-row">
-            <div class="form-group" style="margin-bottom:0;"><label>Left</label><input type="number" class="input" inputmode="decimal" id="meas-d-left" placeholder="0" step="${step}" value="${v(existing?.dropLeft)}" onchange="MeasureFeature.calculate()"></div>
-            <div class="form-group" style="margin-bottom:0;"><label>Centre</label><input type="number" class="input" inputmode="decimal" id="meas-d-centre" placeholder="0" step="${step}" value="${v(existing?.dropCentre)}" onchange="MeasureFeature.calculate()"></div>
+            <div class="form-group mb-0" ><label>Left</label><input type="number" class="input" inputmode="decimal" id="meas-d-left" placeholder="0" step="${step}" value="${v(existing?.dropLeft)}" onchange="MeasureFeature.calculate()"></div>
+            <div class="form-group mb-0" ><label>Centre</label><input type="number" class="input" inputmode="decimal" id="meas-d-centre" placeholder="0" step="${step}" value="${v(existing?.dropCentre)}" onchange="MeasureFeature.calculate()"></div>
           </div>
-          <div class="form-group" style="margin-top:12px;margin-bottom:0;"><label>Right</label><input type="number" class="input" inputmode="decimal" id="meas-d-right" placeholder="0" step="${step}" value="${v(existing?.dropRight)}" onchange="MeasureFeature.calculate()"></div>
-          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center;">
-            <span style="font-size:13px;color:var(--text-secondary);">Least: <strong id="calc-d-least">--</strong></span>
-            <span style="font-size:13px;color:var(--primary);font-weight:600;">Use: <strong id="calc-d-use">--</strong></span>
+          <div class="form-group mt-12 mb-0" ><label>Right</label><input type="number" class="input" inputmode="decimal" id="meas-d-right" placeholder="0" step="${step}" value="${v(existing?.dropRight)}" onchange="MeasureFeature.calculate()"></div>
+          <div class="mt-12 top-divider flex justify-between items-center" >
+            <span class="fs-13 text-secondary" >Least: <strong id="calc-d-least">--</strong></span>
+            <span class="fs-13 text-brand fw-600" >Use: <strong id="calc-d-use">--</strong></span>
           </div>
         </div>
 
-        <div class="card" style="margin-bottom:16px;">
-          <div style="font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px;"><span class="material-symbols-rounded">square_foot</span>Diagonal Check</div>
+        <div class="card mb-md" >
+          <div class="fw-600 mb-12 flex items-center gap-sm" ><span class="material-symbols-rounded">square_foot</span>Diagonal Check</div>
           <div class="form-row">
-            <div class="form-group" style="margin-bottom:0;"><label>TL → BR (${unit})</label><input type="number" class="input" inputmode="decimal" id="meas-diag-1" placeholder="0" step="${step}" value="${v(existing?.diagonalTlBr)}" onchange="MeasureFeature.calculate()"></div>
-            <div class="form-group" style="margin-bottom:0;"><label>TR → BL (${unit})</label><input type="number" class="input" inputmode="decimal" id="meas-diag-2" placeholder="0" step="${step}" value="${v(existing?.diagonalTrBl)}" onchange="MeasureFeature.calculate()"></div>
+            <div class="form-group mb-0" ><label>TL → BR (${unit})</label><input type="number" class="input" inputmode="decimal" id="meas-diag-1" placeholder="0" step="${step}" value="${v(existing?.diagonalTlBr)}" onchange="MeasureFeature.calculate()"></div>
+            <div class="form-group mb-0" ><label>TR → BL (${unit})</label><input type="number" class="input" inputmode="decimal" id="meas-diag-2" placeholder="0" step="${step}" value="${v(existing?.diagonalTrBl)}" onchange="MeasureFeature.calculate()"></div>
           </div>
-          <div style="margin-top:12px;display:flex;align-items:center;gap:8px;">
-            <span id="diag-status-icon" class="material-symbols-rounded" style="color:var(--text-tertiary);">help</span>
-            <span id="diag-status" style="font-size:13px;color:var(--text-secondary);">Enter diagonals to check squareness</span>
+          <div class="mt-12 flex items-center gap-sm" >
+            <span id="diag-status-icon" class="material-symbols-rounded text-tertiary" >help</span>
+            <span class="fs-13 text-secondary" id="diag-status" >Enter diagonals to check squareness</span>
           </div>
         </div>
 
@@ -105,12 +105,12 @@ const MeasureFeature = {
           <label>Photo</label>
           <button class="btn btn-outline btn-sm" onclick="document.getElementById('meas-photo').click()"><span class="material-symbols-rounded">photo_camera</span>Take Photo</button>
           <input type="file" id="meas-photo" accept="image/*" capture="environment" style="display:none;" onchange="MeasureFeature.handlePhoto(event)">
-          <div id="meas-photo-preview" style="margin-top:8px;">${this.photoData ? `<img src="${this.photoData}" style="max-width:100%;border-radius:8px;">` : ''}</div>
+          <div class="mt-sm" id="meas-photo-preview" >${this.photoData ? `<img class="max-w-full br-8" src="${this.photoData}" >` : ''}</div>
         </div>
 
-        <button class="btn btn-primary btn-block" style="margin-top:8px;" onclick="MeasureFeature.save(${safeAppointmentId}, ${existing ? existing.id : 'null'})">${existing ? 'Save Changes' : 'Save Measurement'}</button>
+        <button class="btn btn-primary btn-block mt-sm"  onclick="MeasureFeature.save(${safeAppointmentId}, ${existing ? existing.id : 'null'})">${existing ? 'Save Changes' : 'Save Measurement'}</button>
         ${existing ? `
-          <button class="btn btn-danger btn-block" style="margin-top:8px;" onclick="MeasureFeature.deleteMeasurement(${existing.id}, ${safeAppointmentId})">
+          <button class="btn btn-danger btn-block mt-sm"  onclick="MeasureFeature.deleteMeasurement(${existing.id}, ${safeAppointmentId})">
             <span class="material-symbols-rounded">delete</span> Delete Measurement
           </button>
         ` : ''}
@@ -187,7 +187,7 @@ const MeasureFeature = {
     if (!file) return;
     const base64 = await Utils.fileToBase64(file);
     this.photoData = base64;
-    document.getElementById('meas-photo-preview').innerHTML = `<img src="${base64}" style="max-width:100%;border-radius:8px;">`;
+    document.getElementById('meas-photo-preview').innerHTML = `<img class="max-w-full br-8" src="${base64}" >`;
   },
 
   async save(appointmentId, measurementId) {
@@ -242,7 +242,7 @@ const MeasureFeature = {
         </button>
       </div>
       <div class="sheet-body">
-        <div style="font-size:14px;color:var(--text-secondary);line-height:1.5;margin-bottom:14px;">
+        <div class="fs-14 text-secondary lh-150 mb-14" >
           This can't be undone.
         </div>
         <button class="btn btn-danger btn-block" onclick="MeasureFeature.confirmDeleteMeasurement(${measurementId}, ${appointmentId})">

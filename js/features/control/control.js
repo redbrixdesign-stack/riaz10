@@ -102,13 +102,13 @@ const ControlFeature = {
     const content = `<div class="sheet-handle"></div>
       <div class="sheet-header"><h3>Measure for which visit?</h3><button class="btn btn-ghost btn-sm" onclick="App.closeModal()"><span class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body">
-        <div style="display:flex;flex-direction:column;gap:8px;">
+        <div class="flex flex-col gap-sm" >
           ${visits.map(visit => `
-            <button class="list-item" style="border:1px solid var(--border-light);border-radius:8px;text-align:left;" onclick="App.closeModal(); App.navigate('measure', {appointmentId: ${visit.id}})">
-              <span class="material-symbols-rounded" style="color:var(--primary);margin-right:12px;">straighten</span>
-              <span style="flex:1;min-width:0;">
-                <span style="display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${Utils.escapeHtml(visit.clientName || 'Unknown')}</span>
-                <span style="display:block;font-size:12px;color:var(--text-tertiary);">${Utils.formatDate(visit.date, 'datetime')}</span>
+            <button class="list-item bordered-8 text-left"  onclick="App.closeModal(); App.navigate('measure', {appointmentId: ${visit.id}})">
+              <span class="material-symbols-rounded text-brand mr-12" >straighten</span>
+              <span class="flex-1 min-w-0" >
+                <span class="block fw-600 ellipsis" >${Utils.escapeHtml(visit.clientName || 'Unknown')}</span>
+                <span class="block fs-12 text-tertiary" >${Utils.formatDate(visit.date, 'datetime')}</span>
               </span>
             </button>
           `).join('')}
@@ -131,13 +131,13 @@ const ControlFeature = {
     const content = `<div class="sheet-handle"></div>
       <div class="sheet-header"><h3>Remove Demo Data?</h3><button class="btn btn-ghost btn-sm" onclick="App.closeModal()"><span class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body">
-        <div style="font-size:14px;color:var(--text-secondary);margin-bottom:16px;">
+        <div class="fs-14 text-secondary mb-md" >
           This removes the sample customers and visits used for demoing the app (Ayesha Khan, James Wilson, and others), along with their visits, orders, and messages. Your own customers and visits are not affected.
         </div>
         <button class="btn btn-danger btn-block" onclick="ControlFeature.clearPitchDemo()">
           <span class="material-symbols-rounded">delete_sweep</span>Remove Demo Data
         </button>
-        <button class="btn btn-outline btn-block" style="margin-top:8px;" onclick="App.closeModal()">Cancel</button>
+        <button class="btn btn-outline btn-block mt-sm"  onclick="App.closeModal()">Cancel</button>
       </div>`;
     App.openModal(content);
   },

@@ -47,15 +47,15 @@ const MoneyFeature = {
         </div>
       </div>
 
-      <div style="padding:16px 16px 0;">
-        <div class="card" style="margin-bottom:16px;background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);color:white;">
-          <div style="font-size:13px;opacity:0.9;">This Week · Earnings (commission)</div>
-          <div style="font-size:32px;font-weight:700;margin-top:6px;">${Utils.formatCurrency(weekEarnings)}</div>
-          <div style="font-size:15px;opacity:0.9;margin-top:4px;">${targetGap > 0 ? `${Utils.formatCurrency(targetGap)} to earnings target` : 'Earnings target reached'}</div>
-          <div class="progress-bar" style="margin-top:14px;background:rgba(255,255,255,0.25);">
+      <div class="p-md pb-0" >
+        <div class="card hero-card" >
+          <div class="fs-13 op-90" >This Week · Earnings (commission)</div>
+          <div class="fs-32 fw-700 mt-6" >${Utils.formatCurrency(weekEarnings)}</div>
+          <div class="fs-15 op-90 mt-xs" >${targetGap > 0 ? `${Utils.formatCurrency(targetGap)} to earnings target` : 'Earnings target reached'}</div>
+          <div class="progress-bar mt-14 bg-soft-light" >
             <div class="fill ${weekEarnings >= target ? 'success' : 'accent'}" style="width:${Math.min(100, target > 0 ? (weekEarnings / target) * 100 : 0)}%;background:${weekEarnings >= target ? 'var(--secondary)' : 'var(--accent)'};"></div>
           </div>
-          <div style="font-size:11px;opacity:0.7;margin-top:6px;">Today shows sales value; this shows your commission. Both share the same weekly target.</div>
+          <div class="fs-11 op-70 mt-6" >Today shows sales value; this shows your commission. Both share the same weekly target.</div>
         </div>
 
         <div class="stats-grid">
@@ -67,61 +67,61 @@ const MoneyFeature = {
       </div>
 
       ${formatted ? `
-      <div class="card" id="tax-estimate-card" style="margin:16px;margin-bottom:8px;">
-        <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px;">
+      <div class="card card-page-mb" id="tax-estimate-card" >
+        <div class="flex justify-between gap-12 items-start mb-12" >
           <div>
-            <div style="font-weight:600;">Tax Estimate</div>
-            <div style="font-size:12px;color:var(--text-tertiary);">Tax year ${taxSummary.tax.taxYear.label}</div>
+            <div class="fw-600" >Tax Estimate</div>
+            <div class="fs-12 text-tertiary" >Tax year ${taxSummary.tax.taxYear.label}</div>
           </div>
           <span class="badge badge-primary">Estimate</span>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">
-          <div><div style="font-size:12px;color:var(--text-tertiary);">Profit</div><div style="font-size:20px;font-weight:700;">${formatted.profit}</div></div>
-          <div><div style="font-size:12px;color:var(--text-tertiary);">Tax due</div><div style="font-size:20px;font-weight:700;color:var(--danger);">${formatted.taxDue}</div></div>
-          <div><div style="font-size:12px;color:var(--text-tertiary);">Income tax</div><div style="font-weight:600;">${formatted.incomeTax}</div></div>
-          <div><div style="font-size:12px;color:var(--text-tertiary);">Class 4 NIC</div><div style="font-weight:600;">${formatted.class4NIC}</div></div>
+        <div class="grid-2 gap-12" >
+          <div><div class="fs-12 text-tertiary" >Profit</div><div class="fs-20 fw-700" >${formatted.profit}</div></div>
+          <div><div class="fs-12 text-tertiary" >Tax due</div><div class="fs-20 fw-700 text-danger" >${formatted.taxDue}</div></div>
+          <div><div class="fs-12 text-tertiary" >Income tax</div><div class="fw-600" >${formatted.incomeTax}</div></div>
+          <div><div class="fs-12 text-tertiary" >Class 4 NIC</div><div class="fw-600" >${formatted.class4NIC}</div></div>
         </div>
       </div>
 
-      <div class="card" style="margin:16px;margin-top:8px;">
-        <div style="font-weight:600;margin-bottom:12px;">Payment Deadlines</div>
-        <div style="display:flex;flex-direction:column;gap:12px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <div><div style="font-weight:500;">31 January ${taxSummary.tax.taxYear.endYear + 1}</div><div style="font-size:12px;color:var(--text-tertiary);">${formatted.weeksLeft} weeks away</div></div>
-            <div style="font-size:18px;font-weight:700;color:var(--danger);">${formatted.jan31}</div>
+      <div class="card card-page-gap" >
+        <div class="fw-600 mb-12" >Payment Deadlines</div>
+        <div class="flex flex-col gap-12" >
+          <div class="flex justify-between items-center" >
+            <div><div class="fw-500" >31 January ${taxSummary.tax.taxYear.endYear + 1}</div><div class="fs-12 text-tertiary" >${formatted.weeksLeft} weeks away</div></div>
+            <div class="fs-18 fw-700 text-danger" >${formatted.jan31}</div>
           </div>
           <div class="progress-bar"><div class="fill danger" style="width:${Math.min(100,(52-taxSummary.tax.weeksToJan31)/52*100)}%"></div></div>
-          <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid var(--border-light);">
-            <div><div style="font-weight:500;">31 July ${taxSummary.tax.taxYear.endYear + 1}</div><div style="font-size:12px;color:var(--text-tertiary);">Payment on account</div></div>
-            <div style="font-size:16px;font-weight:600;color:var(--text-secondary);">${formatted.jul31}</div>
+          <div class="flex justify-between items-center top-divider-8" >
+            <div><div class="fw-500" >31 July ${taxSummary.tax.taxYear.endYear + 1}</div><div class="fs-12 text-tertiary" >Payment on account</div></div>
+            <div class="fs-16 fw-600 text-secondary" >${formatted.jul31}</div>
           </div>
         </div>
       </div>
 
       ${taxSummary.profit > 0 ? `
-      <div class="card" style="margin:16px;margin-top:8px;background:var(--secondary-light);">
-        <div style="display:flex;align-items:center;gap:12px;">
-          <span class="material-symbols-rounded" style="color:var(--secondary);font-size:28px;">savings</span>
-          <div style="flex:1;">
-            <div style="font-weight:600;color:var(--secondary);">Save ${formatted.weeklySave} this week</div>
-            <div style="font-size:13px;color:var(--text-secondary);">To cover your January tax bill</div>
+      <div class="card card-page-gap bg-success-light" >
+        <div class="flex items-center gap-12" >
+          <span class="material-symbols-rounded text-success fs-28" >savings</span>
+          <div class="flex-1" >
+            <div class="fw-600 text-success" >Save ${formatted.weeklySave} this week</div>
+            <div class="fs-13 text-secondary" >To cover your January tax bill</div>
           </div>
           <button class="btn btn-sm btn-secondary" onclick="MoneyFeature.markSaved()">Saved ✓</button>
         </div>
       </div>
       ` : ''}
-      ` : `<div class="card" style="margin:16px;text-align:center;padding:24px;">
-        <span class="material-symbols-rounded" style="font-size:32px;color:var(--text-tertiary);">receipt_long</span>
-        <div style="font-weight:600;margin-top:8px;">No tax estimate yet</div>
-        <div style="color:var(--text-tertiary);font-size:13px;margin-top:4px;">Log one of these to get started - your estimate builds automatically from there</div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-top:16px;">
+      ` : `<div class="card card-empty-center" >
+        <span class="material-symbols-rounded fs-32 text-tertiary" >receipt_long</span>
+        <div class="fw-600 mt-sm" >No tax estimate yet</div>
+        <div class="text-tertiary fs-13 mt-xs" >Log one of these to get started - your estimate builds automatically from there</div>
+        <div class="flex flex-col gap-sm mt-md" >
           <button class="btn btn-outline btn-sm btn-block" onclick="App.navigate('appointments')"><span class="material-symbols-rounded">event_available</span>Record a visit outcome</button>
           <button class="btn btn-outline btn-sm btn-block" onclick="MoneyFeature.openExpenseModal()"><span class="material-symbols-rounded">receipt</span>Log an expense</button>
           <button class="btn btn-outline btn-sm btn-block" onclick="MoneyFeature.openMileageModal()"><span class="material-symbols-rounded">route</span>Log mileage</button>
         </div>
       </div>`}
 
-      <div style="padding:0 16px;margin-top:16px;">
+      <div class="px-md mt-md" >
         <div class="divider-text">This Month</div>
         <div class="stats-grid">
           <div class="stat-card stat-card-clickable" role="button" tabindex="0" aria-label="View this month's records" onclick="MoneyFeature.openRecordsModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();MoneyFeature.openRecordsModal();}"><div class="value">${Utils.formatDistance(monthMiles)}</div><div class="label">Mileage</div></div>
@@ -131,9 +131,9 @@ const MoneyFeature = {
         </div>
       </div>
 
-      <div style="padding:16px;">
+      <div class="p-md" >
         <div class="divider-text">Quick Actions</div>
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">
+        <div class="grid-2 gap-12" >
           <button class="btn btn-outline btn-sm" onclick="MoneyFeature.openExpenseModal()"><span class="material-symbols-rounded">receipt</span>Log Expense</button>
           <button class="btn btn-outline btn-sm" onclick="MoneyFeature.openMileageModal()"><span class="material-symbols-rounded">route</span>Log Mileage</button>
           <button class="btn btn-outline btn-sm" onclick="MoneyFeature.openRecordsModal()"><span class="material-symbols-rounded">list</span>View Records</button>
@@ -206,10 +206,10 @@ const MoneyFeature = {
         </button>
       </div>
       <div class="sheet-body">
-        <div style="font-weight:700;margin-bottom:8px;">Trips (${trips.length})</div>
-        ${trips.length ? trips.map(renderTrip).join('') : `<div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">No trips logged this month.</div>`}
-        <div style="font-weight:700;margin:16px 0 8px;">Expenses (${expenses.length})</div>
-        ${expenses.length ? expenses.map(renderExpense).join('') : `<div style="font-size:13px;color:var(--text-secondary);">No expenses logged this month.</div>`}
+        <div class="fw-700 mb-sm" >Trips (${trips.length})</div>
+        ${trips.length ? trips.map(renderTrip).join('') : `<div class="fs-13 text-secondary mb-md" >No trips logged this month.</div>`}
+        <div class="fw-700 mt-md mb-sm" >Expenses (${expenses.length})</div>
+        ${expenses.length ? expenses.map(renderExpense).join('') : `<div class="fs-13 text-secondary" >No expenses logged this month.</div>`}
       </div>
     `;
     App.openModal(content);
@@ -227,7 +227,7 @@ const MoneyFeature = {
         </button>
       </div>
       <div class="sheet-body">
-        <img src="${expense.photo}" style="max-width:100%;border-radius:8px;">
+        <img class="max-w-full br-8" src="${expense.photo}" >
       </div>
     `);
   },
@@ -261,13 +261,13 @@ const MoneyFeature = {
         ${expense.photo ? `
           <div class="form-group">
             <label>Receipt</label>
-            <img src="${expense.photo}" style="max-width:100%;border-radius:8px;">
+            <img class="max-w-full br-8" src="${expense.photo}" >
           </div>
         ` : ''}
         <button class="btn btn-primary btn-block" onclick="MoneyFeature.saveEditExpense(${expenseId})">
           Save Changes
         </button>
-        <button class="btn btn-danger btn-block" style="margin-top:8px;" onclick="MoneyFeature.confirmDeleteExpense(${expenseId})">
+        <button class="btn btn-danger btn-block mt-sm"  onclick="MoneyFeature.confirmDeleteExpense(${expenseId})">
           <span class="material-symbols-rounded">delete</span> Delete Expense
         </button>
       </div>
@@ -306,7 +306,7 @@ const MoneyFeature = {
         </button>
       </div>
       <div class="sheet-body">
-        <div style="font-size:14px;color:var(--text-secondary);line-height:1.5;margin-bottom:14px;">
+        <div class="fs-14 text-secondary lh-150 mb-14" >
           This can't be undone.
         </div>
         <button class="btn btn-danger btn-block" onclick="MoneyFeature.deleteExpense(${expenseId})">
@@ -357,7 +357,7 @@ const MoneyFeature = {
         <button class="btn btn-primary btn-block" onclick="MoneyFeature.saveEditTrip(${tripId})">
           Save Changes
         </button>
-        <button class="btn btn-danger btn-block" style="margin-top:8px;" onclick="MoneyFeature.confirmDeleteTrip(${tripId})">
+        <button class="btn btn-danger btn-block mt-sm"  onclick="MoneyFeature.confirmDeleteTrip(${tripId})">
           <span class="material-symbols-rounded">delete</span> Delete Trip
         </button>
       </div>
@@ -400,7 +400,7 @@ const MoneyFeature = {
         </button>
       </div>
       <div class="sheet-body">
-        <div style="font-size:14px;color:var(--text-secondary);line-height:1.5;margin-bottom:14px;">
+        <div class="fs-14 text-secondary lh-150 mb-14" >
           This can't be undone.
         </div>
         <button class="btn btn-danger btn-block" onclick="MoneyFeature.deleteTrip(${tripId})">
@@ -457,7 +457,7 @@ const MoneyFeature = {
             Take Photo
           </button>
           <input type="file" id="expense-photo" accept="image/*" capture="environment" style="display:none;" onchange="MoneyFeature.handleExpensePhoto(event)">
-          <div id="expense-photo-preview" style="margin-top:8px;"></div>
+          <div class="mt-sm" id="expense-photo-preview" ></div>
         </div>
         <button class="btn btn-primary btn-block" onclick="MoneyFeature.saveExpense()">
           Save Expense
@@ -472,7 +472,7 @@ const MoneyFeature = {
     if (!file) return;
     const base64 = await Utils.fileToBase64(file);
     this.expensePhotoData = base64;
-    document.getElementById('expense-photo-preview').innerHTML = `<img src="${base64}" style="max-width:100%;border-radius:8px;">`;
+    document.getElementById('expense-photo-preview').innerHTML = `<img class="max-w-full br-8" src="${base64}" >`;
   },
 
   async saveExpense() {
@@ -521,11 +521,11 @@ const MoneyFeature = {
         </button>
       </div>
       <div class="sheet-body">
-        <button class="btn btn-primary btn-block" onclick="MoneyFeature.startLiveTrip()" style="margin-bottom:16px;">
+        <button class="btn btn-primary btn-block mb-md" onclick="MoneyFeature.startLiveTrip()" >
           <span class="material-symbols-rounded">directions_car</span>
           Start Live Trip
         </button>
-        <div class="hint" style="margin-top:-10px;margin-bottom:16px;">Uses GPS + real road distance. Add a destination and it checks for arrival whenever you reopen the app (handy if you navigate elsewhere in the meantime) — or leave it blank and tap Finish yourself.</div>
+        <div class="hint mt-neg-10 mb-md" >Uses GPS + real road distance. Add a destination and it checks for arrival whenever you reopen the app (handy if you navigate elsewhere in the meantime) — or leave it blank and tap Finish yourself.</div>
         <div class="form-group">
           <label>From</label>
           <input type="text" class="input" id="trip-from" placeholder="Start location">

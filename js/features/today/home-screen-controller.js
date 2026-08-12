@@ -165,7 +165,7 @@ const HomeScreenController = {
     }).join('');
 
     const listHtml = dayAppts.length === 0
-      ? `<div class="hsc-empty" style="margin-top:24px;">Nothing booked ${isToday ? 'today' : 'this day'}.</div>`
+      ? `<div class="hsc-empty mt-lg" >Nothing booked ${isToday ? 'today' : 'this day'}.</div>`
       : this.renderGroupedVisitList(dayAppts, travelLabels);
 
     return `
@@ -195,7 +195,7 @@ const HomeScreenController = {
         <button class="hsc-followup-badge" type="button" onclick="App.navigate('followups')">
           <span class="material-symbols-rounded">campaign</span>
           ${followUpCount} thing${followUpCount === 1 ? '' : 's'} due today
-          <span class="material-symbols-rounded" style="margin-left:auto;">chevron_right</span>
+          <span class="material-symbols-rounded ml-auto" >chevron_right</span>
         </button>
         ` : ''}
 
@@ -203,7 +203,7 @@ const HomeScreenController = {
 
         <div class="hsc-week-list">${listHtml}</div>
 
-        <div style="text-align:center;margin-top:16px;">
+        <div class="text-center mt-md" >
           ${this.renderAddVisitLink()}
         </div>
       </div>
@@ -302,17 +302,17 @@ const HomeScreenController = {
     return `
       <div class="hsc-root hsc-weekly fade-in" aria-busy="true" aria-label="Loading today's plan">
         <div class="hsc-week-toprow">
-          <span class="skeleton" style="width:32px;height:32px;border-radius:50%;"></span>
+          <span class="skeleton w-32 h-32 round" ></span>
         </div>
         <div class="hsc-week-header">
-          <span class="skeleton" style="width:32px;height:32px;border-radius:50%;"></span>
-          <span class="skeleton" style="width:150px;height:20px;border-radius:6px;"></span>
-          <span class="skeleton" style="width:32px;height:32px;border-radius:50%;"></span>
+          <span class="skeleton w-32 h-32 round" ></span>
+          <span class="skeleton w-150 h-20 br-6" ></span>
+          <span class="skeleton w-32 h-32 round" ></span>
         </div>
         <div class="hsc-week-strip">
-          ${Array.from({ length: 7 }, () => '<span class="skeleton" style="height:44px;border-radius:var(--radius-md);"></span>').join('')}
+          ${Array.from({ length: 7 }, () => '<span class="skeleton h-44 br-md" ></span>').join('')}
         </div>
-        ${Array.from({ length: 3 }, () => '<div class="skeleton" style="height:64px;border-radius:var(--radius-md);"></div>').join('')}
+        ${Array.from({ length: 3 }, () => '<div class="skeleton h-64 br-md" ></div>').join('')}
       </div>
     `;
   }
