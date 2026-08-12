@@ -450,9 +450,12 @@ const OCRFeature = {
       const printedWeekday = weekdayIndex[m[1].slice(0, 3).toLowerCase()];
       if (printedWeekday !== thisYear.getDay() && printedWeekday !== new Date(year + 1, monthIndex, day).getDay()) continue;
       const lower = line.toLowerCase();
+      // History lines ("Previous appointment:", "Last visit:") must never win —
+      // the "appoint/visit" keyword bonus would otherwise cancel the penalty.
+      const isHistory = /previous|last|original|cancell|old|past/.test(lower);
       let score = 0;
-      if (/appoint|arriv|visit|book|deliver|when|slot/.test(lower)) score += 4;
-      if (/previous|last|original|cancell|old|past/.test(lower)) score -= 4;
+      if (!isHistory && /appoint|arriv|visit|book|deliver|when|slot/.test(lower)) score += 4;
+      if (isHistory) score -= 4;
       if (i === 0) score += 1; // real appointments usually sit near the top header
       const diffDays = Math.abs(now - candidate) / 86400000;
       if (diffDays < 1) score += 3;
