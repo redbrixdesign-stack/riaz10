@@ -65,54 +65,73 @@ vm.createContext(sandbox);
 vm.runInContext(fs.readFileSync(path.join(REPO, 'js/features/ocr/ocr.js'), 'utf8'), sandbox);
 const OCRFeature = sandbox.App.feature;
 
-function extract(lines, leftColumnText = '') {
-  return OCRFeature.parseText(lines.join('\n'), leftColumnText);
+function extract(lines, leftColumnText = '', at) {
+  return OCRFeature.parseText(lines.join('\n'), leftColumnText, at);
 }
+
+// The date extractor anchors on "now" for year selection, closeness ranking
+// and weekday validation. Injecting a fixed clock makes every assertion
+// below deterministic — the suite must stay green no matter what the real
+// calendar date is when it runs (11 Aug isn't always a Tuesday).
+const AT = new Date(2026, 7, 12); // Wed 12 Aug 2026 — the day these fixtures were written
 
 (async () => {
 
-const today = new Date();
-
 console.log('date selection');
 {
-  const data = extract(['Customer details', 'Mr James Wilson', 'Customer Number: HIL-0451', 'Tuesday 11 August']);
+  const data = extract(['Customer details', 'Mr James Wilson', 'Customer Number: HIL-0451', 'Tuesday 11 August'], '', AT);
   ok('single "Tuesday 11 August" -> 2026-08-11', data.appointmentDate === '2026-08-11', data.appointmentDate);
 }
 {
   // History line BEFORE the real appointment must not win.
-  const data = extract(['Previous appointment: Monday 10 August', 'Customer details', 'Mr James Wilson', 'Tuesday 11 August']);
+  const data = extract(['Previous appointment: Monday 10 August', 'Customer details', 'Mr James Wilson', 'Tuesday 11 August'], '', AT);
   ok('history date ignored; real appointment picked', data.appointmentDate === '2026-08-11', data.appointmentDate);
 }
 {
   // Printed weekday mismatch = noise/stale line, rejected outright.
-  const data = extract(['Mr James Wilson', 'Monday 13 August', 'Tuesday 11 August']);
+  const data = extract(['Mr James Wilson', 'Monday 13 August', 'Tuesday 11 August'], '', AT);
   ok('weekday/date mismatch rejected ("Monday 13")', data.appointmentDate === '2026-08-11', data.appointmentDate);
 }
 {
   // Only a mismatched line exists -> no date rather than a wrong one.
-  const data = extract(['Mr James Wilson', 'Monday 11 August']);
+  const data = extract(['Mr James Wilson', 'Monday 11 August'], '', AT);
   ok('lone mismatched weekday yields no date', data.appointmentDate === '', data.appointmentDate);
 }
 {
   // Real appointment in the past (~2+ months) rolls to next year.
-  const past = new Date(today.getFullYear(), today.getMonth() - 3, 10);
+  const past = new Date(AT.getFullYear(), AT.getMonth() - 3, 10);
   const wd = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][past.getDay()];
   const mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][past.getMonth()];
-  const data = extract([`Mr James Wilson`, `${wd} ${past.getDate()} ${mo}`]);
-  const expectedYear = today.getFullYear() + 1;
+  const data = extract([`Mr James Wilson`, `${wd} ${past.getDate()} ${mo}`], '', AT);
+  const expectedYear = AT.getFullYear() + 1;
   ok(`stale date (${wd} ${past.getDate()} ${mo}) rolls to next year`,
     data.appointmentDate === `${expectedYear}-${String(past.getMonth() + 1).padStart(2, '0')}-${String(past.getDate()).padStart(2, '0')}`,
     data.appointmentDate);
 }
 {
   // Status-bar clock lines are skipped even when they contain a date.
-  const data = extract(['15:35 Sun 10 Aug', 'Mr James Wilson', 'Tuesday 11 August']);
+  const data = extract(['15:35 Sun 10 Aug', 'Mr James Wilson', 'Tuesday 11 August'], '', AT);
   ok('status-bar clock line ignored', data.appointmentDate === '2026-08-11', data.appointmentDate);
 }
 {
   // Date on a "visit"/"appointment"-labelled line outranks a plain one.
-  const data = extract(['Mr James Wilson', '10 August', 'Appointment date: Tuesday 11 August']);
+  const data = extract(['Mr James Wilson', '10 August', 'Appointment date: Tuesday 11 August'], '', AT);
   ok('appointment-labelled line preferred', data.appointmentDate === '2026-08-11', data.appointmentDate);
+}
+{
+  // Same logic must hold on a different calendar: Wed 11 Aug 2027. This is
+  // the case the literal fixtures above would have broken on in the wild.
+  const later = new Date(2027, 7, 11);
+  const data = extract(['Customer details', 'Mr James Wilson', 'Wednesday 11 August'], '', later);
+  ok('Wed 11 Aug 2027 -> 2027-08-11', data.appointmentDate === '2027-08-11', data.appointmentDate);
+  const bad = extract(['Mr James Wilson', 'Tuesday 11 August'], '', later);
+  ok('"Tuesday 11 August" rejected in 2027 (mismatch both years)', bad.appointmentDate === '', bad.appointmentDate);
+}
+{
+  // Stale date seen across the Dec/Jan boundary still rolls to next year.
+  const dec = new Date(2026, 11, 20);
+  const data = extract(['Mr James Wilson', 'Friday 5 June'], '', dec);
+  ok('stale date near year-end rolls to 2027', data.appointmentDate === '2027-06-05', data.appointmentDate);
 }
 
 console.log('normalizeDateField');

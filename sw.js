@@ -1,4 +1,4 @@
-const CACHE_NAME = 'advisoros-v6-14';
+const CACHE_NAME = 'advisoros-v6-15';
 const FONT_CACHE_NAME = 'advisoros-fonts-1';
 const STATIC_ASSETS = [
   './','index.html','css/core.css','css/components.css?v=13',
@@ -8,7 +8,7 @@ const STATIC_ASSETS = [
   'js/features/onboarding/onboarding.min.js?v=5','js/features/today/today.min.js?v=16','js/features/today/home-screen-controller.min.js?v=8','js/features/appointments/appointments.min.js?v=22','js/features/customer/customer.min.js?v=2','js/features/route/route.min.js?v=8',
   'js/features/followups/followups.min.js?v=2','js/features/orders/orders.min.js?v=3',
   'js/features/money/money.min.js?v=5','js/features/talk/talk.min.js?v=11','js/features/measure/measure.min.js?v=5',
-  'js/features/ocr/ocr.min.js?v=13','js/features/control/control.min.js?v=4','js/features/settings/settings.min.js?v=10'
+  'js/features/ocr/ocr.min.js?v=14','js/features/control/control.min.js?v=4','js/features/settings/settings.min.js?v=10'
 ];
 
 const FONT_ORIGINS = ['fonts.googleapis.com', 'fonts.gstatic.com'];

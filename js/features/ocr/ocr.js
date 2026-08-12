@@ -239,7 +239,7 @@ const OCRFeature = {
     return false;
   },
 
-  parseText(text, leftColumnText = '') {
+  parseText(text, leftColumnText = '', now = new Date()) {
     const rawLines = text.split('\n').map(l => l.trim()).filter(l => l);
     const lines = rawLines.filter(l => !this.isChrome(l));
     const data = { name: '', phone: '', address: '', town: '', city: '', postcode: '', customerNumber: '', email: '', appointmentDate: '', appointmentTime: '' };
@@ -427,7 +427,6 @@ const OCRFeature = {
     const monthNames = 'Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec';
     const dateRe = new RegExp(`\\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*,?\\s+(\\d{1,2})(?:st|nd|rd|th)?\\s+(${monthNames})[a-z]*\\b`, 'i');
     const weekdayIndex = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
-    const now = new Date();
     let bestDate = null;
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
