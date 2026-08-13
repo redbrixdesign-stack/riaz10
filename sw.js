@@ -1,11 +1,11 @@
-const CACHE_NAME = 'advisoros-v6-19';
+const CACHE_NAME = 'advisoros-v6-20';
 const FONT_CACHE_NAME = 'advisoros-fonts-1';
 const STATIC_ASSETS = [
   './','index.html','css/core.css','css/components.css?v=15',
   'js/vendor/dexie.min.js?v=1','js/vendor/minidexie.min.js?v=12',
   'js/core/config.min.js?v=9','js/core/utils.min.js?v=6','js/core/db.min.js?v=15','js/core/geo.min.js?v=6','js/core/search.min.js?v=2','js/core/tax.min.js?v=2','js/core/app.min.js?v=8','js/core/contact.min.js?v=3',
   'js/services/ai.min.js?v=3','js/services/notification.min.js?v=6','js/services/message-scheduler.min.js?v=2','js/services/export.min.js?v=3','js/services/weather.min.js?v=3',
-  'js/features/onboarding/onboarding.min.js?v=6','js/features/today/today.min.js?v=17','js/features/today/home-screen-controller.min.js?v=10','js/features/appointments/appointments.min.js?v=25','js/features/customer/customer.min.js?v=3','js/features/route/route.min.js?v=9',
+  'js/features/onboarding/onboarding.min.js?v=6','js/features/today/today.min.js?v=17','js/features/today/home-screen-controller.min.js?v=10','js/features/appointments/appointments.min.js?v=26','js/features/customer/customer.min.js?v=3','js/features/route/route.min.js?v=9',
   'js/features/followups/followups.min.js?v=3','js/features/orders/orders.min.js?v=5',
   'js/features/money/money.min.js?v=6','js/features/talk/talk.min.js?v=13','js/features/measure/measure.min.js?v=6',
   'js/features/ocr/ocr.min.js?v=15','js/features/control/control.min.js?v=5','js/features/settings/settings.min.js?v=11'

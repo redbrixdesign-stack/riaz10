@@ -1327,7 +1327,12 @@ const AppointmentsFeature = {
     });
   },
 
-  _downscaleImage(file, maxSide = 1600, quality = 0.82) {
+  // Photos are reference-only (seen on a phone, rarely zoomed), so they're
+  // downscaled hard before storage: 800px longest side at ~60% JPEG keeps a
+  // 2-4MB camera shot to a few tens of KB base64, which keeps IndexedDB lean
+  // and the gallery quick — detail far beyond what a phone screen shows is
+  // simply not needed.
+  _downscaleImage(file, maxSide = 800, quality = 0.62) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onerror = () => reject(new Error('read failed'));
