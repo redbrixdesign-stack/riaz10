@@ -36,6 +36,15 @@ const TalkFeature = {
   MIN_LEARNED_SAMPLE: 3,
   effectiveTemplateMap: null,
 
+  // "09:00" for an exact slot, "09:00–11:00" when the visit carries an
+  // arrival window — templates already say "at", so the compact form keeps
+  // every sentence grammatical ("at 09:00–11:00" reads fine, "at between
+  // 09:00 and 11:00" does not).
+  apptTimeText(appt) {
+    if (appt?.arrivalStart && appt?.arrivalEnd) return `${appt.arrivalStart}–${appt.arrivalEnd}`;
+    return appt?.date ? Utils.formatTime(appt.date) : '';
+  },
+
   // Real signal available from existing data: every appointment is linked to
   // a customerId, so for any customer who had a "needs follow-up" outcome
   // (quoted, thinking, partner, etc.), we can check whether that SAME
@@ -189,7 +198,7 @@ const TalkFeature = {
           <div class="flex items-center gap-12" >
             <div class="flex-1 min-w-0" >
               <span class="fw-600 fs-15" >${Utils.escapeHtml(appt.clientName || 'Unknown')}</span>
-              <div class="fs-13 text-secondary mt-2" >Visit tomorrow at ${Utils.formatTime(appt.date)}</div>
+              <div class="fs-13 text-secondary mt-2" >Visit tomorrow at ${this.apptTimeText(appt)}</div>
             </div>
             <button class="btn btn-sm btn-primary shrink-0"  onclick="TalkFeature.sendDayBefore(${appt.id})">
               <span class="material-symbols-rounded fs-18" >send</span>
@@ -382,7 +391,7 @@ const TalkFeature = {
     const message = NotificationService.processTemplate(template, {
       firstName: Utils.firstNameFrom(customer?.firstName || appt?.clientName),
       productType: 'window coverings',
-      time: appt ? Utils.formatTime(appt.date) : '',
+      time: this.apptTimeText(appt),
       address: appt?.address || '',
       advisorName: CONFIG.advisorName || 'Your Advisor',
       eta,
@@ -654,7 +663,7 @@ const TalkFeature = {
       firstName: Utils.firstNameFrom(customer?.firstName || appt?.clientName),
       appointmentDate: appt?.date ? Utils.formatDate(appt.date) : '',
       appointmentDay: appt?.date ? Utils.formatDate(appt.date, 'long') : '',
-      appointmentTime: appt?.date ? Utils.formatTime(appt.date) : '',
+      appointmentTime: this.apptTimeText(appt),
       visitType: visitTypeLabel,
       visitAddress: appt?.address || customer?.address?.line1 || '',
       templateKey,

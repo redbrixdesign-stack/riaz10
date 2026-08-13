@@ -23,6 +23,9 @@ const NotificationService = {
   // "now" and the visit, then wraps the same per-type practical ask
   // (windows clear, parking, etc.) that's always needed regardless of
   // timing - the personalization is in the framing, not the substance.
+  // `time` carries its own preposition: "at 09:00" for an exact slot or
+  // "between 09:00 and 11:00" for an arrival window — the caller picks, so
+  // the phrase "at between …" can never leak into a customer message.
   buildBookingConfirmationMessage({ firstName, date, dateLabel, time, address, type, advisorName }) {
     const name = firstName || 'there';
     const author = advisorName || 'Your Advisor';
@@ -35,10 +38,10 @@ const NotificationService = {
     const tier = daysUntil === null ? 'soon' : daysUntil <= 0 ? 'today' : daysUntil === 1 ? 'tomorrow' : daysUntil <= 3 ? 'soon' : 'later';
 
     const openings = {
-      today: `Hi ${name}, thanks for booking! I'll be with you today at ${time}.`,
-      tomorrow: `Hi ${name}, thanks for booking — looking forward to seeing you tomorrow at ${time}.`,
-      soon: `Hi ${name}, thanks for booking! I've got you down for ${dateLabel} at ${time}.`,
-      later: `Hi ${name}, thanks for booking! You're all set for ${dateLabel} at ${time} — that's a little way off yet, so I'll drop you a reminder closer to the day, but wanted to say hello now and flag a couple of things ahead of time:`
+      today: `Hi ${name}, thanks for booking! I'll be with you today ${time}.`,
+      tomorrow: `Hi ${name}, thanks for booking — looking forward to seeing you tomorrow ${time}.`,
+      soon: `Hi ${name}, thanks for booking! I've got you down for ${dateLabel} ${time}.`,
+      later: `Hi ${name}, thanks for booking! You're all set for ${dateLabel} ${time} — that's a little way off yet, so I'll drop you a reminder closer to the day, but wanted to say hello now and flag a couple of things ahead of time:`
     };
 
     const asks = {

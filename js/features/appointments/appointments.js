@@ -665,6 +665,96 @@ const AppointmentsFeature = {
     return new Date(date).toTimeString().slice(0, 5);
   },
 
+  // ── Arrival window ─────────────────────────────────────────────
+  // An exact start time can't always be guaranteed once you're on the
+  // road, so a visit can carry an optional arrival window (e.g. "between
+  // 09:00 and 11:00") that is what the customer is promised. The exact
+  // `date`/`time` is kept internally: it still anchors the diary slot,
+  // conflict checks and routing, the window only changes what's shown and
+  // what messages say.
+
+  // Friendly display label: "between 09:00 and 11:00" ('' when no window).
+  getArrivalWindowLabel(appt) {
+    if (!appt || !appt.arrivalStart || !appt.arrivalEnd) return '';
+    return `between ${appt.arrivalStart} and ${appt.arrivalEnd}`;
+  },
+
+  // Compact form used where a template already says "at" ("at 09:00–11:00"
+  // reads fine, "at between 09:00 and 11:00" does not). Falls back to the
+  // exact formatted time when no window is set.
+  getArrivalTimeText(appt) {
+    if (!appt || !appt.arrivalStart || !appt.arrivalEnd) return Utils.formatTime(appt.date);
+    return `${appt.arrivalStart}–${appt.arrivalEnd}`;
+  },
+
+  // Presets come from the working blocks (morning/midday/afternoon/evening)
+  // so they're always valid, plus a Custom option that reveals two time
+  // pickers for any other range.
+  renderArrivalWindowOptions(selectedId = 'none') {
+    const blocks = CONFIG.workingWeek?.blocks || [];
+    const labels = { none: 'No window — exact time only', custom: 'Custom window…' };
+    const ids = ['none', ...blocks.map(b => b.id), 'custom'];
+    return ids.map(id => {
+      const block = blocks.find(b => b.id === id);
+      const label = block ? block.name : labels[id];
+      return `<option value="${id}" ${id === selectedId ? 'selected' : ''}>${Utils.escapeHtml(label)}</option>`;
+    }).join('');
+  },
+
+  renderArrivalWindowFields(selectedId = 'none', start = '', end = '') {
+    return `
+      <div class="form-group">
+        <label>Arrival window <span class="fw-400 text-tertiary" >— optional</span></label>
+        <select class="select" id="arrival-window" onchange="AppointmentsFeature.toggleArrivalWindowCustom(this.value)">
+          ${this.renderArrivalWindowOptions(selectedId)}
+        </select>
+        <div class="hint">If an exact time can't be guaranteed, promise a window instead — the diary still plans on the exact time.</div>
+      </div>
+      <div class="form-row" id="arrival-window-custom" style="display: ${selectedId === 'custom' ? 'flex' : 'none'};">
+        <div class="form-group">
+          <label>Window start</label>
+          <input type="time" class="input" id="arrival-window-start" value="${start}" step="900">
+        </div>
+        <div class="form-group">
+          <label>Window end</label>
+          <input type="time" class="input" id="arrival-window-end" value="${end}" step="900">
+        </div>
+      </div>
+    `;
+  },
+
+  // Matches a stored window back to a preset so reopening a form selects the
+  // right option; a range that doesn't match a block stays "custom".
+  getArrivalWindowPreset(appt) {
+    const start = appt?.arrivalStart || '';
+    const end = appt?.arrivalEnd || '';
+    if (!start || !end) return 'none';
+    const block = (CONFIG.workingWeek?.blocks || []).find(b => b.start === start && b.end === end);
+    return block ? block.id : 'custom';
+  },
+
+  toggleArrivalWindowCustom(value) {
+    const el = document.getElementById('arrival-window-custom');
+    if (el) el.style.display = value === 'custom' ? 'flex' : 'none';
+  },
+
+  // Reads the window fields into { arrivalStart, arrivalEnd }. Returns
+  // { error } when a custom window was chosen but is invalid, and null when
+  // no window was picked at all.
+  readArrivalWindow() {
+    const select = document.getElementById('arrival-window');
+    if (!select) return null;
+    const value = select.value;
+    if (value === 'none') return null;
+    const block = (CONFIG.workingWeek?.blocks || []).find(b => b.id === value);
+    if (block) return { arrivalStart: block.start, arrivalEnd: block.end };
+    const start = document.getElementById('arrival-window-start')?.value || '';
+    const end = document.getElementById('arrival-window-end')?.value || '';
+    if (!start || !end) return { error: 'Pick both a start and an end for the custom window.' };
+    if (start >= end) return { error: 'Window end must be later than the start.' };
+    return { arrivalStart: start, arrivalEnd: end };
+  },
+
   // e.g. " – 10:00 (1 hr)" appended after a start time, only shown for multi-slot visits.
   getVisitDurationLabel(appt) {
     const duration = appt.durationSlots || 1;
@@ -851,7 +941,7 @@ const AppointmentsFeature = {
               <span class="badge ${typeConfig.badgeClass || 'badge-primary'} fs-10 pill-pad shrink-0" >${Utils.escapeHtml(typeConfig.name)}</span>
             </div>
             <div class="visit-meta">
-              ${Utils.formatTime(appt.date)} · ${appt.address ? Utils.escapeHtml(Utils.truncate(appt.address, 30)) : 'No address'}
+              ${this.getArrivalWindowLabel(appt) ? `Arrive ${Utils.escapeHtml(this.getArrivalWindowLabel(appt))}` : Utils.formatTime(appt.date)} · ${appt.address ? Utils.escapeHtml(Utils.truncate(appt.address, 30)) : 'No address'}
             </div>
             ${appt.value > 0 ? `
               <div class="visit-value">
@@ -1446,7 +1536,7 @@ const AppointmentsFeature = {
               <span class="material-symbols-rounded text-tertiary" >event</span>
               <div>
                 <div class="fw-500" >${Utils.formatDate(appt.date, 'long')}</div>
-                <div class="fs-13 text-secondary" >${Utils.formatTime(appt.date)}${this.getVisitDurationLabel(appt)}</div>
+                <div class="fs-13 text-secondary" >${this.getArrivalWindowLabel(appt) ? `Arrive ${Utils.escapeHtml(this.getArrivalWindowLabel(appt))} · planned ${Utils.formatTime(appt.date)}` : Utils.formatTime(appt.date)}${this.getVisitDurationLabel(appt)}</div>
               </div>
             </div>
 
@@ -1654,6 +1744,8 @@ const AppointmentsFeature = {
 	          <div class="hint mt-neg-8 mb-sm" id="visit-day-advice" >${Utils.escapeHtml(mode.friendLine)}</div>
 	          <div class="hint mb-md" id="travel-room-advice" >Rough area-based check of the gap before and after this visit.</div>
 
+          ${this.renderArrivalWindowFields()}
+
           <div class="form-group">
             <label>Parking / Access</label>
             <input type="text" class="input" id="appt-access" placeholder="e.g. permit parking, side gate, 3rd floor">
@@ -1781,6 +1873,7 @@ const AppointmentsFeature = {
   readAppointmentDraft() {
     const nameEl = document.getElementById('appt-name');
     if (!nameEl) return null;
+    const windowData = this.readArrivalWindow() || {};
     return {
       name: nameEl.value.trim(),
       phone: document.getElementById('appt-phone')?.value.trim() || '',
@@ -1791,7 +1884,10 @@ const AppointmentsFeature = {
       type: document.getElementById('appt-type')?.value || 'consultation',
       source: document.getElementById('appt-source')?.value || 'self_generated',
       access: document.getElementById('appt-access')?.value.trim() || '',
-      notes: document.getElementById('appt-notes')?.value.trim() || ''
+      notes: document.getElementById('appt-notes')?.value.trim() || '',
+      arrivalStart: windowData.arrivalStart || '',
+      arrivalEnd: windowData.arrivalEnd || '',
+      arrivalError: windowData.error || ''
     };
   },
 
@@ -1821,7 +1917,9 @@ const AppointmentsFeature = {
       firstName: customer?.firstName || appt.clientName?.split(' ')[0] || 'there',
       date: apptDate,
       dateLabel: apptDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }),
-      time: Utils.formatTime(appt.date),
+      // time carries its own preposition so a window reads naturally:
+      // "I'll be with you today at 09:00" vs "…today between 09:00 and 11:00".
+      time: this.getArrivalWindowLabel(appt) || `at ${Utils.formatTime(appt.date)}`,
       address: appt.address || '',
       type: appt.type,
       advisorName: CONFIG.advisorName || 'Your Advisor'
@@ -1866,12 +1964,17 @@ const AppointmentsFeature = {
       Toast.show('Visit form is no longer open. Please check details and try again.', 'error');
       return;
     }
-    const { name, phone, address, date, time, durationSlots, type, source, access, notes } = data;
+    const { name, phone, address, date, time, durationSlots, type, source, access, notes, arrivalStart, arrivalEnd, arrivalError } = data;
 
 	    if (!name || !address || !date) {
 	      Toast.show('Please fill in required fields', 'error');
 	      return;
 	    }
+
+    if (arrivalError) {
+      Toast.show(arrivalError, 'warning');
+      return;
+    }
 
     if (!this.isQuarterHour(time)) {
       Toast.show('Pick one of the 15-minute slots, nice and tidy.', 'error');
@@ -1962,6 +2065,8 @@ const AppointmentsFeature = {
         durationSlots,
         type,
         source,
+        arrivalStart: arrivalStart || null,
+        arrivalEnd: arrivalEnd || null,
         notes: [access ? `Access: ${access}` : '', notes].filter(Boolean).join('\n\n'),
         status: 'confirmed'
       });
@@ -2084,6 +2189,8 @@ const AppointmentsFeature = {
       await this.saveAppointment(true, action.draft);
     } else if (action.kind === 'reschedule') {
       await this.saveReschedule(action.id, true, action.draft);
+    } else if (action.kind === 'editDetails') {
+      await this.saveEditDetails(action.id, true, action.draft);
     }
   },
 
@@ -2210,6 +2317,7 @@ const AppointmentsFeature = {
     }
     const date = Utils.formatDate(appt.date, 'iso');
     const time = this.getTimeKey(appt.date);
+    const windowPreset = this.getArrivalWindowPreset(appt);
     const content = `
       <div class="sheet-handle"></div>
       <div class="sheet-header">
@@ -2235,6 +2343,7 @@ const AppointmentsFeature = {
             ${this.renderDurationOptions(appt.durationSlots || 1)}
           </select>
         </div>
+        ${this.renderArrivalWindowFields(windowPreset, appt.arrivalStart || '', appt.arrivalEnd || '')}
         <div class="form-group">
           <label>Reason / note</label>
           <textarea class="textarea" id="move-note" placeholder="Customer requested, route tidy-up, no access..."></textarea>
@@ -2248,12 +2357,16 @@ const AppointmentsFeature = {
   },
 
   readRescheduleDraft(appt) {
+    const windowData = this.readArrivalWindow() || {};
     return {
       date: document.getElementById('move-date')?.value || Utils.formatDate(appt.date, 'iso'),
       time: document.getElementById('move-time')?.value || this.getTimeKey(appt.date),
       durationSlots: Math.max(1, parseInt(document.getElementById('move-duration')?.value, 10) || appt.durationSlots || 1),
       reason: document.getElementById('move-note')?.value.trim() || '',
-      address: appt.address || ''
+      address: appt.address || '',
+      arrivalStart: windowData.arrivalStart || '',
+      arrivalEnd: windowData.arrivalEnd || '',
+      arrivalError: windowData.error || ''
     };
   },
 
@@ -2267,6 +2380,10 @@ const AppointmentsFeature = {
 
     if (!data.date || !data.time) {
       Toast.show('Pick a date and time first', 'error');
+      return;
+    }
+    if (data.arrivalError) {
+      Toast.show(data.arrivalError, 'warning');
       return;
     }
     if (!this.isQuarterHour(data.time)) {
@@ -2296,6 +2413,8 @@ const AppointmentsFeature = {
     await DB.db.appointments.update(id, {
       date: newDate,
       durationSlots: data.durationSlots,
+      arrivalStart: data.arrivalStart || null,
+      arrivalEnd: data.arrivalEnd || null,
       status: 'confirmed',
       notes: [existingNotes, moveNote].filter(Boolean).join('\n\n')
     });
@@ -2310,6 +2429,9 @@ const AppointmentsFeature = {
       Toast.show('Visit not found', 'error');
       return;
     }
+    const date = Utils.formatDate(appt.date, 'iso');
+    const time = this.getTimeKey(appt.date);
+    const windowPreset = this.getArrivalWindowPreset(appt);
     const content = `
       <div class="sheet-handle"></div>
       <div class="sheet-header">
@@ -2319,6 +2441,25 @@ const AppointmentsFeature = {
         </button>
       </div>
       <div class="sheet-body">
+        <div class="divider-text">Visit time</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Date *</label>
+            <input type="date" class="input" id="edit-detail-date" value="${date}">
+          </div>
+          <div class="form-group">
+            <label>Visit time *</label>
+            <input type="time" class="input" id="edit-detail-time" value="${time}" step="900">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Duration</label>
+          <select class="select" id="edit-detail-duration">
+            ${this.renderDurationOptions(appt.durationSlots || 1)}
+          </select>
+        </div>
+        ${this.renderArrivalWindowFields(windowPreset, appt.arrivalStart || '', appt.arrivalEnd || '')}
+        <div class="divider-text">Customer details</div>
         <div class="form-group">
           <label>Customer Name *</label>
           <input type="text" class="input" id="edit-detail-name" autocomplete="name" value="${Utils.escapeHtml(appt.clientName || '')}">
@@ -2340,39 +2481,87 @@ const AppointmentsFeature = {
     App.openModal(content);
   },
 
-  async saveEditDetails(id) {
+  async saveEditDetails(id, forceTravel = false, draft = null) {
     const appt = await DB.db.appointments.get(id);
     if (!appt) {
       Toast.show('Visit not found', 'error');
       return;
     }
 
-    const name = document.getElementById('edit-detail-name')?.value.trim() || '';
-    const phone = document.getElementById('edit-detail-phone')?.value.trim() || '';
-    const address = document.getElementById('edit-detail-address')?.value.trim() || '';
+    const data = draft || (() => {
+      const windowData = this.readArrivalWindow() || {};
+      return {
+        name: document.getElementById('edit-detail-name')?.value.trim() || '',
+        phone: document.getElementById('edit-detail-phone')?.value.trim() || '',
+        address: document.getElementById('edit-detail-address')?.value.trim() || '',
+        date: document.getElementById('edit-detail-date')?.value || '',
+        time: document.getElementById('edit-detail-time')?.value || '',
+        durationSlots: Math.max(1, parseInt(document.getElementById('edit-detail-duration')?.value, 10) || appt.durationSlots || 1),
+        arrivalStart: windowData.arrivalStart || '',
+        arrivalEnd: windowData.arrivalEnd || '',
+        arrivalError: windowData.error || ''
+      };
+    })();
 
-    if (!name || !address) {
-      Toast.show('Name and address are required', 'error');
+    if (!data.name || !data.address || !data.date || !data.time) {
+      Toast.show('Name, address, date and time are required', 'error');
+      return;
+    }
+    if (data.arrivalError) {
+      Toast.show(data.arrivalError, 'warning');
+      return;
+    }
+    if (!this.isQuarterHour(data.time)) {
+      Toast.show('Use a 15-minute time, nice and tidy.', 'warning');
       return;
     }
 
+    const block = this.getBlockForTime(data.time);
+    if (block && !this.fitsInBlock(block, data.time, data.durationSlots)) {
+      Toast.show(`That runs past the end of ${block.name} (${block.end}). Pick an earlier start or a shorter visit.`, 'warning');
+      return;
+    }
+
+    const existingToday = await DB.getAppointmentsForDate(new Date(data.date + 'T00:00:00').toISOString());
+    if (this.hasScheduleConflict(data, existingToday, id)) {
+      Toast.show('That time clashes with another visit.', 'warning');
+      return;
+    }
+
+    if (!forceTravel) {
+      const travelWarnings = this.findTravelWarnings(data, existingToday, id);
+      if (travelWarnings.length > 0) {
+        this.pendingTravelAction = { kind: 'editDetails', id, draft: data };
+        this.showTravelWarning(travelWarnings);
+        return;
+      }
+    }
+
     try {
-      await DB.db.appointments.update(id, { clientName: name, phone, address });
+      await DB.db.appointments.update(id, {
+        clientName: data.name,
+        phone: data.phone,
+        address: data.address,
+        date: new Date(data.date + 'T' + data.time).toISOString(),
+        durationSlots: data.durationSlots,
+        arrivalStart: data.arrivalStart || null,
+        arrivalEnd: data.arrivalEnd || null
+      });
 
       // Keep the linked customer record in sync so search, the area view and
       // future visits all see the corrected details rather than just this visit.
       if (appt.customerId) {
         const { postcode, postcodeNormalized } = (typeof OCRFeature !== 'undefined' && OCRFeature.extractPostcodeFromAddress)
-          ? OCRFeature.extractPostcodeFromAddress(address)
+          ? OCRFeature.extractPostcodeFromAddress(data.address)
           : { postcode: '', postcodeNormalized: '' };
         const customer = await DB.db.customers.get(appt.customerId);
         await DB.db.customers.update(appt.customerId, {
-          fullName: name,
-          firstName: name.split(' ')[0],
-          lastName: name.split(' ').slice(1).join(' ') || '',
-          phone,
+          fullName: data.name,
+          firstName: data.name.split(' ')[0],
+          lastName: data.name.split(' ').slice(1).join(' ') || '',
+          phone: data.phone,
           postcodeNormalized,
-          address: { ...(customer?.address || {}), line1: address, postcode, postcodeNormalized }
+          address: { ...(customer?.address || {}), line1: data.address, postcode, postcodeNormalized }
         });
       }
 
