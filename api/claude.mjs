@@ -44,6 +44,7 @@ Return ONLY a JSON object with exactly these keys, using empty strings when a fi
 - customerNumber: any customer/order reference (e.g. "CUS-2026-0001").
 - email: if present.
 - appointmentDate / appointmentTime: the REAL booking, delivery or appointment date (ISO, YYYY-MM-DD) and time shown. Screens often also display a phone status-bar clock/date or "previous appointment"/"last visit" history dates — never use those. Prefer the date on the line that mentions appointment/arriving. If a date has no year printed, infer the year using today's real date above (${today}) as the reference point — not any other year. If the text gives a weekday, it must match the date's actual weekday; if not, treat it as a history or noise date.
+- appointmentTime may be a RANGE: when the screen shows a slot like "3:00 PM - 6:00 PM" or "09:00-12:00", return the FULL range as 24h "HH:MM-HH:MM" (e.g. "15:00-18:00") — never just the first time. When only a single time is printed, return it as 24h "HH:MM". Never use the phone status-bar clock.
 - If the only date in the image looks like history (yesterday, last week, last year), return it anyway — never invent or guess a different date, and never use "today".
 The photo may include a Google map with road labels, place names and buttons — only extract text that belongs to the order/customer details, never the map.
 Return only the raw JSON object — never wrap it in markdown code fences, never add preamble or any other text.`;

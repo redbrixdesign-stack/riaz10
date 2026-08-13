@@ -129,6 +129,7 @@ async function proxyTests() {
     const content = parsed.messages[0].content;
     ok('proxy: ocr sends base64 image block', content.some(b => b.type === 'image' && b.source.type === 'base64' && b.source.media_type === 'image/jpeg'));
     ok('proxy: ocr sends OCR system prompt', parsed.system.includes('window coverings'));
+    ok('proxy: ocr prompt keeps slot ranges whole', parsed.system.includes('HH:MM-HH:MM') && parsed.system.includes('never just the first time'));
     return anthropicOk('{"name":"Alice Smith"}');
   };
   r = await req('POST', {}, { type: 'ocr', model: 'claude-sonnet-4-5', image: 'QUJD', mediaType: 'image/jpeg' });
@@ -339,6 +340,32 @@ async function clientTests() {
   svcTrim._toBase64 = async () => ({ base64: 'QUJD', mediaType: 'image/jpeg' });
   const trimRes = await svcTrim.extractFromImage({});
   ok('client: trims values and drops unknown keys', trimRes.ok && trimRes.fields.name === 'Ann' && trimRes.fields.customerNumber === 'CUS-1' && !('bogus' in trimRes.fields), trimRes.fields);
+
+  // extractFromImage: appointmentTime keeps the whole printed slot range,
+  // canonicalized to 24h "HH:MM-HH:MM" instead of only the first time.
+  const svcSlot = loadAiClient({
+    responder: async () => responseLike({
+      text: '{"name":"Bob","appointmentTime":"3:00 PM - 6:00 PM"}',
+      model: 'x', type: 'ocr'
+    })
+  });
+  svcSlot._toBase64 = async () => ({ base64: 'QUJD', mediaType: 'image/jpeg' });
+  const slot = await svcSlot.extractFromImage({});
+  ok('client: slot time kept whole as 15:00-18:00', slot.ok && slot.fields.appointmentTime === '15:00-18:00', slot.fields);
+
+  const svcSingle = loadAiClient({
+    responder: async () => responseLike({ text: '{"name":"Bob","appointmentTime":"3:00 PM"}', model: 'x', type: 'ocr' })
+  });
+  svcSingle._toBase64 = async () => ({ base64: 'QUJD', mediaType: 'image/jpeg' });
+  const single = await svcSingle.extractFromImage({});
+  ok('client: single 12h time canonicalized to 15:00', single.ok && single.fields.appointmentTime === '15:00', single.fields);
+
+  const svcUnparsable = loadAiClient({
+    responder: async () => responseLike({ text: '{"name":"Bob","appointmentTime":"some time"}', model: 'x', type: 'ocr' })
+  });
+  svcUnparsable._toBase64 = async () => ({ base64: 'QUJD', mediaType: 'image/jpeg' });
+  const unpars = await svcUnparsable.extractFromImage({});
+  ok('client: unparsable time passes through untouched', unpars.ok && unpars.fields.appointmentTime === 'some time', unpars.fields);
 
   // extractReceipt: stub image pipeline, assert payload + field mapping.
   const svcReceipt = loadAiClient({

@@ -197,6 +197,48 @@ console.log('normalizeTimeField + resolveVisitIso');
   ok('resolveVisitIso falls back to 09:00 when time unusable', badTime.time === '09:00' && new Date(badTime.iso).getHours() === 9, badTime);
 }
 
+console.log('splitTimeRange');
+{
+  const cases = {
+    '15:00-18:00': { start: '15:00', end: '18:00' },
+    '3:00 PM - 6:00 PM': { start: '15:00', end: '18:00' },
+    '3pm to 6pm': { start: '15:00', end: '18:00' },
+    '09:00 – 12:00': { start: '09:00', end: '12:00' },
+    '9:00 AM - 11:00': { start: '09:00', end: '11:00' },
+    '12:00 AM - 2:00 PM': { start: '00:00', end: '14:00' },
+    '15:00': null,
+    '3:00 PM': null,
+    '18:00-15:00': null,        // end before start
+    '': null,
+    'not a time': null
+  };
+  for (const [input, expected] of Object.entries(cases)) {
+    const got = OCRFeature.splitTimeRange(input);
+    const pass = expected === null ? got === null : (got && got.start === expected.start && got.end === expected.end);
+    ok(`splitTimeRange(${JSON.stringify(input)}) -> ${expected ? JSON.stringify(expected) : 'null'}`, pass, got);
+  }
+  const anchored = OCRFeature.resolveVisitIso('2026-08-11', '3:00 PM - 6:00 PM');
+  ok('resolveVisitIso anchors a range on its start (15:00)', anchored.time === '15:00' && new Date(anchored.iso).getHours() === 15, anchored);
+}
+
+console.log('appointment slot time extraction');
+{
+  const data = extract(['Customer details', 'Mr James Wilson', 'Arriving 3:00 PM - 6:00 PM', 'Tuesday 11 August'], '', AT);
+  ok('"Arriving 3:00 PM - 6:00 PM" -> 15:00-18:00', data.appointmentTime === '15:00-18:00', data.appointmentTime);
+}
+{
+  const data = extract(['Mr James Wilson', 'Appointment: 9:00 AM - 12:00 PM', 'Tuesday 11 August'], '', AT);
+  ok('"Appointment: 9:00 AM - 12:00 PM" -> 09:00-12:00', data.appointmentTime === '09:00-12:00', data.appointmentTime);
+}
+{
+  const data = extract(['Mr James Wilson', 'Arriving 3:00 PM', 'Tuesday 11 August'], '', AT);
+  ok('single "Arriving 3:00 PM" still -> 15:00', data.appointmentTime === '15:00', data.appointmentTime);
+}
+{
+  const data = extract(['Mr James Wilson', '15:35', 'Tuesday 11 August'], '', AT);
+  ok('status-bar clock alone yields no time', data.appointmentTime === '', data.appointmentTime);
+}
+
 console.log('duplicate prevention (findExistingVisit)');
 {
   const day = '2026-08-11';

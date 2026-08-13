@@ -153,6 +153,9 @@ const AIService = {
       for (const key of expected) {
         out[key] = typeof parsed[key] === 'string' ? parsed[key].trim() : '';
       }
+      // Appointment screens print slots like "3:00 PM - 6:00 PM"; keep the
+      // whole range so the visit lands in the block, in one canonical shape.
+      out.appointmentTime = this._normalizeTimeOrRange(out.appointmentTime);
       return out;
     };
     const tryParse = text => {
@@ -176,6 +179,49 @@ const AIService = {
       if (slice) return slice;
     }
     return {};
+  },
+
+  // Appointment time arrives as "15:00", "3:00 PM" or a slot range like
+  // "3:00 PM - 6:00 PM" / "3pm to 6pm". Canonicalize to "HH:MM" or
+  // "HH:MM-HH:MM" (24h); anything unparseable passes through untouched so
+  // the raw value is never silently lost.
+  _normalizeTimeOrRange(value) {
+    if (!value) return '';
+    const v = String(value).trim();
+    const to24 = t => {
+      let m = t.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM|am|pm)?\s*$/);
+      let hour, minute, meridian;
+      if (m) {
+        hour = parseInt(m[1], 10);
+        minute = m[2];
+        meridian = m[3];
+      } else {
+        m = t.match(/^(\d{1,2})\s*(AM|PM|am|pm)\s*$/);
+        if (!m) return null;
+        hour = parseInt(m[1], 10);
+        minute = '00';
+        meridian = m[2];
+      }
+      if (meridian) {
+        if (hour < 1 || hour > 12) return null;
+        if (/pm/i.test(meridian) && hour < 12) hour += 12;
+        if (/am/i.test(meridian) && hour === 12) hour = 0;
+      }
+      if (hour > 23 || parseInt(minute, 10) > 59) return null;
+      return `${String(hour).padStart(2, '0')}:${minute}`;
+    };
+
+    const parts = v.split(/\s*(?:-|–|—|to|until)\s*/i).filter(Boolean);
+    if (parts.length === 2) {
+      const start = to24(parts[0]);
+      const end = to24(parts[1]);
+      if (start && end && end > start) return `${start}-${end}`;
+    }
+    if (parts.length === 1) {
+      const single = to24(parts[0]);
+      if (single) return single;
+    }
+    return v;
   },
 
   // Receipt fields: amount (string, parsed later), vendor, date (ISO),

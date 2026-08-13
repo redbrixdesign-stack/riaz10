@@ -466,22 +466,40 @@ const OCRFeature = {
     }
     data.appointmentDate = bestDate ? Utils.formatDate(bestDate.candidate, 'iso') : '';
 
-    // ---- Appointment time: prefer an explicit "Arriving H:MMam/pm" slot start,
-    // since that's the actual appointment time, not just any clock-shaped text ----
+    // ---- Appointment time: an "Arriving" line can print a whole slot
+    // ("Arriving 3:00 PM - 6:00 PM") or a single time. Prefer the slot and
+    // keep BOTH ends — the visit then lands in that block, not just its
+    // start, so the arrival window matches what the customer was promised.
+    const rangeRe = /(\d{1,2}):(\d{2})\s*(AM|PM)?\s*(?:-|–|—|to)\s*(\d{1,2}):(\d{2})\s*(AM|PM)?/i;
     const timeRe = /(\d{1,2}):(\d{2})\s*(AM|PM)/i;
+    let rangeMatch = null;
     let timeMatch = null;
     for (const line of lines) {
-      if (/arriv/i.test(line)) { timeMatch = line.match(timeRe); if (timeMatch) break; }
+      if (/arriv/i.test(line)) {
+        rangeMatch = line.match(rangeRe);
+        if (rangeMatch) break;
+        timeMatch = line.match(timeRe);
+        if (timeMatch) break;
+      }
     }
-    if (!timeMatch) {
+    if (!rangeMatch && !timeMatch) {
+      const keywordRe = /appoint|arriv|visit|book|deliver|when|slot|time/i;
       for (const line of lines) {
-        if (/^\d{1,2}:\d{2}\s*(AM|PM)/i.test(line.trim()) || (/time/i.test(line) && timeRe.test(line))) {
+        if (/^\d{1,2}:\d{2}\s*(AM|PM)/i.test(line.trim()) || (keywordRe.test(line) && (rangeRe.test(line) || timeRe.test(line)))) {
+          rangeMatch = line.match(rangeRe);
+          if (rangeMatch) break;
           timeMatch = line.match(timeRe);
           if (timeMatch) break;
         }
       }
     }
-    if (timeMatch) {
+    if (rangeMatch) {
+      const start = this._to24h(rangeMatch[1], rangeMatch[2], rangeMatch[3]);
+      // A "9:00 AM - 11:00" range prints the meridian once — the second time
+      // inherits it. An "9:00 AM - 12:00 PM" range carries its own.
+      const end = this._to24h(rangeMatch[4], rangeMatch[5], rangeMatch[6] || rangeMatch[3]);
+      data.appointmentTime = start && end && end > start ? `${start}-${end}` : (start || '');
+    } else if (timeMatch) {
       let hour = parseInt(timeMatch[1], 10);
       const minute = timeMatch[2];
       const isPM = /pm/i.test(timeMatch[3]);
@@ -600,6 +618,35 @@ const OCRFeature = {
     }) || null;
   },
 
+  // Converts hour/minute/meridian pieces to 24h "HH:MM" (null when invalid).
+  _to24h(hour, minute, meridian) {
+    let h = parseInt(hour, 10);
+    const min = String(minute == null ? 0 : minute).padStart(2, '0');
+    if (isNaN(h) || h < 0 || parseInt(min, 10) > 59) return null;
+    if (meridian) {
+      if (h < 1 || h > 12) return null;
+      if (/pm/i.test(meridian) && h < 12) h += 12;
+      if (/am/i.test(meridian) && h === 12) h = 0;
+    }
+    if (h > 23) return null;
+    return `${String(h).padStart(2, '0')}:${min}`;
+  },
+
+  // A slot time like "15:00-18:00", "3:00 PM - 6:00 PM" or "3pm to 6pm".
+  // Returns { start, end } as 24h HH:MM, or null when it isn't a valid range
+  // (a single time, garbage, or an end that isn't later than the start).
+  splitTimeRange(value) {
+    if (!value) return null;
+    const v = String(value).trim();
+    const m = v.match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM|am|pm)?\s*(?:-|–|—|to|until)\s*(\d{1,2})(?::(\d{2}))?\s*(AM|PM|am|pm)?$/i);
+    if (!m) return null;
+    const start = this._to24h(m[1], m[2] || '00', m[3]);
+    // When only one meridian is printed, the second time shares it.
+    const end = this._to24h(m[4], m[5] || '00', m[6] || m[3]);
+    if (!start || !end || end <= start) return null;
+    return { start, end };
+  },
+
   // The appointment time can arrive as "15:00", "3:00 PM", "15:00:00" or
   // "3pm" depending on the engine — everything except 24h HH:MM breaks
   // new Date(...) and kills the whole save. Normalize to HH:MM, else ''.
@@ -635,8 +682,11 @@ const OCRFeature = {
   // Builds the ISO date for a visit from the normalized fields, falling back
   // to today 09:00 when either is unusable — a bad value must never abort
   // the whole save (that used to surface as a dead-end "Failed to save").
+  // A slot range ("15:00-18:00") anchors on its START: the diary plans the
+  // exact start while the window itself is stored separately on the visit.
   resolveVisitIso(visitDate, visitTime) {
-    const time = this.normalizeTimeField(visitTime) || '09:00';
+    const range = this.splitTimeRange(visitTime);
+    const time = this.normalizeTimeField(range ? range.start : visitTime) || '09:00';
     let d = new Date(visitDate + 'T' + time);
     if (isNaN(d.getTime())) {
       const fallback = Utils.formatDate(new Date(), 'iso');
@@ -709,6 +759,11 @@ const OCRFeature = {
 
       const { iso: dateIso } = this.resolveVisitIso(visitDate, visitTime);
 
+      // A slot time ("15:00-18:00") is a promise, not a pin: record it as
+      // the arrival window so the visit lands in the whole block and Talk
+      // messages say "at 15:00–18:00". The diary still anchors on the start.
+      const range = this.splitTimeRange(visitTime);
+
       const appointment = await DB.addAppointment({
         customerId: customer.id,
         clientName: name,
@@ -719,7 +774,8 @@ const OCRFeature = {
         type,
         source: 'company_system',
         notes: '',
-        status: 'confirmed'
+        status: 'confirmed',
+        ...(range ? { arrivalStart: range.start, arrivalEnd: range.end } : {})
       });
 
       if (typeof MessageScheduler !== 'undefined') MessageScheduler.reschedule();
