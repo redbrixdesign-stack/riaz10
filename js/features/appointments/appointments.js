@@ -1284,7 +1284,10 @@ const AppointmentsFeature = {
   // Camera/file picker on the phone's hardware camera; on desktop this falls
   // back to a normal file picker. The picked photo is downscaled before
   // saving so the gallery stays lean (rows of a few hundred KB).
-  async captureCustomerPhoto(event, customerId) {
+  // When fired from a visit detail screen, returnToAppointmentId sends the
+  // advisor straight back to that visit after saving instead of the customer
+  // profile — on-site capture shouldn't interrupt the visit flow.
+  async captureCustomerPhoto(event, customerId, returnToAppointmentId = null) {
     const file = event?.target?.files?.[0];
     if (event?.target) event.target.value = '';
     if (!file) return;
@@ -1297,7 +1300,7 @@ const AppointmentsFeature = {
       Toast.show('Could not read that image', 'error');
       return;
     }
-    this._capturePhoto = { customerId, data, mimeType: 'image/jpeg' };
+    this._capturePhoto = { customerId, data, mimeType: 'image/jpeg', returnToAppointmentId };
     const content = `<div class="sheet-handle"></div>
       <div class="sheet-header"><h3>Save photo</h3><button class="btn btn-ghost btn-sm" onclick="App.closeModal(); AppointmentsFeature.discardCapture()"><span class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body">
@@ -1347,13 +1350,18 @@ const AppointmentsFeature = {
 
   async saveCapturedPhoto() {
     const caption = (document.getElementById('photo-caption-input')?.value || '').trim();
-    const { customerId, data, mimeType } = this._capturePhoto || {};
+    const { customerId, data, mimeType, returnToAppointmentId } = this._capturePhoto || {};
     if (!customerId || !data) return;
     try {
       await DB.addPhoto({ customerId, data, mimeType, caption });
+      const returnTo = returnToAppointmentId;
       this._capturePhoto = null;
       App.closeModal();
       Toast.show('Photo saved', 'success');
+      if (returnTo) {
+        App.navigate('appointments', { id: returnTo });
+        return;
+      }
       App.navigate('customer', { id: customerId });
     } catch (e) {
       console.error('Save photo error:', e);
@@ -1476,6 +1484,13 @@ const AppointmentsFeature = {
       measurements = await DB.db.measurements.where('appointmentId').equals(appt.id).toArray();
     } catch (e) {}
 
+    let photos = [];
+    if (appt.customerId) {
+      try {
+        photos = await DB.getPhotosForCustomer(appt.customerId);
+      } catch (e) {}
+    }
+
     const typeConfig = CONFIG.appointmentTypes.find(t => t.id === appt.type);
     const contactPhone = customer?.phone || appt.phone || '';
 
@@ -1582,6 +1597,33 @@ const AppointmentsFeature = {
             `).join('')}
           </div>
         ` : ''}
+
+        <!-- Photos — capture on-site during sales, survey (measure) or fit
+             days without leaving the visit screen. Co-lives with the same
+             gallery on the customer profile. -->
+        ${appt.customerId ? `
+          <div class="card card-page" >
+            <div class="flex items-center justify-between mb-sm" >
+              <div class="fs-13 fw-600 text-secondary" >Photos ${photos.length ? `(${photos.length})` : ''}</div>
+              <button class="btn btn-outline btn-sm" style="gap:6px;" aria-label="Add photo" onclick="document.getElementById('visit-photo-input').click()">
+                <span class="material-symbols-rounded fs-16" >photo_camera</span>Add Photo
+              </button>
+            </div>
+            ${photos.length === 0 ? `
+              <div class="fs-13 text-tertiary text-center pt-12 pb-4" >Capture the windows, fronts or any damage notes — anything useful to remember from today.</div>
+            ` : `
+              <div class="grid-3 gap-6" >
+                ${photos.map(p => this.renderPhotoThumb(p)).join('')}
+              </div>
+            `}
+            <input type="file" id="visit-photo-input" accept="image/*" capture="environment" style="display:none;" onchange="AppointmentsFeature.captureCustomerPhoto(event, ${appt.customerId}, ${appt.id})">
+          </div>
+        ` : `
+          <div class="card card-page" >
+            <div class="fs-13 fw-600 text-secondary mb-6" >Photos</div>
+            <div class="fs-13 text-tertiary" >Add a phone number to this visit to link a customer record — photos are stored there.</div>
+          </div>
+        `}
 
         ${appt.status !== 'cancelled' ? `
           <div class="px-md mb-md" >
