@@ -28,6 +28,7 @@ const FollowupsFeature = {
     let pipeline = [];
     let orders = [];
     let upcoming = [];
+    let futureAppts = [];
     let todayAppts = [];
     let allAppts = [];
     try { pipeline = await DB.getPipeline(); } catch (e) {}
@@ -37,6 +38,10 @@ const FollowupsFeature = {
     // never surface — pull the full day separately for the outcome tasks.
     try { todayAppts = await DB.getAppointmentsForDate(now.toISOString()); } catch (e) {}
     try { allAppts = await DB.db.appointments.toArray(); } catch (e) {}
+    // Intro messages apply to ANY distance of booking, not just the next few
+    // days — otherwise a visit booked 2-3 weeks out (common for renovations)
+    // gets no intro task and its customer is never messaged.
+    try { futureAppts = await DB.getUpcomingAppointments(60); } catch (e) {}
 
     const customerIds = [...new Set([
       ...pipeline.map(a => a.customerId).filter(Boolean),
@@ -150,7 +155,7 @@ const FollowupsFeature = {
     } catch (e) { /* treat everyone as first-time */ }
     const isFirstVisit = id => !(id && firstVisitByCustomer[id]?.size);
 
-    const introCandidates = [...upcoming, ...todayAppts]
+    const introCandidates = [...futureAppts, ...todayAppts]
       .filter(a => a.status === 'confirmed' && !a.introSent && (a.phone || a.customerId))
       .sort((a, b) => new Date(a.date) - new Date(b.date));
     const introSeen = new Set();

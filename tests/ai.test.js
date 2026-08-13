@@ -224,6 +224,20 @@ async function proxyTests() {
   r = await req('POST', {}, { type: 'assistant', snapshot: '{"today":{}}', turnText: 'how is my day?' });
   const asstBody = JSON.parse(r.body);
   ok('proxy: assistant 200 forwards text', r.status === 200 && asstBody.ok && asstBody.text.includes('reply'), asstBody);
+
+  // Route type: input validation, prompt, forwarding.
+  r = await req('POST', {}, { type: 'route' });
+  ok('proxy: route without text 400', r.status === 400);
+  stubbedAnthropic = o => {
+    const parsed = JSON.parse(o.body);
+    ok('proxy: route model default haiku 4.5', parsed.model === 'claude-haiku-4-5');
+    ok('proxy: route sends the question, not business data', parsed.messages[0].content[0].text.includes('how does my week look?'), parsed.messages[0].content[0].text);
+    ok('proxy: route uses the intent-router prompt', parsed.system.includes('intent router') && parsed.system.includes('messages'), parsed.system.slice(0, 200));
+    return anthropicOk('{"command":"week"}');
+  };
+  r = await req('POST', {}, { type: 'route', text: 'how does my week look?' });
+  const routeBody = JSON.parse(r.body);
+  ok('proxy: route 200 forwards command', r.status === 200 && routeBody.ok && routeBody.text.includes('week'), routeBody);
 }
 
 // ---------- client tests ----------
@@ -507,6 +521,22 @@ async function clientTests() {
   ok('client: _parseAssistant preamble json keeps whitelist', fa2.reply === 'r2' && fa2.suggestions.length === 1 && fa2.suggestions[0] === 'help');
   const fa3 = svcAsst._parseAssistant('not json at all');
   ok('client: _parseAssistant junk keeps raw + no suggestions', fa3.reply === 'not json at all' && fa3.suggestions.length === 0);
+
+  // routeCommand: payload shape, parsed command, whitelist + degrade.
+  const svcRoute = loadAiClient({
+    responder: async (payload) => {
+      ok('client: route payload type/model/text', payload.type === 'route' && payload.model === 'claude-haiku-4-5' && payload.text === 'what about sarah?');
+      return responseLike({ text: '```json\n{"command":"messages"}\n```', type: 'route' });
+    }
+  });
+  const rc = await svcRoute.routeCommand('what about sarah?');
+  ok('client: routeCommand returns the parsed command', rc.ok && rc.command === 'messages', rc);
+  ok('client: _parseRoute preamble json', svcRoute._parseRoute('needs a quote, I think {"command":"orders"} trailing').command === 'orders');
+  ok('client: _parseRoute rejects unknown commands', svcRoute._parseRoute('{"command":"evil_purge"}').command === 'default');
+  ok('client: _parseRoute junk defaults', svcRoute._parseRoute('no idea').command === 'default');
+  const svcRouteDown = loadAiClient({ responder: async () => { throw new TypeError('fetch failed'); } });
+  const down = await svcRouteDown.routeCommand('hi');
+  ok('client: routeCommand degrades on failure', !down.ok && down.unavailable === true, down);
 }
 
 // ---------- runner ----------

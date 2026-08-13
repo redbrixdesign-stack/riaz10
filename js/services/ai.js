@@ -347,7 +347,7 @@ const AIService = {
       try {
         const p = JSON.parse(text);
         if (p && typeof p === 'object' && typeof p.reply === 'string') {
-          const allowed = new Set(['today', 'my day', 'week', 'money', 'follow-ups', 'next visit', 'log expense', 'weather', 'help']);
+          const allowed = new Set(['today', 'my day', 'week', 'money', 'follow-ups', 'next visit', 'log expense', 'messages', 'orders', 'weather', 'help']);
           const suggestions = Array.isArray(p.suggestions)
             ? p.suggestions.map(s => String(s).trim().toLowerCase()).filter(s => allowed.has(s)).slice(0, 3)
             : [];
@@ -368,6 +368,50 @@ const AIService = {
       if (slice) return slice;
     }
     return { reply: rawText, suggestions: [] };
+  },
+
+  // AI router: classify which rule command answers the advisor's question.
+  // The proxy never feeds business data to the model here — the companion
+  // runs the real handler after this returns.
+  async routeCommand(text) {
+    const result = await this._request({
+      type: 'route',
+      model: this.config().draftModel,
+      text: String(text || '')
+    }, 12000);
+    if (!result.ok) return result;
+    const parsed = this._parseRoute(result.data.text || '');
+    return {
+      ok: true,
+      command: parsed.command,
+      rawText: result.data.text || '',
+      usage: result.data.usage
+    };
+  },
+
+  _parseRoute(rawText) {
+    const allowed = new Set(['today', 'my day', 'week', 'money', 'follow-ups', 'next visit', 'log expense', 'messages', 'orders', 'weather', 'person', 'help', 'greeting', 'default']);
+    const tryParse = text => {
+      try {
+        const p = JSON.parse(text);
+        if (p && typeof p === 'object' && typeof p.command === 'string') {
+          const command = p.command.trim().toLowerCase();
+          return allowed.has(command) ? { command } : { command: 'default' };
+        }
+      } catch (e) { /* keep walking the ladder */ }
+      return null;
+    };
+    let parsed = tryParse(rawText);
+    if (!parsed) {
+      const fenced = rawText.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '').trim();
+      parsed = tryParse(fenced);
+    }
+    if (!parsed) {
+      const first = rawText.indexOf('{');
+      const last = rawText.lastIndexOf('}');
+      if (first !== -1 && last > first) parsed = tryParse(rawText.slice(first, last + 1));
+    }
+    return parsed || { command: 'default' };
   },
 
   formatUsage() {

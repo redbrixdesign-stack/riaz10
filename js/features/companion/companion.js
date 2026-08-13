@@ -24,7 +24,7 @@ const CompanionFeature = {
 
   // A tiny whitelist shared with the proxy prompt — the AI may only ever
   // suggest commands the router actually understands.
-  ALLOWED_SUGGESTIONS: ['today', 'my day', 'week', 'money', 'follow-ups', 'next visit', 'log expense', 'weather', 'help'],
+  ALLOWED_SUGGESTIONS: ['today', 'my day', 'week', 'money', 'follow-ups', 'next visit', 'log expense', 'messages', 'orders', 'weather', 'help'],
 
   CHIP_LABELS: {
     today: "▸ Today's overview",
@@ -34,6 +34,8 @@ const CompanionFeature = {
     'follow-ups': '▸ Follow-ups due',
     'next visit': '▸ Next visit',
     'log expense': '▸ Log an expense',
+    messages: '▸ What messages are due?',
+    orders: '▸ Who hasn\'t paid?',
     weather: '▸ Weather',
     help: '▸ What can you ask?'
   },
@@ -117,41 +119,87 @@ const CompanionFeature = {
   renderScroll() {
     const scroll = document.getElementById('comp-scroll');
     if (!scroll) return;
-    const inner = this._turns.length === 0 ? this.welcomeHtml() : this._turns.map(t =>
+    if (this._turns.length === 0) {
+      // First paint: welcome shell immediately, live chips when they land.
+      scroll.innerHTML = this.welcomeHtml([]);
+      this.buildWelcomeChips().then(chips => {
+        const again = document.getElementById('comp-scroll');
+        if (again && this._turns.length === 0 && again.innerHTML) {
+          again.innerHTML = this.welcomeHtml(chips);
+        }
+      }).catch(() => { /* static cards seen already */ });
+      return;
+    }
+    const inner = this._turns.map(t =>
       t.role === 'user' ? this.userBubbleHtml(t.text) : this.assistantHtml(t)
     ).join('');
     scroll.innerHTML = inner;
     scroll.scrollTop = scroll.scrollHeight;
   },
 
-  welcomeHtml() {
+  welcomeHtml(chips) {
     const firstName = Utils.firstNameFrom(CONFIG.advisorName || '');
-    const cards = [
-      ['today', 'event_available', "Today's Overview", 'your day at a glance'],
-      ['week', 'trending_up', 'Weekly Overview', 'earnings + sales'],
-      ['money', 'payments', 'Money & Tax', 'expenses, mileage, tax'],
-      ['follow-ups', 'campaign', 'Follow-ups Due', 'who needs a nudge'],
-      ['next visit', 'near_me', 'Next Visit', 'who, when, how far'],
-      ['log expense', 'receipt_long', 'Log Expense', 'scan or type a receipt']
-    ];
+    const cards = (chips && chips.length ? chips : [
+      ["Today's Overview", 'event_available', 'your day at a glance', 'today'],
+      ['Weekly Overview', 'trending_up', 'earnings + sales', 'week'],
+      ['Money & Tax', 'payments', 'expenses, mileage, tax', 'money'],
+      ['Follow-ups Due', 'campaign', 'who needs a nudge', 'follow-ups'],
+      ['Next Visit', 'near_me', 'who, when, how far', 'next visit'],
+      ['Log Expense', 'receipt_long', 'scan or type a receipt', 'log expense']
+    ]);
     return `
       <div class="comp-welcome">
         <div class="comp-avatar comp-avatar-lg">B</div>
         <h2 class="comp-welcome-title">Hi, I'm Beelo.</h2>
         <p class="comp-welcome-sub">How can I help you today${firstName !== 'there' ? `, ${Utils.escapeHtml(firstName)}` : ''}?</p>
         <div class="comp-cards">
-          ${cards.map(c => `
-            <button class="comp-card" type="button" onclick="CompanionFeature.send('${c[0]}')">
-              <span class="material-symbols-rounded comp-card-icon">${c[1]}</span>
+          ${cards.map(card => `
+            <button class="comp-card" type="button" onclick="CompanionFeature.send(${Utils.escapeJsString(JSON.stringify(card[3]))})">
+              <span class="material-symbols-rounded comp-card-icon">${card[1]}</span>
               <span class="comp-card-body">
-                <span class="comp-card-title">${c[2]}</span>
-                <span class="comp-card-sub">${c[3]}</span>
+                <span class="comp-card-title">${Utils.escapeHtml(card[2])}</span>
+                <span class="comp-card-sub">${Utils.escapeHtml(card[0])}</span>
               </span>
               <span class="material-symbols-rounded comp-card-arrow">chevron_right</span>
             </button>
           `).join('')}
         </div>
       </div>`;
+  },
+
+  // Live, data-driven welcome chips: real names/times/amounts the advisor
+  // actually cares about right now. Falls back to the static card bag when
+  // a data source is missing or offline.
+  async buildWelcomeChips() {
+    const chips = [];
+    try {
+      const upcoming = await DB.getUpcomingAppointments(14);
+      const next = upcoming.find(a => a.status !== 'cancelled' && (a.phone || a.customerId)) || upcoming.find(a => a.status !== 'cancelled') || null;
+      if (next) {
+        chips.push(['Next visit', 'near_me', `${next.clientName || 'Customer'} · ${Utils.formatDate(next.date, 'short')} ${Utils.formatTime(next.date)}`, 'next visit']);
+      }
+      const introOwed = upcoming.find(a => a.status === 'confirmed' && !a.introSent && (a.phone || a.customerId));
+      if (introOwed) {
+        chips.push(['Intro to send', 'waving_hand', `${introOwed.clientName || 'Customer'} · ${Utils.formatDate(introOwed.date, 'short')}`, 'messages']);
+      }
+    } catch (e) { /* chips are optional */ }
+    try {
+      const orders = await DB.db.orders.toArray();
+      const openTotal = orders.reduce((s, o) => s + (o.balanceDue || 0), 0);
+      const owed = orders.filter(o => (o.balanceDue || 0) > 0).sort((a, b) => (b.balanceDue || 0) - (a.balanceDue || 0));
+      if (owed.length) {
+        const cust = owed[0].customerId ? await DB.db.customers.get(owed[0].customerId) : null;
+        chips.push(['Unpaid', 'payments', `${Utils.formatCurrency(openTotal)}${owed.length > 1 ? ` over ${owed.length} orders` : cust ? ' — ' + (cust.firstName || cust.fullName) : ''}`, 'orders']);
+      }
+    } catch (e) { /* chips are optional */ }
+    try {
+      const target = CONFIG.weeklyTarget || 600;
+      const weekEarnings = await MoneyFeature.getWeekEarnings();
+      if (weekEarnings < target) {
+        chips.push(['Target', 'trending_up', `${Utils.formatCurrency(target - weekEarnings)} to this week's target`, 'week']);
+      }
+    } catch (e) { /* chips are optional */ }
+    return chips.slice(0, 5);
   },
 
   userBubbleHtml(text) {
@@ -216,7 +264,12 @@ const CompanionFeature = {
     const key = this.normalizeCommand(cleaned);
     let answer = null;
     try {
-      answer = await this.runCommand(key);
+      if (key !== 'default') {
+        answer = await this.runCommand(key, cleaned);
+      } else {
+        answer = await this.tryParseQuery(cleaned);
+        if (!answer) answer = await this.tryAiRoute(cleaned);
+      }
     } catch (e) {
       console.warn('Companion command failed:', e);
       answer = this.answerDefault();
@@ -268,9 +321,11 @@ const CompanionFeature = {
     'my day': ['my day', 'day', 'calendar', 'schedule', 'my week', 'week planner'],
     week: ['week', 'weekly', 'weekly overview', 'how am i doing this week', 'this week', 'target', 'sales'],
     money: ['money', 'tax', 'money & tax', 'finances', 'earnings', 'miles', 'mileage', 'expenses', 'records', 'cash'],
-    'follow-ups': ['follow-ups', 'followups', 'follow up', 'follow-up', 'follow ups', 'reminders', 'nudges', 'who to chase'],
+    'follow-ups': ['follow-ups', 'followups', 'follow up', 'follow-up', 'follow ups', 'reminders', 'nudges', 'who to chase', 'quotes', 'quote'],
     'next visit': ['next visit', 'next', 'next appointment', 'up next', 'next customer', 'eta'],
     'log expense': ['log expense', 'log expenses', 'expense', 'add expense', 'receipt', 'scan receipt', 'mileage claim'],
+    messages: ['messages', 'message', 'what messages', 'who to text', 'who to message', 'texts', 'sends', 'what to send', 'drafts', 'intro', 'send'],
+    orders: ['orders', 'order', 'unpaid', 'owe', 'owing', 'outstanding', 'who hasn\'t paid', 'haven\'t paid', 'payment', 'payments', 'receipts'],
     weather: ['weather', 'rain', 'forecast'],
     help: ['help', 'commands', 'what can you do', 'what can you ask', 'menu', 'options']
   },
@@ -284,10 +339,139 @@ const CompanionFeature = {
     return 'default';
   },
 
-  async runCommand(key) {
+  // Stage 2 of the router: pure-text extractors that never need AI. Each
+  // returns an answer only when the text clearly matches; a return of null
+  // means "not my text — keep looking".
+  async tryParseQuery(text) {
+    const t = String(text).toLowerCase();
+
+    // Period questions: "last week", "june", "march 2026", "2026-06".
+    const period = this.extractPeriod(t);
+    if (period) return this.answerMoneyPeriod(period);
+
+    // "who hasn't paid" is routed by alias above; a raw order number is not.
+    if (/\border\b/.test(t) && /\d{4,}/.test(t)) {
+      return this.answerOrders(this.extractOrderNumber(t));
+    }
+
+    // Relative day questions: "tomorrow", "this weekend", "on monday".
+    const dayRange = this.extractDayRange(t);
+    if (dayRange) return this.answerWhen(dayRange);
+
+    // "what about sarah" → person search.
+    if (this.looksLikeNameQuery(t)) {
+      const answer = await this.answerPerson(text);
+      if (answer) return answer;
+    }
+
+    return null;
+  },
+
+  looksLikeNameQuery(t) {
+    const cleaned = String(t).replace(/^(what about|tell me about|about|and|do you know|who is|who's|how is|how's|whats up with|what's up with|with|on|for)\s+/i, '').trim();
+    return !!cleaned && /[a-z]{2,}/i.test(cleaned);
+  },
+
+  extractOrderNumber(t) {
+    const m = String(t).match(/(\d{4,})/);
+    return m ? m[1] : null;
+  },
+
+  extractPeriod(t) {
+    const now = new Date();
+    const startOfWeek = Utils.getStartOfWeek();
+    const startOfMonth = Utils.getStartOfMonth(now);
+    const iso = d => {
+      const x = new Date(d);
+      x.setHours(12, 0, 0, 0);
+      return x.toISOString();
+    };
+    let start = null;
+    let end = null;
+    let label = '';
+
+    if (/last week/.test(t)) {
+      start = new Date(startOfWeek.getTime() - 7 * 86400000);
+      end = new Date(startOfWeek.getTime() - 1);
+      label = 'Last week';
+    } else if (/this month/.test(t)) {
+      start = new Date(startOfMonth);
+      end = now;
+      label = 'This month';
+    } else if (/last month/.test(t)) {
+      start = new Date(startOfMonth.getFullYear(), startOfMonth.getMonth() - 1, 1);
+      end = new Date(startOfMonth.getFullYear(), startOfMonth.getMonth(), 0, 23, 59, 59);
+      label = 'Last month';
+    } else if (/\b(20\d{2})(?:-|\/)(\d{1,2})\b/.test(t)) {
+      const m = t.match(/\b(20\d{2})(?:-|\/)(\d{1,2})\b/);
+      const yr = +m[1];
+      const mo = +m[2] - 1;
+      start = new Date(yr, mo, 1);
+      end = new Date(yr, mo + 1, 0, 23, 59, 59);
+      label = start.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+    } else {
+      const MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+      const matches = MONTHS.filter(m => new RegExp('\\b' + m + '\\b').test(t));
+      if (matches.length) {
+        const i = MONTHS.indexOf(matches[matches.length - 1]);
+        const yrMatch = t.match(/\b(20\d{2})\b/);
+        const yr = yrMatch ? +yrMatch[1] : now.getFullYear();
+        start = new Date(yr, i, 1);
+        end = new Date(yr, i + 1, 0, 23, 59, 59);
+        label = start.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+      }
+    }
+    if (!start) return null;
+    return { start: iso(start), end: iso(end), label };
+  },
+
+  extractDayRange(t) {
+    const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const now = new Date();
+    let start = null;
+    let label = '';
+
+    if (/tomorrow/.test(t)) {
+      start = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      label = 'Tomorrow';
+    } else if (/this weekend/.test(t)) {
+      const daysToSat = (7 - now.getDay()) % 7;
+      start = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (daysToSat === 0 ? 7 : daysToSat));
+      label = 'This weekend';
+    } else {
+      const named = DAYS.find(d => new RegExp('\\b' + d + '\\b').test(t));
+      if (named) {
+        const idx = DAYS.indexOf(named);
+        const diff = (idx - now.getDay() + 7) % 7 || 7;
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diff);
+        label = dayNames[idx];
+      }
+    }
+    if (!start) return null;
+    const end = new Date(start);
+    end.setDate(start.getDate() + 1);
+    end.setMilliseconds(-1);
+    return { start: start.toISOString(), end: end.toISOString(), label };
+  },
+
+  async tryAiRoute(text) {
+    // AI router: the model only classifies which rule command this is — the
+    // answer itself always comes from the deterministic handlers on real
+    // data. Returns null when the model is off, disowned, or unsure.
+    if (!AIService.isEnabled() || !this.aiPrefEnabled()) return null;
+    let verdict = null;
+    try { verdict = await AIService.routeCommand(text); } catch (e) { return null; }
+    if (!verdict || !verdict.ok || !verdict.command) return null;
+    if (verdict.command === 'person') return this.answerPerson(text);
+    if (typeof this['answer' + verdict.command.charAt(0).toUpperCase() + verdict.command.slice(1)] !== 'function') return null;
+    return this.runCommand(verdict.command, text);
+  },
+
+  async runCommand(key, text) {
     const handler = this['answer' + key.charAt(0).toUpperCase() + key.slice(1)];
     if (!handler) return this.answerDefault();
-    return await handler.call(this);
+    return await handler.call(this, text);
   },
 
   /* ---------- rule handlers — each returns {text, facts, actions, suggestions} ---------- */
@@ -412,19 +596,37 @@ const CompanionFeature = {
     };
   },
 
-  async answerFollowUps() {
+  async answerFollowUps(text) {
     let tasks = [];
     try { tasks = await FollowupsFeature.loadTasks(); } catch (e) {}
-    const due = tasks.filter(t => t.due);
-    const nameOf = t =>
-      (t.customer && (t.customer.firstName || t.customer.fullName)) ||
-      (t.appointment && t.appointment.clientName) ||
-      (t.order && t.order.orderNumber) ||
+    const t = String(text || '').toLowerCase();
+    let kind = null;
+    if (/quote|quotes|chase/.test(t)) kind = 'quote';
+    else if (/post.?fit|thank|acknowledge/.test(t)) kind = 'post_fit';
+    else if (/service|issue/.test(t)) kind = 'service';
+    else if (/intro/.test(t)) kind = 'intro';
+    else if (/payment|paid/.test(t)) kind = 'payment';
+
+    const due = tasks.filter(x => x.due && (!kind || x.kind === kind));
+    const kindLabel = kind ? kind.replace('_', ' ') : '';
+    const nameOf = x =>
+      (x.customer && (x.customer.firstName || x.customer.fullName)) ||
+      (x.appointment && x.appointment.clientName) ||
+      (x.order && x.order.orderNumber) ||
       'Someone';
 
-    const facts = due.slice(0, 5).map(t => ({
-      label: nameOf(t),
-      value: String(t.action).replace(/\s*[—–-]\s*not sent yet$/, '')
+    if (kind && !due.length) {
+      return {
+        text: `No ${kindLabel} tasks due right now — all clear.`,
+        facts: [],
+        actions: [{ label: 'Open Follow-ups', onclick: "App.navigate('followups')" }],
+        suggestions: ['today', 'money', 'messages']
+      };
+    }
+
+    const facts = due.slice(0, 5).map(x => ({
+      label: nameOf(x),
+      value: String(x.action).replace(/\s*[—–-]\s*not sent yet$/, '')
     }));
 
     return {
@@ -439,7 +641,7 @@ const CompanionFeature = {
 
   async answerNextVisit() {
     let upcoming = [];
-    try { upcoming = await DB.getUpcomingAppointments(3); } catch (e) {}
+    try { upcoming = await DB.getUpcomingAppointments(14); } catch (e) {}
     const next = upcoming.find(a => a.status !== 'cancelled' && (a.phone || a.customerId)) || upcoming.find(a => a.status !== 'cancelled') || null;
 
     if (!next) {
@@ -495,10 +697,10 @@ const CompanionFeature = {
 
   async answerHelp() {
     return {
-      text: "Ask me about your day, the week's earnings and sales, money & tax, follow-ups due, the next visit, the weather — or log an expense. Tap a chip or just type it.",
+      text: "Ask in plain words — I read your real data: names (\"what about Sarah?\"), money periods (\"how much in June?\", \"last week\"), orders and unpaid (\"who hasn't paid?\"), dates (\"tomorrow\", \"this weekend\") and messages due (\"what messages are owed?\"). Tap a chip or type it.",
       facts: [],
       actions: [],
-      suggestions: ['today', 'week', 'money', 'follow-ups', 'next visit', 'log expense', 'weather']
+      suggestions: ['today', 'money', 'follow-ups', 'messages', 'orders', 'next visit']
     };
   },
 
@@ -521,6 +723,291 @@ const CompanionFeature = {
       facts: [],
       actions: [],
       suggestions: ['today', 'week', 'money', 'follow-ups', 'next visit', 'help']
+    };
+  },
+
+  /* ---------- deep rules — person, periods, orders, dates, messages ---------- */
+
+  async answerPerson(text) {
+    const q = String(text).replace(/^(what about|tell me about|about|and|do you know|who is|who's|how is|how's|whats up with|what's up with|with|on|for)\s*/i, '').replace(/[?!.]+$/, '').trim();
+    if (q.length < 2) return null;
+    let results = [];
+    try { results = await Search.search(q, { limit: 15 }); } catch (e) {}
+    const customers = results.filter(r => r.type === 'customer');
+    if (!customers.length) return null;
+
+    if (customers.length > 1) {
+      return {
+        text: `${customers.length} people match "${q}" — which one?`,
+        facts: customers.slice(0, 4).map(c => ({ label: c.title, value: c.detail || c.subtitle })),
+        actions: [],
+        suggestions: []
+      };
+    }
+
+    const c = customers[0].data;
+    let appts = [];
+    let orders = [];
+    try { appts = await DB.db.appointments.where('customerId').equals(c.id).toArray(); } catch (e) {}
+    try { orders = await DB.db.orders.where('customerId').equals(c.id).toArray(); } catch (e) {}
+
+    const now = new Date();
+    const upcoming = appts
+      .filter(a => a.status !== 'cancelled' && new Date(a.date) >= now)
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+    const past = appts
+      .filter(a => a.status !== 'cancelled' && new Date(a.date) < now)
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+    const next = upcoming[0] || null;
+    const lastVisit = past[0] || null;
+    const outstanding = orders.reduce((s, o) => s + (o.balanceDue || 0), 0);
+
+    const facts = [];
+    if (next) {
+      facts.push({ label: 'Next visit', value: `${Utils.formatDate(next.date, 'short')} · ${Utils.formatTime(next.date)}` });
+    }
+    if (lastVisit) {
+      facts.push({ label: 'Last visit', value: `${Utils.formatDate(lastVisit.date, 'short')}${lastVisit.outcome ? ' — ' + String(lastVisit.outcome).replace(/_/g, ' ') : ''}` });
+    }
+    if (outstanding > 0) facts.push({ label: 'Outstanding', value: Utils.formatCurrency(outstanding), highlight: true });
+    if (next && !next.introSent && (next.phone || next.customerId)) facts.push({ label: 'Intro message', value: 'Not sent yet' });
+
+    const actions = [];
+    actions.push({ label: 'Open profile', onclick: `App.navigate('customer', { id: ${c.id} })` });
+    if (next && !next.introSent && (next.phone || next.customerId)) {
+      actions.push({ label: 'Draft intro', onclick: `TalkFeature.sendMessage(${next.id}, 'pre_intro')` });
+    } else if (next) {
+      actions.push({ label: 'Draft message', onclick: `TalkFeature.sendMessage(${next.id}, 'evening_before')` });
+    }
+
+    return {
+      text: `${c.fullName || c.firstName}${next ? ` — booked ${Utils.formatDate(next.date, 'short')} at ${Utils.formatTime(next.date)}` : lastVisit ? ` — last seen ${Utils.formatDate(lastVisit.date, 'short')}` : ''}.`,
+      facts,
+      actions,
+      suggestions: ['messages', 'money', 'follow-ups']
+    };
+  },
+
+  async answerOrders(orderNumber) {
+    let orders = [];
+    try { orders = await DB.db.orders.toArray(); } catch (e) {}
+
+    if (orderNumber) {
+      const groups = String(orderNumber).match(/\d+/g);
+      const num = groups ? groups[groups.length - 1].replace(/^0+/, '') : '';
+      const match = orders.find(o => String(o.orderNumber || '').replace(/^0+/, '').includes(num) || String(o.orderNumber || '').replace(/\D/g, '').endsWith(num)) || null;
+      if (!match) {
+        return {
+          text: `No order matching "${orderNumber}" — check the number on the order card.`,
+          facts: [],
+          actions: [{ label: 'Open Orders', onclick: "App.navigate('orders')" }],
+          suggestions: ['money', 'follow-ups']
+        };
+      }
+      const cust = match.customerId ? await DB.db.customers.get(match.customerId) : null;
+      const due = match.balanceDue || 0;
+      return {
+        text: `${match.orderNumber} — ${cust ? cust.fullName : 'customer'} · ${match.stage || match.status || 'ordered'}.`,
+        facts: [
+          { label: 'Total', value: Utils.formatCurrency(match.total || 0) },
+          { label: 'Paid', value: Utils.formatCurrency((match.total || 0) - due) },
+          { label: 'Balance due', value: Utils.formatCurrency(due), highlight: due > 0 },
+          { label: 'Stage', value: match.stage || match.status || 'ordered' }
+        ],
+        actions: [{ label: 'Open order', onclick: `OrdersFeature.openOrderSheet(${match.id})` }],
+        suggestions: ['money', 'messages']
+      };
+    }
+
+    const open = orders
+      .filter(o => (o.balanceDue || 0) > 0)
+      .sort((a, b) => (b.balanceDue || 0) - (a.balanceDue || 0));
+    if (!open.length) {
+      return {
+        text: 'Nothing outstanding — every order is settled.',
+        facts: [],
+        actions: [{ label: 'Open Orders', onclick: "App.navigate('orders')" }],
+        suggestions: ['money', 'week']
+      };
+    }
+
+    const ids = [...new Set(open.map(o => o.customerId).filter(Boolean))];
+    const names = new Map();
+    try {
+      const fetched = ids.length ? await DB.db.customers.bulkGet(ids) : [];
+      for (const cust of fetched) if (cust) names.set(cust.id, cust.fullName || cust.firstName);
+    } catch (e) {}
+
+    const totalDue = open.reduce((s, o) => s + (o.balanceDue || 0), 0);
+    const facts = open.slice(0, 5).map(o => ({
+      label: names.get(o.customerId) || o.orderNumber,
+      value: Utils.formatCurrency(o.balanceDue || 0)
+    }));
+
+    return {
+      text: `${open.length} order${open.length === 1 ? '' : 's'} still owe ${Utils.formatCurrency(totalDue)}${open[0] ? ` — ${names.get(open[0].customerId) || open[0].orderNumber} first` : ''}.`,
+      facts,
+      actions: [
+        { label: 'Open Orders', onclick: "App.navigate('orders')" },
+        { label: 'Record Payment', onclick: `OrdersFeature.openOrderSheet(${open[0].id})` }
+      ],
+      suggestions: ['money', 'messages', 'follow-ups']
+    };
+  },
+
+  async answerMoneyPeriod(range) {
+    const start = new Date(range.start);
+    const end = new Date(range.end);
+    let periodStats = { sales: 0, earnings: 0, orderedCount: 0 };
+    try {
+      const appts = (await DB.getAppointmentsForRange(range.start, range.end))
+        .filter(a => a.status !== 'cancelled');
+      for (const a of appts) {
+        if (a.outcome === 'ordered') {
+          periodStats.sales += a.value || 0;
+          periodStats.earnings += (typeof a.commission === 'number' && a.commission > 0)
+            ? a.commission
+            : TaxCalculator.estimateCommission(a.value || 0);
+          periodStats.orderedCount += 1;
+        }
+      }
+    } catch (e) { /* empty period */ }
+
+    let expenses = [];
+    let trips = [];
+    let monthTotal = 0;
+    let monthMiles = 0;
+    try { expenses = await DB.getExpensesForPeriod(range.start, range.end); } catch (e) {}
+    try { trips = await DB.getTripsForPeriod(range.start, range.end); } catch (e) {}
+    monthTotal = expenses.reduce((s, e) => s + (e.amount || 0), 0);
+    monthMiles = trips.reduce((s, t) => s + (t.distanceKm || 0), 0);
+    const mileageClaim = TaxCalculator.calculateMileageClaim(monthMiles);
+
+    const catTotals = {};
+    for (const e of expenses) {
+      const key = e.category || 'Other';
+      catTotals[key] = (catTotals[key] || 0) + (e.amount || 0);
+    }
+    const topCats = Object.entries(catTotals)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([k, v]) => `${String(k).replace(/_/g, ' ')} ${Utils.formatCurrency(v)}`);
+
+    const facts = [
+      { label: 'Earned', value: Utils.formatCurrency(periodStats.earnings), highlight: true },
+      { label: 'Sales value', value: Utils.formatCurrency(periodStats.sales) },
+      { label: 'Orders', value: String(periodStats.orderedCount) },
+      { label: 'Expenses', value: Utils.formatCurrency(monthTotal) },
+      { label: 'Mileage claim', value: `${Utils.formatDistance(monthMiles)} · ${Utils.formatCurrency(mileageClaim)}` }
+    ];
+    if (topCats.length) facts.push({ label: 'Top expenses', value: topCats.join(' · ') });
+
+    return {
+      text: `${range.label}: ${Utils.formatCurrency(periodStats.earnings)} earned on ${Utils.formatCurrency(periodStats.sales)} of sales, with ${Utils.formatCurrency(monthTotal)} of expenses.`,
+      facts,
+      actions: [{ label: 'Open Money', onclick: "App.navigate('money')" }],
+      suggestions: ['week', 'today', 'money']
+    };
+  },
+
+  async answerWhen(range) {
+    let appts = [];
+    try { appts = await DB.getAppointmentsForRange(range.start, range.end); } catch (e) {}
+    const list = appts
+      .filter(a => a.status !== 'cancelled')
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    if (!list.length) {
+      return {
+        text: `Nothing booked ${range.label.toLowerCase()}.`,
+        facts: [],
+        actions: [{ label: 'Open Visits', onclick: "App.navigate('appointments', {tab: 'upcoming'})" }],
+        suggestions: ['today', 'next visit', 'messages']
+      };
+    }
+
+    const facts = list.slice(0, 6).map(a => ({
+      label: `${Utils.formatTime(a.date)} · ${a.clientName || 'Customer'}`,
+      value: a.status === 'completed' ? 'Done' : String(a.status || 'Booked').replace(/_/g, ' ')
+    }));
+    const first = list[0];
+
+    return {
+      text: `${list.length} visit${list.length === 1 ? '' : 's'} ${range.label.toLowerCase()}${first ? ` — first is ${first.clientName || 'Customer'} at ${Utils.formatTime(first.date)}` : ''}.`,
+      facts,
+      actions: [
+        { label: 'My Day calendar', onclick: "CompanionFeature.openMyDay()" },
+        { label: 'Open Visits', onclick: "App.navigate('appointments', {tab: 'upcoming'})" }
+      ],
+      suggestions: ['today', 'messages', 'follow-ups']
+    };
+  },
+
+  async answerMessages() {
+    let upcoming = [];
+    let allAppts = [];
+    try { upcoming = await DB.getUpcomingAppointments(60); } catch (e) {}
+    try { allAppts = await DB.db.appointments.toArray(); } catch (e) {}
+
+    const now = new Date();
+    const pastFirstVisit = new Set();
+    try {
+      for (const a of allAppts) {
+        if (!a.customerId || a.status === 'cancelled') continue;
+        if (new Date(a.date) >= now) continue;
+        pastFirstVisit.add(a.customerId);
+      }
+    } catch (e) {}
+    const sameDay = a => new Date(a.date).toDateString() === now.toDateString();
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const sameDayOn = (dateStr, ref) => new Date(dateStr).toDateString() === ref.toDateString();
+    const autoFlag = (stage, id) => {
+      try { return localStorage.getItem(`advisoros_auto_${stage}_${id}`) === '1'; } catch (e) { return false; }
+    };
+
+    const owed = upcoming
+      .filter(a => a.status === 'confirmed' && (a.phone || a.customerId))
+      .map(a => {
+        let stage = null;
+        if (sameDayOn(a.date, tomorrow) && !apptSent(a, 'dayBefore')) {
+          stage = { label: 'Day-before — not sent', send: 'evening_before' };
+        } else if (sameDay(a) && !apptSent(a, 'morning')) {
+          stage = { label: 'Morning-of — not sent', send: 'morning_of' };
+        } else if (!a.introSent && (!a.customerId || !pastFirstVisit.has(a.customerId))) {
+          stage = { label: 'Intro — not sent', send: 'pre_intro' };
+        }
+        return stage ? { appt: a, stage } : null;
+      })
+      .filter(Boolean)
+      .sort((x, y) => new Date(x.appt.date) - new Date(y.appt.date));
+
+    function apptSent(a, name) {
+      if (name === 'dayBefore') return !!(a.dayBeforeSent || autoFlag('evening_before', a.id));
+      if (name === 'morning') return autoFlag('morning_of', a.id);
+      return false;
+    }
+
+    if (!owed.length) {
+      return {
+        text: 'Nothing owed right now — every upcoming visit has its messages sent or covered.',
+        facts: [],
+        actions: [{ label: 'Open Follow-ups', onclick: "App.navigate('followups')" }],
+        suggestions: ['today', 'next visit', 'help']
+      };
+    }
+
+    const facts = owed.slice(0, 6).map(({ appt, stage }) => ({
+      label: `${appt.clientName || 'Customer'} · ${Utils.formatDate(appt.date, 'short')}`,
+      value: stage.label
+    }));
+    const first = owed[0];
+
+    return {
+      text: `${owed.length} visit${owed.length === 1 ? '' : 's'} owe a message${first ? ` — ${first.appt.clientName || 'Customer'} on ${Utils.formatDate(first.appt.date, 'short')} first` : ''}.`,
+      facts,
+      actions: [{ label: 'Send in Follow-ups', onclick: "App.navigate('followups')" }],
+      suggestions: ['next visit', 'follow-ups', 'today']
     };
   },
 

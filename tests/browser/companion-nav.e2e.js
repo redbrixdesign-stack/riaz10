@@ -202,6 +202,33 @@ async function screenshot(ws, file) {
     ok('used home: page fits viewport', usedState.bodyScroll <= usedState.innerHeight + 1, usedState);
     ok('used home: page not overflowing horizontally', !usedState.overflowX, usedState);
 
+    // A booking made today for ~10 days out must owe an intro message — the
+    // surfaced rule (not some closed-book stub) has to name it.
+    await evaluate(ws, `(async () => {
+      const mk = new Date(); mk.setDate(mk.getDate() + 10); mk.setHours(14, 0, 0, 0);
+      const cid = await DB.db.customers.add({
+        firstName: 'Amelia', lastName: 'Green', fullName: 'Amelia Green',
+        phone: '07700900123', customerNumber: 'CUS-E2E-001', createdAt: new Date().toISOString()
+      });
+      await DB.db.appointments.add({
+        customerId: cid, clientName: 'Amelia Green', phone: '07700900123',
+        type: 'consultation', date: mk.toISOString(), address: '9 Birch Lane',
+        status: 'confirmed', createdAt: new Date().toISOString()
+      });
+      return cid;
+    })()`);
+    await evaluate(ws, `CompanionFeature.send('messages')`);
+    const msgDeadline = Date.now() + 15000;
+    while (true) {
+      await sleep(300);
+      const done = await evaluate(ws, `!CompanionFeature._busy`);
+      if (done) break;
+      if (Date.now() > msgDeadline) throw new Error('messages rule never answered');
+    }
+    await sleep(400);
+    const owedText = await evaluate(ws, `[...document.querySelectorAll('.comp-msg')].slice(-2).map(m => m.textContent).join(' | ')`);
+    ok('messages rule names the booking ten days out', owedText.includes('owe a message') && owedText.includes('Intro — not sent'), owedText);
+
 // leave home
     await evaluate(ws, `App.navigate('appointments')`);
     while (true) {

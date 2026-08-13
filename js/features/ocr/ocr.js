@@ -790,11 +790,27 @@ const OCRFeature = {
         Toast.show('Customer and visit saved', 'success');
       }
       App.navigate('appointments', { id: appointment.id });
+      this.offerFriendlyBookingIntro(appointment, type, phone);
     } catch (e) {
       // The raw error (Dexie constraint strings, etc.) is noise to the
       // person on the phone — log the detail, keep the message human.
       console.error('OCR save failed:', e);
       Toast.show('Failed to save — please try again', 'error');
+    }
+  },
+
+  // A scanned/typed booking must fire the same "send booking confirmation?"
+  // message as the diary form — otherwise a booking received from the
+  // company system (e.g. a visit for next week or further out) sits silent
+  // with no draft and no way to know it owes the customer a message.
+  offerFriendlyBookingIntro(appointment, type, phone) {
+    if (!phone) return;
+    const bookingAskTypes = ['consultation', 'measure', 'fitting', 'review', 'service_call'];
+    if (!bookingAskTypes.includes(type)) return;
+    if (typeof AppointmentsFeature !== 'undefined' && typeof AppointmentsFeature.offerBookingConfirmation === 'function') {
+      try { AppointmentsFeature.offerBookingConfirmation(appointment.id); } catch (e) {
+        console.warn('Booking intro offer failed:', e);
+      }
     }
   },
 
@@ -873,6 +889,7 @@ const OCRFeature = {
         Toast.show('Customer and visit saved', 'success');
       }
       App.navigate('appointments', { id: appointment.id });
+      this.offerFriendlyBookingIntro(appointment, type, phone);
     } catch (e) {
       console.error('Manual save failed:', e);
       Toast.show('Failed to save — please try again', 'error');

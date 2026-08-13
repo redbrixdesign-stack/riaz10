@@ -170,10 +170,36 @@ Rules:
    }
 7. suggestions: pick 0-3 keys from this exact allowed list ONLY (they become tap-able chips in the app): today, my day, week, money, follow-ups, next visit, log expense, weather, help. Use your judgement for what the advisor would naturally ask next.`,
 
-  ping: `Reply with exactly the word "pong" and nothing else.`
+  ping: `Reply with exactly the word "pong" and nothing else.`,
+
+  route: `You are the intent router for Beelo, the companion of a self-employed UK window coverings advisor.
+
+The advisor typed a question. Your ONLY job is to classify which built-in command answers it — the app then looks up the real data itself; you never see the data and never supply answers.
+
+Valid commands:
+- today — "what's on today?", "my day plan"
+- week — weekly overview, targets, sales
+- money — earnings, expenses, tax, mileage, and ANY money period ("how much in June?", "last week", "this month")
+- follow-ups — follow-ups due, quotes, thank-yous, payment reminders
+- next visit — the next booked visit
+- messages — "what messages are due?", "who to text?", "has the intro been sent?", "send"
+- orders — unpaid orders, an order number, "who hasn't paid?"
+- log expense — logging or scanning a receipt
+- weather — the forecast
+- person — a question about a specific CUSTOMER by name ("what about Sarah?", "Mrs Jones booking")
+- help — what the companion can do
+- greeting — hello/hi/how are you
+- default — anything else you genuinely can't map
+
+Rules:
+1. Return ONLY a single JSON object, no markdown fences, no commentary:
+   {"command": "<one of the commands above>"}
+2. When a customer's name appears in the question, choose "person" — never a money command.
+3. When money appears with a month or period, choose "money" — the app extracts the period itself.
+4. Never invent commands; if unsure, use "default".`
 };
 
-const DEFAULT_MODELS = { ocr: 'claude-sonnet-4-5', draft: 'claude-haiku-4-5', receipt: 'claude-sonnet-4-5', assistant: 'claude-haiku-4-5' };
+const DEFAULT_MODELS = { ocr: 'claude-sonnet-4-5', draft: 'claude-haiku-4-5', receipt: 'claude-sonnet-4-5', assistant: 'claude-haiku-4-5', route: 'claude-haiku-4-5' };
 
 // USD per 1M tokens, { input, output } — used to report an estimated
 // cost per call back to the app's Settings screen. Keep in sync with
@@ -294,8 +320,8 @@ export async function handle(request) {
     }
   }
 
-  if (type !== 'ocr' && type !== 'draft' && type !== 'receipt' && type !== 'assistant') {
-    return json(400, { ok: false, error: 'bad_request', message: 'type must be ocr, receipt, draft, assistant or ping' }, corsHeaders(origin));
+  if (type !== 'ocr' && type !== 'draft' && type !== 'receipt' && type !== 'assistant' && type !== 'route') {
+    return json(400, { ok: false, error: 'bad_request', message: 'type must be ocr, receipt, draft, assistant, route or ping' }, corsHeaders(origin));
   }
 
   const model = ALLOWED_MODELS.includes(body.model) ? body.model : DEFAULT_MODELS[type];
@@ -329,6 +355,13 @@ export async function handle(request) {
       type: 'text',
       text: `business_snapshot:\n${body.snapshot}\n\nconversation_history:\n${body.history || 'none'}\n\nadvisor_message:\n${body.turnText}`
     }];
+  } else if (type === 'route') {
+    // The AI router: classify which rule command answers the question. The
+    // model NEVER sees real data here — the app runs the actual handler.
+    if (typeof body.text !== 'string' || !body.text.trim()) {
+      return json(400, { ok: false, error: 'bad_request', message: 'route requires text' }, corsHeaders(origin));
+    }
+    userContent = [{ type: 'text', text: `advisor_question:\n${body.text}` }];
   } else {
     if (typeof body.draftContext !== 'string' || !body.draftContext.trim()) {
       return json(400, { ok: false, error: 'bad_request', message: 'draft requires draftContext' }, corsHeaders(origin));
