@@ -20,3 +20,6 @@ Thumbs.db
 server/.env
 .vercel
 .env*
+
+# e2e screenshots
+tests/browser/*.png
