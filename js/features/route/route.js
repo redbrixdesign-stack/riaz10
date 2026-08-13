@@ -66,6 +66,18 @@ const RouteFeature = {
     // "Route friend" suggestion block (and the optimize preview), where it's
     // framed as "if customers can move".
     const routeList = plan.appointments;
+    // Customer photos (window pictures shared before the first visit, or
+    // on-site shots from a previous day) render as each stop's avatar so the
+    // property is recognisable before you knock. Fetched once for the whole
+    // day, not per row.
+    const photoByCustomer = new Map();
+    const customerIds = [...new Set(routeList.filter(a => a.customerId).map(a => a.customerId))];
+    await Promise.all(customerIds.map(async id => {
+      try {
+        const photos = await DB.getPhotosForCustomer(id);
+        if (photos.length) photoByCustomer.set(id, photos[0]);
+      } catch (e) {}
+    }));
     const routeDistance = plan.currentLegKm || 0;
     const routeTime = Math.max(0, Math.round((routeDistance / 35) * 60));
     const routeSaving = TaxCalculator.calculateMileageClaim(routeDistance);
@@ -148,9 +160,15 @@ const RouteFeature = {
               <span class="material-symbols-rounded">location_off</span>
               <div>No visits today</div>
             </div>
-          ` : routeList.map((a, i) => `
+          ` : routeList.map((a, i) => {
+            const stopPhoto = a.customerId ? photoByCustomer.get(a.customerId) : null;
+            return `
             <div class="list-item" onclick="RouteFeature.focusMarker(${i})">
-              <div class="route-stop-number">${i + 1}</div>
+              ${stopPhoto ? `
+                <img class="route-stop-photo" src="data:${stopPhoto.mimeType || 'image/jpeg'};base64,${stopPhoto.data}" alt="${Utils.escapeHtml(a.clientName || '')}">
+              ` : `
+                <div class="route-stop-number">${i + 1}</div>
+              `}
               <div class="flex-1 min-w-0" >
                 <div class="fw-500 fs-14 ellipsis" >${Utils.escapeHtml(a.clientName || 'Unknown')}</div>
                 <div class="fs-12 text-tertiary" >${Utils.formatTime(a.date)} · ${Utils.escapeHtml(this.getAreaLabel(a))} · ${Utils.escapeHtml(Utils.truncate(a.address || '', 24))}</div>
@@ -159,7 +177,7 @@ const RouteFeature = {
                 <span class="material-symbols-rounded fs-18" >navigation</span>
               </button>
             </div>
-          `).join('')}
+          `;}).join('')}
         </div>
       </div>
     `;

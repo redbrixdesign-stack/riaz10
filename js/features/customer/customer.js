@@ -265,7 +265,7 @@ const CustomerFeature = {
               ${photos.map(p => this.renderPhotoThumb(p)).join('')}
             </div>
           `}
-          <input type="file" id="customer-photo-input" accept="image/*" capture="environment" style="display:none;" onchange="AppointmentsFeature.captureCustomerPhoto(event, ${customerId})">
+          <input type="file" id="customer-photo-input" accept="image/*" style="display:none;" onchange="AppointmentsFeature.captureCustomerPhoto(event, ${customerId})">
         </div>
 
         <div class="card-page" >

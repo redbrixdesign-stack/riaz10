@@ -142,7 +142,13 @@ const HomeScreenController = {
     let upNextCardHtml = '';
     if (isToday) {
       const active = dayAppts.find(a => a.status !== 'completed');
-      if (active) upNextCardHtml = this.renderUpNextBanner(active);
+      if (active) {
+        let bannerPhotos = [];
+        if (active.customerId) {
+          try { bannerPhotos = await DB.getPhotosForCustomer(active.customerId); } catch (e) {}
+        }
+        upNextCardHtml = this.renderUpNextBanner(active, bannerPhotos);
+      }
     }
 
     let followUpCount = 0;
@@ -258,19 +264,30 @@ const HomeScreenController = {
   // A compact live-status strip for today's next/current visit - keeps the
   // real-time "running late" awareness from the old Mid-Day dashboard
   // available, just as a banner atop the day's list rather than the whole
-  // screen being taken over by a single visit.
-  renderUpNextBanner(appt) {
+  // screen being taken over by a single visit. When the customer has photos
+  // (captured on-site, or window pictures they shared before the first
+  // visit), up to four small thumbs render underneath so the advisor can
+  // recognise the property while on the way.
+  renderUpNextBanner(appt, photos = []) {
     const isOnSite = appt.travelStatus === 'on_site';
     const isInTransit = appt.travelStatus === 'in_transit';
     const isLate = !isOnSite && (Date.now() - new Date(appt.date).getTime()) > 5 * 60 * 1000;
     const label = isOnSite ? 'On site now' : isLate ? 'Running late' : isInTransit ? 'On the way' : 'Up next';
     const color = isLate ? 'var(--warning,#b06000)' : isOnSite ? 'var(--secondary)' : 'var(--text-secondary)';
+    const photoThumbs = photos.slice(0, 4).map(p => `
+      <button class="hsc-upnext-photo" type="button" aria-label="View photo" onclick="AppointmentsFeature.openPhotoViewer(${p.id}, ${p.customerId})">
+        <img src="data:${p.mimeType || 'image/jpeg'};base64,${p.data}" alt="">
+      </button>
+    `).join('');
     return `
       <div class="hsc-upnext-banner">
-        <span class="hsc-upnext-dot" style="background:${color};"></span>
-        <span class="hsc-upnext-label" style="color:${color};">${Utils.escapeHtml(label)}</span>
-        <span class="hsc-upnext-name">@${Utils.escapeHtml(appt.clientName || 'Customer')}</span>
-        <span class="hsc-upnext-time">${Utils.escapeHtml(Utils.formatTime(appt.date))}</span>
+        <div class="hsc-upnext-line">
+          <span class="hsc-upnext-dot" style="background:${color};"></span>
+          <span class="hsc-upnext-label" style="color:${color};">${Utils.escapeHtml(label)}</span>
+          <span class="hsc-upnext-name">@${Utils.escapeHtml(appt.clientName || 'Customer')}</span>
+          <span class="hsc-upnext-time">${Utils.escapeHtml(Utils.formatTime(appt.date))}</span>
+        </div>
+        ${photoThumbs ? `<div class="hsc-upnext-photos">${photoThumbs}</div>` : ''}
       </div>
     `;
   },

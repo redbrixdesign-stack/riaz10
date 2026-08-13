@@ -1281,9 +1281,11 @@ const AppointmentsFeature = {
     return `data:${p.mimeType || 'image/jpeg'};base64,${p.data}`;
   },
 
-  // Camera/file picker on the phone's hardware camera; on desktop this falls
-  // back to a normal file picker. The picked photo is downscaled before
-  // saving so the gallery stays lean (rows of a few hundred KB).
+  // Photo picker: on mobile it offers both the hardware camera and the photo
+  // library (no `capture` attribute, so customers' shared window pictures can
+  // be uploaded straight from WhatsApp-style downloads too); on desktop it's a
+  // normal file picker. The picked photo is downscaled before saving so the
+  // gallery stays lean (rows of a few tens of KB).
   // When fired from a visit detail screen, returnToAppointmentId sends the
   // advisor straight back to that visit after saving instead of the customer
   // profile — on-site capture shouldn't interrupt the visit flow.
@@ -1621,7 +1623,7 @@ const AppointmentsFeature = {
                 ${photos.map(p => this.renderPhotoThumb(p)).join('')}
               </div>
             `}
-            <input type="file" id="visit-photo-input" accept="image/*" capture="environment" style="display:none;" onchange="AppointmentsFeature.captureCustomerPhoto(event, ${appt.customerId}, ${appt.id})">
+            <input type="file" id="visit-photo-input" accept="image/*" style="display:none;" onchange="AppointmentsFeature.captureCustomerPhoto(event, ${appt.customerId}, ${appt.id})">
           </div>
         ` : `
           <div class="card card-page" >
