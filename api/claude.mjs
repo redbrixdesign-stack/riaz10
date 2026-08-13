@@ -144,10 +144,36 @@ Global rules:
     }
     The nudge addresses the advisor, e.g. "You set outcome 'Needs to Think' for Mrs Smith — here's a gentle check-in draft." Use an empty string when no nudge is needed.`,
 
+  // Beelo companion: the advisor talks to the app like a colleague. The
+  // snapshot is a compact JSON of REAL database facts (today's visits, week
+  // money, month expenses, follow-ups, next visit, weather). The number one
+  // rule is honesty — answer only from the snapshot, never invent figures,
+  // customers or visits. Output shape mirrors the client's tap-able
+  // suggestion chips: exact command keys from the whitelist.
+  assistant: `You are Beelo, the personal companion of a self-employed UK window coverings advisor (call them "the advisor"). You are the friendly, knowledgeable voice of their business app — a colleague who always has the numbers ready.
+
+The advisor sent you a question. You receive:
+1) business_snapshot — real facts from the app's database (visits, money, follow-ups, next visit, weather).
+2) conversation_history — recent turns of this chat session (may be "none").
+3) advisor_message — what the advisor just typed.
+
+Rules:
+1. Answer ONLY from business_snapshot and conversation_history. Never invent customers, visits, figures or facts. If the advisor asks for something not in the snapshot, say honestly you don't have that detail yet, and tell them what to do (e.g. "log the expense and I'll show it").
+2. Reply like a warm, concise colleague. UK English, address the advisor naturally, at most 80 words.
+3. No markdown, no emojis, no bullet lists — plain sentences.
+4. The advisor is often on the road: keep replies short and scannable.
+5. You only inform and suggest. You never send messages, edit data or take actions.
+6. Return ONLY a single JSON object, no markdown fences, no commentary:
+   {
+     "reply": "<your message to the advisor>",
+     "suggestions": ["<allowed_command_key>", ...]
+   }
+7. suggestions: pick 0-3 keys from this exact allowed list ONLY (they become tap-able chips in the app): today, my day, week, money, follow-ups, next visit, log expense, weather, help. Use your judgement for what the advisor would naturally ask next.`,
+
   ping: `Reply with exactly the word "pong" and nothing else.`
 };
 
-const DEFAULT_MODELS = { ocr: 'claude-sonnet-4-5', draft: 'claude-haiku-4-5', receipt: 'claude-sonnet-4-5' };
+const DEFAULT_MODELS = { ocr: 'claude-sonnet-4-5', draft: 'claude-haiku-4-5', receipt: 'claude-sonnet-4-5', assistant: 'claude-haiku-4-5' };
 
 // USD per 1M tokens, { input, output } — used to report an estimated
 // cost per call back to the app's Settings screen. Keep in sync with
@@ -268,8 +294,8 @@ export async function handle(request) {
     }
   }
 
-  if (type !== 'ocr' && type !== 'draft' && type !== 'receipt') {
-    return json(400, { ok: false, error: 'bad_request', message: 'type must be ocr, receipt, draft or ping' }, corsHeaders(origin));
+  if (type !== 'ocr' && type !== 'draft' && type !== 'receipt' && type !== 'assistant') {
+    return json(400, { ok: false, error: 'bad_request', message: 'type must be ocr, receipt, draft, assistant or ping' }, corsHeaders(origin));
   }
 
   const model = ALLOWED_MODELS.includes(body.model) ? body.model : DEFAULT_MODELS[type];
@@ -293,6 +319,16 @@ export async function handle(request) {
       { type: 'text', text: type === 'ocr' ? 'Extract the details from this photo.' : 'Extract the receipt details from this photo.' },
       { type: 'image', source: { type: 'base64', media_type: body.mediaType, data: body.image } }
     ];
+  } else if (type === 'assistant') {
+    // The companion is a single-turn call: history, snapshot and the latest
+    // message travel inside one text block (the client caps history length).
+    if (typeof body.snapshot !== 'string' || !body.snapshot.trim() || typeof body.turnText !== 'string') {
+      return json(400, { ok: false, error: 'bad_request', message: 'assistant requires snapshot and turnText' }, corsHeaders(origin));
+    }
+    userContent = [{
+      type: 'text',
+      text: `business_snapshot:\n${body.snapshot}\n\nconversation_history:\n${body.history || 'none'}\n\nadvisor_message:\n${body.turnText}`
+    }];
   } else {
     if (typeof body.draftContext !== 'string' || !body.draftContext.trim()) {
       return json(400, { ok: false, error: 'bad_request', message: 'draft requires draftContext' }, corsHeaders(origin));

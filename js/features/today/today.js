@@ -1,7 +1,8 @@
 
 /* ============================================
    ADVISOROS v5.0 — TODAY FEATURE
-   Delegates the Home screen to HomeScreenController
+   The Home screen is the Beelo Companion
+   (a DeepSeek-style chat with the advisor's data).
    ============================================ */
 
 const TodayFeature = {
@@ -9,38 +10,26 @@ const TodayFeature = {
   name: 'Home',
   icon: 'home',
 
-  // render() previously built the Morning Brief / quick actions / embedded
-  // calendar / route preview / EOD prompt dashboard itself. It now
-  // delegates the whole screen to HomeScreenController, which drives a
-  // weekly-calendar-and-visit-list layout (see
-  // js/features/today/home-screen-controller.js).
-  //
-  // NOTE — this is a real, visible product change, not just plumbing: the
-  // old dashboard's quick-actions row, embedded calendar, weather, and EOD
-  // check-in prompt are NOT part of HomeScreenController's weekly layout,
-  // so they no longer appear on Home.
+  // The Home screen is now the Beelo companion — a dark DeepSeek-style chat
+  // that greets the advisor and answers from their real data (see
+  // js/features/companion/companion.js). The weekly calendar isn't lost:
+  // "My Day" inside the chat opens it as a full-screen panel.
   init() {},
 
   render() {
-    // A fixed-id shell HomeScreenController can mount into. Returned
-    // synchronously (no promise) since HomeScreenController does its own
-    // async DB work internally, after mount, inside activate() below.
-    return `<div id="hsc-today-root" class="notebook-page"></div>`;
+    return `<div id="companion-root" class="comp-page"></div>`;
   },
 
-  // App.navigate() calls activate() once render()'s output is actually in
-  // the DOM (see js/core/app.js) — that's the correct moment to hand off,
-  // rather than trying to render before #hsc-today-root exists.
+  // App.navigate() calls activate() once render()'s output is in the DOM —
+  // that's the correct moment to hand off to the companion.
   activate() {
-    HomeScreenController.renderDynamicHomeScreen('hsc-today-root');
+    CompanionFeature.mount('companion-root');
   },
 
-  // App.navigate() calls deactivate() on whatever feature you're leaving,
-  // before switching screens (js/core/app.js, "Deactivate current"). This
-  // is what stops HomeScreenController's polling setInterval from
-  // continuing to fire — and querying the DB — after you've left Home.
+  // Stops the companion's clock and any open My Day calendar panel when
+  // you leave the Home screen.
   deactivate() {
-    HomeScreenController.stopDynamicHomeScreen();
+    CompanionFeature.unmount();
   },
 
   async getWeekEarnings() {

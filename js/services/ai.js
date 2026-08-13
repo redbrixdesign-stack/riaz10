@@ -318,6 +318,58 @@ const AIService = {
     return { ok: true, latencyMs: Date.now() - started, pong: result.data.text, model: result.data.model };
   },
 
+  // ---- companion fact-panel (rule-built answers do the work; Claude only
+  // phrases the reply + suggests the next chip) ----
+  async assistantTurn({ snapshot, turnText, history = '' }) {
+    const result = await this._request({
+      type: 'assistant',
+      model: this.config().draftModel,
+      snapshot: JSON.stringify(snapshot),
+      turnText,
+      history
+    }, 20000);
+    if (!result.ok) return result;
+    const parsed = this._parseAssistant(result.data.text || '');
+    return {
+      ok: true,
+      reply: parsed.reply || result.data.text || '',
+      suggestions: parsed.suggestions,
+      rawText: result.data.text || '',
+      usage: result.data.usage
+    };
+  },
+
+  // Same fence/preamble ladder as the other parsers: Claude should answer
+  // with {reply, suggestions} JSON, but a markdown fence or a "Here you go:"
+  // preamble must not blank the reply.
+  _parseAssistant(rawText) {
+    const tryParse = text => {
+      try {
+        const p = JSON.parse(text);
+        if (p && typeof p === 'object' && typeof p.reply === 'string') {
+          const allowed = new Set(['today', 'my day', 'week', 'money', 'follow-ups', 'next visit', 'log expense', 'weather', 'help']);
+          const suggestions = Array.isArray(p.suggestions)
+            ? p.suggestions.map(s => String(s).trim().toLowerCase()).filter(s => allowed.has(s)).slice(0, 3)
+            : [];
+          return { reply: p.reply.trim(), suggestions };
+        }
+      } catch (e) { /* keep walking the ladder */ }
+      return null;
+    };
+    const direct = tryParse(rawText);
+    if (direct) return direct;
+    const fencing = rawText.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '').trim();
+    const stripped = tryParse(fencing);
+    if (stripped) return stripped;
+    const first = rawText.indexOf('{');
+    const last = rawText.lastIndexOf('}');
+    if (first !== -1 && last > first) {
+      const slice = tryParse(rawText.slice(first, last + 1));
+      if (slice) return slice;
+    }
+    return { reply: rawText, suggestions: [] };
+  },
+
   formatUsage() {
     const u = this.lastUsage;
     if (!u) return null;

@@ -280,7 +280,18 @@ const CONFIG = {
     proxyUrl: '',       // e.g. https://your-site.vercel.app/api/claude
     secret: '',         // optional; sent as X-AI-Key header for non-Anthropic proxies
     ocrModel: 'claude-sonnet-4-5',   // Vision — used for OCR extraction
-    draftModel: 'claude-haiku-4-5'   // Fast/cheap — used for Talk drafts
+    draftModel: 'claude-haiku-4-5'   // Fast/cheap — used for Talk drafts + companion turns
+  },
+
+  // Beelo companion (js/features/companion) — the DeepSeek-style chat home
+  // screen. Rule-built answers always work (offline, free); aiPhrasing lets
+  // Claude rephrase the reply + suggest the next question when AI is on.
+  // maxHistoryTurns caps the session context sent to the proxy so a long
+  // chat can't blow up the token bill.
+  companion: {
+    aiPhrasing: true,
+    maxHistoryTurns: 6,
+    aiPreferenceKey: 'advisoros_companion_ai'
   },
 
   // Probability decay (days since quote → probability)

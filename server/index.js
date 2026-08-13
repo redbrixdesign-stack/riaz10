@@ -5,6 +5,7 @@
 
      POST /api/ai/parse-document   { imageBase64, mimeType }  -> structured fields
      POST /api/ai/draft-message    { context }                -> drafted message text
+     POST /api/ai/assistant-turn   { snapshot, turnText, history } -> { reply, suggestions }
 
    Why this file exists at all: AdvisorOS is a static, no-backend PWA.
    That's fine for local data, but an Anthropic API key can NEVER live in
@@ -221,6 +222,68 @@ Draft the follow-up message.`;
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to draft message', detail: String(err.message || err) });
+  }
+});
+
+/* --------------------------------------------------------------
+   3) COMPANION (assistant turn)
+   Same contract as the deployed proxy's "assistant" type: the app
+   sends { snapshot, turnText, history } and gets back
+   { reply, suggestions } — the companion only informs and suggests,
+   it never sends messages or edits data.
+-------------------------------------------------------------- */
+app.post('/api/ai/assistant-turn', async (req, res) => {
+  try {
+    const { snapshot = '{}', turnText = '', history = 'none' } = req.body || {};
+    if (!snapshot.trim() || !turnText.trim()) {
+      return res.status(400).json({ error: 'assistant requires snapshot and turnText' });
+    }
+
+    const system = `You are Beelo, the personal companion of a self-employed UK window coverings advisor (call them "the advisor"). You are the friendly, knowledgeable voice of their business app — a colleague who always has the numbers ready.
+
+The advisor sent you a question. You receive:
+1) business_snapshot — real facts from the app's database (visits, money, follow-ups, next visit, weather).
+2) conversation_history — recent turns of this chat session (may be "none").
+3) advisor_message — what the advisor just typed.
+
+Rules:
+1. Answer ONLY from business_snapshot and conversation_history. Never invent customers, visits, figures or facts. If the advisor asks for something not in the snapshot, say honestly you don't have that detail yet, and tell them what to do (e.g. "log the expense and I'll show it").
+2. Reply like a warm, concise colleague. UK English, address the advisor naturally, at most 80 words.
+3. No markdown, no emojis, no bullet lists — plain sentences.
+4. The advisor is often on the road: keep replies short and scannable.
+5. You only inform and suggest. You never send messages, edit data or take actions.
+6. Return ONLY a single JSON object, no markdown fences, no commentary:
+   {
+     "reply": "<your message to the advisor>",
+     "suggestions": ["<allowed_command_key>", ...]
+   }
+7. suggestions: pick 0-3 keys from this exact allowed list ONLY (they become tap-able chips in the app): today, my day, week, money, follow-ups, next visit, log expense, weather, help. Use your judgement for what the advisor would naturally ask next.`;
+
+    const data = await callClaude({
+      model: MODEL,
+      max_tokens: 400,
+      system,
+      messages: [{
+        role: 'user',
+        content: `business_snapshot:\n${snapshot}\n\nconversation_history:\n${history}\n\nadvisor_message:\n${turnText}`
+      }]
+    });
+
+    const rawText = firstText(data).trim();
+    let reply = rawText;
+    let suggestions = [];
+    try {
+      const parsed = parseJsonLoose(rawText);
+      if (parsed && typeof parsed.reply === 'string') {
+        reply = parsed.reply.trim();
+        suggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions.map(s => String(s).trim()).filter(Boolean).slice(0, 3) : [];
+      }
+    } catch (e) { /* plain-text fallback stays */ }
+
+    res.json({ reply, suggestions });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to draft assistant turn', detail: String(err.message || err) });
   }
 });
 

@@ -206,6 +206,24 @@ async function proxyTests() {
   };
   r = await req('POST', {}, { type: 'receipt', model: 'gpt-999', image: 'QUJD', mediaType: 'image/jpeg' });
   ok('proxy: receipt fallback model request succeeds', r.status === 200);
+
+  // Assistant type: input validation.
+  r = await req('POST', {}, { type: 'assistant' });
+  ok('proxy: assistant without snapshot 400', r.status === 400);
+
+  // Assistant happy path: companion prompt + snapshot/turnText/history.
+  stubbedAnthropic = o => {
+    const parsed = JSON.parse(o.body);
+    ok('proxy: assistant model default haiku 4.5', parsed.model === 'claude-haiku-4-5');
+    ok('proxy: assistant uses companion prompt', parsed.system.includes('Beelo') && parsed.system.includes('business_snapshot'));
+    const content = parsed.messages[0].content[0].text;
+    ok('proxy: assistant carries snapshot + turn', content.includes('business_snapshot:') && content.includes('advisor_message:'));
+    ok('proxy: assistant history default none', content.includes('conversation_history:\nnone'));
+    return anthropicOk('{"reply":"Two visits left today.","suggestions":["money","week"]}');
+  };
+  r = await req('POST', {}, { type: 'assistant', snapshot: '{"today":{}}', turnText: 'how is my day?' });
+  const asstBody = JSON.parse(r.body);
+  ok('proxy: assistant 200 forwards text', r.status === 200 && asstBody.ok && asstBody.text.includes('reply'), asstBody);
 }
 
 // ---------- client tests ----------
@@ -466,6 +484,29 @@ async function clientTests() {
   ok('client: lastUsage recorded for draft', svcDraft.lastUsage && svcDraft.lastUsage.cost === 0.0001 && svcDraft.lastUsage.type === 'draft');
   const fmt = svcDraft.formatUsage();
   ok('client: formatUsage includes cost', typeof fmt === 'string' && fmt.includes('$0.0001'), fmt);
+
+  // assistantTurn: payload shape + {reply, suggestions} parsing with the
+  // suggestion whitelist enforced client-side (never trust the model).
+  const svcAsst = loadAiClient({
+    responder: async (payload) => {
+      ok('client: assistant payload type/model', payload.type === 'assistant' && payload.model === 'claude-haiku-4-5');
+      ok('client: assistant snapshot stringified', payload.snapshot === JSON.stringify({ today: {} }));
+      ok('client: assistant carries turn text', payload.turnText === 'how is my day?');
+      return responseLike({ text: '{"reply":"Two visits left.","suggestions":["money","bogus","week","help","evil_thing"]}', model: 'x', type: 'assistant' });
+    }
+  });
+  const as = await svcAsst.assistantTurn({ snapshot: { today: {} }, turnText: 'how is my day?' });
+  ok('client: assistant returns reply', as.ok && as.reply === 'Two visits left.', as);
+  ok('client: assistant suggestions whitelisted', JSON.stringify(as.suggestions) === JSON.stringify(['money', 'week', 'help']), as.suggestions);
+
+  // _parseAssistant ladder: fenced JSON, preamble JSON, plain-text fallback.
+  ok('client: _parseAssistant plain text fallback', svcAsst._parseAssistant('just saying hi').reply === 'just saying hi');
+  const fa = svcAsst._parseAssistant('```json\n{"reply":"m","suggestions":["week"]}\n```');
+  ok('client: _parseAssistant fenced json', fa.reply === 'm' && fa.suggestions.length === 1 && fa.suggestions[0] === 'week');
+  const fa2 = svcAsst._parseAssistant('Here you go:\n{"reply":"r2","suggestions":["help","not-allowed"]}');
+  ok('client: _parseAssistant preamble json keeps whitelist', fa2.reply === 'r2' && fa2.suggestions.length === 1 && fa2.suggestions[0] === 'help');
+  const fa3 = svcAsst._parseAssistant('not json at all');
+  ok('client: _parseAssistant junk keeps raw + no suggestions', fa3.reply === 'not json at all' && fa3.suggestions.length === 0);
 }
 
 // ---------- runner ----------
