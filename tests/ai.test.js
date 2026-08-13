@@ -177,6 +177,32 @@ async function proxyTests() {
   r = await req('POST', {}, { type: 'ocr', model: 'claude-sonnet-4-5', image: 'QUJD', mediaType: 'image/jpeg' });
   const costBody = JSON.parse(r.body);
   ok('proxy: sonnet cost computed', costBody.usage.cost === 0.0105, costBody.usage); // 1000*3 + 500*15 per 1M
+
+  // Receipt type: input validation.
+  r = await req('POST', {}, { type: 'receipt' });
+  ok('proxy: receipt without image 400', r.status === 400);
+
+  // Receipt happy path: model allowlist + image payload + category prompt.
+  stubbedAnthropic = o => {
+    const parsed = JSON.parse(o.body);
+    ok('proxy: receipt model passthrough', parsed.model === 'claude-sonnet-4-5');
+    const content = parsed.messages[0].content;
+    ok('proxy: receipt sends base64 image block', content.some(b => b.type === 'image' && b.source.type === 'base64' && b.source.media_type === 'image/jpeg'));
+    ok('proxy: receipt system prompt lists categories', parsed.system.includes('fuel') && parsed.system.includes('other'), parsed.system);
+    ok('proxy: receipt prompt anchors today', parsed.system.includes(new Date().toISOString().slice(0, 10)));
+    return anthropicOk('{"amount":"24.99","category":"samples"}');
+  };
+  r = await req('POST', {}, { type: 'receipt', model: 'claude-sonnet-4-5', image: 'QUJD', mediaType: 'image/jpeg' });
+  const rcptBody = JSON.parse(r.body);
+  ok('proxy: receipt 200 forwards text', r.status === 200 && rcptBody.ok && rcptBody.text.includes('24.99'), rcptBody);
+
+  // Unknown model falls back to the receipt default (never injects arbitrary models).
+  stubbedAnthropic = o => {
+    ok('proxy: unknown model falls back to receipt default', JSON.parse(o.body).model === 'claude-sonnet-4-5');
+    return anthropicOk('{}');
+  };
+  r = await req('POST', {}, { type: 'receipt', model: 'gpt-999', image: 'QUJD', mediaType: 'image/jpeg' });
+  ok('proxy: receipt fallback model request succeeds', r.status === 200);
 }
 
 // ---------- client tests ----------
@@ -313,6 +339,45 @@ async function clientTests() {
   svcTrim._toBase64 = async () => ({ base64: 'QUJD', mediaType: 'image/jpeg' });
   const trimRes = await svcTrim.extractFromImage({});
   ok('client: trims values and drops unknown keys', trimRes.ok && trimRes.fields.name === 'Ann' && trimRes.fields.customerNumber === 'CUS-1' && !('bogus' in trimRes.fields), trimRes.fields);
+
+  // extractReceipt: stub image pipeline, assert payload + field mapping.
+  const svcReceipt = loadAiClient({
+    responder: async (payload) => {
+      ok('client: receipt payload type/model', payload.type === 'receipt' && payload.model === 'claude-sonnet-4-5');
+      ok('client: receipt payload carries base64 + mediaType', payload.image === 'QUJD' && payload.mediaType === 'image/jpeg');
+      return responseLike({
+        text: '{"amount":"24.99","vendor":"Screwfix","date":"2026-08-12","description":"Blinds samples","category":"samples","bogus":1}',
+        model: 'claude-sonnet-4-5', type: 'receipt'
+      });
+    }
+  });
+  svcReceipt._toBase64 = async () => ({ base64: 'QUJD', mediaType: 'image/jpeg' });
+  const rcpt = await svcReceipt.extractReceipt({});
+  ok('client: receipt maps fields, trims and drops unknown keys', rcpt.ok && rcpt.fields.amount === '24.99' && rcpt.fields.vendor === 'Screwfix' && rcpt.fields.category === 'samples' && !('bogus' in rcpt.fields), rcpt.fields);
+
+  // extractReceipt: an invented category id falls back to "other".
+  const svcBadCat = loadAiClient({
+    responder: async () => responseLike({ text: '{"amount":"5.00","category":"Coffee"}' })
+  });
+  svcBadCat._toBase64 = async () => ({ base64: 'QUJD', mediaType: 'image/jpeg' });
+  const badCat = await svcBadCat.extractReceipt({});
+  ok('client: unknown receipt category falls back to other', badCat.ok && badCat.fields.category === 'other' && badCat.fields.amount === '5.00', badCat.fields);
+
+  // extractReceipt: Claude wrapped the JSON in markdown code fences.
+  const svcRcptFenced = loadAiClient({
+    responder: async () => responseLike({ text: '```json\n{"amount":"12.50","vendor":"Tesco"}\n```' })
+  });
+  svcRcptFenced._toBase64 = async () => ({ base64: 'QUJD', mediaType: 'image/jpeg' });
+  const rf = await svcRcptFenced.extractReceipt({});
+  ok('client: fenced receipt JSON still maps fields', rf.ok && rf.fields.amount === '12.50' && rf.fields.vendor === 'Tesco' && rf.fields.category === 'other', rf.fields);
+
+  // extractReceipt: non-JSON model output degrades to empty fields + raw text.
+  const svcRcptRaw = loadAiClient({
+    responder: async () => responseLike({ text: 'not json at all' })
+  });
+  svcRcptRaw._toBase64 = async () => ({ base64: 'QUJD', mediaType: 'image/jpeg' });
+  const rr = await svcRcptRaw.extractReceipt({});
+  ok('client: receipt non-JSON degrades with raw text', rr.ok && rr.rawText === 'not json at all' && rr.fields.amount === '' && rr.fields.category === 'other', rr.fields);
 
   // draftMessage passes stringified context.
   const svcDraft = loadAiClient({

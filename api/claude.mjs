@@ -49,6 +49,35 @@ The photo may include a Google map with road labels, place names and buttons —
 Return only the raw JSON object — never wrap it in markdown code fences, never add preamble or any other text.`;
 }
 
+// Receipts get their own prompt so a scanned expense photo is turned into
+// amount/vendor/date/description plus a category picked from the app's real
+// CONFIG.expenseCategories ids — the Money feature drops the result straight
+// into its Quick Expense form.
+function receiptSystemPrompt(today) {
+  const categories = [
+    ['fuel', 'Fuel'],
+    ['samples', 'Samples'],
+    ['tools', 'Tools/Equipment'],
+    ['phone', 'Phone/Internet'],
+    ['insurance', 'Insurance'],
+    ['vehicle', 'Vehicle Costs'],
+    ['marketing', 'Marketing'],
+    ['training', 'Training'],
+    ['other', 'Other']
+  ];
+  const categoryList = categories.map(([id, name]) => `${id} (${name})`).join(', ');
+  return `You extract expense receipt details from a photo taken by a self-employed UK field sales advisor (window coverings).
+Today's real date is ${today}.
+Return ONLY a JSON object with exactly these keys, using empty strings when a field is not present:
+{"amount","vendor","date","description","category"}
+- amount: the total paid, as a plain number with no currency symbol (e.g. 24.99). If the receipt shows a total, use that.
+- vendor: the business/trade name printed on the receipt.
+- date: the receipt's printed date as ISO (YYYY-MM-DD). If the year isn't printed, use today's real date above (${today}) to resolve it. Never invent a date that isn't printed.
+- description: a short plain-English summary of what was bought (e.g. "Blinds sample fabric swatches") derived only from the line items. If it's ambiguous, leave it empty.
+- category: pick exactly one id from this list — ${categoryList}. Choose the best fit from what was bought; when nothing fits or the items are unclear, use "other".
+Return only the raw JSON object — never wrap it in markdown code fences, never add preamble or any other text.`;
+}
+
 const SYSTEM_PROMPTS = {
   // Drafted for a UK window coverings (blinds/curtains) sales advisor. The
   // context JSON carries every fact the app knows: quote amount, measured
@@ -90,7 +119,7 @@ If templateKey matches none of these, use the templateText as the goal and follo
   ping: `Reply with exactly the word "pong" and nothing else.`
 };
 
-const DEFAULT_MODELS = { ocr: 'claude-sonnet-4-5', draft: 'claude-haiku-4-5' };
+const DEFAULT_MODELS = { ocr: 'claude-sonnet-4-5', draft: 'claude-haiku-4-5', receipt: 'claude-sonnet-4-5' };
 
 // USD per 1M tokens, { input, output } — used to report an estimated
 // cost per call back to the app's Settings screen. Keep in sync with
@@ -211,16 +240,16 @@ export async function handle(request) {
     }
   }
 
-  if (type !== 'ocr' && type !== 'draft') {
-    return json(400, { ok: false, error: 'bad_request', message: 'type must be ocr, draft or ping' }, corsHeaders(origin));
+  if (type !== 'ocr' && type !== 'draft' && type !== 'receipt') {
+    return json(400, { ok: false, error: 'bad_request', message: 'type must be ocr, receipt, draft or ping' }, corsHeaders(origin));
   }
 
   const model = ALLOWED_MODELS.includes(body.model) ? body.model : DEFAULT_MODELS[type];
 
   let userContent;
-  if (type === 'ocr') {
+  if (type === 'ocr' || type === 'receipt') {
     if (typeof body.image !== 'string' || typeof body.mediaType !== 'string') {
-      return json(400, { ok: false, error: 'bad_request', message: 'ocr requires image (base64) and mediaType' }, corsHeaders(origin));
+      return json(400, { ok: false, error: 'bad_request', message: `${type} requires image (base64) and mediaType` }, corsHeaders(origin));
     }
     // Exact decoded byte count — the old length*3/4 approximation could be
     // dodged by malformed base64 (whitespace, padding tricks).
@@ -231,9 +260,9 @@ export async function handle(request) {
     // NOTE: any client-supplied "instructions" text is deliberately NOT
     // honored — text embedded in a scanned document (or sent by a tampered
     // client) could otherwise override the system prompt. The extraction
-    // instruction is fixed, so the model only ever follows ocrSystemPrompt.
+    // instruction is fixed, so the model only ever follows the fixed prompt.
     userContent = [
-      { type: 'text', text: 'Extract the details from this photo.' },
+      { type: 'text', text: type === 'ocr' ? 'Extract the details from this photo.' : 'Extract the receipt details from this photo.' },
       { type: 'image', source: { type: 'base64', media_type: body.mediaType, data: body.image } }
     ];
   } else {
@@ -246,7 +275,9 @@ export async function handle(request) {
   try {
     const system = type === 'ocr'
       ? ocrSystemPrompt(new Date().toISOString().slice(0, 10))
-      : SYSTEM_PROMPTS[type];
+      : type === 'receipt'
+        ? receiptSystemPrompt(new Date().toISOString().slice(0, 10))
+        : SYSTEM_PROMPTS[type];
     const { text, usage } = await callAnthropic(model, system, userContent);
     return json(200, { ok: true, text, usage: enrichUsage(usage, model), model, type }, corsHeaders(origin));
   } catch (err) {

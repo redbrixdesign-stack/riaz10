@@ -121,6 +121,26 @@ const AIService = {
     return { ok: true, fields, rawText, usage: result.data.usage };
   },
 
+  // ---- OCR: extract expense-receipt fields from a photo ----
+  async extractReceipt(file) {
+    const { base64, mediaType } = await this._toBase64(file);
+    if (base64 && (base64.length * 3) / 4 > 2 * 1024 * 1024) {
+      return { ok: false, reason: 'too_large', message: 'That photo is too large to analyse — try a sharper, smaller shot' };
+    }
+    const result = await this._request({
+      type: 'receipt',
+      model: this.config().ocrModel,
+      image: base64,
+      mediaType
+    }, 30000);
+
+    if (!result.ok) return result;
+
+    const rawText = result.data.text || '';
+    const fields = this._parseReceipt(rawText);
+    return { ok: true, fields, rawText, usage: result.data.usage };
+  },
+
   // Claude sometimes wraps its JSON in markdown code fences or adds a line of
   // preamble ("Here you go:"), which breaks a plain JSON.parse and blanks
   // every field even though the extraction is perfect. Work down a ladder:
@@ -156,6 +176,45 @@ const AIService = {
       if (slice) return slice;
     }
     return {};
+  },
+
+  // Receipt fields: amount (string, parsed later), vendor, date (ISO),
+  // description, and a category guaranteed to be one of the app's real
+  // expense category ids — anything Claude invents falls back to "other".
+  _parseReceipt(rawText) {
+    const validCategories = (CONFIG.expenseCategories || []).map(c => c.id);
+    const normalize = parsed => {
+      const out = {
+        amount: typeof parsed.amount === 'string' ? parsed.amount.trim() : '',
+        vendor: typeof parsed.vendor === 'string' ? parsed.vendor.trim() : '',
+        date: typeof parsed.date === 'string' ? parsed.date.trim() : '',
+        description: typeof parsed.description === 'string' ? parsed.description.trim() : '',
+        category: typeof parsed.category === 'string' ? parsed.category.trim().toLowerCase() : ''
+      };
+      if (!validCategories.includes(out.category)) out.category = 'other';
+      return out;
+    };
+    const tryParse = text => {
+      try {
+        const parsed = JSON.parse(text);
+        return parsed && typeof parsed === 'object' ? normalize(parsed) : null;
+      } catch (e) { return null; }
+    };
+
+    const direct = tryParse(rawText);
+    if (direct) return direct;
+
+    const fencing = rawText.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '').trim();
+    const stripped = tryParse(fencing);
+    if (stripped) return stripped;
+
+    const first = rawText.indexOf('{');
+    const last = rawText.lastIndexOf('}');
+    if (first !== -1 && last > first) {
+      const slice = tryParse(rawText.slice(first, last + 1));
+      if (slice) return slice;
+    }
+    return { amount: '', vendor: '', date: '', description: '', category: 'other' };
   },
 
   // ---- draft: personalized follow-up / visit message ----

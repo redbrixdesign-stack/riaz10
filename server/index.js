@@ -108,6 +108,59 @@ Ignore map imagery, UI chrome, logos, and navigation labels - only read the actu
 });
 
 /* --------------------------------------------------------------
+   1b) RECEIPT PARSING
+   Same vision approach as parse-document, but for expense receipts:
+   returns { amount, vendor, date, description, category } where
+   category is one of CONFIG.expenseCategories ids, so money.js can
+   drop it straight into the Quick Expense form.
+-------------------------------------------------------------- */
+app.post('/api/ai/parse-receipt', async (req, res) => {
+  try {
+    const { imageBase64, mimeType } = req.body || {};
+    if (!imageBase64 || !mimeType) {
+      return res.status(400).json({ error: 'imageBase64 and mimeType are required' });
+    }
+
+    const system = `You extract expense receipt details from a photo taken by a self-employed UK field sales
+advisor (window coverings). Today's real date is ${new Date().toISOString().slice(0, 10)}.
+Respond with ONLY a JSON object, no markdown fences, no commentary, matching exactly this shape
+(use "" for anything not present, never invent data, never guess a value you cannot actually read):
+{
+  "amount": "", "vendor": "", "date": "", "description": "", "category": ""
+}
+amount is the total paid as a plain number with no currency symbol (e.g. 24.99). vendor is the
+business/trade name on the receipt. date is the receipt's printed date as ISO (YYYY-MM-DD); if the
+year isn't printed, resolve it using today's real date, never invent a date that isn't printed.
+description is a short plain-English summary of what was bought derived only from the line items.
+category must be exactly one of: fuel (Fuel), samples (Samples), tools (Tools/Equipment), phone
+(Phone/Internet), insurance (Insurance), vehicle (Vehicle Costs), marketing (Marketing),
+training (Training), other (Other). Choose the best fit from what was bought; when nothing fits,
+use "other".`;
+
+    const data = await callClaude({
+      model: MODEL,
+      max_tokens: 1000,
+      system,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: mimeType, data: imageBase64 } },
+            { type: 'text', text: 'Extract the receipt details from this image as JSON.' }
+          ]
+        }
+      ]
+    });
+
+    const fields = parseJsonLoose(firstText(data));
+    res.json({ fields });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to parse receipt', detail: String(err.message || err) });
+  }
+});
+
+/* --------------------------------------------------------------
    2) MESSAGE DRAFTING
    Used by talk.js as an alternative to the static CONFIG.templates
    strings - gives a one-off, context-aware draft the advisor can

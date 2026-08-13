@@ -473,6 +473,40 @@ const MoneyFeature = {
     const base64 = await Utils.fileToBase64(file);
     this.expensePhotoData = base64;
     document.getElementById('expense-photo-preview').innerHTML = `<img class="max-w-full br-8" src="${base64}" >`;
+
+    if (!AIService.isEnabled()) return;
+
+    const hintEl = document.getElementById('expense-photo-preview');
+    hintEl.innerHTML = `${hintEl.innerHTML}<div class="fs-12 text-tertiary mt-10" >Analysing receipt…</div>`;
+    const result = await AIService.extractReceipt(file);
+
+    if (!result.ok || !result.fields) {
+      const after = document.getElementById('expense-photo-preview');
+      if (after) after.innerHTML = after.innerHTML.replace(/<div class="fs-12 text-tertiary mt-10" >Analysing receipt…<\/div>/, '');
+      Toast.show(result.message || 'Could not read the receipt — enter the details manually', 'error');
+      return;
+    }
+
+    const { amount, vendor, date, description, category } = result.fields;
+    const amountEl = document.getElementById('expense-amount');
+    const categoryEl = document.getElementById('expense-category');
+    const descEl = document.getElementById('expense-description');
+
+    const parsedAmount = parseFloat(String(amount).replace(/[^0-9.]/g, ''));
+    if (amountEl && !isNaN(parsedAmount) && parsedAmount > 0) amountEl.value = parsedAmount;
+
+    if (categoryEl) {
+      const option = Array.from(categoryEl.options).find(o => o.value === category);
+      if (option) categoryEl.value = option.value;
+    }
+
+    if (descEl && (description || vendor)) descEl.value = description || vendor;
+
+    const after = document.getElementById('expense-photo-preview');
+    if (after) after.innerHTML = after.innerHTML.replace(/<div class="fs-12 text-tertiary mt-10" >Analysing receipt…<\/div>/, '');
+
+    const filled = !isNaN(parsedAmount) && parsedAmount > 0 ? `£${parsedAmount.toFixed(2)} · ${category}` : 'details';
+    Toast.show(`Receipt read — ${filled} filled in. Review, then save`, 'success');
   },
 
   async saveExpense() {
