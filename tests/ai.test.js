@@ -150,6 +150,8 @@ async function proxyTests() {
     ok('proxy: draft model default haiku 4.5', parsed.model === 'claude-haiku-4-5');
     ok('proxy: draft sends context string', parsed.messages[0].content[0].text === '{"customerName":"Bob"}');
     ok('proxy: draft uses max_tokens cap for haiku', parsed.max_tokens === 800);
+    ok('proxy: draft uses spec master prompt', parsed.system.includes('message_context') && parsed.system.includes('draft_message'), parsed.system.slice(0, 200));
+    ok('proxy: draft prompt demands JSON only', parsed.system.includes('ONLY a single JSON object') && parsed.system.includes('no markdown fences'));
     return anthropicOk('Hi Bob!');
   };
   r = await req('POST', {}, { type: 'draft', draftContext: '{"customerName":"Bob"}' });
@@ -406,7 +408,8 @@ async function clientTests() {
   const rr = await svcRcptRaw.extractReceipt({});
   ok('client: receipt non-JSON degrades with raw text', rr.ok && rr.rawText === 'not json at all' && rr.fields.amount === '' && rr.fields.category === 'other', rr.fields);
 
-  // draftMessage passes stringified context.
+  // draftMessage passes stringified context; plain-text output still works
+  // (falls back to the raw text).
   const svcDraft = loadAiClient({
     responder: async (payload) => {
       ok('client: draft payload type/model', payload.type === 'draft' && payload.model === 'claude-haiku-4-5');
@@ -416,6 +419,27 @@ async function clientTests() {
   });
   const d = await svcDraft.draftMessage({ customerName: 'Bob' });
   ok('client: draft returns text', d.ok && d.text === 'Hi Bob!');
+
+  // Spec shape: {nudge, draft_message} JSON from the proxy, raw → parsed.
+  const svcDraftSpec = loadAiClient({
+    responder: async () => responseLike({
+      text: JSON.stringify({ nudge: 'Mrs Smith is waiting for her quote follow-up.', draft_message: 'Hi Sarah, just checking in on your quote.' })
+    })
+  });
+  const ds = await svcDraftSpec.draftMessage({ customerName: 'Sarah' });
+  ok('client: draft parses nudge + draft_message', ds.ok && ds.text === 'Hi Sarah, just checking in on your quote.' && ds.nudge === 'Mrs Smith is waiting for her quote follow-up.', ds);
+
+  // _parseDraft ladder: fenced JSON, bracketed JSON, plain text.
+  const svcEmpty = loadAiClient({ responder: async () => responseLike({ text: '' }) });
+  ok('client: _parseDraft plain text', svcEmpty._parseDraft('Hello there')?.draft_message === 'Hello there');
+  const fencedDraft = svcEmpty._parseDraft('```json\n{"nudge":"n1","draft_message":"m1"}\n```');
+  ok('client: _parseDraft fenced json', fencedDraft.draft_message === 'm1' && fencedDraft.nudge === 'n1');
+  const paddedDraft = svcEmpty._parseDraft('Here you go:\n{"nudge":"n2","draft_message":"m2"}');
+  ok('client: _parseDraft json-with-preamble', paddedDraft.draft_message === 'm2' && paddedDraft.nudge === 'n2', paddedDraft);
+  const absentNudge = svcEmpty._parseDraft('{"draft_message":"only message"}');
+  ok('client: _parseDraft missing nudge tolerated', absentNudge.draft_message === 'only message' && absentNudge.nudge === '', absentNudge);
+  const junkDraft = svcEmpty._parseDraft('not relevant');
+  ok('client: _parseDraft junk keeps raw', junkDraft.draft_message === 'not relevant', junkDraft);
 
   // Hard failure surfaces as { ok:false } with message.
   const svcErr = loadAiClient({

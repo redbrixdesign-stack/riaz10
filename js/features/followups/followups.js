@@ -7,6 +7,9 @@
      · payment reminders (orders with balance due)
      · today's visits still needing an outcome
      · tomorrow's visits needing their day-before message
+     · intro messages (first-time customers' bookings,
+       per the communication spec)
+     · post-fit thank-yous and service/issue acknowledgements
    ============================================ */
 
 const FollowupsFeature = {
@@ -26,12 +29,14 @@ const FollowupsFeature = {
     let orders = [];
     let upcoming = [];
     let todayAppts = [];
+    let allAppts = [];
     try { pipeline = await DB.getPipeline(); } catch (e) {}
     try { orders = await DB.db.orders.toArray(); } catch (e) {}
     try { upcoming = await DB.getUpcomingAppointments(5); } catch (e) {}
     // getUpcomingAppointments starts at "now", so a visit earlier today would
     // never surface — pull the full day separately for the outcome tasks.
     try { todayAppts = await DB.getAppointmentsForDate(now.toISOString()); } catch (e) {}
+    try { allAppts = await DB.db.appointments.toArray(); } catch (e) {}
 
     const customerIds = [...new Set([
       ...pipeline.map(a => a.customerId).filter(Boolean),
@@ -128,6 +133,88 @@ const FollowupsFeature = {
       });
     }
 
+    // 5. Intro messages (communication spec): first-time customers' upcoming
+    //    bookings — no prior non-cancelled visit at this address — that
+    //    haven't had their intro sent. One task per customer, for the
+    //    earliest booking. appts without a customerId (e.g. phone conversions
+    //    typed straight onto the visit) are treated as first-time too.
+    const firstVisitByCustomer = {};
+    try {
+      for (const a of allAppts) {
+        if (!a.customerId || !a.date) continue;
+        if (a.status === 'cancelled') continue;
+        if (new Date(a.date) >= now) continue;
+        const key = new Date(a.date).toDateString();
+        (firstVisitByCustomer[a.customerId] = firstVisitByCustomer[a.customerId] || new Set()).add(key);
+      }
+    } catch (e) { /* treat everyone as first-time */ }
+    const isFirstVisit = id => !(id && firstVisitByCustomer[id]?.size);
+
+    const introCandidates = [...upcoming, ...todayAppts]
+      .filter(a => a.status === 'confirmed' && !a.introSent && (a.phone || a.customerId))
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+    const introSeen = new Set();
+    for (const appt of introCandidates) {
+      if (appt.customerId) {
+        if (introSeen.has(appt.customerId)) continue;
+        introSeen.add(appt.customerId);
+      }
+      if (!isFirstVisit(appt.customerId)) continue;
+      tasks.push({
+        kind: 'intro',
+        due: true,
+        daysLabel: `${Utils.formatDate(appt.date, 'short')} · ${TalkFeature.apptTimeText(appt)}`,
+        appointment: appt,
+        customer: appt.customerId ? customerMap.get(appt.customerId) : null,
+        template: 'pre_intro',
+        action: 'Intro message for first visit — not sent yet',
+        priority: 'normal',
+        inDays: 0
+      });
+    }
+
+    // 6. Post-fit thank-yous and 7. service/issue acknowledgements: recent
+    //    fittings completed (postFitSent) or fittings/service calls that
+    //    ended with something to acknowledge (serviceSent). Window: the last
+    //    14 days, and never for visits already on today's/upcoming lists
+    //    (those are handled by the outcome tasks above).
+    const serviceOutcomes = TalkFeature.SERVICE_OUTCOMES
+      ? [...(TalkFeature.SERVICE_OUTCOMES.fitting || []), ...(TalkFeature.SERVICE_OUTCOMES.service_call || [])]
+      : [];
+    const serviceFailures = new Set(serviceOutcomes);
+    const coveredIds = new Set([...upcoming, ...todayAppts].map(a => a.id));
+    for (const appt of allAppts) {
+      const daysAgo = Utils.daysBetween(now, new Date(appt.date));
+      if (daysAgo < 0 || daysAgo > 14) continue;
+      if (coveredIds.has(appt.id)) continue;
+      if (appt.status === 'cancelled') continue;
+      if (appt.type === 'fitting' && appt.outcome === 'completed' && !appt.postFitSent) {
+        tasks.push({
+          kind: 'post_fit',
+          due: true,
+          daysLabel: `${Utils.formatDate(appt.date, 'short')} · ${appt.outcome ? 'fitted' : ''}`,
+          appointment: appt,
+          customer: appt.customerId ? customerMap.get(appt.customerId) : null,
+          template: 'post_fit_followup',
+          action: 'Post-fit thank-you + review ask — not sent yet',
+          priority: 'normal',
+          inDays: 0
+        });
+      } else if ((appt.type === 'fitting' || appt.type === 'service_call') && serviceFailures.has(appt.outcome) && !appt.serviceSent) {
+        tasks.push({
+          kind: 'service',
+          due: true,
+          daysLabel: `${Utils.formatDate(appt.date, 'short')} · ${appt.outcome}`,
+          appointment: appt,
+          customer: appt.customerId ? customerMap.get(appt.customerId) : null,
+          template: 'service_or_issue_followup',
+          action: 'Service/issue acknowledgement — not sent yet',
+          priority: 'high',
+          inDays: 0
+        });
+      }
+    }
+
     return tasks;
   },
 
@@ -202,8 +289,11 @@ const FollowupsFeature = {
       ? `${Utils.formatDate(task.appointment.date, 'short')} · ${task.daysLabel}`
       : (task.order ? `${Utils.escapeHtml(task.order.orderNumber || 'Order')} · ${task.daysLabel}` : task.daysLabel);
 
-    const icons = { quote: 'receipt_long', payment: 'payments', visit_today: 'event_available', visit_tomorrow: 'event', };
-    const accent = task.kind === 'payment' ? 'var(--warning)' : task.kind === 'visit_today' ? 'var(--primary)' : 'var(--danger)';
+    const icons = { quote: 'receipt_long', payment: 'payments', visit_today: 'event_available', visit_tomorrow: 'event', intro: 'waving_hand', post_fit: 'handyman', service: 'build', };
+    const accent = task.kind === 'payment' ? 'var(--warning)'
+      : (task.kind === 'visit_today' || task.kind === 'intro') ? 'var(--primary)'
+      : task.kind === 'service' ? 'var(--danger)'
+      : 'var(--danger)';
 
     return `
       <div class="fup-card" style="border-left:3px solid ${accent};opacity:${muted ? '0.65' : '1'};">
@@ -214,6 +304,9 @@ const FollowupsFeature = {
               <span class="fw-600 fs-15 ellipsis" >${name}</span>
               ${task.kind === 'payment' ? '<span class="badge badge-warning fs-10 shrink-0" >Payment</span>' : ''}
               ${task.kind === 'visit_today' ? '<span class="badge badge-primary fs-10 shrink-0" >Today</span>' : ''}
+              ${task.kind === 'intro' ? '<span class="badge badge-primary fs-10 shrink-0" >First visit</span>' : ''}
+              ${task.kind === 'post_fit' ? '<span class="badge badge-success fs-10 shrink-0" >Post-fit</span>' : ''}
+              ${task.kind === 'service' ? '<span class="badge badge-danger fs-10 shrink-0" >Service</span>' : ''}
               ${task.priority === 'high' ? '<span class="badge badge-danger fs-10 shrink-0" >High</span>' : ''}
             </div>
             <div class="fs-13 text-secondary mt-2" >${Utils.escapeHtml(task.action)}</div>
@@ -255,6 +348,15 @@ const FollowupsFeature = {
         <button class="btn btn-sm btn-primary flex-1"  onclick="App.navigate('appointments', {id: ${task.appointment.id}})">
           <span class="material-symbols-rounded fs-16" >fact_check</span>Log outcome
         </button>
+      `;
+    }
+    if (task.kind === 'intro' || task.kind === 'post_fit' || task.kind === 'service') {
+      const labels = { intro: 'Send intro', post_fit: 'Send thank-you', service: 'Acknowledge' };
+      return `
+        <button class="btn btn-sm btn-primary flex-1"  onclick="TalkFeature.sendMessage(${task.appointment.id}, '${Utils.escapeJsString(task.template)}')">
+          <span class="material-symbols-rounded fs-16" >send</span>${labels[task.kind]}
+        </button>
+        <button class="btn btn-sm btn-outline flex-1"  onclick="App.navigate('appointments', {id: ${task.appointment.id}})">Visit</button>
       `;
     }
     return `

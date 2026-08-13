@@ -264,6 +264,10 @@ const AIService = {
   },
 
   // ---- draft: personalized follow-up / visit message ----
+  // The proxy is told to answer with { nudge, draft_message } JSON (see the
+  // Beelo communication spec in docs/Communication.md). Everything else is
+  // unchanged: the template remains the starting point, the draft is a
+  // suggestion the advisor reviews and edits.
   async draftMessage(context) {
     const result = await this._request({
       type: 'draft',
@@ -271,7 +275,39 @@ const AIService = {
       draftContext: JSON.stringify(context)
     }, 20000);
     if (!result.ok) return result;
-    return { ok: true, text: result.data.text || '', usage: result.data.usage };
+    const rawText = result.data.text || '';
+    const parsed = this._parseDraft(rawText);
+    return { ok: true, text: parsed.draft_message || rawText, nudge: parsed.nudge || '', rawText, usage: result.data.usage };
+  },
+
+  // Claude wraps the draft answer in {nudge, draft_message} JSON — the same
+  // fence/preamble ladder as the OCR parsers, since a markdown fence or a
+  // "Here you go:" preamble would otherwise blank the draft.
+  _parseDraft(rawText) {
+    const tryParse = text => {
+      try {
+        const p = JSON.parse(text);
+        if (p && typeof p === 'object' && typeof p.draft_message === 'string') {
+          return {
+            nudge: typeof p.nudge === 'string' ? p.nudge.trim() : '',
+            draft_message: p.draft_message.trim()
+          };
+        }
+      } catch (e) { /* keep walking the ladder */ }
+      return null;
+    };
+    const direct = tryParse(rawText);
+    if (direct) return direct;
+    const fencing = rawText.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '').trim();
+    const stripped = tryParse(fencing);
+    if (stripped) return stripped;
+    const first = rawText.indexOf('{');
+    const last = rawText.lastIndexOf('}');
+    if (first !== -1 && last > first) {
+      const slice = tryParse(rawText.slice(first, last + 1));
+      if (slice) return slice;
+    }
+    return { nudge: '', draft_message: rawText };
   },
 
   // ---- settings: ping the proxy ----

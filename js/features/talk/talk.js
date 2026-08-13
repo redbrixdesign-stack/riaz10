@@ -24,13 +24,70 @@ const TalkFeature = {
   // at a specific follow-up's detail, you want the recommended template
   // regardless of exactly how many days have passed).
   OUTCOME_TEMPLATE_MAP: {
+    ordered: { template: 'outcome_ordered', action: 'Confirm order placed', minDays: 0, priority: 'normal' },
     quoted: { template: 'follow_up.quote', action: 'Follow up on quote', minDays: 3, priority: 'normal' },
     thinking: { template: 'follow_up.gentle', action: 'Gentle follow-up', minDays: 5, priority: 'high' },
     partner: { template: 'follow_up.partner', action: 'Offer joint visit', minDays: 2, priority: 'normal' },
     compare_quotes: { template: 'follow_up.compare', action: 'Help compare quotes', minDays: 2, priority: 'normal' },
     expensive: { template: 'follow_up.discount', action: 'Consider controlled discount', minDays: 3, priority: 'normal' },
+    spec_mismatch: { template: 'follow_up.spec', action: 'Adjust specification', minDays: 2, priority: 'normal' },
     customer_no_show: { template: 'follow_up.rebook', action: 'Rebook missed visit', minDays: 1, priority: 'normal' },
     advisor_unavailable: { template: 'follow_up.apology', action: 'Apologise and rebook', minDays: 0, priority: 'high' }
+  },
+
+  // Communication-spec stages (docs/Communication.md §2.1): every message the
+  // app can send maps to a stage, so a manual template pick or an automated
+  // task still lands on the staged context shape. Close-lost outcomes aren't
+  // in OUTCOME_TEMPLATE_MAP (no daily nudge), but they DO map onto a stage so
+  // an ad-hoc draft is still honest about the state.
+  OUTCOME_STAGE_MAP: {
+    ordered: 'outcome_ordered',
+    quoted: 'outcome_needs_to_think',
+    thinking: 'outcome_needs_to_think',
+    partner: 'outcome_needs_to_think',
+    compare_quotes: 'outcome_needs_to_think',
+    expensive: 'outcome_needs_to_think',
+    spec_mismatch: 'outcome_needs_to_think',
+    not_looking_for: 'outcome_closed_lost',
+    out_of_range: 'outcome_closed_lost',
+    other_no_sale: 'outcome_closed_lost',
+    customer_no_show: 'outcome_closed_lost',
+    advisor_unavailable: 'outcome_closed_lost'
+  },
+
+  // Fitting/service-call outcomes that mean "something is wrong and the
+  // customer deserves an acknowledgement" — the basis of the Follow-ups
+  // 'service' task (and post-fit, anchored on fitted+completed).
+  SERVICE_OUTCOMES: {
+    fitting: ['spec_mismatch', 'missing_parts', 'access_issue', 'issues', 'revisit'],
+    service_call: ['parts_needed', 'revisit_needed', 'access_issue']
+  },
+
+  stageForTemplateKey(key) {
+    if (key === 'outcome_ordered') return 'outcome_ordered';
+    if (key === 'pre_intro') return 'pre_intro';
+    if (key === 'day_before' || key === 'evening_before') return 'day_before';
+    if (key === 'morning_of') return 'morning_of';
+    if (key === 'on_my_way') return 'on_the_way';
+    if (key === 'running_late') return 'late';
+    if (key === 'post_fit_followup') return 'post_fit_followup';
+    if (key === 'service_or_issue_followup') return 'service_or_issue_followup';
+    if (key.startsWith('confirmation.')) return 'new_booking';
+    if (key.startsWith('follow_up.')) return 'outcome_needs_to_think';
+    if (key.startsWith('post_sale.')) return 'outcome_ordered';
+    return key;
+  },
+
+  // "Access: side gate, dog in kitchen" — the parked-notes convention the
+  // appointment editor folds into visit notes (appointments.js). AI drafts
+  // get these fields without needing a new form control.
+  _parseNoteField(notes, prefix) {
+    if (!notes) return '';
+    try {
+      const re = new RegExp(`^\\s*${prefix}\\s*[:\\-]\\s*(.+?)\\s*$`, 'im');
+      const m = notes.match(re);
+      return m ? m[1].trim() : '';
+    } catch (e) { return ''; }
   },
 
   MIN_LEARNED_SAMPLE: 3,
@@ -279,6 +336,8 @@ const TalkFeature = {
     if (outcome === 'partner') return `partner decision pending`;
     if (outcome === 'compare_quotes') return `customer comparing quotes`;
     if (outcome === 'expensive') return `price concern logged`;
+    if (outcome === 'spec_mismatch') return 'spec mismatch — adjust offer';
+    if (outcome === 'ordered') return 'order confirmed — confirm on its way';
     if (outcome === 'customer_no_show') return `missed visit needs rebooking`;
     if (outcome === 'advisor_unavailable') return `relationship repair needed`;
     return `${daysSince} days since visit`;
@@ -467,6 +526,7 @@ const TalkFeature = {
     const content = `<div class="sheet-handle"></div>
       <div class="sheet-header"><h3>Preview Message</h3><button class="btn btn-ghost btn-sm" onclick="App.closeModal()"><span class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body">
+        <div class="fs-12 text-secondary mt-6" id="talk-nudge" style="display:none"></div>
         <textarea class="textarea" id="talk-message-preview" style="min-height:110px;">${Utils.escapeHtml(message)}</textarea>
 
         <div class="flex items-center gap-sm mt-sm wrap" >
@@ -531,8 +591,10 @@ const TalkFeature = {
   },
 
   // Replaces the preview textarea contents with a Claude-drafted message
-  // written from the customer/visit context. The template remains the
-  // starting point; the draft is a suggestion the user reviews and edits.
+  // written from the spec message_context (docs/Communication.md). The
+  // template remains the starting point; the draft is a suggestion the user
+  // reviews and edits. The nudge Claude returns lands in the #talk-nudge
+  // slot above the textarea.
   async aiDraft() {
     if (!AIService.isEnabled()) {
       Toast.show('AI drafting is off — enable it in Settings first', 'warning');
@@ -548,7 +610,7 @@ const TalkFeature = {
 
     Toast.show('Drafting with AI…', 'info');
     try {
-      const context = await this.buildAiContext(pending);
+      const context = await this.buildMessageContext(pending);
       const result = await AIService.draftMessage(context);
       if (!result.ok) {
         Toast.show(result.reason === 'timeout' ? 'AI draft timed out — try again' : result.message || 'AI draft unavailable', 'error');
@@ -566,6 +628,15 @@ const TalkFeature = {
       textarea.value = result.text;
       const actions = document.getElementById('talk-ai-actions');
       if (actions) actions.style.display = 'flex';
+      const nudgeEl = document.getElementById('talk-nudge');
+      if (nudgeEl) {
+        if (result.nudge) {
+          nudgeEl.textContent = result.nudge;
+          nudgeEl.style.display = 'block';
+        } else {
+          nudgeEl.style.display = 'none';
+        }
+      }
       Toast.show('Draft ready — review before sending', 'success');
     } catch (err) {
       console.warn('AI draft failed:', err);
@@ -584,6 +655,8 @@ const TalkFeature = {
     this._aiDraftPrev = null;
     const actions = document.getElementById('talk-ai-actions');
     if (actions) actions.style.display = 'none';
+    const nudgeEl = document.getElementById('talk-nudge');
+    if (nudgeEl) nudgeEl.style.display = 'none';
   },
 
   async buildAiContext(pending) {
@@ -699,6 +772,137 @@ const TalkFeature = {
     };
   },
 
+  // Spec-shaped snake_case context sent to Claude (docs/Communication.md §3):
+  // this is the JSON the proxy prompt calls message_context. Same real-data
+  // sources as buildAiContext (which stays for the preview UI's fact chips),
+  // plus the staged fields the AI needs: first-visit flag, visit count,
+  // parking/access notes, window history, outcome, order summary, and notes
+  // from the customer's last visit.
+  async buildMessageContext(pending) {
+    const { customerId, appointmentId, templateKey } = pending;
+    const customer = customerId ? await DB.db.customers.get(customerId) : null;
+    const appt = appointmentId ? await DB.db.appointments.get(appointmentId) : null;
+
+    // First-visit at this address = no prior non-cancelled appointment
+    // (cancel/reshuffle ≠ having actually visited). Date-compare with
+    // toDateString so multiple appointments on the same day aren't counted
+    // twice.
+    let pastVisits = [];
+    let measuresByAppt = {};
+    try {
+      if (customerId) {
+        const all = await DB.db.appointments.where('customerId').equals(customerId).toArray();
+        all.sort((a, b) => new Date(a.date) - new Date(b.date));
+        pastVisits = all.filter(a => a.date && new Date(a.date) < new Date() && a.status !== 'cancelled');
+        const seen = new Set();
+        pastVisits = pastVisits.filter(a => {
+          const key = new Date(a.date).toDateString();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        const ids = pastVisits.map(a => a.id).filter(Boolean);
+        if (ids.length) {
+          const measures = await DB.db.measurements.where('appointmentId').anyOf(ids).toArray();
+          for (const m of measures) {
+            (measuresByAppt[m.appointmentId] = measuresByAppt[m.appointmentId] || []).push(m);
+          }
+        }
+      }
+    } catch (e) { /* context works without history */ }
+
+    const windowHistory = Object.values(measuresByAppt).flat();
+    const windowHistorySummary = windowHistory.map(m => m.windowName).filter(Boolean).slice(0, 12).join(', ');
+    const blindCount = windowHistory.filter(m => m.windowName).length;
+    const lastVisitNotes = pastVisits[pastVisits.length - 1]?.notes || '';
+
+    let orders = [];
+    let allMessages = [];
+    let recentMessages = [];
+    try {
+      if (customerId) {
+        orders = await DB.db.orders.where('customerId').equals(customerId).toArray();
+        allMessages = await DB.db.communications.where('customerId').equals(customerId).toArray();
+      }
+    } catch (e) { /* draft without order/message history */ }
+    orders.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    allMessages.sort((a, b) => new Date(b.sentAt || 0) - new Date(a.sentAt || 0));
+    recentMessages = allMessages.slice(0, 4)
+      .map(c => ({ content: String(c.content || '').trim(), sentAt: c.sentAt || null }))
+      .filter(c => c.content);
+    const latestOrder = orders[0] || null;
+    const depositPaid = latestOrder?.depositPaid || 0;
+
+    let templateText = '';
+    try {
+      const keys = templateKey.split('.');
+      let t = CONFIG.templates;
+      for (const k of keys) t = t?.[k];
+      templateText = typeof t === 'string' ? t : '';
+    } catch (e) { /* ignore */ }
+
+    const advisorName = CONFIG.advisorName || 'Your Advisor';
+    const visitTypeLabel = appt?.type
+      ? (CONFIG.appointmentTypes.find(t => t.id === appt.type)?.name || appt.type)
+      : 'visit';
+    const daysSince = appt?.date ? Utils.daysBetween(new Date(), new Date(appt.date)) : null;
+    const outcomeLabel = appt?.outcome
+      ? ((CONFIG.outcomes[appt.type] || []).find(o => o.id === appt.outcome)?.name || appt.outcome)
+      : '';
+    const windowScope = (measuresByAppt[appt?.id] || []).map(m => m.windowName).filter(Boolean).slice(0, 6).join(', ');
+    const extra = pending.extraVars || {};
+
+    // Note-field conventions: the appointment editor folds "Access: …"
+    // lines into visit notes; parking notes follow the same convention.
+    const notes = appt?.notes || '';
+    const parkingNotes = this._parseNoteField(notes, 'parking');
+    const accessNotes = this._parseNoteField(notes, 'access');
+
+    const orderSummary = latestOrder
+      ? `Order ${latestOrder.orderNumber || ''}${latestOrder.supplierOrderNumber ? ` (supplier ref ${latestOrder.supplierOrderNumber})` : ''}, total ${Utils.formatCurrency(latestOrder.total || 0)}${depositPaid > 0 ? `, deposit paid ${Utils.formatCurrency(depositPaid)}` : latestOrder.depositRequired > 0 ? `, deposit due ${Utils.formatCurrency(latestOrder.depositRequired)}` : ''}${latestOrder.balanceDue > 0 ? `, ${Utils.formatCurrency(latestOrder.balanceDue)} remaining` : ''}`
+      : 'no order yet';
+
+    return {
+      advisor_name: advisorName,
+      advisor_role: 'window coverings advisor',
+      customer_name: customer ? customer.firstName || customer.lastName : (appt?.clientName || 'there'),
+      customer_is_first_visit_at_address: pastVisits.length === 0,
+      customer_visit_count: pastVisits.length,
+      address: appt?.address || customer?.address?.line1 || '',
+      appointment_type: visitTypeLabel,
+      appointment_date: appt?.date ? Utils.formatDate(appt.date) : '',
+      appointment_date_long: appt?.date ? Utils.formatDate(appt.date, 'long') : '',
+      time_start: appt?.arrivalStart || (appt?.date ? Utils.formatTime(appt.date) : ''),
+      time_end: appt?.arrivalEnd || '',
+      parking_notes: parkingNotes,
+      access_notes: accessNotes,
+      blind_count: blindCount,
+      window_history_summary: windowHistorySummary,
+      window_scope: windowScope,
+      stage: this.stageForTemplateKey(templateKey),
+      eta: String(extra.eta || '').trim(),
+      delay_reason: String(extra.delay || '').trim(),
+      outcome: appt?.outcome || '',
+      outcome_label: outcomeLabel,
+      quote_amount: appt?.value && appt.value > 0 ? Utils.formatCurrency(appt.value) : '',
+      order_summary: orderSummary,
+      order_history: orders.length
+        ? `Order history: ${orders.length} order(s)${latestOrder?.supplierOrderNumber ? `, supplier ref ${latestOrder.supplierOrderNumber}` : ''}, latest total ${Utils.formatCurrency(latestOrder?.total || 0)}${depositPaid > 0 ? `, ${Utils.formatCurrency(depositPaid)} paid` : ''}${latestOrder?.balanceDue > 0 ? `, ${Utils.formatCurrency(latestOrder.balanceDue)} due` : ''}.`
+        : 'Order history: none.',
+      notes_from_last_visit: lastVisitNotes,
+      visit_notes: notes,
+      template_key: templateKey,
+      template_text: templateText,
+      days_since_last_visit: daysSince,
+      lead_source: customer?.source || '',
+      recent_messages: recentMessages.map(m => `[${m.sentAt ? Utils.formatDate(m.sentAt, 'short') : 'sometime'}] "${m.content}"`),
+      total_messages_sent: allMessages.length,
+      last_sent_days_ago: recentMessages[0]?.sentAt
+        ? Utils.daysBetween(new Date(), new Date(recentMessages[0].sentAt))
+        : null
+    };
+  },
+
   async confirmSend() {
     const pending = this.pendingMessage;
     if (!pending) {
@@ -719,8 +923,13 @@ const TalkFeature = {
     if (customerId > 0) {
       DB.addCommunication({ customerId, type: 'whatsapp_attempted', template: null, content: message });
     }
-    if (templateKey === 'day_before' && appointmentId) {
-      try { await DB.db.appointments.update(appointmentId, { dayBeforeSent: true }); } catch (e) {}
+    // Same-template send flags: each automated follow-up kind marks the
+    // appointment so it drops out of the Follow-ups queue. (day_before
+    // predates the others — kept for the Talk tomorrow-reminders.)
+    const SENT_FLAGS = { day_before: 'dayBeforeSent', pre_intro: 'introSent', post_fit_followup: 'postFitSent', service_or_issue_followup: 'serviceSent' };
+    const flag = SENT_FLAGS[templateKey];
+    if (flag && appointmentId) {
+      try { await DB.db.appointments.update(appointmentId, { [flag]: true }); } catch (e) {}
     }
     App.closeModal();
     Toast.show('Opened WhatsApp — check it sent', 'info');

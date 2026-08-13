@@ -170,6 +170,62 @@ const assert = (cond, msg) => { if (!cond) { console.error('FAIL:', msg); proces
   const ctxEta = await Talk.buildAiContext({ customerId: 1, appointmentId: 12, templateKey: 'on_my_way', extraVars: { eta: '9 minutes', delay: '15' } });
   assert(ctxEta.eta === '9 minutes' && ctxEta.delay === '15', 'Live ETA/delay thread into context');
 
+  // Communication spec: buildMessageContext produces the snake_case
+  // message_context from REAL data (first-visit, visit count, windows,
+  // order, outcome, history) and maps templates onto the spec stages.
+  const mctx = await Talk.buildMessageContext({ customerId: 1, appointmentId: 11, templateKey: 'follow_up.quote' });
+  assert(mctx.customer_name === 'Sarah', 'Spec context carries customer first name');
+  assert(mctx.customer_is_first_visit_at_address === false && mctx.customer_visit_count === 1, 'Repeat customer flagged with correct visit count');
+  assert(mctx.blind_count === 1 && mctx.window_history_summary.includes('Lounge Bay'), 'Window history + blind count in spec context');
+  assert(mctx.stage === 'outcome_needs_to_think', 'follow_up.* maps to outcome_needs_to_think stage');
+  assert(mctx.outcome === 'quoted' && mctx.outcome_label === 'Quoted', 'Outcome + label reach the spec context');
+  assert(mctx.quote_amount.includes('1,250'), 'Quote amount in spec context');
+  assert(mctx.order_summary.includes('ORD-2026-0001') && mctx.order_summary.includes('deposit'), 'Order summary in spec context');
+  assert(mctx.days_since_last_visit === 5, 'days_since_last_visit counted');
+  assert(mctx.recent_messages.some(m => m.includes('Hi')) && mctx.total_messages_sent === 1, 'Message history in spec context');
+  assert(mctx.template_key === 'follow_up.quote' && mctx.template_text.includes('quote'), 'Template key/text in spec context');
+
+  // Parking/access convention: "Access: …" lines folded into visit notes
+  // surface as structured fields (appointments.js folds them in).
+  const noteAppt = TABLES.appointments.find(a => a.id === 11);
+  noteAppt.notes = 'Parking: side street near the gate\nAccess: side gate, please keep the dog inside';
+  const mctxNotes = await Talk.buildMessageContext({ customerId: 1, appointmentId: 11, templateKey: 'follow_up.quote' });
+  assert(mctxNotes.access_notes === 'side gate, please keep the dog inside', 'Access note parsed from the convention');
+  assert(mctxNotes.parking_notes === 'side street near the gate', 'Parking note parsed from the convention');
+  assert(Talk._parseNoteField('', 'access') === '', 'Empty notes yield empty field');
+
+  // First-time customer: flag flips, stage follows the template.
+  TABLES.customers.push({ id: 2, firstName: 'David', lastName: 'Lee', phone: '07700 900456', fullName: 'David Lee' });
+  TABLES.appointments.push({ id: 14, customerId: 2, clientName: 'David Lee', type: 'consultation', outcome: null, status: 'confirmed', date: isoAt(2, 9) });
+  const mctxNew = await Talk.buildMessageContext({ customerId: 2, appointmentId: 14, templateKey: 'pre_intro' });
+  assert(mctxNew.customer_is_first_visit_at_address === true && mctxNew.customer_visit_count === 0, 'First-time customer flagged');
+  assert(mctxNew.stage === 'pre_intro', 'pre_intro template maps to pre_intro stage');
+  assert(Talk.stageForTemplateKey('day_before') === 'day_before' && Talk.stageForTemplateKey('evening_before') === 'day_before', 'Reminder stages map');
+  assert(Talk.stageForTemplateKey('on_my_way') === 'on_the_way' && Talk.stageForTemplateKey('running_late') === 'late', 'ETA stages map');
+
+  // Follow-ups: intro task for the first-time customer (auto-due), and
+  // post-fit / service tasks from fitting/service_call outcomes — each
+  // dropping out once its send flag is set.
+  let tasksSpec = await Followups.loadTasks();
+  const introTask = tasksSpec.find(t => t.kind === 'intro');
+  assert(!!introTask && introTask.template === 'pre_intro' && introTask.due && introTask.appointment.id === 14, 'Intro task auto-due for first-time customer');
+  assert(!tasksSpec.find(t => t.kind === 'post_fit'), 'No post-fit task without a completed fitting');
+
+  TABLES.appointments.push(
+    { id: 15, customerId: 1, clientName: 'Sarah Johnson', type: 'fitting', outcome: 'completed', status: 'completed', date: iso(-2) },
+    { id: 16, customerId: 1, clientName: 'Sarah Johnson', type: 'service_call', outcome: 'parts_needed', status: 'completed', date: iso(-1) }
+  );
+  tasksSpec = await Followups.loadTasks();
+  const pfTask = tasksSpec.find(t => t.kind === 'post_fit');
+  const svcTask = tasksSpec.find(t => t.kind === 'service');
+  assert(!!pfTask && pfTask.template === 'post_fit_followup', 'Post-fit task for completed fitting');
+  assert(!!svcTask && svcTask.template === 'service_or_issue_followup' && svcTask.priority === 'high', 'Service task for parts_needed, high priority');
+
+  TABLES.appointments.find(a => a.id === 15).postFitSent = true;
+  TABLES.appointments.find(a => a.id === 16).serviceSent = true;
+  tasksSpec = await Followups.loadTasks();
+  assert(!tasksSpec.find(t => t.kind === 'post_fit') && !tasksSpec.find(t => t.kind === 'service'), 'Send flags remove post-fit + service tasks');
+
   // Preview sheet v2: carries the facts, history and outcome alternatives so
   // the advisor composes with context, not in a vacuum.
   global.App.lastModal = null;

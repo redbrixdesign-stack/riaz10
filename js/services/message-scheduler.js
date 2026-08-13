@@ -162,9 +162,12 @@ const MessageScheduler = {
     return null;
   },
 
-  // AI draft when enabled (and healthy), otherwise the static template.
+  // AI draft when enabled (and healthy), otherwise the static template. The
+  // AI gets the spec message_context (buildMessageContext — docs/
+  // Communication.md); the fallback template draws the same real facts
+  // (time, address, first name) from that context object.
   async _buildMessage(appt, stage, pending, extra) {
-    const context = await TalkFeature.buildAiContext(pending);
+    const context = await TalkFeature.buildMessageContext(pending);
     if (extra.eta) context.eta = extra.eta;
 
     if (AIService.isEnabled()) {
@@ -182,10 +185,10 @@ const MessageScheduler = {
     const template = templates[stage];
     if (!template) return null;
     return NotificationService.processTemplate(template, {
-      firstName: Utils.firstNameFrom(context.firstName),
-      time: context.appointmentTime || '',
-      address: context.visitAddress || '',
-      advisorName: context.advisorName || 'Your Advisor',
+      firstName: Utils.firstNameFrom(context.customer_name),
+      time: context.time_start || '',
+      address: context.address || '',
+      advisorName: context.advisor_name || 'Your Advisor',
       eta: extra.eta || '15-20 minutes'
     });
   }

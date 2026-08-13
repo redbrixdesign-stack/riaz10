@@ -226,7 +226,8 @@ const CONFIG = {
       compare: "Hi {{firstName}}, I know you're comparing options. If helpful, I can talk you through the differences so you're comparing like-for-like on quality, fitting and aftercare. — {{advisorName}}",
       discount: "Hi {{firstName}}, I may have a little room today if we can get this wrapped up. Would you like me to sharpen the quote and talk you through the options? — {{advisorName}}",
       rebook: "Hi {{firstName}}, sorry we missed each other. Shall we get another visit booked in? I can send a couple of suitable times. — {{advisorName}}",
-      apology: "Hi {{firstName}}, sorry I couldn't make the visit as planned. I appreciate your time and would like to get this rebooked at a time that suits you. — {{advisorName}}"
+      apology: "Hi {{firstName}}, sorry I couldn't make the visit as planned. I appreciate your time and would like to get this rebooked at a time that suits you. — {{advisorName}}",
+      spec: "Hi {{firstName}}, thanks for your time today. I can look at adjusting the specification to what you need — just let me know what would work better and I'll sort it out. — {{advisorName}}"
     },
     post_sale: {
       review: "Hi {{firstName}}, hope you're enjoying your new {{productType}}! If you're happy with the work, I'd love a quick review. It really helps: [link] — {{advisorName}}",
@@ -241,7 +242,15 @@ const CONFIG = {
     // Fallback wording for the automated cadence (message-scheduler.js) when
     // Claude AI is off — the AI drafts something warmer when it's enabled.
     evening_before: "Hi {{firstName}}, just a quick one — I'm with you tomorrow at {{time}} at {{address}}. It'd help to know how many windows you're looking at and if you have specific blinds in mind. Any parking or anything else I should know about too? See you tomorrow! — {{advisorName}}",
-    morning_of: "Hi {{firstName}}, looking forward to seeing you today at {{time}}. If you get a chance, let me know how many windows and which blinds you're thinking of — and any parking or access notes. See you shortly! — {{advisorName}}"
+    morning_of: "Hi {{firstName}}, looking forward to seeing you today at {{time}}. If you get a chance, let me know how many windows and which blinds you're thinking of — and any parking or access notes. See you shortly! — {{advisorName}}",
+    // Intro/prep for a first-time customer's booking (Follow-ups 'intro' task).
+    pre_intro: "Hi {{firstName}}, I'm {{advisorName}} and I'll be with you on {{day}} at {{time}} for your {{visitType}} at {{address}}. If you can let me know about parking, access (gates, stairs, pets) and which windows you'd like me to focus on, that would help me be fully prepared. Any questions, just reply here.",
+    // Order confirmation after an 'ordered' outcome.
+    outcome_ordered: "Hi {{firstName}}, thanks again for ordering today. Your {{productType}} is now in hand — I'll keep you posted on fitting dates. Anything you need in the meantime, just reply here. — {{advisorName}}",
+    // Post-fitting thank-you + review/referral ask (Follow-ups 'post_fit' task).
+    post_fit_followup: "Hi {{firstName}}, hope you're pleased with how the fitting looks today! If anything doesn't feel right — operation, finish or fit — just reply and I'll come back and put it right. If you're happy, a short review or a word to friends and neighbours would mean a lot. — {{advisorName}}",
+    // Service/issue acknowledgement (Follow-ups 'service' task).
+    service_or_issue_followup: "Hi {{firstName}}, thanks for letting me know about this — I'm sorry about the inconvenience. I've logged it and will come back to you as soon as I have next steps. If anything changes in the meantime, just reply here. — {{advisorName}}"
   },
 
   // Automated message cadence around each visit (js/services/message-scheduler.js):

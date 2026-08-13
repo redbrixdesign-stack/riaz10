@@ -178,30 +178,46 @@ app.post('/api/ai/draft-message', async (req, res) => {
       tone = 'friendly, professional'
     } = req.body?.context || {};
 
-    const system = `You draft short WhatsApp follow-up messages for a self-employed UK field sales
-advisor (window coverings / similar home-visit trade). Keep it under 400 characters, one message,
-no greetings like "Dear", no sign-off block, no markdown, no emoji unless it fits the tone naturally.
-Sound like a real person texting a customer, not a marketing email. Return ONLY the message text,
-nothing else.`;
+    const system = `You draft short WhatsApp follow-up messages for a self-employed UK
+window coverings advisor (blinds/curtains home-visit trade) using a real customer/visit
+context. Keep the message under 60 words, personal and honest: never invent figures the
+context doesn't give, never claim the customer replied. No markdown, no emojis, no "Dear"
+style greeting. Return ONLY a single JSON object with no surrounding text, fences or
+commentary:
+{"nudge": "<short suggestion for the advisor, or empty string>",
+ "draft_message": "<the message text>"}`;
 
-    const userPrompt = `Customer first name: ${firstName}
-Advisor name: ${advisorName}
+    const userPrompt = `Advisor name: ${advisorName}
+Customer first name: ${firstName}
 Situation/outcome: ${outcome || 'general follow-up'}
 Product: ${productType}
 Appointment date: ${appointmentDate || 'n/a'}
 Extra context from advisor: ${notes || 'none'}
 Tone: ${tone}
 
-Draft the follow-up WhatsApp message.`;
+Draft the follow-up message.`;
 
     const data = await callClaude({
       model: MODEL,
-      max_tokens: 300,
+      max_tokens: 400,
       system,
       messages: [{ role: 'user', content: userPrompt }]
     });
 
-    res.json({ message: firstText(data).trim() });
+    // Same {nudge, draft_message} JSON the deployed proxy speaks — with a
+    // plain-text fallback so older callers never get a blank message.
+    const rawText = firstText(data).trim();
+    let nudge = '';
+    let message = rawText;
+    try {
+      const parsed = JSON.parse(rawText.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '').trim());
+      if (parsed && typeof parsed.draft_message === 'string') {
+        message = parsed.draft_message.trim();
+        nudge = typeof parsed.nudge === 'string' ? parsed.nudge.trim() : '';
+      }
+    } catch (e) { /* keep the raw text as the message */ }
+
+    res.json({ message, nudge });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to draft message', detail: String(err.message || err) });

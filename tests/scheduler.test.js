@@ -89,6 +89,14 @@ function loadScheduler({ uk, aiEnabled = false, autoMessages, appointments = [],
       advisorName: 'Tom Advisor',
       ...pending
     }),
+    buildMessageContext: async pending => ({
+      customer_name: 'Alice Smith',
+      address: '12 Example Street, M14 7FZ',
+      advisor_name: 'Tom Advisor',
+      time_start: '14:00',
+      stage: 'day_before',
+      ...pending
+    }),
     openPreviewSheet: function (message, pending, hint) { this.lastSheet = { message, pending, hint }; }
   };
   sandbox.AIService = {
