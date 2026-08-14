@@ -1,108 +1,35 @@
 /* ============================================
    ADVISOROS v5.0 — GEOLOCATION & ROUTING
+   Uses GeoProvider abstraction (PublicGeoProvider by default).
    ============================================ */
 
 const Geo = {
   currentPosition: null,
   watchId: null,
 
-  // ---- Rate-limiting & resilience ----
-  _requestCache: new Map(),          // deduplicate in-flight identical requests
-  _lastRequestTime: 0,               // throttle: timestamp of last external request
-  _minRequestInterval: 1200,         // ms: minimum gap between Nominatim/OSRM calls
-  _backoffUntil: 0,                  // ms timestamp: stop all requests until this time
-  _consecutiveErrors: 0,             // for exponential backoff
-  _maxRetries: 2,
-  // ---- Rate-limiting helpers ----
-  // Deduplicate identical in-flight requests; throttle overall frequency;
-  // retry with exponential backoff; warn the user if we're being rate-limited.
-  async _fetchWithRateLimit(url, options = {}) {
-    const cacheKey = url;
-
-    // 1) Deduplication: if an identical request is already in flight, return its promise
-    if (this._requestCache.has(cacheKey)) {
-      return this._requestCache.get(cacheKey);
-    }
-
-    // 2) Throttle: wait until minimum interval has passed since last request
-    const now = Date.now();
-    const wait = this._lastRequestTime + this._minRequestInterval - now;
-    if (wait > 0) {
-      await new Promise(r => setTimeout(r, wait));
-    }
-
-    // 3) Backoff: if we've been rate-limited recently, abort with a user-facing warning
-    if (Date.now() < this._backoffUntil) {
-      const seconds = Math.ceil((this._backoffUntil - Date.now()) / 1000);
-      throw new Error(`Rate limit active — retry in ${seconds}s`);
-    }
-
-    const attempt = async (retry = 0) => {
-      this._lastRequestTime = Date.now();
-      try {
-        const resp = await fetch(url, options);
-        if (resp.status === 429) {
-          throw new Error('429');
-        }
-        if (!resp.ok) {
-          throw new Error(`${resp.status}`);
-        }
-        this._consecutiveErrors = 0;
-        return resp;
-      } catch (err) {
-        // Exponential backoff on network errors or 429
-        const isRateLimit = err.message === '429' || (err.message && err.message.includes('429'));
-        if (isRateLimit) {
-          this._consecutiveErrors++;
-          const backoffMs = Math.min(30000, 2000 * Math.pow(2, this._consecutiveErrors));
-          this._backoffUntil = Date.now() + backoffMs;
-          if (retry === 0) {
-            Toast.show('Mapping service rate limit hit — slowing down', 'warning');
-          }
-        }
-        if (retry < this._maxRetries && (isRateLimit || !err.message || !err.message.includes('Failed to fetch'))) {
-          const delay = 1000 * Math.pow(2, retry);
-          await new Promise(r => setTimeout(r, delay));
-          return attempt(retry + 1);
-        }
-        throw err;
-      }
-    };
-
-    const promise = attempt().finally(() => {
-      this._requestCache.delete(cacheKey);
-    });
-    this._requestCache.set(cacheKey, promise);
-    return promise;
-  },
-
   // ---- Live trip tracking ----
   // activeTrip: { id, startTime, startLocation, destinationAddress, destination:{lat,lng}|null,
   //               appointmentId, distanceKm, path:[{lat,lng}], lastPos:{lat,lng} }
   activeTrip: null,
-  finishingTrip: false,  // true only for the moment a finishTrip() save is in flight
-  ARRIVAL_RADIUS_KM: 0.15,   // auto-finish once within ~150m of the destination
-  MIN_MOVE_KM: 0.02,         // ignore GPS jitter under ~20m when accumulating distance
-  MIN_UNDERWAY_KM: 0.3,      // must have travelled this far before auto-finish can trigger
+  finishingTrip: false,
+  ARRIVAL_RADIUS_KM: 0.15,
+  MIN_MOVE_KM: 0.02,
+  MIN_UNDERWAY_KM: 0.3,
+
+  // Provider accessor
+  _provider() {
+    return GeoProviderRegistry.get();
+  },
 
   // Initialize geolocation tracking
   init() {
     if ('geolocation' in navigator) {
-      // Get initial position. Fire-and-forget by design (init() shouldn't
-      // block app startup on GPS), but that means nothing else is watching
-      // this promise — a denied/unavailable permission (very normal on a
-      // first PWA launch) would otherwise surface as an unhandled promise
-      // rejection on every single app load.
       this.getCurrentPosition().catch(e => {
         console.log('Initial position unavailable:', e && e.message ? e.message : e);
       });
     }
-    // Resume a trip that was in progress if the app was reloaded mid-journey
     this.restoreActiveTrip();
 
-    // GPS tracking pauses while the tab/PWA is backgrounded (e.g. while Google/Apple Maps
-    // has focus for turn-by-turn). The moment you switch back to AdvisorOS — say, to check
-    // your next job after parking — re-check position immediately so arrival isn't missed.
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible' && this.activeTrip) {
         this.checkArrivalOnResume();
@@ -117,11 +44,6 @@ const Geo = {
       const last = this.activeTrip.lastPos;
       const segment = last ? this.calculateDistance(last.lat, last.lng, pos.lat, pos.lng) : 0;
 
-      // Bring lastPos (and the path) up to date with where we actually are BEFORE any
-      // possible finishTrip() below. Otherwise finishTrip()'s road-distance fallback
-      // measures from the stale pre-background point (e.g. still near the trip start)
-      // instead of the real arrival point — which is how a trip driven mostly in Maps,
-      // out of AdvisorOS's sight, could get logged as almost zero miles.
       if (segment >= this.MIN_MOVE_KM) {
         this.activeTrip.distanceKm += segment;
         this.activeTrip.path.push({ lat: pos.lat, lng: pos.lng });
@@ -129,10 +51,6 @@ const Geo = {
       this.activeTrip.lastPos = { lat: pos.lat, lng: pos.lng };
       this.persistActiveTrip();
 
-      // Same MIN_UNDERWAY_KM guard as onTripPositionUpdate: without it, a trip
-      // started right next to its destination (then immediately backgrounded
-      // for turn-by-turn) could auto-finish here on first resume, logging
-      // ~0 miles for a trip that hasn't actually happened yet.
       if (this.activeTrip.destination && this.activeTrip.distanceKm >= this.MIN_UNDERWAY_KM) {
         const distToDest = this.calculateDistance(pos.lat, pos.lng, this.activeTrip.destination.lat, this.activeTrip.destination.lng);
         if (distToDest <= this.ARRIVAL_RADIUS_KM) {
@@ -171,8 +89,6 @@ const Geo = {
   },
 
   // ---- Start / Stop / auto-finish a live trip ----
-  // destinationAddress is optional — if given, the trip auto-finishes and logs itself
-  // once GPS shows you within ARRIVAL_RADIUS_KM of it. Without one, tap Finish to end it.
   async startTrip({ destinationAddress = '', appointmentId = null } = {}) {
     if (this.activeTrip) {
       Toast.show('A trip is already in progress', 'info');
@@ -206,11 +122,6 @@ const Geo = {
     };
     this.persistActiveTrip();
 
-    // Additive-only fields — travelStatus/travelStartedAt aren't in the Dexie
-    // index string (js/core/db.js), so this needs no schema version bump.
-    // Existing code that checks appointment.status ('confirmed'/'completed'/
-    // 'cancelled') is untouched; travelStatus is a separate, orthogonal flag
-    // that only the home screen controller reads.
     if (appointmentId) {
       try {
         await DB.db.appointments.update(appointmentId, {
@@ -238,7 +149,6 @@ const Geo = {
     const last = this.activeTrip.lastPos;
     const segment = this.calculateDistance(last.lat, last.lng, lat, lng);
 
-    // Ignore GPS jitter under MIN_MOVE_KM so a stationary phone doesn't rack up distance
     if (segment >= this.MIN_MOVE_KM) {
       this.activeTrip.distanceKm += segment;
       this.activeTrip.path.push({ lat, lng });
@@ -249,8 +159,6 @@ const Geo = {
       this.activeTrip.lastPos = { lat, lng };
     }
 
-    // Auto-finish once genuinely close to the destination. The MIN_UNDERWAY_KM guard stops
-    // it firing immediately if you happen to start the trip right next to the destination.
     if (this.activeTrip.destination && this.activeTrip.distanceKm >= this.MIN_UNDERWAY_KM) {
       const distToDest = this.calculateDistance(lat, lng, this.activeTrip.destination.lat, this.activeTrip.destination.lng);
       if (distToDest <= this.ARRIVAL_RADIUS_KM) {
@@ -260,10 +168,6 @@ const Geo = {
   },
 
   async finishTrip({ auto = false } = {}) {
-    // Guards against a double-save: auto-finish (from onTripPositionUpdate or a resume
-    // check) and a manual tap of the Finish button can land within the same moment.
-    // Without this, both calls would pass the "is there a trip?" check below before
-    // either had cleared it, and the trip would get logged to the DB twice.
     if (!this.activeTrip || this.finishingTrip) return null;
     this.finishingTrip = true;
     const trip = this.activeTrip;
@@ -273,10 +177,6 @@ const Geo = {
       this.watchId = null;
     }
 
-    // Best-effort distance from whatever GPS points we captured (works well if the app
-    // stayed foregrounded). If the phone was mostly in Maps for turn-by-turn, this path
-    // is likely just a couple of points, so also try a real road-distance lookup between
-    // the start and last-known points — much closer to true mileage than a straight line.
     let distanceKm = Math.max(trip.distanceKm, 0);
     const start = trip.path[0];
     const end = trip.lastPos;
@@ -324,53 +224,17 @@ const Geo = {
     return distanceKm;
   },
 
-  // Real road distance between two points via OSRM's public routing API (no API key needed).
-  // Returns km, or null if the lookup fails (e.g. offline) so callers can fall back gracefully.
+  // Delegate to provider for road distance
   async getDrivingDistanceKm(fromLat, fromLng, toLat, toLng) {
-    try {
-      const url = `https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=false`;
-      const response = await this._fetchWithRateLimit(url);
-      const data = await response.json();
-      if (data?.routes?.[0]?.distance) {
-        return data.routes[0].distance / 1000;
-      }
-      return null;
-    } catch (err) {
-      console.log('Road-distance lookup failed, using GPS path instead:', err);
-      return null;
-    }
+    return this._provider().getDistanceKm(fromLat, fromLng, toLat, toLng);
   },
 
   async getDrivingRouteSummary(fromLat, fromLng, toLat, toLng) {
-    try {
-      const url = `https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=false`;
-      const response = await this._fetchWithRateLimit(url);
-      const data = await response.json();
-      const route = data?.routes?.[0];
-      if (route?.distance) {
-        return {
-          distanceKm: route.distance / 1000,
-          durationMin: route.duration ? Math.round(route.duration / 60) : null,
-          source: 'road'
-        };
-      }
-    } catch (err) {
-      console.log('Route summary lookup failed, using estimate:', err);
-    }
-
-    const straightKm = this.calculateDistance(fromLat, fromLng, toLat, toLng);
-    const distanceKm = straightKm * 1.3;
-    return {
-      distanceKm,
-      durationMin: Math.max(5, Math.round((distanceKm / 35) * 60)),
-      source: 'estimate'
-    };
+    return this._provider().getRouteSummary(fromLat, fromLng, toLat, toLng);
   },
 
   cancelTrip() {
     if (!this.activeTrip) return;
-    // If a finish is already saving in the background (see finishTrip's guard), let it
-    // complete instead of nulling activeTrip out from under it.
     if (this.finishingTrip) {
       Toast.show('Trip is already being saved', 'info');
       return;
@@ -393,7 +257,6 @@ const Geo = {
     try { localStorage.removeItem('advisoros_active_trip'); } catch (e) {}
   },
 
-  // Resume a trip that was mid-journey if the page reloaded (distance already logged survives)
   restoreActiveTrip() {
     try {
       const raw = localStorage.getItem('advisoros_active_trip');
@@ -412,7 +275,7 @@ const Geo = {
     }
   },
 
-  // ---- Persistent "trip in progress" banner (survives screen navigation) ----
+  // ---- Persistent "trip in progress" banner ----
   renderTripBanner() {
     if (!this.activeTrip) return;
     let el = document.getElementById('trip-banner');
@@ -454,80 +317,22 @@ const Geo = {
     document.body.classList.remove('trip-active');
   },
 
-  // Calculate distance between two points (Haversine)
+  // Local Haversine (no network)
   calculateDistance(lat1, lng1, lat2, lng2) {
-    const R = 6371; // Earth's radius in km
-    const dLat = this.toRad(lat2 - lat1);
-    const dLng = this.toRad(lng2 - lng1);
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(this.toRad(lat1)) * Math.cos(this.toRad(lat2)) *
-              Math.sin(dLng / 2) * Math.sin(dLng / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
+    return this._provider().calculateDistance(lat1, lng1, lat2, lng2);
   },
 
-  toRad(deg) {
-    return deg * (Math.PI / 180);
-  },
-
-  // Geocode address to lat/lng
-  // Matches a UK postcode anywhere in a free-text address string.
-  extractPostcode(address) {
-    const m = String(address || '').match(/\b([A-Z]{1,2}\d[A-Z\d]?)\s*(\d[A-Z]{2})\b/i);
-    return m ? `${m[1].toUpperCase()} ${m[2].toUpperCase()}` : null;
-  },
-
+  // Geocode delegates to provider
   async geocode(address) {
-    try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=gb`;
-      const response = await this._fetchWithRateLimit(url);
-      const data = await response.json();
-      if (data && data[0]) {
-        return {
-          lat: parseFloat(data[0].lat),
-          lng: parseFloat(data[0].lon),
-          displayName: data[0].display_name
-        };
-      }
-      // A real, correctly-written address can still come back empty here -
-      // Nominatim runs on OpenStreetMap's community-maintained data, which
-      // has much patchier building-level coverage than a commercial map
-      // provider (the kind a phone's own Maps app uses for turn-by-turn
-      // navigation). UK postcodes, by contrast, are a well-maintained
-      // reference dataset even in areas where individual addresses aren't
-      // fully mapped - so if the full address fails, retry with just the
-      // postcode. That's not as precise as the exact building, but it
-      // places the stop on the right street, which is what a same-day
-      // route actually needs - a lot better than "not found".
-      const postcode = this.extractPostcode(address);
-      if (postcode) {
-        const pcUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(postcode + ', UK')}&limit=1&countrycodes=gb`;
-        const pcResponse = await this._fetchWithRateLimit(pcUrl);
-        const pcData = await pcResponse.json();
-        if (pcData && pcData[0]) {
-          return {
-            lat: parseFloat(pcData[0].lat),
-            lng: parseFloat(pcData[0].lon),
-            displayName: pcData[0].display_name,
-            postcodeOnly: true
-          };
-        }
-      }
-      return null;
-    } catch (err) {
-      console.error('Geocoding failed:', err);
-      return null;
-    }
+    return this._provider().geocode(address);
   },
 
-  // Build route URL for external navigation
+  // Navigation handoff delegates to provider
   buildNavigationUrl(destination, origin = '') {
-    const dest = encodeURIComponent(destination);
-    const from = origin ? `&origin=${encodeURIComponent(origin)}` : '';
-    return `https://www.google.com/maps/dir/?api=1${from}&destination=${dest}`;
+    return this._provider().buildNavigationUrl(destination, origin);
   },
 
-  // Optimize route for multiple stops (TSP approximation)
+  // Optimize route for multiple stops (TSP approximation) - uses local calculateDistance
   async optimizeRoute(appointments, startLocation = null) {
     if (!startLocation && this.currentPosition) {
       startLocation = [this.currentPosition.lat, this.currentPosition.lng];
@@ -537,7 +342,6 @@ const Geo = {
       return appointments;
     }
 
-    // Simple nearest-neighbor TSP
     const unvisited = [...appointments];
     const route = [];
     let current = startLocation;
@@ -575,7 +379,7 @@ const Geo = {
     return route;
   },
 
-  // Calculate total route distance
+  // Calculate total route distance - uses local calculateDistance
   calculateRouteDistance(appointments, startLocation = null) {
     if (!startLocation && this.currentPosition) {
       startLocation = [this.currentPosition.lat, this.currentPosition.lng];
@@ -607,3 +411,6 @@ const Geo = {
     }
   }
 };
+
+if (typeof window !== 'undefined') window.Geo = Geo;
+if (typeof module !== 'undefined') module.exports = { Geo };

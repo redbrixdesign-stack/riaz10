@@ -81,6 +81,8 @@ const RouteFeature = {
     const routeDistance = plan.currentLegKm || 0;
     const routeTime = Math.max(0, Math.round((routeDistance / 35) * 60));
     const routeSaving = TaxCalculator.calculateMileageClaim(routeDistance);
+    // Provider abstraction available for future routing enhancements
+    const geoProvider = GeoProviderRegistry.get();
     // If we have visits but no distance, we're offline (geocoding failed).
     // Show "offline" rather than "--" so the advisor knows it's a signal issue,
     // not a missing-data issue.

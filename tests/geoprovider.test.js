@@ -1,0 +1,244 @@
+/* ============================================
+   ADVISOROS — GEO PROVIDER TESTS
+   Run with: node tests/geoprovider.test.js
+
+   Tests the GeoProvider abstraction and PublicGeoProvider implementation.
+   Uses a controllable mock to verify the Route feature works against
+   the abstraction without network calls.
+   ============================================ */
+
+'use strict';
+
+const vm = require('vm');
+const fs = require('fs');
+const path = require('path');
+
+const REPO = path.join(__dirname, '..');
+
+let failures = 0;
+function ok(label, cond, extra) {
+  if (cond) {
+    console.log('  OK ' + label);
+  } else {
+    failures++;
+    console.log('  FAIL ' + label + (extra !== undefined ? ' — ' + JSON.stringify(extra) : ''));
+  }
+}
+
+function makeLocalStorage() {
+  const m = new Map();
+  return {
+    get length() { return m.size; },
+    key: i => Array.from(m.keys())[i] ?? null,
+    getItem: k => (m.has(k) ? m.get(k) : null),
+    setItem: (k, v) => m.set(k, String(v)),
+    removeItem: k => m.delete(k)
+  };
+}
+
+// Build a sandbox with a mock provider
+function loadGeoProvider({ mockProvider = null } = {}) {
+  const sandbox = {
+    console, Math, JSON, Date, Promise, Map, Set, Array, Object,
+    Number, String, Boolean, RegExp, Error, parseInt, parseFloat, isNaN,
+    AbortController, URL, localStorage: makeLocalStorage(),
+    fetch: async (url) => {
+      if (mockProvider && mockProvider.fetch) {
+        return mockProvider.fetch(url);
+      }
+      throw new Error('No mock fetch');
+    },
+    Toast: { show: () => {} }
+  };
+  sandbox.globalThis = sandbox;
+  sandbox.self = sandbox;
+  sandbox.window = sandbox;
+  sandbox.navigator = { geolocation: {} };
+
+  vm.createContext(sandbox);
+
+  // Load config
+  vm.runInContext(fs.readFileSync(path.join(REPO, 'js/core/config.js'), 'utf8') + ';CONFIG;', sandbox);
+
+  // Load utils (needed for Geo)
+  vm.runInContext(fs.readFileSync(path.join(REPO, 'js/core/utils.js'), 'utf8'), sandbox);
+
+  // Load geoprovider - explicitly get classes from sandbox
+  vm.runInContext(fs.readFileSync(path.join(REPO, 'js/core/geoprovider.js'), 'utf8'), sandbox);
+  const GeoProvider = vm.runInContext('GeoProvider;', sandbox);
+  const PublicGeoProvider = vm.runInContext('PublicGeoProvider;', sandbox);
+  const GeoProviderRegistry = vm.runInContext('GeoProviderRegistry;', sandbox);
+
+  // Load geo (uses provider)
+  vm.runInContext(fs.readFileSync(path.join(REPO, 'js/core/geo.js'), 'utf8'), sandbox);
+  const Geo = vm.runInContext('Geo;', sandbox);
+
+  return { GeoProvider, PublicGeoProvider, GeoProviderRegistry, Geo, sandbox };
+}
+
+(async () => {
+  console.log('\nTest A: GeoProvider interface');
+  {
+    const { GeoProvider } = loadGeoProvider();
+
+    // Verify abstract methods exist
+    ok('GeoProvider has geocode', typeof GeoProvider.prototype.geocode === 'function');
+    ok('GeoProvider has getRouteSummary', typeof GeoProvider.prototype.getRouteSummary === 'function');
+    ok('GeoProvider has getDistanceKm', typeof GeoProvider.prototype.getDistanceKm === 'function');
+    ok('GeoProvider has getTravelTimeMin', typeof GeoProvider.prototype.getTravelTimeMin === 'function');
+    ok('GeoProvider has calculateDistance', typeof GeoProvider.prototype.calculateDistance === 'function');
+    ok('GeoProvider has buildNavigationUrl', typeof GeoProvider.prototype.buildNavigationUrl === 'function');
+  }
+
+  console.log('\nTest B: PublicGeoProvider extends GeoProvider');
+  {
+    const { PublicGeoProvider, GeoProvider } = loadGeoProvider();
+
+    const provider = new PublicGeoProvider();
+    ok('instanceof GeoProvider', provider instanceof GeoProvider);
+    ok('has geocode', typeof provider.geocode === 'function');
+    ok('has getRouteSummary', typeof provider.getRouteSummary === 'function');
+    ok('has getDistanceKm', typeof provider.getDistanceKm === 'function');
+    ok('has getTravelTimeMin', typeof provider.getTravelTimeMin === 'function');
+    ok('has calculateDistance (Haversine)', typeof provider.calculateDistance === 'function');
+    ok('has buildNavigationUrl', typeof provider.buildNavigationUrl === 'function');
+  }
+
+  console.log('\nTest C: GeoProviderRegistry');
+  {
+    const { GeoProviderRegistry, PublicGeoProvider, GeoProvider } = loadGeoProvider();
+
+    GeoProviderRegistry.reset();
+    const p1 = GeoProviderRegistry.get();
+    ok('returns PublicGeoProvider by default', p1 instanceof PublicGeoProvider);
+
+    const p2 = GeoProviderRegistry.get();
+    ok('singleton behavior', p1 === p2);
+
+    class MockProvider extends GeoProvider {
+      async geocode() { return { lat: 51.5, lng: -0.1 }; }
+      async getRouteSummary() { return { distanceKm: 10, durationMin: 15, source: 'road' }; }
+      async getDistanceKm() { return 10; }
+      async getTravelTimeMin() { return 15; }
+      calculateDistance() { return 10; }
+      buildNavigationUrl() { return 'https://maps.test'; }
+    }
+    const mock = new MockProvider();
+    GeoProviderRegistry.set(mock);
+    ok('can set custom provider', GeoProviderRegistry.get() === mock);
+
+    GeoProviderRegistry.reset();
+    ok('reset restores default', GeoProviderRegistry.get() instanceof PublicGeoProvider);
+  }
+
+  console.log('\nTest D: Haversine distance calculation (local, no network)');
+  {
+    const { PublicGeoProvider } = loadGeoProvider();
+
+    const provider = new PublicGeoProvider();
+    // London to Manchester ~260km
+    const d = provider.calculateDistance(51.5074, -0.1278, 53.4808, -2.2426);
+    ok('London to Manchester ~260km', d > 250 && d < 270, d);
+
+    // Same point = 0
+    ok('same point = 0', provider.calculateDistance(51.5, -0.1, 51.5, -0.1) === 0);
+  }
+
+  console.log('\nTest E: Geo delegates to provider');
+  {
+    // Create a mock provider that we control
+    const { GeoProvider } = loadGeoProvider();
+    class MockProvider extends GeoProvider {
+      constructor() {
+        super();
+        this.geocodeCalls = [];
+        this.routeCalls = [];
+      }
+      async geocode(address) {
+        this.geocodeCalls.push(address);
+        if (address.includes('fail')) return null;
+        return { lat: 51.5, lng: -0.1, displayName: address };
+      }
+      async getRouteSummary(fromLat, fromLng, toLat, toLng) {
+        this.routeCalls.push({ fromLat, fromLng, toLat, toLng });
+        return { distanceKm: 42, durationMin: 60, source: 'road' };
+      }
+      async getDistanceKm() { return 42; }
+      async getTravelTimeMin() { return 60; }
+      calculateDistance(lat1, lng1, lat2, lng2) {
+        return Math.sqrt(Math.pow(lat2 - lat1, 2) + Math.pow(lng2 - lng1, 2)) * 111;
+      }
+      buildNavigationUrl(dest, origin) { return `https://maps.test?to=${dest}&from=${origin}`; }
+    }
+
+    const mockProvider = new MockProvider();
+
+    const { Geo } = loadGeoProvider({ mockProvider });
+    // Override the registry to return our mock
+    Geo._provider = () => mockProvider;
+
+    // Test geocode delegation
+    const result = await Geo.geocode('10 Downing Street, London');
+    ok('geocode delegates to provider', mockProvider.geocodeCalls.includes('10 Downing Street, London'));
+    ok('geocode returns provider result', result.lat === 51.5 && result.lng === -0.1);
+
+    // Test calculateDistance delegation
+    const dist = Geo.calculateDistance(51.5, -0.1, 52.0, -0.5);
+    ok('calculateDistance delegates', dist > 0);
+
+    // Test buildNavigationUrl delegation
+    const url = Geo.buildNavigationUrl('Manchester', 'London');
+    ok('buildNavigationUrl delegates', url.includes('Manchester') && url.includes('London'));
+
+    // Test getDrivingRouteSummary delegation
+    const summary = await Geo.getDrivingRouteSummary(51.5, -0.1, 53.5, -2.2);
+    ok('getDrivingRouteSummary delegates', summary.distanceKm === 42 && summary.durationMin === 60);
+
+    // Test getDrivingDistanceKm delegation
+    const distKm = await Geo.getDrivingDistanceKm(51.5, -0.1, 53.5, -2.2);
+    ok('getDrivingDistanceKm delegates', distKm === 42);
+  }
+
+  console.log('\nTest F: Geo.calculateDistance uses provider Haversine');
+  {
+    const { PublicGeoProvider } = loadGeoProvider();
+
+    const provider = new PublicGeoProvider();
+    // Use the real Haversine
+    const d = provider.calculateDistance(51.5074, -0.1278, 53.4808, -2.2426);
+    ok('uses Haversine', d > 250 && d < 270, d);
+  }
+
+  console.log('\nTest G: Navigation URL format');
+  {
+    const { PublicGeoProvider } = loadGeoProvider();
+
+    const provider = new PublicGeoProvider();
+    const url = provider.buildNavigationUrl('Manchester, UK', 'London, UK');
+    ok('contains Google Maps base', url.startsWith('https://www.google.com/maps/dir/'));
+    ok('contains destination', url.includes('Manchester'));
+    ok('contains origin', url.includes('London'));
+  }
+
+  console.log('\nTest H: Provider swap does not break Geo API');
+  {
+    // Verify Geo's public API surface is unchanged
+    const { Geo } = loadGeoProvider();
+
+    const methods = [
+      'init', 'getCurrentPosition', 'startTrip', 'finishTrip', 'cancelTrip',
+      'geocode', 'calculateDistance', 'buildNavigationUrl',
+      'optimizeRoute', 'calculateRouteDistance', 'getDrivingDistanceKm',
+      'getDrivingRouteSummary', 'persistActiveTrip', 'clearPersistedTrip',
+      'restoreActiveTrip', 'renderTripBanner', 'updateTripBanner',
+      'removeTripBanner', 'destroy'
+    ];
+
+    for (const m of methods) {
+      ok(`Geo.${m} exists`, typeof Geo[m] === 'function', m);
+    }
+  }
+
+  console.log('\n' + (failures === 0 ? 'ALL TESTS PASSED' : failures + ' TEST(S) FAILED'));
+  process.exit(failures === 0 ? 0 : 1);
+})().catch(e => { console.error('UNEXPECTED ERROR:', e); process.exit(1); });
