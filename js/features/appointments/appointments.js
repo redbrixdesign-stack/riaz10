@@ -1597,7 +1597,7 @@ const AppointmentsFeature = {
                 <span class="material-symbols-rounded">straighten</span>
                 <span>
                   <strong>${Utils.escapeHtml(m.windowName || 'Window')}</strong>
-                  <small>${Utils.formatMeasurement(m.widthUsed || 0)} × ${Utils.formatMeasurement(m.dropUsed || 0)} · ${m.fittingType === 'exact' ? 'Exact' : 'Recess'}</small>
+                  <small>${m.widthUsed ? Utils.formatMeasurement(m.widthUsed) : '--'} × ${m.dropUsed ? Utils.formatMeasurement(m.dropUsed) : '--'} · ${m.fittingType === 'exact' ? 'Exact' : 'Recess'}</small>
                 </span>
                 <span class="material-symbols-rounded">chevron_right</span>
               </button>

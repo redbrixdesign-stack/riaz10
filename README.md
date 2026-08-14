@@ -48,12 +48,25 @@ serverless function, which you deploy once:
    as an environment variable, redeploy. The proxy URL is
    `https://your-site.vercel.app/api/claude`.
 
-Optional hardening:
+Hardening — on Vercel (`NODE_ENV=production`) the proxy **fails closed** with a
+500 config error until configured:
 
-| Variable          | Effect                                                        |
-| ----------------- | ------------------------------------------------------------- |
-| `AI_SECRET`       | If set, requests must send it in the `X-AI-Key` header        |
-| `ALLOWED_ORIGIN`  | If set, only requests with this exact `Origin` are accepted   |
+| Variable                 | Effect                                                       |
+| ------------------------ | ------------------------------------------------------------ |
+| `ALLOWED_ORIGIN`         | **Required in production.** Only requests with this exact `Origin` are accepted |
+| `AI_SECRET`              | **Required in production.** Requests must send it in the `X-AI-Key` header |
+| `RATE_LIMIT_MAX`         | Optional; requests per window per client address (default 120) |
+| `RATE_LIMIT_WINDOW_MS`   | Optional; sliding-window length in ms (default 60000)        |
+
+In development (NODE_ENV unset) `ALLOWED_ORIGIN`/`AI_SECRET` are optional — the
+proxy logs a one-time warning and stays usable for local testing.
+
+Note: the app stores `AI_SECRET` in its own settings, so anyone visiting the
+PWA can read it — treat it as a shared gate against random quota-burning, not
+as true authentication. Real protection comes from `ALLOWED_ORIGIN`, the 2 MB
+image cap, the media-type/model allowlists, the fixed upstream endpoint, and
+the per-address rate limits, all enforced by the proxy. Provider error details
+are never logged or returned to the client.
 
 Then paste the proxy URL into Settings → Claude AI and enable it. The "Test
 connection" button verifies the whole path, and the card shows tokens/cost of

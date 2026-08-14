@@ -85,6 +85,10 @@ const MessageScheduler = {
       return;
     }
     for (const appt of upcoming) {
+      // A visit with an outcome already logged has already happened — no
+      // check-in draft for a completed visit (e.g. outcome logged at 09:00,
+      // app reopened at 10:00, would otherwise fire a stale morning_of).
+      if (appt.outcome) continue;
       const days = this._daysFromNowUK(appt.date);
       if (days === 1) {
         // Visit tomorrow: evening-before draft fires today, morning-of draft tomorrow.

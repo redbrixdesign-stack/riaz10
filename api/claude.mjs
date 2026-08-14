@@ -6,16 +6,44 @@
    browser (no CORS), so this thin function is the only bridge.
 
    Environment variables:
-     ANTHROPIC_API_KEY  required
-     AI_SECRET          optional; if set, the app must send it in
-                        the X-AI-Key header (keeps strangers from
-                        burning your quota via the public URL).
-                        Strongly recommended in production.
-      ALLOWED_ORIGIN     optional; if set, blocks requests whose
-                        Origin header isn't this exact value.
-                        When unset the proxy stays open ("*") and
-                        logs a one-time warning — set it (plus
-                        AI_SECRET) before sharing the URL.
+     ANTHROPIC_API_KEY  required — the Anthropic API key. Never exposed
+                        to the browser; only this function holds it.
+     ALLOWED_ORIGIN     REQUIRED in production (NODE_ENV=production, as
+                        Vercel sets): the proxy fails closed with a 500
+                        config error until it's set. When set, only
+                        requests with this exact Origin header are
+                        accepted. Optional in dev; when unset the proxy
+                        is open ("*") and logs a one-time warning.
+     AI_SECRET          REQUIRED in production; optional in dev. When
+                        set, requests must send it in the X-AI-Key
+                        header. NOTE: the secret lives inside the PWA
+                        bundle, so anyone visiting the page can read
+                        it — it is a shared gate that stops random
+                        scripts burning quota, NOT true authentication.
+                        Real protection = ALLOWED_ORIGIN + rate limits.
+     RATE_LIMIT_MAX     optional; max requests per window per client
+                        address. Default 120.
+     RATE_LIMIT_WINDOW_MS  optional; sliding-window length in ms.
+                        Default 60000.
+     NODE_ENV           Vercel sets 'production'. Dev mode (unset) keeps
+                        ALLOWED_ORIGIN/AI_SECRET optional for easy
+                        local testing; everything else below is enforced
+                        in BOTH modes.
+
+   Hardening (enforced regardless of mode):
+     - request body capped at 4 MB; every client-supplied text field
+       capped at 100 KB
+     - images capped at 2 MB decoded, plus a media-type allowlist
+     - model allowlist: unknown models fall back to the type default,
+       never pass through
+     - upstream calls only ever go to the fixed allowlisted endpoint
+     - in-memory sliding-window rate limiting per client address
+       (per-function-instance state: multi-instance or high-traffic
+       deployments need a shared store, e.g. Redis)
+
+   Logging policy: this function never logs request bodies, customer
+   data, prompts or API keys, and provider error details never leave
+   it — clients only ever receive generic error messages.
    ============================================================ */
 
 const ALLOWED_MODELS = [
@@ -26,6 +54,33 @@ const ALLOWED_MODELS = [
 ];
 
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+const MAX_BODY_BYTES = 4 * 1024 * 1024; // whole JSON payload (2 MB image base64 + slack)
+const MAX_TEXT_CHARS = 100 * 1024; // any single client-supplied text field
+const ALLOWED_MEDIA_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+// The ONLY upstream endpoint this function may ever call — client input can
+// never influence it.
+const ANTHROPIC_ENDPOINT = 'https://api.anthropic.com/v1/messages';
+
+// In-memory sliding-window rate limit keyed by client address. State is per
+// function instance: fine for a single serverless instance; add a shared
+// store (Redis) before running multiple instances under load.
+const RATE_LIMIT_MAX_DEFAULT = 120;
+const RATE_LIMIT_WINDOW_MS_DEFAULT = 60_000;
+const rateBuckets = new Map();
+
+// Generic client-facing messages for upstream failures: the provider's own
+// error text can contain internal details, so it never crosses the wire.
+const UPSTREAM_MESSAGES = {
+  auth: 'AI provider rejected the request — check the proxy ANTHROPIC_API_KEY',
+  rate_limited: 'AI provider is rate-limiting requests — try again shortly',
+  overloaded: 'AI provider is overloaded — try again shortly',
+  upstream: 'AI provider returned an error — try again shortly',
+  proxy: 'AI request failed — try again shortly'
+};
+function upstreamMessage(code) {
+  return UPSTREAM_MESSAGES[code] || UPSTREAM_MESSAGES.proxy;
+}
 
 // The OCR prompt is generated per request so the model knows today's real
 // date. Without that anchor, a document that doesn't print a year gets one
@@ -247,8 +302,49 @@ function warnAboutDefaults() {
   console.error('[claude.mjs] ALLOWED_ORIGIN is not set — CORS defaults to "*". Set ALLOWED_ORIGIN to your site\'s origin (and AI_SECRET for a shared-secret guard) so strangers can\'t use this public URL.');
 }
 
+function rateLimitKey(headers) {
+  const fwd = headers?.['x-forwarded-for'];
+  if (typeof fwd === 'string' && fwd.trim()) return fwd.split(',')[0].trim();
+  const rip = headers?.['x-real-ip'];
+  if (typeof rip === 'string' && rip.trim()) return rip.trim();
+  return 'unknown';
+}
+
+function rateLimit(headers) {
+  const max = parseInt(process.env.RATE_LIMIT_MAX || String(RATE_LIMIT_MAX_DEFAULT), 10) || RATE_LIMIT_MAX_DEFAULT;
+  const windowMs = parseInt(process.env.RATE_LIMIT_WINDOW_MS || String(RATE_LIMIT_WINDOW_MS_DEFAULT), 10) || RATE_LIMIT_WINDOW_MS_DEFAULT;
+  const windowSec = Math.max(1, Math.floor(windowMs / 1000));
+  const key = rateLimitKey(headers);
+  const now = Math.floor(Date.now() / 1000);
+  let bucket = rateBuckets.get(key) || [];
+  const cutoff = now - windowSec;
+  while (bucket.length && bucket[0] <= cutoff) bucket.shift();
+  const limited = bucket.length >= max;
+  if (!limited) {
+    bucket.push(now);
+    rateBuckets.set(key, bucket);
+    // Opportunistic sweep so the map can't grow without bound.
+    if (rateBuckets.size > 10000) {
+      for (const [k, v] of rateBuckets) {
+        if (!v.length || v[v.length - 1] <= cutoff) rateBuckets.delete(k);
+      }
+    }
+  }
+  return { limited, retryAfter: Math.ceil(windowMs / 1000) };
+}
+
+// Production (NODE_ENV=production, as Vercel sets) fails closed until the
+// deployment is configured: ALLOWED_ORIGIN and AI_SECRET must both be set.
+// Dev mode stays lenient (warnings only) so local testing stays easy.
+function productionConfigError() {
+  if (process.env.NODE_ENV !== 'production') return null;
+  if (!process.env.ALLOWED_ORIGIN) return { error: 'config', message: 'Proxy misconfigured: set ALLOWED_ORIGIN in production' };
+  if (!process.env.AI_SECRET) return { error: 'config', message: 'Proxy misconfigured: set AI_SECRET in production' };
+  return null;
+}
+
 async function callAnthropic(model, system, userContent) {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetch(ANTHROPIC_ENDPOINT, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
@@ -264,14 +360,14 @@ async function callAnthropic(model, system, userContent) {
   });
 
   if (!res.ok) {
-    let detail = 'unknown';
-    try { detail = (await res.json()).error?.message || res.statusText; } catch (e) { /* keep statusText */ }
+    // Only the status code is mapped — the provider's error text may hold
+    // internal details and is never forwarded or logged.
     let code = 'proxy';
     if (res.status === 401 || res.status === 403) code = 'auth';
     else if (res.status === 429) code = 'rate_limited';
     else if (res.status === 529) code = 'overloaded';
     else if (res.status >= 500) code = 'upstream';
-    throw Object.assign(new Error(`${code}: ${detail}`), { code });
+    throw Object.assign(new Error(code), { code });
   }
 
   const data = await res.json();
@@ -285,6 +381,13 @@ export async function handle(request) {
   const origin = typeof request.headers?.origin === 'string' ? request.headers.origin : null;
   const allowed = allowOrigin();
 
+  // Fail closed on misconfigured production deployments before anything else.
+  const configError = productionConfigError();
+  if (configError) {
+    console.error(`[claude.mjs] ${configError.message}`);
+    return json(500, { ok: false, error: configError.error, message: configError.message }, corsHeaders(origin));
+  }
+
   if (!process.env.ALLOWED_ORIGIN || !process.env.AI_SECRET) {
     warnAboutDefaults();
   }
@@ -295,6 +398,14 @@ export async function handle(request) {
 
   if (request.method !== 'POST') {
     return json(405, { ok: false, error: 'method', message: 'POST only' }, corsHeaders(origin));
+  }
+
+  // Rate limit before the auth/origin checks so abusive clients burn slots,
+  // never upstream quota.
+  const rl = rateLimit(request.headers);
+  if (rl.limited) {
+    return json(429, { ok: false, error: 'rate_limited', message: 'Too many requests — try again shortly' },
+      { ...corsHeaders(origin), 'retry-after': String(rl.retryAfter) });
   }
 
   // Optional shared secret guard.
@@ -308,7 +419,24 @@ export async function handle(request) {
     return json(403, { ok: false, error: 'origin', message: 'Origin not allowed' }, corsHeaders(origin));
   }
 
-  const body = request.body || {};
+  // Body size guard: reject oversized payloads before any processing. The
+  // Vercel runtime parses JSON bodies; raw-string bodies are also handled.
+  let body = request.body ?? {};
+  let bodySize;
+  if (typeof body === 'string') {
+    bodySize = Buffer.byteLength(body, 'utf8');
+    try {
+      body = JSON.parse(body);
+    } catch (e) {
+      return json(400, { ok: false, error: 'bad_request', message: 'Request body must be valid JSON' }, corsHeaders(origin));
+    }
+  } else {
+    bodySize = Buffer.byteLength(JSON.stringify(body), 'utf8');
+  }
+  if (bodySize > MAX_BODY_BYTES) {
+    return json(413, { ok: false, error: 'too_large', message: 'Request body too large' }, corsHeaders(origin));
+  }
+
   const type = body.type;
 
   if (type === 'ping') {
@@ -316,12 +444,21 @@ export async function handle(request) {
       const { text, usage } = await callAnthropic('claude-haiku-4-5', SYSTEM_PROMPTS.ping, [{ type: 'text', text: 'ping' }]);
       return json(200, { ok: true, text, usage: enrichUsage(usage, 'claude-haiku-4-5'), model: 'claude-haiku-4-5', type }, corsHeaders(origin));
     } catch (err) {
-      return json(502, { ok: false, error: err.code || 'proxy', message: err.message }, corsHeaders(origin));
+      return json(502, { ok: false, error: err.code || 'proxy', message: upstreamMessage(err.code || 'proxy') }, corsHeaders(origin));
     }
   }
 
   if (type !== 'ocr' && type !== 'draft' && type !== 'receipt' && type !== 'assistant' && type !== 'route') {
     return json(400, { ok: false, error: 'bad_request', message: 'type must be ocr, receipt, draft, assistant, route or ping' }, corsHeaders(origin));
+  }
+
+  // Text-field size guard: a bloated context/snapshot would otherwise burn
+  // upstream tokens, so any single client-supplied field over the cap is
+  // rejected outright.
+  for (const field of ['draftContext', 'snapshot', 'turnText', 'history', 'text']) {
+    if (typeof body[field] === 'string' && body[field].length > MAX_TEXT_CHARS) {
+      return json(413, { ok: false, error: 'too_large', message: 'Text field too large' }, corsHeaders(origin));
+    }
   }
 
   const model = ALLOWED_MODELS.includes(body.model) ? body.model : DEFAULT_MODELS[type];
@@ -330,6 +467,10 @@ export async function handle(request) {
   if (type === 'ocr' || type === 'receipt') {
     if (typeof body.image !== 'string' || typeof body.mediaType !== 'string') {
       return json(400, { ok: false, error: 'bad_request', message: `${type} requires image (base64) and mediaType` }, corsHeaders(origin));
+    }
+    // Only image types Anthropic accepts for vision go upstream.
+    if (!ALLOWED_MEDIA_TYPES.includes(body.mediaType)) {
+      return json(400, { ok: false, error: 'bad_request', message: `Unsupported image type (${body.mediaType})` }, corsHeaders(origin));
     }
     // Exact decoded byte count — the old length*3/4 approximation could be
     // dodged by malformed base64 (whitespace, padding tricks).
@@ -378,7 +519,7 @@ export async function handle(request) {
     const { text, usage } = await callAnthropic(model, system, userContent);
     return json(200, { ok: true, text, usage: enrichUsage(usage, model), model, type }, corsHeaders(origin));
   } catch (err) {
-    return json(502, { ok: false, error: err.code || 'proxy', message: err.message }, corsHeaders(origin));
+    return json(502, { ok: false, error: err.code || 'proxy', message: upstreamMessage(err.code || 'proxy') }, corsHeaders(origin));
   }
 }
 

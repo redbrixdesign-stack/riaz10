@@ -131,8 +131,18 @@ const MeasureFeature = {
     return 'mm';
   },
 
+  /* Parsing a measurement field keeps every state distinct:
+       missing/empty/unparseable  -> null  (stored as null — never 0)
+       explicit zero or negative  -> parsed number, so save() can reject it
+       valid positive             -> number (mm after unit conversion)
+     A window is never 0 mm wide, so an incomplete entry must never
+     silently become a valid zero in storage. */
   displayToMm(value) {
-    const num = parseFloat(value) || 0;
+    if (value === null || value === undefined) return null;
+    const s = String(value).trim();
+    if (s === '') return null;
+    const num = parseFloat(s);
+    if (Number.isNaN(num)) return null;
     if (CONFIG.measurementUnit === 'inches') return num * 25.4;
     if (CONFIG.measurementUnit === 'cm') return num * 10;
     return num;
@@ -148,6 +158,50 @@ const MeasureFeature = {
     return this.displayToMm(document.getElementById(id)?.value);
   },
 
+  /* Least/used for a group of three measurements (mm or null). A group is
+     only complete when all three are present AND positive — an explicit 0
+     or a negative can never be a real window size, so it counts as absent
+     here and the derived values stay null instead of becoming 0 or, worse,
+     a negative widthUsed (least - tolerance). */
+  computeGroupLeast(a, b, c, tolerance, applyTolerance) {
+    if (!(a > 0) || !(b > 0) || !(c > 0)) return { least: null, used: null };
+    const least = Math.min(a, b, c);
+    return { least, used: applyTolerance ? least - tolerance : least };
+  },
+
+  /* Squareness check. Both diagonals are required: with one missing the
+     check simply hasn't happened, so variance and isSquare stay null —
+     a missing diagonal must never be recorded as "not square" (or worse,
+     "square" because 0 variance passes the 5 mm rule). */
+  computeDiagCheck(diag1, diag2) {
+    if (!(diag1 > 0) || !(diag2 > 0)) return { variance: null, isSquare: null };
+    const variance = Math.abs(diag1 - diag2);
+    return { variance, isSquare: variance <= 5 };
+  },
+
+  /* Save-time validation: values here are parsed mm numbers or null
+     (missing — allowed, stays missing). An explicitly-entered zero or
+     negative is not a measurement; it is rejected with the field's label
+     instead of being silently stored as a valid figure. */
+  firstInvalidMeasurement(values) {
+    const labels = {
+      widthTop: 'Width (top)',
+      widthMiddle: 'Width (middle)',
+      widthBottom: 'Width (bottom)',
+      dropLeft: 'Drop (left)',
+      dropCentre: 'Drop (centre)',
+      dropRight: 'Drop (right)',
+      diagonalTlBr: 'Diagonal (TL → BR)',
+      diagonalTrBl: 'Diagonal (TR → BL)',
+      tolerance: 'Tolerance'
+    };
+    for (const [key, label] of Object.entries(labels)) {
+      const mm = values[key];
+      if (mm != null && !(mm > 0)) return label;
+    }
+    return null;
+  },
+
   formatMeasurement(mm) {
     return mm > 0 ? Utils.formatMeasurement(Math.round(mm * 10) / 10) : '--';
   },
@@ -156,29 +210,41 @@ const MeasureFeature = {
     const wTop = this.readMeasurement('meas-w-top');
     const wMid = this.readMeasurement('meas-w-mid');
     const wBot = this.readMeasurement('meas-w-bot');
-    const wLeast = Math.min(wTop, wMid, wBot);
     const tolerance = this.readMeasurement('meas-tolerance') || 10;
-    const wUse = this.fittingType === 'recess' ? wLeast - tolerance : wLeast;
-    document.getElementById('calc-w-least').textContent = this.formatMeasurement(wLeast);
-    document.getElementById('calc-w-use').textContent = this.formatMeasurement(wUse);
+    const wGroup = this.computeGroupLeast(wTop, wMid, wBot, tolerance, this.fittingType === 'recess');
+    document.getElementById('calc-w-least').textContent = this.formatMeasurement(wGroup.least);
+    document.getElementById('calc-w-use').textContent = this.formatMeasurement(wGroup.used);
 
     const dLeft = this.readMeasurement('meas-d-left');
     const dCentre = this.readMeasurement('meas-d-centre');
     const dRight = this.readMeasurement('meas-d-right');
-    const dLeast = Math.min(dLeft, dCentre, dRight);
-    const dUse = dLeast;
-    document.getElementById('calc-d-least').textContent = this.formatMeasurement(dLeast);
-    document.getElementById('calc-d-use').textContent = this.formatMeasurement(dUse);
+    // Drop is vertical — tolerance is never subtracted from it.
+    const dGroup = this.computeGroupLeast(dLeft, dCentre, dRight, tolerance, false);
+    document.getElementById('calc-d-least').textContent = this.formatMeasurement(dGroup.least);
+    document.getElementById('calc-d-use').textContent = this.formatMeasurement(dGroup.used);
 
     const diag1 = this.readMeasurement('meas-diag-1');
     const diag2 = this.readMeasurement('meas-diag-2');
-    if (diag1 > 0 && diag2 > 0) {
-      const variance = Math.abs(diag1 - diag2);
-      const isSquare = variance <= 5;
-      const statusEl = document.getElementById('diag-status');
-      const iconEl = document.getElementById('diag-status-icon');
-      if (isSquare) { statusEl.textContent = `Square (variance: ${Utils.formatMeasurement(variance)})`; statusEl.style.color = 'var(--secondary)'; iconEl.textContent = 'check_circle'; iconEl.style.color = 'var(--secondary)'; }
-      else { statusEl.textContent = `Not square (variance: ${Utils.formatMeasurement(variance)})`; statusEl.style.color = 'var(--warning)'; iconEl.textContent = 'warning'; iconEl.style.color = 'var(--warning)'; }
+    const { variance, isSquare } = this.computeDiagCheck(diag1, diag2);
+    const statusEl = document.getElementById('diag-status');
+    const iconEl = document.getElementById('diag-status-icon');
+    if (variance === null) {
+      // Incomplete check: reset the verdict so a stale "Square" from a
+      // previously-entered pair can't survive a cleared diagonal.
+      statusEl.textContent = 'Enter diagonals to check squareness';
+      statusEl.style.color = '';
+      iconEl.textContent = 'help';
+      iconEl.style.color = '';
+    } else if (isSquare) {
+      statusEl.textContent = `Square (variance: ${Utils.formatMeasurement(variance)})`;
+      statusEl.style.color = 'var(--secondary)';
+      iconEl.textContent = 'check_circle';
+      iconEl.style.color = 'var(--secondary)';
+    } else {
+      statusEl.textContent = `Not square (variance: ${Utils.formatMeasurement(variance)})`;
+      statusEl.style.color = 'var(--warning)';
+      iconEl.textContent = 'warning';
+      iconEl.style.color = 'var(--warning)';
     }
   },
 
@@ -194,9 +260,7 @@ const MeasureFeature = {
     const name = document.getElementById('meas-name').value.trim();
     if (!name) { Toast.show('Please enter a window name', 'error'); return; }
 
-    const data = {
-      appointmentId, windowName: name, fittingType: this.fittingType,
-      inputUnit: CONFIG.measurementUnit || 'mm',
+    const values = {
       widthTop: this.readMeasurement('meas-w-top'),
       widthMiddle: this.readMeasurement('meas-w-mid'),
       widthBottom: this.readMeasurement('meas-w-bot'),
@@ -205,23 +269,47 @@ const MeasureFeature = {
       dropRight: this.readMeasurement('meas-d-right'),
       diagonalTlBr: this.readMeasurement('meas-diag-1'),
       diagonalTrBl: this.readMeasurement('meas-diag-2'),
-      tolerance: this.readMeasurement('meas-tolerance') || 10,
+      tolerance: this.readMeasurement('meas-tolerance')
+    };
+
+    // Explicit 0 / negative entries are rejected — they are not measurements
+    // and must not become zeros in storage. Missing (null) stays missing.
+    const invalid = this.firstInvalidMeasurement(values);
+    if (invalid) {
+      Toast.show(`${invalid} must be a positive number — 0 is not a valid measurement`, 'error');
+      return;
+    }
+
+    const tolerance = values.tolerance || 10;
+    const wGroup = this.computeGroupLeast(values.widthTop, values.widthMiddle, values.widthBottom, tolerance, this.fittingType === 'recess');
+    const dGroup = this.computeGroupLeast(values.dropLeft, values.dropCentre, values.dropRight, tolerance, false);
+    const diag = this.computeDiagCheck(values.diagonalTlBr, values.diagonalTrBl);
+
+    const data = {
+      appointmentId, windowName: name, fittingType: this.fittingType,
+      inputUnit: CONFIG.measurementUnit || 'mm',
+      widthTop: values.widthTop,
+      widthMiddle: values.widthMiddle,
+      widthBottom: values.widthBottom,
+      dropLeft: values.dropLeft,
+      dropCentre: values.dropCentre,
+      dropRight: values.dropRight,
+      diagonalTlBr: values.diagonalTlBr,
+      diagonalTrBl: values.diagonalTrBl,
+      tolerance,
       notes: document.getElementById('meas-notes')?.value || '',
       photos: this.photoData ? [this.photoData] : []
     };
 
     if (measurementId) {
-      const widthLeast = Math.min(data.widthTop, data.widthMiddle, data.widthBottom);
-      const dropLeast = Math.min(data.dropLeft, data.dropCentre, data.dropRight);
-      const diagVariance = Math.abs(data.diagonalTlBr - data.diagonalTrBl);
       await DB.db.measurements.update(measurementId, {
         ...data,
-        widthLeast,
-        dropLeast,
-        widthUsed: data.fittingType === 'recess' ? widthLeast - data.tolerance : widthLeast,
-        dropUsed: dropLeast,
-        diagonalVariance: diagVariance,
-        isSquare: diagVariance <= 5
+        widthLeast: wGroup.least,
+        dropLeast: dGroup.least,
+        widthUsed: wGroup.used,
+        dropUsed: dGroup.used,
+        diagonalVariance: diag.variance,
+        isSquare: diag.isSquare
       });
       Toast.show('Measurement updated', 'success');
     } else {

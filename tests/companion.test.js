@@ -258,8 +258,23 @@ assert(norm('') === 'default', 'empty routes to default');
   const byNum = await Companion.answerOrders('ORD-2026-0001');
   assert(byNum.facts.some(f => f.label === 'Balance due' && f.value === '£300.00'), 'Order-number lookup shows balance due', byNum.facts);
 
-  // Money periods: June earnings from real-range appointments.
-  RANGE_APPTS.appts = [{ id: 99, customerId: 1, clientName: 'Sarah Jones', type: 'consultation', date: aug24.toISOString(), status: 'completed', outcome: 'ordered', value: 500, commission: 250 }];
+  // Money periods: earnings from real-range appointments, whole-day bounds.
+  RANGE_APPTS.appts = [{ id: 99, customerId: 1, clientName: 'Sarah Jones', type: 'consultation', date: iso(5).slice(0, 10) + 'T09:00:00.000Z', status: 'completed', outcome: 'ordered', value: 500, commission: 250 }];
+  global.DB.getWeekStats = async (start, end) => {
+    // Faithful to DB.getWeekStats: ordered, non-cancelled, within [start, end].
+    const s = new Date(start).getTime();
+    const e = new Date(end).getTime();
+    const appts = RANGE_APPTS.appts.filter(a => {
+      if (a.status === 'cancelled' || a.outcome !== 'ordered') return false;
+      const t = new Date(a.date).getTime();
+      return t >= s && t <= e;
+    });
+    return {
+      sales: appts.reduce((sum, a) => sum + (a.value || 0), 0),
+      earnings: appts.reduce((sum, a) => sum + (typeof a.commission === 'number' && a.commission > 0 ? a.commission : 0), 0),
+      orderedCount: appts.length
+    };
+  };
   const juneMoney = await Companion.answerMoneyPeriod({ label: 'June 2026', start: iso(5), end: iso(40) });
   assert(juneMoney.facts.some(f => f.label === 'Earned' && f.value === '£250.00'), 'Money period carries earned commission', juneMoney.facts);
   assert(juneMoney.facts.some(f => f.label === 'Sales value' && f.value === '£500.00'), 'Money period carries sales value', juneMoney.facts);

@@ -57,9 +57,18 @@ const FollowupsFeature = {
       } catch (e) {}
     }
 
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const dayKey = d => new Date(d).toDateString();
+    // UK calendar-day matching (same convention as MessageScheduler): the
+    // day a visit happens for the advisor is its UK wall-clock day, not the
+    // device-local one — a UTC+X device would otherwise classify "today" /
+    // "tomorrow" differently from the scheduler's evening-before drafts.
+    const ukDayKey = d => {
+      const p = Utils.ukParts(d ? new Date(d) : undefined);
+      return p.year * 10000 + p.month * 100 + p.day;
+    };
+    const todayKey = ukDayKey();
+    const ukNow = Utils.ukParts();
+    const tomorrowUK = new Date(ukNow.year, ukNow.month - 1, ukNow.day + 1);
+    const tomorrowKey = ukDayKey(tomorrowUK);
 
     const tasks = [];
 

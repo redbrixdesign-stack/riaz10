@@ -88,12 +88,28 @@ const ExportService = {
   },
 
   // Full JSON backup
+  // Backup envelope (backupFormatVersion 1):
+  //   {
+  //     backupFormatVersion: 1,     // the backup FILE format — bump on layout change
+  //     databaseSchemaVersion: 2,   // the app's DB schema at export time
+  //     appVersion: '5.0',
+  //     version: '5.0',             // legacy field, kept for older app builds
+  //     exportedAt: <ISO>,
+  //     config: <sanitized CONFIG>, // no secrets (proxy key) travel in the file
+  //     data: { ...DB.exportAll() } // all 10 tables, incl. photos & settings
+  //   }
+  // The format version is deliberately separate from the DB schema version:
+  // a future schema bump doesn't have to change the file layout, and a
+  // layout change doesn't imply a schema change.
   async exportBackup() {
     const data = await DB.exportAll();
     const backup = {
+      backupFormatVersion: 1,
+      databaseSchemaVersion: DB.schemaVersion ? DB.schemaVersion() : 2,
+      appVersion: '5.0',
       version: '5.0',
       exportedAt: new Date().toISOString(),
-      config: CONFIG,
+      config: this._sanitizeConfig(CONFIG),
       data
     };
 
@@ -107,13 +123,40 @@ const ExportService = {
     return backup;
   },
 
+  // The backup file must never carry secrets: the AI proxy key is
+  // device-local credential material and stays out of the exported config.
+  // (JSON.stringify drops undefined, so the copy keeps the key shape but not
+  // the value.)
+  _sanitizeConfig(config) {
+    const clean = { ...config };
+    if (clean.ai && typeof clean.ai === 'object') {
+      clean.ai = { ...clean.ai, secret: undefined };
+    }
+    return clean;
+  },
+
   // Import from JSON backup
   async importBackup(file) {
     const text = await file.text();
     const backup = JSON.parse(text);
 
-    if (!['4.0', '5.0'].includes(backup.version)) {
+    // Backup format compatibility. Format 1 covers both the explicit
+    // backupFormatVersion field (new exports) and the legacy '4.0'/'5.0'
+    // version field (old exports, whose data simply lacks photos/settings/
+    // sequences — importAll treats missing tables as empty).
+    const BACKUP_FORMAT_VERSION = 1;
+    const legacyOk = ['4.0', '5.0'].includes(backup.version);
+    const formatVersion = typeof backup.backupFormatVersion === 'number'
+      ? backup.backupFormatVersion
+      : (legacyOk ? BACKUP_FORMAT_VERSION : null);
+    if (formatVersion === null) {
       throw new Error('Incompatible backup version');
+    }
+    if (formatVersion > BACKUP_FORMAT_VERSION) {
+      throw new Error('This backup was created by a newer version of the app — please update first');
+    }
+    if (!backup.data || typeof backup.data !== 'object') {
+      throw new Error('Backup file is corrupt: no data found');
     }
 
     await DB.importAll(backup.data);
@@ -129,7 +172,14 @@ const ExportService = {
         if (!(key in CONFIG)) continue;
         if (value === null || value === undefined) continue;
         if (typeof value !== typeof CONFIG[key]) continue;
-        CONFIG[key] = value;
+        if (key === 'ai' && value && typeof value === 'object') {
+          // The proxy secret is device-local credential material: a backup
+          // never carries it (see _sanitizeConfig) and must never overwrite
+          // the one already configured on this device.
+          CONFIG[key] = { ...value, secret: CONFIG[key].secret || '' };
+        } else {
+          CONFIG[key] = value;
+        }
       }
       if (App.migrateConfig) App.migrateConfig();
       const savedConfig = {

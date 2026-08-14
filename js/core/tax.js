@@ -114,7 +114,7 @@ const TaxCalculator = {
     const appointments = await DB.db.appointments
       .where('date')
       .between(startDate, endDate)
-      .and(a => a.outcome === 'ordered')
+      .and(a => a.status !== 'cancelled' && a.outcome === 'ordered')
       .toArray();
 
     const totalIncome = appointments.reduce((sum, a) => {
@@ -151,24 +151,24 @@ const TaxCalculator = {
   // Fully driven by CONFIG.commission, which is editable in Settings.
   estimateCommission(orderValue) {
     const saleValue = Number(orderValue || 0);
-    if (!saleValue) return 0;
+    if (!(saleValue > 0)) return 0;
     const commission = CONFIG.commission || {};
 
     // 'two_stage': deduct a % from the sale to get a net figure, then take a % of that net figure.
     // e.g. sale reduced by 20%, then 15.25% commission on the remaining net.
     if (commission.mode === 'two_stage') {
-      const netValue = saleValue * (1 - (commission.saleReductionRate || 0) / 100);
-      return netValue * ((commission.netCommissionRate || 0) / 100);
+      const netValue = saleValue * Math.max(0, 1 - (commission.saleReductionRate || 0) / 100);
+      return netValue * Math.max(0, (commission.netCommissionRate || 0) / 100);
     }
 
     // 'simple': flat % of the sale value.
     if (commission.mode === 'simple') {
-      return saleValue * ((commission.simpleRate || 0) / 100);
+      return saleValue * Math.max(0, (commission.simpleRate || 0) / 100);
     }
 
     // Legacy config shape support (pre-v5.1): { type: 'percentage', rate: 10 }
     if (commission.type === 'percentage') {
-      return saleValue * ((commission.rate || 0) / 100);
+      return saleValue * Math.max(0, (commission.rate || 0) / 100);
     }
 
     return saleValue;
@@ -199,7 +199,7 @@ const TaxCalculator = {
   getRequiredWeeklySales(earningsTarget) {
     const rate = this.getEffectiveCommissionRate();
     const target = Number(earningsTarget || 0);
-    if (rate <= 0) return 0;
+    if (rate <= 0 || !(target > 0)) return 0;
     return target / rate;
   },
 

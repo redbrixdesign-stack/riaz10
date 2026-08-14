@@ -4,9 +4,12 @@
 
    Covers:
    1. The serverless proxy (api/claude.mjs) — validation guards,
-      secret/origin checks, model allowlist, image size limit,
-      upstream error mapping, usage+cost enrichment. The Anthropic
-      call is stubbed; node >= 18 provides global fetch.
+      secret/origin checks, production fail-closed config, request
+      body/text/image size limits, media-type allowlist, model
+      allowlist, fixed upstream endpoint, per-address rate limiting,
+      generic (non-leaking) upstream error mapping, usage+cost
+      enrichment. The Anthropic call is stubbed; node >= 18 provides
+      global fetch.
    2. The client service (js/services/ai.js) — payload construction,
       config gating, graceful degradation on network/timeout/error,
       usage recording. Runs in a vm sandbox with a stubbed fetch.
@@ -33,7 +36,9 @@ function ok(label, cond, extra) {
 // ---------- stub Anthropic upstream ----------
 // Kept swappable per test: each proxy test replaces global.fetch.
 let stubbedAnthropic = null;
+let lastFetchUrls = [];
 global.fetch = async (url, opts) => {
+  lastFetchUrls.push(String(url));
   if (url.startsWith('https://api.anthropic.com/')) {
     if (stubbedAnthropic) return stubbedAnthropic(opts);
     throw new Error('fake: no anthropic stub installed');
@@ -91,6 +96,17 @@ async function proxyTests() {
   r = await req('POST', {}, { type: 'ocr', image: big, mediaType: 'image/jpeg' });
   ok('proxy: oversized image 413', r.status === 413 && JSON.parse(r.body).error === 'too_large');
 
+  // Request size guards: oversized text fields and oversized bodies never
+  // reach upstream.
+  r = await req('POST', {}, { type: 'draft', draftContext: 'x'.repeat(150 * 1024) });
+  ok('proxy: oversized text field 413', r.status === 413 && JSON.parse(r.body).error === 'too_large', r.status);
+  r = await req('POST', {}, { type: 'route', text: 'y'.repeat(5 * 1024 * 1024) });
+  ok('proxy: oversized body 413', r.status === 413 && JSON.parse(r.body).error === 'too_large', r.status);
+
+  // Image media-type allowlist: only Anthropic-supported vision types go up.
+  r = await req('POST', {}, { type: 'ocr', model: 'claude-sonnet-4-5', image: 'QUJD', mediaType: 'image/svg+xml' });
+  ok('proxy: unsupported image media type 400', r.status === 400 && JSON.parse(r.body).error === 'bad_request', r.body);
+
   // Secret guard.
   const oldSecret = process.env.AI_SECRET;
   process.env.AI_SECRET = 's3cret';
@@ -107,7 +123,26 @@ async function proxyTests() {
   ok('proxy: disallowed origin 403', r.status === 403, r);
   if (oldOrigin === undefined) delete process.env.ALLOWED_ORIGIN; else process.env.ALLOWED_ORIGIN = oldOrigin;
 
+  // Production fail-closed: NODE_ENV=production (as Vercel sets) requires
+  // ALLOWED_ORIGIN and AI_SECRET; a misconfigured deployment refuses every
+  // request until both are set.
+  const savedNodeEnv = process.env.NODE_ENV;
+  const savedOriginForProd = process.env.ALLOWED_ORIGIN;
+  const savedSecretForProd = process.env.AI_SECRET;
+  process.env.NODE_ENV = 'production';
+  delete process.env.ALLOWED_ORIGIN;
+  delete process.env.AI_SECRET;
+  r = await req('POST', { origin: 'https://app.example' }, { type: 'ping' });
+  ok('proxy: production without ALLOWED_ORIGIN fails closed 500', r.status === 500 && JSON.parse(r.body).error === 'config', r.body);
+  process.env.ALLOWED_ORIGIN = 'https://app.example';
+  r = await req('POST', { origin: 'https://app.example' }, { type: 'ping' });
+  ok('proxy: production without AI_SECRET fails closed 500', r.status === 500 && JSON.parse(r.body).error === 'config', r.body);
+  if (savedNodeEnv === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = savedNodeEnv;
+  if (savedOriginForProd === undefined) delete process.env.ALLOWED_ORIGIN; else process.env.ALLOWED_ORIGIN = savedOriginForProd;
+  if (savedSecretForProd === undefined) delete process.env.AI_SECRET; else process.env.AI_SECRET = savedSecretForProd;
+
   // Happy path: ping with stubbed upstream, usage enriched with cost.
+  lastFetchUrls.length = 0;
   stubbedAnthropic = o => {
     ok('proxy: ping posts to /v1/messages', o.body ? String(o.body).includes('api.anthropic.com/v1/messages') || true : true);
     const parsed = JSON.parse(o.body);
@@ -121,6 +156,7 @@ async function proxyTests() {
   ok('proxy: ping 200 with pong', r.status === 200 && pingBody.ok && pingBody.text === 'pong', pingBody);
   ok('proxy: ping usage enriched with cost', pingBody.usage.cost === 0.0003, pingBody.usage); // 100*1 + 40*5 per 1M
   ok('proxy: ping returns model + type', pingBody.model === 'claude-haiku-4-5' && pingBody.type === 'ping');
+  ok('proxy: every upstream call hits the allowlisted endpoint', lastFetchUrls.length === 1 && lastFetchUrls[0] === 'https://api.anthropic.com/v1/messages', lastFetchUrls);
 
   // OCR happy path: model allowlist + image payload.
   stubbedAnthropic = o => {
@@ -174,6 +210,15 @@ async function proxyTests() {
   stubbedAnthropic = () => anthropicError(529, 'overloaded', 'overloaded_error');
   r = await req('POST', {}, { type: 'ping' });
   ok('proxy: upstream 529 -> 502 overloaded', r.status === 502 && JSON.parse(r.body).error === 'overloaded');
+
+  // Provider error details never reach the client — only generic messages.
+  stubbedAnthropic = () => anthropicError(401, 'invalid x-api-key', 'invalid_request_error');
+  r = await req('POST', {}, { type: 'ping' });
+  const leakBody = JSON.parse(r.body);
+  ok('proxy: upstream errors are generic, no provider detail leaked', r.status === 502 && leakBody.error === 'auth' && !String(leakBody.message).includes('x-api-key') && leakBody.message.length > 0, leakBody);
+  stubbedAnthropic = () => anthropicError(529, 'overloaded_error', 'overloaded_error');
+  r = await req('POST', {}, { type: 'ping' });
+  ok('proxy: upstream error codes still mapped for the client', r.status === 502 && JSON.parse(r.body).error === 'overloaded' && String(JSON.parse(r.body).message).includes('overloaded'));
 
   // Usage enrichment for a sonnet call.
   stubbedAnthropic = () => anthropicOk('x', { input_tokens: 1000, output_tokens: 500 });
@@ -238,6 +283,28 @@ async function proxyTests() {
   r = await req('POST', {}, { type: 'route', text: 'how does my week look?' });
   const routeBody = JSON.parse(r.body);
   ok('proxy: route 200 forwards command', r.status === 200 && routeBody.ok && routeBody.text.includes('week'), routeBody);
+
+  // Rate limiting: sliding window per client address, env-tunable so the
+  // default 120/min never trips in this suite.
+  stubbedAnthropic = () => anthropicOk('pong');
+  const savedRlMax = process.env.RATE_LIMIT_MAX;
+  const savedRlWindow = process.env.RATE_LIMIT_WINDOW_MS;
+  process.env.RATE_LIMIT_MAX = '3';
+  process.env.RATE_LIMIT_WINDOW_MS = '60000';
+  const rlStatuses = [];
+  let rlBlocked = null;
+  for (let i = 0; i < 4; i++) {
+    const res = await req('POST', { 'x-forwarded-for': '203.0.113.50' }, { type: 'ping' });
+    rlStatuses.push(res.status);
+    if (res.status === 429 && !rlBlocked) rlBlocked = res;
+  }
+  if (savedRlMax === undefined) delete process.env.RATE_LIMIT_MAX; else process.env.RATE_LIMIT_MAX = savedRlMax;
+  if (savedRlWindow === undefined) delete process.env.RATE_LIMIT_WINDOW_MS; else process.env.RATE_LIMIT_WINDOW_MS = savedRlWindow;
+  ok('proxy: rate limit allows within window', rlStatuses[0] === 200 && rlStatuses[1] === 200 && rlStatuses[2] === 200, rlStatuses);
+  ok('proxy: rate limit blocks excess with 429', rlStatuses[3] === 429, rlStatuses);
+  ok('proxy: rate limit 429 body + retry-after header', rlBlocked !== null && JSON.parse(rlBlocked.body).error === 'rate_limited' && rlBlocked.headers['retry-after'] !== undefined, rlBlocked);
+  r = await req('POST', {}, { type: 'ping' });
+  ok('proxy: rate limit is per client address', r.status === 200, r.status);
 }
 
 // ---------- client tests ----------

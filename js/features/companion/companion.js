@@ -856,29 +856,25 @@ const CompanionFeature = {
   },
 
   async answerMoneyPeriod(range) {
+    // Normalize the period to whole days, then reuse the canonical weekly
+    // statistics (DB.getWeekStats) — the same source the Money and Today
+    // screens use — instead of re-implementing the ordered/commission
+    // accumulation here.
     const start = new Date(range.start);
+    start.setHours(0, 0, 0, 0);
     const end = new Date(range.end);
+    end.setHours(23, 59, 59, 999);
     let periodStats = { sales: 0, earnings: 0, orderedCount: 0 };
     try {
-      const appts = (await DB.getAppointmentsForRange(range.start, range.end))
-        .filter(a => a.status !== 'cancelled');
-      for (const a of appts) {
-        if (a.outcome === 'ordered') {
-          periodStats.sales += a.value || 0;
-          periodStats.earnings += (typeof a.commission === 'number' && a.commission > 0)
-            ? a.commission
-            : TaxCalculator.estimateCommission(a.value || 0);
-          periodStats.orderedCount += 1;
-        }
-      }
+      periodStats = await DB.getWeekStats(start.toISOString(), end.toISOString());
     } catch (e) { /* empty period */ }
 
     let expenses = [];
     let trips = [];
     let monthTotal = 0;
     let monthMiles = 0;
-    try { expenses = await DB.getExpensesForPeriod(range.start, range.end); } catch (e) {}
-    try { trips = await DB.getTripsForPeriod(range.start, range.end); } catch (e) {}
+    try { expenses = await DB.getExpensesForPeriod(start.toISOString(), end.toISOString()); } catch (e) {}
+    try { trips = await DB.getTripsForPeriod(start.toISOString(), end.toISOString()); } catch (e) {}
     monthTotal = expenses.reduce((s, e) => s + (e.amount || 0), 0);
     monthMiles = trips.reduce((s, t) => s + (t.distanceKm || 0), 0);
     const mileageClaim = TaxCalculator.calculateMileageClaim(monthMiles);

@@ -3,6 +3,11 @@
    IndexedDB via Dexie.js
    ============================================ */
 
+// Every table a backup can carry. exportAll() and importAll() speak this
+// exact list; adding a table here is a backup-format change and must be
+// mirrored in the backup envelope's versioning (js/services/export.js).
+const BACKUP_TABLES = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'photos', 'settings', 'sequences'];
+
 const DB = {
   db: null,
 
@@ -266,8 +271,12 @@ const DB = {
     return { ...customer, id };
   },
 
-  // Deletes the customer plus everything keyed to them - appointments,
-  // orders, and communications. A customer row alone doesn't show up
+  // Deletes the customer plus everything keyed to them - appointments and
+  // their measurements and trips, orders, communications, and photos.
+  // Customer data is an operational-memory graph: measurements and trips
+  // hang off appointments (not the customer row), so the customer's
+  // appointment IDs are collected first and used to clear both tables before
+  // the appointments themselves go. A customer row alone doesn't show up
   // anywhere by itself; it's always reached through one of these related
   // records, so leaving them behind after "deleting" a customer would just
   // produce orphaned visits/orders that still show a name but silently fail
@@ -281,6 +290,11 @@ const DB = {
       this.db.communications.where('customerId').equals(customerId).toArray()
     ]);
     const photoCount = await this.db.photos.where('customerId').equals(customerId).count();
+    const apptIds = appts.map(a => a.id);
+    const [measurementCount, tripCount] = await Promise.all([
+      this.db.measurements.where('appointmentId').anyOf(apptIds).delete(),
+      this.db.trips.where('appointmentId').anyOf(apptIds).delete()
+    ]);
     await Promise.all([
       this.db.appointments.where('customerId').equals(customerId).delete(),
       this.db.orders.where('customerId').equals(customerId).delete(),
@@ -288,7 +302,7 @@ const DB = {
       this.db.photos.where('customerId').equals(customerId).delete()
     ]);
     await this.db.customers.delete(customerId);
-    return { appointments: appts.length, orders: orders.length, communications: comms.length, photos: photoCount };
+    return { appointments: appts.length, orders: orders.length, communications: comms.length, photos: photoCount, measurements: measurementCount, trips: tripCount };
   },
 
   // ---- Full factory reset ----
@@ -312,9 +326,9 @@ const DB = {
   // Blobs: the bundled mini-Dexie fallback serializes records through JSON,
   // which would silently turn every Blob into an empty object. Base64 rides
   // through both engines intact and renders straight into <img> data URLs.
-  // Photos are intentionally excluded from exportAll()/importAll() so
-  // backups stay lean text/JSON — re-adding them would need base64
-  // conversion and inflate every file.
+  // Photos are part of the operational customer record (window/wall photos an
+  // advisor may rely on), so they ARE included in exportAll()/importAll() —
+  // a restored backup must reconstruct them, not leave them behind.
   async addPhoto({ customerId, data, mimeType = 'image/jpeg', caption = '' }) {
     const photo = {
       customerId,
@@ -568,32 +582,29 @@ const DB = {
 
   // Measurement operations
   async addMeasurement(data) {
-    // Auto-calculate least measurements
-    const width = {
-      top: data.widthTop || 0,
-      middle: data.widthMiddle || 0,
-      bottom: data.widthBottom || 0
-    };
-    const widthLeast = Math.min(width.top, width.middle, width.bottom);
+    // Auto-calculate least measurements. A group is only complete when all
+    // three values are present and positive: a missing, zero or negative
+    // entry means the measurement is incomplete, so the derived fields stay
+    // null — incomplete data must never become a valid zero (or a negative
+    // widthUsed from least - tolerance).
+    const complete = (a, b, c) => (a > 0 && b > 0 && c > 0) ? Math.min(a, b, c) : null;
+    const widthLeast = complete(data.widthTop, data.widthMiddle, data.widthBottom);
+    const dropLeast = complete(data.dropLeft, data.dropCentre, data.dropRight);
+    const diagVariance = (data.diagonalTlBr > 0 && data.diagonalTrBl > 0)
+      ? Math.abs(data.diagonalTlBr - data.diagonalTrBl)
+      : null;
 
-    const drop = {
-      left: data.dropLeft || 0,
-      centre: data.dropCentre || 0,
-      right: data.dropRight || 0
-    };
-    const dropLeast = Math.min(drop.left, drop.centre, drop.right);
-
-    const tolerance = data.tolerance || 10;
+    const tolerance = data.tolerance > 0 ? data.tolerance : 10;
     const fittingType = data.fittingType || 'recess';
 
     const measurement = {
       ...data,
       widthLeast,
       dropLeast,
-      widthUsed: fittingType === 'recess' ? widthLeast - tolerance : widthLeast,
+      widthUsed: widthLeast === null ? null : (fittingType === 'recess' ? widthLeast - tolerance : widthLeast),
       dropUsed: dropLeast,
-      diagonalVariance: Math.abs((data.diagonalTlBr || 0) - (data.diagonalTrBl || 0)),
-      isSquare: Math.abs((data.diagonalTlBr || 0) - (data.diagonalTrBl || 0)) <= 5,
+      diagonalVariance: diagVariance,
+      isSquare: diagVariance === null ? null : diagVariance <= 5,
       createdAt: new Date().toISOString()
     };
 
@@ -622,28 +633,41 @@ const DB = {
     await this.db.settings.put({ key, value });
   },
 
+  // Schema version of the current database. Real Dexie reports it as `verno`
+  // once opened; the bundled shim keeps it internally without exposing it, so
+  // fall back to the current schema constant (2 = photos table added).
+  schemaVersion() {
+    return typeof this.db.verno === 'number' ? this.db.verno : 2;
+  },
+
   // Export
+  // Full operational backup of the database: every record an advisor's
+  // operational memory consists of - customers, appointments with their
+  // measurements and trips, orders, expenses, communications, photos,
+  // settings and sequences. Photos are included: they are part of the
+  // working customer record, not optional cosmetics, and a backup that
+  // drops them cannot reconstruct the advisor's working memory.
+  // Runtime-only settings rows (migration/storage probes, demo flags) are
+  // excluded - they are transient state, not advisor data, and must never
+  // travel inside a backup.
   async exportAll() {
     const data = {};
-    const tables = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications'];
-
+    const tables = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'photos'];
     for (const table of tables) {
       data[table] = await this.db[table].toArray();
     }
-
+    const RUNTIME_SETTING_KEYS = ['__v6_legacy_migrated__', '__storage_probe__', 'pitchDemoSeeded'];
+    data.settings = (await this.db.settings.toArray()).filter(s => !RUNTIME_SETTING_KEYS.includes(s.key));
+    data.sequences = await this.db.sequences.toArray();
     return data;
   },
 
   async importAll(data) {
-    const tables = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications'];
-
-    // Validate the whole backup's shape before touching anything on disk —
-    // catches most corrupt/incompatible files without ever clearing a table.
-    for (const table of tables) {
-      if (data[table] !== undefined && !Array.isArray(data[table])) {
-        throw new Error(`Backup file is corrupt: "${table}" is not a list of records`);
-      }
-    }
+    // Validate the whole backup — table shapes, record structure, primary
+    // ID types, duplicate keys, date fields and every cross-table
+    // relationship — BEFORE anything is touched on disk. A corrupt backup
+    // is rejected wholesale; partial imports are impossible by construction.
+    await this._validateBackup(data);
 
     // On the real engine this is a single atomic readwrite transaction
     // across every table: a failure anywhere aborts the whole import and
@@ -651,8 +675,8 @@ const DB = {
     // has no transaction(), so it keeps the snapshot-and-restore path below.)
     if (typeof this.db.transaction === 'function') {
       try {
-        await this.db.transaction('rw', tables.map(t => this.db[t]), async () => {
-          for (const table of tables) {
+        await this.db.transaction('rw', BACKUP_TABLES.map(t => this.db[t]), async () => {
+          for (const table of BACKUP_TABLES) {
             await this.db[table].clear();
             if (data[table]) {
               await this.db[table].bulkAdd(data[table]);
@@ -662,38 +686,194 @@ const DB = {
       } catch (err) {
         throw new Error('Import failed and was rolled back. Your previous data should be intact — please check Money, Visits and Customers.');
       }
-      return;
-    }
-
-    // Snapshot current data so a failure partway through the import (e.g. a
-    // bad record on table 4 of 7) can be rolled back, instead of leaving some
-    // tables replaced with the new backup and others cleared-but-not-refilled.
-    // Note: this isn't a true atomic DB transaction (the shim fallback
-    // doesn't support one across tables) — it's a best-effort restore, and
-    // rollback itself could theoretically fail (e.g. storage completely full).
-    const snapshot = {};
-    for (const table of tables) {
-      snapshot[table] = await this.db[table].toArray();
-    }
-
-    try {
-      for (const table of tables) {
-        await this.db[table].clear();
-        if (data[table]) {
-          await this.db[table].bulkAdd(data[table]);
-        }
+    } else {
+      // Snapshot current data so a failure partway through the import (e.g. a
+      // bad record on table 4 of 7) can be rolled back, instead of leaving some
+      // tables replaced with the new backup and others cleared-but-not-refilled.
+      // Note: this isn't a true atomic DB transaction (the shim fallback
+      // doesn't support one across tables) — it's a best-effort restore, and
+      // rollback itself could theoretically fail (e.g. storage completely full).
+      const snapshot = {};
+      for (const table of BACKUP_TABLES) {
+        snapshot[table] = await this.db[table].toArray();
       }
-    } catch (err) {
-      console.error('Import failed partway through — rolling back to pre-import state:', err);
-      for (const table of tables) {
-        try {
+
+      try {
+        for (const table of BACKUP_TABLES) {
           await this.db[table].clear();
-          if (snapshot[table].length) await this.db[table].bulkAdd(snapshot[table]);
-        } catch (rollbackErr) {
-          console.error(`Rollback failed for "${table}" — this table's data may be lost:`, rollbackErr);
+          if (data[table]) {
+            await this.db[table].bulkAdd(data[table]);
+          }
+        }
+      } catch (err) {
+        console.error('Import failed partway through — rolling back to pre-import state:', err);
+        for (const table of BACKUP_TABLES) {
+          try {
+            await this.db[table].clear();
+            if (snapshot[table].length) await this.db[table].bulkAdd(snapshot[table]);
+          } catch (rollbackErr) {
+            console.error(`Rollback failed for "${table}" — this table's data may be lost:`, rollbackErr);
+          }
+        }
+        throw new Error('Import failed and was rolled back. Your previous data should be restored — please check Money, Visits and Customers.');
+      }
+    }
+
+    // Restored sequence counters must never sit below the highest number the
+    // imported records carry — otherwise the next customer/order could get a
+    // freshly-issued duplicate number. Imported sequence rows are trusted
+    // as-is when already at or above that (mirrors the legacy-migration guard
+    // in _migrateFromLegacyDb, so it also covers old backups with no
+    // sequences table at all).
+    await this._guardSequences(data);
+  },
+
+  // Full backup validation: never "is this an array?" alone. Checks record
+  // shapes, primary-ID types, duplicate primary keys, date fields, and every
+  // operational relationship in the customer memory graph:
+  //
+  //   appointment.customerId        -> existing customer
+  //   order.customerId              -> existing customer
+  //   order.appointmentId           -> existing appointment (when supplied)
+  //   measurement.appointmentId     -> existing appointment
+  //   trip.appointmentId            -> existing appointment
+  //   communication.customerId      -> existing customer
+  //   photo.customerId              -> existing customer
+  //
+  // Throws on the first problem; nothing has been written by then.
+  async _validateBackup(data) {
+    const isPosInt = v => Number.isInteger(v) && v > 0;
+    const isValidDate = v =>
+      (v instanceof Date && !isNaN(v.getTime())) ||
+      (typeof v === 'string' && v.length > 0 && !isNaN(new Date(v).getTime()));
+
+    // 1. Every supplied table must be a list of records; a backup carrying no
+    // tables at all is corrupt (importing it would wipe the database with
+    // nothing to restore).
+    const present = [];
+    for (const table of BACKUP_TABLES) {
+      if (data[table] === undefined) continue;
+      if (!Array.isArray(data[table])) {
+        throw new Error(`Backup file is corrupt: "${table}" is not a list of records`);
+      }
+      present.push(table);
+    }
+    if (present.length === 0) {
+      throw new Error('Backup file is corrupt: no tables found');
+    }
+
+    // 2. Record structure, primary-key types and duplicate primary keys.
+    // id-keyed tables use 'id'; settings use 'key'; sequences use 'name'.
+    const keyField = table => (table === 'settings' ? 'key' : table === 'sequences' ? 'name' : 'id');
+    for (const table of present) {
+      const field = keyField(table);
+      const seen = new Set();
+      for (const record of data[table]) {
+        if (record === null || typeof record !== 'object' || Array.isArray(record)) {
+          throw new Error(`Backup file is corrupt: "${table}" contains a malformed record`);
+        }
+        const key = record[field];
+        const keyOk = field === 'key' || field === 'name'
+          ? (typeof key === 'string' && key.length > 0)
+          : isPosInt(key);
+        if (!keyOk) {
+          throw new Error(`Backup file is corrupt: "${table}" record has an invalid ${field}`);
+        }
+        if (table === 'sequences' && typeof record.value !== 'number') {
+          throw new Error('Backup file is corrupt: sequence record has an invalid value');
+        }
+        if (seen.has(key)) {
+          throw new Error(`Backup file is corrupt: duplicate ${field} ${JSON.stringify(key)} in "${table}"`);
+        }
+        seen.add(key);
+      }
+    }
+
+    // 3. Cross-table relationships. A reference must exist in the matching
+    // table and be a positive integer; records without their required
+    // relationship field are rejected outright.
+    const customerIds = new Set((data.customers || []).map(c => c.id));
+    const appointmentIds = new Set((data.appointments || []).map(a => a.id));
+    const checkRef = (table, record, field, validIds) => {
+      const v = record[field];
+      if (v === null || v === undefined) {
+        throw new Error(`Backup file is corrupt: "${table}" record is missing ${field}`);
+      }
+      if (!isPosInt(v) || !validIds.has(v)) {
+        throw new Error(`Backup file is corrupt: "${table}" references a missing ${field} (${v})`);
+      }
+    };
+
+    for (const record of data.appointments || []) {
+      checkRef('appointments', record, 'customerId', customerIds);
+    }
+    for (const record of data.orders || []) {
+      checkRef('orders', record, 'customerId', customerIds);
+      // appointmentId is optional on orders (some orders are created without
+      // a linked visit) — validated only when supplied.
+      if (record.appointmentId !== null && record.appointmentId !== undefined) {
+        if (!isPosInt(record.appointmentId) || !appointmentIds.has(record.appointmentId)) {
+          throw new Error(`Backup file is corrupt: "orders" references a missing appointmentId (${record.appointmentId})`);
         }
       }
-      throw new Error('Import failed and was rolled back. Your previous data should be restored — please check Money, Visits and Customers.');
+    }
+    for (const record of data.measurements || []) {
+      checkRef('measurements', record, 'appointmentId', appointmentIds);
+    }
+    for (const record of data.trips || []) {
+      checkRef('trips', record, 'appointmentId', appointmentIds);
+    }
+    for (const record of data.communications || []) {
+      checkRef('communications', record, 'customerId', customerIds);
+    }
+    for (const record of data.photos || []) {
+      checkRef('photos', record, 'customerId', customerIds);
+      if (typeof record.data !== 'string' || record.data.length === 0) {
+        throw new Error('Backup file is corrupt: a photo record is missing its image data');
+      }
+    }
+
+    // 4. Dates. Appointment dates drive the diary, trips and expenses drive
+    // mileage/money — those must parse. The remaining date-bearing fields
+    // (sentAt, createdAt) are validated when present.
+    for (const record of data.appointments || []) {
+      if (!isValidDate(record.date)) {
+        throw new Error('Backup file is corrupt: appointment has an invalid date');
+      }
+    }
+    for (const [table, field] of [['trips', 'date'], ['expenses', 'date'], ['communications', 'sentAt']]) {
+      for (const record of data[table] || []) {
+        if (record[field] !== undefined && record[field] !== null && !isValidDate(record[field])) {
+          throw new Error(`Backup file is corrupt: "${table}" record has an invalid ${field}`);
+        }
+      }
+    }
+    for (const table of present) {
+      for (const record of data[table]) {
+        if (record.createdAt !== undefined && record.createdAt !== null && !isValidDate(record.createdAt)) {
+          throw new Error(`Backup file is corrupt: "${table}" record has an invalid createdAt`);
+        }
+      }
+    }
+  },
+
+  // Raises the customer/order sequence counters to cover the highest number
+  // found in the imported records (same CUS-/ORD-YYYY-#### pattern and year
+  // scoping the legacy migration uses). Never lowers an existing counter.
+  async _guardSequences(data) {
+    for (const name of ['customer', 'order']) {
+      const prefix = name === 'customer' ? 'CUS-' : 'ORD-';
+      const year = new Date().getFullYear();
+      const re = new RegExp(`^${prefix}\\d{4}-(\\d+)$`);
+      const maxSeq = (data[name + 's'] || []).reduce((max, r) => {
+        const m = String(r[name + 'Number'] || '').match(re);
+        return Math.max(max, m ? parseInt(m[1], 10) : 0);
+      }, 0);
+      if (!maxSeq) continue;
+      const seq = await this.db.sequences.get(name);
+      if (!seq || seq.value < maxSeq) {
+        await this.db.sequences.put({ name, value: maxSeq });
+      }
     }
   }
 };
