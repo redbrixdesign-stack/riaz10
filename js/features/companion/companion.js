@@ -37,7 +37,9 @@ const CompanionFeature = {
     messages: '▸ What messages are due?',
     orders: '▸ Who hasn\'t paid?',
     weather: '▸ Weather',
-    help: '▸ What can you ask?'
+    help: '▸ What can you ask?',
+    'after visit': '▸ What should I do now?',
+    'evening review': '▸ What have I missed?'
   },
 
   get aiPrefKey() {
@@ -172,15 +174,30 @@ const CompanionFeature = {
   // a data source is missing or offline.
   async buildWelcomeChips() {
     const chips = [];
+    const now = new Date();
+    const hour = now.getHours();
     try {
+      const today = Utils.getToday();
+      const todayAppts = (await DB.getAppointmentsForDate(today.toISOString())).filter(a => a.status !== 'cancelled');
+      const doneToday = todayAppts.filter(a => a.outcome || a.status === 'completed');
+      const pendingToday = todayAppts.filter(a => !a.outcome && a.status !== 'completed');
       const upcoming = await DB.getUpcomingAppointments(14);
       const next = upcoming.find(a => a.status !== 'cancelled' && (a.phone || a.customerId)) || upcoming.find(a => a.status !== 'cancelled') || null;
+
       if (next) {
         chips.push(['Next visit', 'near_me', `${next.clientName || 'Customer'} · ${Utils.formatDate(next.date, 'short')} ${Utils.formatTime(next.date)}`, 'next visit']);
       }
       const introOwed = upcoming.find(a => a.status === 'confirmed' && !a.introSent && (a.phone || a.customerId));
       if (introOwed) {
         chips.push(['Intro to send', 'waving_hand', `${introOwed.clientName || 'Customer'} · ${Utils.formatDate(introOwed.date, 'short')}`, 'messages']);
+      }
+      // After visit: show if there's a completed visit today
+      if (doneToday.length && (hour < 18 || pendingToday.length)) {
+        chips.push(['What now?', 'check_circle', `${doneToday[0].clientName || 'Customer'} done${pendingToday.length ? ` · ${pendingToday.length} more today` : ''}`, 'after visit']);
+      }
+      // Evening review: show in afternoon/evening
+      if (hour >= 16) {
+        chips.push(['Evening review', 'wb_sunny', 'Unsent messages, unlogged outcomes, unpaid', 'evening review']);
       }
     } catch (e) { /* chips are optional */ }
     try {
@@ -327,7 +344,10 @@ const CompanionFeature = {
     messages: ['messages', 'message', 'what messages', 'who to text', 'who to message', 'texts', 'sends', 'what to send', 'drafts', 'intro', 'send'],
     orders: ['orders', 'order', 'unpaid', 'owe', 'owing', 'outstanding', 'who hasn\'t paid', 'haven\'t paid', 'payment', 'payments', 'receipts'],
     weather: ['weather', 'rain', 'forecast'],
-    help: ['help', 'commands', 'what can you do', 'what can you ask', 'menu', 'options']
+    help: ['help', 'commands', 'what can you do', 'what can you ask', 'menu', 'options'],
+    // Post-appointment & evening review
+    'after visit': ['after visit', 'after appointment', 'what now', 'what next', 'just finished', 'done with visit', 'post visit'],
+    'evening review': ['evening review', 'end of day', 'what did i miss', 'what have i missed', 'evening', 'wrap up', 'day review']
   },
 
   normalizeCommand(text) {
@@ -1004,6 +1024,203 @@ const CompanionFeature = {
       facts,
       actions: [{ label: 'Send in Follow-ups', onclick: "App.navigate('followups')" }],
       suggestions: ['next visit', 'follow-ups', 'today']
+    };
+  },
+
+  /* ---------- Post-appointment handler ---------- */
+  // Situation 4: "What should I do now?" — right after finishing a visit.
+  // Suggests: log outcome, send follow-up, check messages due, navigate to next.
+  async answerAfterVisit() {
+    const today = Utils.getToday();
+    let todayAppts = [];
+    let allAppts = [];
+    try {
+      todayAppts = (await DB.getAppointmentsForDate(today.toISOString())).filter(a => a.status !== 'cancelled');
+      allAppts = await DB.db.appointments.toArray();
+    } catch (e) {}
+
+    // Find the most recent completed/outcome-logged visit today
+    const doneToday = todayAppts
+      .filter(a => a.outcome || a.status === 'completed')
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // Find upcoming visits today without outcome
+    const pendingToday = todayAppts
+      .filter(a => !a.outcome && a.status !== 'completed')
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Upcoming visits needing messages (intro, day-before, morning-of)
+    const messagesDue = [];
+    const pastFirstVisit = new Set();
+    for (const a of allAppts) {
+      if (!a.customerId || a.status === 'cancelled') continue;
+      if (new Date(a.date) >= new Date()) continue;
+      pastFirstVisit.add(a.customerId);
+    }
+    const upcoming = await DB.getUpcomingAppointments(7);
+    for (const a of upcoming) {
+      if (a.status !== 'confirmed' || !a.phone && !a.customerId) continue;
+      if (a.introSent || (a.customerId && pastFirstVisit.has(a.customerId))) continue;
+      if (new Date(a.date).toDateString() === today.toDateString()) continue; // today handled separately
+      messagesDue.push({ appt: a, reason: 'Intro not sent', template: 'pre_intro' });
+    }
+
+    const facts = [];
+    const actions = [];
+
+    if (doneToday.length) {
+      const last = doneToday[0];
+      facts.push({ label: 'Last visit', value: `${last.clientName || 'Customer'} · ${Utils.formatTime(last.date)}` });
+      // Suggest logging outcome if not done
+      if (!last.outcome) {
+        actions.push({ label: 'Log outcome', onclick: `App.navigate('appointments', {id: ${last.id}})` });
+      }
+      // Suggest follow-up based on outcome
+      if (last.outcome) {
+        const match = TalkFeature.getTemplateForOutcome(last.outcome);
+        if (match && match.minDays === 0) {
+          actions.push({ label: `Send ${match.action}`, onclick: `TalkFeature.sendMessage(${last.id}, '${match.template}')` });
+        }
+      }
+    }
+
+    if (pendingToday.length) {
+      facts.push({ label: 'Still to do today', value: `${pendingToday.length} visit${pendingToday.length === 1 ? '' : 's'} without outcome` });
+      actions.push({ label: 'Open Visits', onclick: "App.navigate('appointments', {tab: 'upcoming'})" });
+    }
+
+    if (messagesDue.length) {
+      facts.push({ label: 'Messages due', value: `${messagesDue.length} upcoming visit${messagesDue.length === 1 ? '' : 's'} need intro/day-before` });
+      actions.push({ label: 'Send in Follow-ups', onclick: "App.navigate('followups')" });
+    }
+
+    // Next visit today or tomorrow
+    const next = pendingToday[0] || upcoming.find(a => a.status !== 'cancelled');
+    if (next) {
+      const eta = await this.etaFor(next);
+      facts.push({ label: 'Next up', value: `${next.clientName || 'Customer'} · ${Utils.formatDate(next.date, 'short')} ${Utils.formatTime(next.date)}${eta ? ` · ${eta}` : ''}` });
+      actions.push({ label: 'Navigate', onclick: `AppointmentsFeature.navigateToVisit('${Utils.escapeJsString(next.address || '')}', ${next.id})` });
+    }
+
+    const text = doneToday.length
+      ? `Last was ${doneToday[0].clientName || 'Customer'}${pendingToday.length ? ` — ${pendingToday.length} more today` : ' — day done'}.`
+      : 'No completed visits today yet.';
+
+    return {
+      text,
+      facts,
+      actions: actions.slice(0, 4),
+      suggestions: ['today', 'follow-ups', 'messages', 'next visit']
+    };
+  },
+
+  /* ---------- Evening review handler ---------- */
+  // Situation 7: "What have I missed?" — end of day wrap-up.
+  // Shows: unsent messages, unlogged outcomes, unpaid orders, due follow-ups.
+  async answerEveningReview() {
+    const today = Utils.getToday();
+    let todayAppts = [];
+    let allAppts = [];
+    try {
+      todayAppts = (await DB.getAppointmentsForDate(today.toISOString())).filter(a => a.status !== 'cancelled');
+      allAppts = await DB.db.appointments.toArray();
+    } catch (e) {}
+
+    const facts = [];
+    const actions = [];
+
+    // 1. Today's visits without outcome logged
+    const unloggedToday = todayAppts.filter(a => !a.outcome && a.status !== 'completed');
+    if (unloggedToday.length) {
+      facts.push({ label: 'Outcomes not logged', value: `${unloggedToday.length} visit${unloggedToday.length === 1 ? '' : 's'} today` });
+      actions.push({ label: 'Log outcomes', onclick: "App.navigate('appointments', {tab: 'upcoming'})" });
+    }
+
+    // 2. Upcoming visits needing messages (intro, day-before, morning-of)
+    const pastFirstVisit = new Set();
+    for (const a of allAppts) {
+      if (!a.customerId || a.status === 'cancelled') continue;
+      if (new Date(a.date) >= new Date()) continue;
+      pastFirstVisit.add(a.customerId);
+    }
+    const upcoming = await DB.getUpcomingAppointments(7);
+    const messagesDue = [];
+    for (const a of upcoming) {
+      if (a.status !== 'confirmed' || !a.phone && !a.customerId) continue;
+      if (new Date(a.date).toDateString() === today.toDateString()) {
+        // Today - check morning-of
+        if (!localStorage.getItem(`advisoros_auto_morning_of_${a.id}`)) {
+          messagesDue.push({ appt: a, reason: 'Morning-of not sent', template: 'morning_of' });
+        }
+      } else if (new Date(a.date).toDateString() === new Date(today.getTime() + 86400000).toDateString()) {
+        // Tomorrow - check day-before
+        if (!a.dayBeforeSent && !localStorage.getItem(`advisoros_auto_evening_before_${a.id}`)) {
+          messagesDue.push({ appt: a, reason: 'Day-before not sent', template: 'evening_before' });
+        }
+      } else if (!a.introSent && (!a.customerId || !pastFirstVisit.has(a.customerId))) {
+        // Future - check intro
+        messagesDue.push({ appt: a, reason: 'Intro not sent', template: 'pre_intro' });
+      }
+    }
+    if (messagesDue.length) {
+      facts.push({ label: 'Messages unsent', value: `${messagesDue.length} visit${messagesDue.length === 1 ? '' : 's'} need a message` });
+      actions.push({ label: 'Send in Follow-ups', onclick: "App.navigate('followups')" });
+    }
+
+    // 3. Unpaid orders
+    let unpaidOrders = [];
+    try {
+      const orders = await DB.db.orders.toArray();
+      unpaidOrders = orders.filter(o => (o.balanceDue || 0) > 0);
+    } catch (e) {}
+    if (unpaidOrders.length) {
+      const totalDue = unpaidOrders.reduce((s, o) => s + (o.balanceDue || 0), 0);
+      facts.push({ label: 'Outstanding', value: `${Utils.formatCurrency(totalDue)} over ${unpaidOrders.length} order${unpaidOrders.length === 1 ? '' : 's'}`, highlight: true });
+      actions.push({ label: 'Open Orders', onclick: "App.navigate('orders')" });
+    }
+
+    // 4. Due follow-ups
+    let dueFollowUps = [];
+    try {
+      dueFollowUps = (await FollowupsFeature.loadTasks()).filter(t => t.due);
+    } catch (e) {}
+    if (dueFollowUps.length) {
+      facts.push({ label: 'Follow-ups due', value: `${dueFollowUps.length} task${dueFollowUps.length === 1 ? '' : 's'}` });
+      if (!actions.some(a => a.label === 'Open Follow-ups')) {
+        actions.push({ label: 'Open Follow-ups', onclick: "App.navigate('followups')" });
+      }
+    }
+
+    // 5. Completed visits today - any follow-up needed?
+    const doneToday = todayAppts.filter(a => a.outcome || a.status === 'completed');
+    if (doneToday.length) {
+      const needsFollowUp = doneToday.filter(a => {
+        const match = TalkFeature.getTemplateForOutcome(a.outcome);
+        return match && match.minDays === 0;
+      });
+      if (needsFollowUp.length) {
+        facts.push({ label: 'Immediate follow-ups', value: `${needsFollowUp.length} visit${needsFollowUp.length === 1 ? '' : 's'} need a message now` });
+        for (const nf of needsFollowUp.slice(0, 2)) {
+          const match = TalkFeature.getTemplateForOutcome(nf.outcome);
+          if (match) {
+            actions.push({ label: `Send ${match.action}`, onclick: `TalkFeature.sendMessage(${nf.id}, '${match.template}')` });
+          }
+        }
+      }
+    }
+
+    let text;
+    if (!facts.length) {
+      text = 'Nothing missed — all caught up for today.';
+    } else {
+      text = `End of day: ${facts.length} thing${facts.length === 1 ? '' : 's'} to review${facts[0] ? ` — ${facts[0].value}` : ''}.`;
+    }
+
+    return {
+      text,
+      facts,
+      actions: actions.slice(0, 4),
+      suggestions: ['today', 'follow-ups', 'messages', 'week']
     };
   },
 
