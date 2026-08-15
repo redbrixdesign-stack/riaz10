@@ -146,30 +146,25 @@ const App = {
     if (!hasSalt) {
       // First launch after encryption feature added - create salt and set passphrase
       return new Promise((resolve) => {
-        const modal = document.createElement('div');
-        modal.className = 'modal-overlay';
-        modal.innerHTML = `
-          <div class="bottom-sheet" style="max-width:400px;">
-            <div class="sheet-handle"></div>
-            <div class="sheet-header">
-              <h3>Set Encryption Passphrase</h3>
-            </div>
-            <div class="sheet-body p-md">
-              <p class="text-secondary mb-lg">Your customer data (names, phones, addresses, emails) will be encrypted at rest. Choose a passphrase you'll remember — it's required every time you open AdvisorOS.</p>
-              <div class="form-group">
-                <label>Passphrase</label>
-                <input type="password" class="input" id="enc-passphrase-new" placeholder="Enter passphrase" autocomplete="off">
-              </div>
-              <div class="form-group">
-                <label>Confirm Passphrase</label>
-                <input type="password" class="input" id="enc-passphrase-confirm" placeholder="Confirm passphrase" autocomplete="off">
-              </div>
-              <div class="fs-12 text-tertiary mb-md">Forgetting this passphrase means permanent loss of customer data. No recovery is possible.</div>
-              <button class="btn btn-primary btn-block" onclick="App._setPassphrase()">Set Passphrase</button>
-            </div>
+        this.openModal(`
+          <div class="sheet-handle"></div>
+          <div class="sheet-header">
+            <h3>Set Encryption Passphrase</h3>
           </div>
-        `;
-        document.getElementById('modal-overlay').appendChild(modal);
+          <div class="sheet-body p-md">
+            <p class="text-secondary mb-lg">Your customer data (names, phones, addresses, emails) will be encrypted at rest. Choose a passphrase you'll remember — it's required every time you open AdvisorOS.</p>
+            <div class="form-group">
+              <label>Passphrase</label>
+              <input type="password" class="input" id="enc-passphrase-new" placeholder="Enter passphrase" autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label>Confirm Passphrase</label>
+              <input type="password" class="input" id="enc-passphrase-confirm" placeholder="Confirm passphrase" autocomplete="off">
+            </div>
+            <div class="fs-12 text-tertiary mb-md">Forgetting this passphrase means permanent loss of customer data. No recovery is possible.</div>
+            <button class="btn btn-primary btn-block" onclick="App._setPassphrase()">Set Passphrase</button>
+          </div>
+        `, { onOpen: () => document.getElementById('enc-passphrase-new')?.focus() });
         App._setPassphrase = async () => {
           const p1 = document.getElementById('enc-passphrase-new').value;
           const p2 = document.getElementById('enc-passphrase-confirm').value;
@@ -181,7 +176,7 @@ const App = {
             Toast.show('Passphrases do not match', 'error');
             return;
           }
-          modal.remove();
+          this.closeModal();
           delete App._setPassphrase;
           try {
             await initEncryption(p1);
@@ -197,27 +192,21 @@ const App = {
     } else {
       // Subsequent launches - prompt for existing passphrase
       return new Promise((resolve) => {
-        const modal = document.createElement('div');
-        modal.className = 'modal-overlay';
-        modal.innerHTML = `
-          <div class="bottom-sheet" style="max-width:400px;">
-            <div class="sheet-handle"></div>
-            <div class="sheet-header">
-              <h3>Unlock AdvisorOS</h3>
-            </div>
-            <div class="sheet-body p-md">
-              <p class="text-secondary mb-lg">Enter your passphrase to decrypt customer data.</p>
-              <div class="form-group">
-                <label>Passphrase</label>
-                <input type="password" class="input" id="enc-passphrase" placeholder="Enter passphrase" autocomplete="off">
-              </div>
-              <div id="enc-error" class="fs-12 text-danger mb-md" style="display:none;"></div>
-              <button class="btn btn-primary btn-block" onclick="App._checkPassphrase()">Unlock</button>
-            </div>
+        this.openModal(`
+          <div class="sheet-handle"></div>
+          <div class="sheet-header">
+            <h3>Unlock AdvisorOS</h3>
           </div>
-        `;
-        document.getElementById('modal-overlay').appendChild(modal);
-        document.getElementById('enc-passphrase').focus();
+          <div class="sheet-body p-md">
+            <p class="text-secondary mb-lg">Enter your passphrase to decrypt customer data.</p>
+            <div class="form-group">
+              <label>Passphrase</label>
+              <input type="password" class="input" id="enc-passphrase" placeholder="Enter passphrase" autocomplete="off">
+            </div>
+            <div id="enc-error" class="fs-12 text-danger mb-md" style="display:none;"></div>
+            <button class="btn btn-primary btn-block" onclick="App._checkPassphrase()">Unlock</button>
+          </div>
+        `, { onOpen: () => document.getElementById('enc-passphrase')?.focus() });
         App._checkPassphrase = async () => {
           const passphrase = document.getElementById('enc-passphrase').value;
           if (!passphrase) {
@@ -232,7 +221,7 @@ const App = {
               const verified = await decryptField(JSON.parse(verifyRaw));
               if (verified !== 'advisoros-enc-verify') throw new Error('Passphrase verification failed');
             }
-            modal.remove();
+            this.closeModal();
             delete App._checkPassphrase;
             resolve();
           } catch (e) {
