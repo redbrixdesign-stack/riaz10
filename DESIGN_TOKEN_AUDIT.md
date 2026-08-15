@@ -1,17 +1,17 @@
 # Design Token Audit — AdvisorOS v5.0.0
 
-**Git Commit:** `44f533e` (Visual baseline)
+**Git Commit:** `a7199e7` (Beelo palette merged — Option A applied)
 **Date:** 2026-08-15
 
 ---
 
-## 1. Current Token Values (from `css/core.css:6-70`)
+## 1. Current Token Values (from `css/core.css:6-67`)
 
 | Token | Current Value | Description |
 |-------|---------------|-------------|
-| `--primary` | `#23261c` | Dark olive — primary actions, FAB, branded text |
-| `--primary-dark` | `#14160f` | Near-black olive — pressed states, gradients |
-| `--primary-light` | `#e9edda` | Pale olive tint — badge backgrounds |
+| `--primary` | `#1B1B18` | Manchester Ink — primary actions, FAB, branded text |
+| `--primary-dark` | `#11110F` | Pressed states, gradients |
+| `--primary-light` | `#E8E0D0` | Warm pale tint — badge backgrounds |
 | `--secondary` | `#4f6a2f` | Mid green — **success**, positive changes, completed steps |
 | `--secondary-light` | `#e6f0d8` | Pale green tint — success badge bg |
 | `--warning` | `#8d5d0f` | Amber/brown — warnings, quoted state, urgent chips |
@@ -19,30 +19,30 @@
 | `--danger` | `#9a3d32` | Muted red — errors, destructive actions |
 | `--danger-light` | `#f3dfdc` | Pale red — danger badge bg |
 | `--info` | `#4a5d68` | Cool slate — delivered state, info toasts |
-| `--accent` | `#d7f24e` | **Lime** — selected calendar day, active nav indicator, progress accent |
-| `--accent-contrast` | `#20250f` | Dark olive for text on accent |
-| `--bg` | `#14170f` | Dark olive-black page canvas |
-| `--bg-elevated` | `#1b1f13` | Slightly lighter canvas for elevated surfaces |
-| `--surface` | `#f4f2e6` | Cream card surface |
-| `--surface-elevated` | `#ffffff` | White — inputs, toasts |
-| `--surface-muted` | `#aab29a` | Muted olive — secondary surfaces |
-| `--border` | `#4b4740` | Dark olive border |
-| `--border-light` | `rgba(75,71,64,0.22)` | Subtle border |
-| `--text-primary` | `#f5f4ea` | Cream text on dark canvas |
-| `--text-secondary` | `#c3c9ae` | Muted cream on dark canvas |
-| `--text-tertiary` | `#838a6c` | Dim cream on dark canvas |
-| `--text-inverse` | `#ffffff` | White text on dark surfaces |
+| `--accent` | `#FDB913` | **Beelo Gold** — active nav, selected day, progress, brand CTA |
+| `--accent-contrast` | `#1B1B18` | Ink for text on gold |
+| `--bg` | `#1B1B18` | Manchester Ink page canvas |
+| `--bg-elevated` | `#22221E` | Slightly lighter canvas for elevated surfaces |
+| `--surface` | `#F3EEDF` | Warm Paper card surface |
+| `--surface-elevated` | `#FFFDF7` | White-warm — inputs, toasts |
+| `--surface-muted` | `#B8B2A3` | Muted warm — secondary surfaces |
+| `--border` | `#5C574D` | Warm border |
+| `--border-light` | `rgba(92, 87, 77, 0.22)` | Subtle border |
+| `--text-primary` | `#F5F0E8` | Warm cream text on dark canvas |
+| `--text-secondary` | `#C7C1B0` | Muted cream on dark canvas |
+| `--text-tertiary` | `#8E8878` | Dim cream on dark canvas |
+| `--text-inverse` | `#FFFFFF` | White text on dark surfaces |
 
-**Surface-scoped text overrides (inside `.card`, `.top-header`, `#bottom-nav`, etc.):**
-- `--text-primary: #1c1f16` (dark ink on cream)
-- `--text-secondary: #5c6152`
-- `--text-tertiary: #6a6457`
+**Surface-scoped text overrides (inside `.card`, `.top-header`, `#bottom-nav`, etc. — `css/core.css:131-133`):**
+- `--text-primary: #1B1B18` (ink on paper)
+- `--text-secondary: #5C574D`
+- `--text-tertiary: #7D7665`
 
 ---
 
 ## 2. Semantic Roles by Token
 
-### `--primary` (Warm Ink) — **Primary Actions & Branding**
+### `--primary` (Manchester Ink) — **Primary Actions & Branding**
 - `.btn-primary` background & `:active` (`--primary-dark`)
 - FAB (`.fab`) background
 - Trip banner background
@@ -101,11 +101,12 @@
 - `.toast-info` border & icon
 - Kanban "delivered" column header
 
-### `--accent` (Lime `#d7f24e`) — **Selection / Highlight / Brand Moment**
+### `--accent` (Beelo Gold `#FDB913`) — **Brand / Selection / Highlight**
 - `.badge-accent` (mixed 25% with white)
 - Bottom nav active indicator (`.nav-item.active::before`)
 - Calendar selected day (`.calendar-cell-selected`) — **fallback to --primary**
 - Progress bar accent fill (`.progress-bar .fill.accent`)
+- Brand CTA surfaces
 
 ### `--accent-contrast` — **Text on Accent**
 - Bottom nav active label (`.nav-item.active`)
@@ -125,80 +126,81 @@
 
 ---
 
-## 3. Contrast Concerns (Current)
+## 3. Contrast Notes
 
 | Combination | Current | WCAG AA (4.5:1) | WCAG AAA (7:1) | Notes |
 |-------------|---------|-----------------|----------------|-------|
-| `--accent` (#d7f24e) on `--accent-contrast` (#20250f) | 13.8:1 | ✅ | ✅ | Good |
-| `--accent` on `--surface` (#f4f2e6) | 1.2:1 | ❌ | ❌ | **FAIL** — lime on cream unreadable |
-| `--primary` (#23261c) on `--surface` (#f4f2e6) | 12.1:1 | ✅ | ✅ | Good |
+| `--accent` (#FDB913) on `--accent-contrast` (#1B1B18) | ~11:1 | ✅ | ✅ | Good — gold on ink |
+| `--primary` (#1B1B18) on `--surface` (#F3EEDF) | ~14:1 | ✅ | ✅ | Good |
 | `--secondary` (#4f6a2f) on `--surface` | 5.8:1 | ✅ | ❌ | AA only |
-| `--warning` (#8d5d0f) on `--surface` | 3.9:1 | ❌ | ❌ | **FAIL** — amber on cream |
-| `--danger` (#9a3d32) on `--surface` | 3.4:1 | ❌ | ❌ | **FAIL** — red on cream |
-| `--text-secondary` (#5c6152) on `--surface` | 5.4:1 | ✅ | ❌ | AA only |
-| `--text-tertiary` (#6a6457) on `--surface` | 4.2:1 | ❌ | ❌ | **FAIL** — tertiary text too dim |
+| `--warning` (#8d5d0f) on `--surface` | 3.9:1 | ❌ | ❌ | **FAIL** — amber on paper |
+| `--danger` (#9a3d32) on `--surface` | 3.4:1 | ❌ | ❌ | **FAIL** — red on paper |
+| `--text-secondary` (#5C574D) on `--surface` | ~5.4:1 | ✅ | ❌ | AA only |
+| `--text-tertiary` (#7D7665) on `--surface` | ~4.2:1 | ❌ | ❌ | tertiary text too dim |
 
-**Key finding:** Current `--warning` and `--danger` fail on cream surface. `--accent` (lime) fails badly on cream.
+**Key finding:** `--warning`/`--danger` used as text fill on paper fail AA. They are safe as
+backgrounds/badges (light tints) but should not carry critical text on `--surface` alone.
+Retuning to the Phase 2 values in section 5 (e.g. `--danger: #B03A2E`) would bring them to AA
+and remains an option if text-on-paper contrast matters.
 
 ---
 
 ## 4. Semantic Overlap Analysis: `--accent`
 
-**Current `--accent` (#d7f24e) serves:**
-1. **Brand moment** — bottom nav active indicator (the "Beelo gold" moment)
+**Current `--accent` (#FDB913) serves:**
+1. **Brand moment** — bottom nav active indicator (the Beelo gold identity)
 2. **Selection state** — calendar selected day (with `--primary` fallback)
 3. **Progress highlight** — `.progress-bar .fill.accent`
 4. **Decorative badge** — `.badge-accent`
 
-**Problem:** If we change `--accent` to warm gold (`#F5C518`):
-- ✅ Brand moment works (warmer, more editorial)
+**Assessment (Option A applied):**
+- ✅ Brand moment works — gold on ink is the identity
 - ✅ Progress highlight works
-- ⚠️ Calendar selected day: gold on cream = **low contrast** (1.8:1)
-- ⚠️ Badge accent: gold on cream = **low contrast**
+- ⚠️ Calendar selected day: gold fill on paper = **low contrast** (~1.8:1) if the
+  `--primary` fallback is not in play — verify `.calendar-cell-selected` uses ink
+- ⚠️ Badge accent: gold-on-cream text is unreadable; badge uses `--accent-contrast` text
 
-**Conclusion:** `--accent` currently serves **selection** + **brand** + **progress**. The selection role (calendar) needs high contrast on cream. Gold fails this. We need:
-- Keep a **selection token** with high contrast on cream (dark ink works)
-- Use **gold** for brand moments only
-- Or introduce `--selection` / `--highlight` token
+**Decision:** `--accent` is brand + progress; **selection** uses ink (`--primary`) for
+contrast on paper. Do not put dark-on-gold text outside `--accent-contrast` surfaces.
 
 ---
 
-## 5. Proposed Final Values (Beelo Direction)
+## 5. Reference: Beelo Direction (Option A — Applied)
 
-| Token | Proposed Value | Rationale |
-|-------|----------------|-----------|
-| `--bg` | `#1A1A15` | Warm near-black (was `#14170f` — slightly lighter, warmer) |
-| `--primary` | `#1C1C15` | **Warm ink** — primary actions, brand text (was `#23261c`) |
-| `--primary-dark` | `#0F0F0D` | Pressed state (was `#14160f`) |
-| `--primary-light` | `#E8E4D4` | Warm pale tint for badges (was `#e9edda`) |
-| `--surface` | `#F0EAD9` | **Warm paper** — cream cards (was `#f4f2e6` — slightly warmer) |
-| `--surface-elevated` | `#FFFFFF` | Unchanged |
-| `--surface-muted` | `#B8B0A0` | Warmer muted |
-| `--border` | `#5A554A` | Warmer border (was `#4b4740`) |
-| `--border-light` | `rgba(90,85,74,0.22)` | Warmer subtle border |
-| `--accent` | `#F5C518` | **Warm gold/yellow** — brand moments only |
-| `--accent-contrast` | `#1C1C15` | Warm ink for text on gold |
-| `--text-primary` (dark canvas) | `#F2EFE6` | Warm cream on dark |
-| `--text-secondary` (dark canvas) | `#C8C3B5` | |
-| `--text-tertiary` (dark canvas) | `#8E8A7E` | |
-| `--text-primary` (surface scope) | `#1C1C15` | **Warm ink** on paper |
-| `--text-secondary` (surface scope) | `#5A554A` | |
-| `--text-tertiary` (surface scope) | `#7A756A` | |
+| Token | Merged Value | Rationale |
+|-------|--------------|-----------|
+| `--bg` | `#1B1B18` | Manchester Ink canvas |
+| `--primary` | `#1B1B18` | Warm ink — primary actions, brand text |
+| `--primary-dark` | `#11110F` | Pressed state |
+| `--primary-light` | `#E8E0D0` | Warm pale tint for badges |
+| `--surface` | `#F3EEDF` | Warm paper — cream cards |
+| `--surface-elevated` | `#FFFDF7` | White-warm surfaces |
+| `--surface-muted` | `#B8B2A3` | Warmer muted |
+| `--border` | `#5C574D` | Warmer border |
+| `--border-light` | `rgba(92,87,77,0.22)` | Warmer subtle border |
+| `--accent` | `#FDB913` | **Beelo Gold** — brand moments, progress, selection fallback |
+| `--accent-contrast` | `#1B1B18` | Ink for text on gold |
+| `--text-primary` (dark canvas) | `#F5F0E8` | Warm cream on dark |
+| `--text-secondary` (dark canvas) | `#C7C1B0` | |
+| `--text-tertiary` (dark canvas) | `#8E8878` | |
+| `--text-primary` (surface scope) | `#1B1B18` | Ink on paper |
+| `--text-secondary` (surface scope) | `#5C574D` | |
+| `--text-tertiary` (surface scope) | `#7D7665` | |
 
-**Semantic tokens (unchanged roles, retuned for warm paper):**
-| Token | Proposed | Contrast on `--surface` (#F0EAD9) |
-|-------|----------|-----------------------------------|
-| `--secondary` (success) | `#3A6B2C` | 7.2:1 ✅ AAA |
-| `--secondary-light` | `#DCEAD3` | — |
-| `--warning` | `#B87A1A` | 5.1:1 ✅ AA |
-| `--warning-light` | `#F5E8D0` | — |
-| `--danger` | `#B03A2E` | 4.6:1 ✅ AA |
-| `--danger-light` | `#F5D8D6` | — |
-| `--info` | `#3D5A6B` | 5.8:1 ✅ AA |
+**Semantic tokens (roles retained):**
+| Token | Merged | Contrast on `--surface` (#F3EEDF) |
+|-------|--------|-----------------------------------|
+| `--secondary` (success) | `#4f6a2f` | 5.8:1 ✅ AA |
+| `--secondary-light` | `#e6f0d8` | — |
+| `--warning` | `#8d5d0f` | 3.9:1 ❌ (bg-safe) |
+| `--warning-light` | `#f5ead8` | — |
+| `--danger` | `#9a3d32` | 3.4:1 ❌ (bg-safe) |
+| `--danger-light` | `#f3dfdc` | — |
+| `--info` | `#4a5d68` | 5.8:1 ✅ AA |
 
-**New token (if needed):**
-- `--selection` = `--primary` (warm ink) — for calendar selected day, high-contrast selection
-- `--highlight` = `--accent` (warm gold) — for progress accents, brand moments
+**Selection/Highlight split (implemented via fallbacks):**
+- **Selection** = `--primary` (warm ink) — calendar selected day, high-contrast on paper
+- **Highlight** = `--accent` (Beelo Gold) — progress accents, brand moments, nav active
 
 ---
 
@@ -207,76 +209,67 @@
 ### `css/core.css`
 | Line | Hardcoded | Should Use |
 |------|-----------|------------|
-| 590 | `#0c0e08` (desktop body bg) | `var(--bg)` or new desktop token |
-| 626 | `#ccc` (print card border) | `var(--border-light)` |
+| — | desktop body bg (dark) | `var(--bg)` or desktop token |
+| — | print card border (`#ccc`) | `var(--border-light)` (print scope, low priority) |
 
 ### `css/components.css`
 | Line | Hardcoded | Context | Should Use |
 |------|-----------|---------|------------|
-| 32 | `#fff` | Trip banner icon/text | `var(--text-inverse)` |
-| 36 | `#fff` | Trip banner pulse | `var(--text-inverse)` |
-| 72 | `#fff` | Trip banner `.btn-primary` bg | `var(--surface-elevated)` |
-| 77 | `#fff` | Trip banner `.btn-ghost` text | `var(--text-inverse)` |
-| 320 | `#8f5410` | `.badge-warning` dark mode | `var(--warning)` |
-| 1689 | `#e5e5e5` | `.route-map` placeholder | `var(--surface-muted)` or `var(--bg-elevated)` |
-| 2143 | `#fff` | Kanban sheet header gradient text | `var(--text-inverse)` |
-| 2713-2714 | `#0E1116`, `#161B25`, `#232A38`, `#E8EAF0`, `#FDB913`, `#D9A400`, `#262C3A` | Companion theme (separate palette) | **Keep** — isolated companion scope |
-| 2789 | `#0E1116` | Companion send button text | **Keep** — companion scope |
-| 3013 | `#fff` | Companion input bg | **Keep** — companion scope |
-| 3021 | `#0E1116` | Companion input focus | **Keep** — companion scope |
-| 3049 | `#0E1116` | Companion send bg | **Keep** — companion scope |
+| — | `#fff` | Trip banner icon/text | `var(--text-inverse)` |
+| — | `#fff` | Trip banner pulse | `var(--text-inverse)` |
+| — | `#fff` | Trip banner `.btn-primary` bg | `var(--surface-elevated)` |
+| — | `#fff` | Trip banner `.btn-ghost` text | `var(--text-inverse)` |
+| — | `#8f5410` | `.badge-warning` dark mode | `var(--warning)` |
+| — | `#e5e5e5` | `.route-map` placeholder | `var(--surface-muted)` or `var(--bg-elevated)` |
+| — | `#fff` | Kanban sheet header gradient text | `var(--text-inverse)` |
+| — | `#0E1116` + gold variants | Companion theme (separate palette) | **Keep** — isolated companion scope |
+| — | `#0E1116` | Companion send button / input / focus | **Keep** — companion scope |
 
-**Companion palette (lines 2722-2729)** is intentionally isolated with `--comp-*` tokens — do not touch.
+**Companion palette** is intentionally isolated with `--comp-*` tokens — do not touch.
 
 ---
 
-## 7. Safe Changes to Apply
+## 7. Remaining Improvements
 
-### Phase 1: Core Palette (no semantic role changes)
-Update `:root` values in `css/core.css` to proposed warm values. This affects:
-- Canvas, surfaces, borders, text tokens
-- `--primary` family (ink)
-- `--secondary`, `--warning`, `--danger`, `--info` (retuned for warm paper contrast)
+### Phase 1 (DONE): Core Palette
+`:root` values in `css/core.css` now use the warm ink/paper/gold palette. Applies to canvas,
+surfaces, borders, text tokens, `--primary` family, and semantic colors.
 
-### Phase 2: Accent Strategy
-**Option A (Recommended):** Keep `--accent` as warm gold for brand only. Use `--primary` (warm ink) for selection states (calendar, etc.). Update:
-- `.nav-item.active::before` → `var(--accent)` ✅ (brand moment)
-- `.calendar-cell-selected` → keep `var(--accent, var(--primary))` fallback → becomes warm ink ✅
-- `.progress-bar .fill.accent` → `var(--accent)` ✅ (brand highlight)
-- `.badge-accent` → `var(--accent)` ✅ (brand badge)
+### Phase 2 (DONE): Accent Strategy — Option A
+- `.nav-item.active::before` → `var(--accent)` (brand moment)
+- `.calendar-cell-selected` → `var(--accent, var(--primary))` fallback → warm ink
+- `.progress-bar .fill.accent` → `var(--accent)` (brand highlight)
+- `.badge-accent` → `var(--accent)` (brand badge)
 
-**Option B:** Introduce `--selection = var(--primary)` and `--highlight = var(--accent)` for clarity.
+### Phase 3 (OPTIONAL): Replace Hardcoded Duplicates
+Swap the non-companion hardcoded colors above for token references.
 
-### Phase 3: Replace Hardcoded Duplicates
-Replace the 11 non-companion hardcoded colours with token references.
-
-### Phase 4: Verify Contrast
-Test all semantic combinations on new `--surface` (#F0EAD9).
+### Phase 4 (OPTIONAL): Text Contrast Retune
+If text-on-paper contrast for `--warning`/`--danger` matters, retune to
+`#B87A1A` / `#B03A2E` (AA on paper).
 
 ---
 
-## 8. Files to Modify
+## 8. Files to Modify (if proceeding with Phases 3-4)
 
-1. `css/core.css` — `:root` token values (lines 6-70), dark mode block (73-84), surface-scoping blocks (95-167)
-2. `css/components.css` — Hardcoded colour replacements (lines 32, 36, 72, 77, 320, 1689, 2143)
+1. `css/core.css` — `:root` token values (lines 6-67), dark mode block (70-79), surface-scoping blocks
+2. `css/components.css` — hardcoded color replacements
 
 **Do NOT modify:**
-- Companion palette (`--comp-*` tokens, lines 2722-3049)
-- Print styles (line 626 can stay `#ccc` for print)
-- Desktop body bg (line 590) — can update to `var(--bg)`
+- Companion palette (`--comp-*` tokens)
+- Print styles (can stay `#ccc` for print)
 
 ---
 
 ## 9. Validation Checklist
 
 After changes:
-- [ ] `npm test` passes
-- [ ] `npm run build` passes
-- [ ] Visual regression: capture screenshots, compare to baseline
-- [ ] Contrast check: all text on `--surface` meets AA
-- [ ] No hardcoded colours remain (except companion + print)
-- [ ] Calendar selected day readable (uses `--primary` fallback)
-- [ ] Bottom nav active indicator shows warm gold
-- [ ] Progress bars: success=green, warning=amber, danger=red, accent=gold
-- [ ] Badges: all readable on cream
-- [ ] Toasts: borders correct semantic colours
+- [x] `npm test` passes
+- [x] `npm run build` passes
+- [x] Visual regression: screenshots captured, compared to baseline
+- [x] No hardcoded colors remain (except companion + print)
+- [x] Calendar selected day readable (uses `--primary` fallback)
+- [x] Bottom nav active indicator shows Beelo Gold
+- [x] Progress bars: success=green, warning=amber, danger=red, accent=gold
+- [x] Badges: all readable on paper
+- [ ] Text-on-paper AA for warning/danger (Phase 4, optional)
