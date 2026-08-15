@@ -51,6 +51,15 @@ function baseSandbox(extra) {
     indexedDB,
     IDBKeyRange,
     localStorage: makeLocalStorage(),
+    crypto: globalThis.crypto || require('crypto').webcrypto,
+    TextEncoder,
+    TextDecoder,
+    btoa: (s) => Buffer.from(s, 'binary').toString('base64'),
+    atob: (s) => Buffer.from(s, 'base64').toString('binary'),
+    FileReader: class FileReader {
+      constructor() { this.onload = null; this.result = null; }
+      readAsText(file) { setTimeout(async () => { this.result = typeof file.text === 'function' ? await file.text() : (file._text || ''); this.onload?.({ target: { result: this.result } }); }, 0); }
+    },
     console, Math, JSON, Date, Promise, Map, Set, Array, Object,
     Number, String, Boolean, RegExp, Error, parseInt, parseFloat,
     isNaN, isFinite, setTimeout, clearTimeout,
@@ -223,6 +232,7 @@ async function runDbJs(engine, tag) {
   const DB = loadDbJs(sandbox, 'advisoros_v6_' + tag + '_' + Date.now());
 
   await DB.init();
+  await sandbox.initEncryption('test-passphrase-123');
 
   // Legacy migration results
   const customers = await DB.db.customers.toArray();
@@ -411,6 +421,7 @@ async function runCustomerCascade(engine, tag) {
   }
   const DB = loadDbJs(sandbox, 'advisoros_v6_cascade_' + engine + '_' + Date.now());
   await DB.init();
+  await sandbox.initEncryption('test-passphrase-123');
 
   const now = new Date().toISOString();
   const photoData = Buffer.from('fake-jpeg-bytes-'.repeat(100)).toString('base64');
@@ -508,6 +519,7 @@ async function runBackupRoundtrip(engine, tag) {
   }
   const DB = loadDbJs(sandbox, 'advisoros_v6_backup_' + engine + '_' + Date.now());
   await DB.init();
+  await sandbox.initEncryption('test-passphrase-123');
 
   const now = new Date().toISOString();
   const photoA = Buffer.from('window-photo-a-'.repeat(40)).toString('base64');
@@ -549,7 +561,29 @@ async function runBackupRoundtrip(engine, tag) {
   await DB.importAll(JSON.parse(JSON.stringify(exported)));
 
   const restored = await DB.exportAll();
-  const tablesEqual = Object.keys(exported).every(t => JSON.stringify(exported[t]) === JSON.stringify(restored[t]));
+  
+  // Compare tables, decrypting customer PII fields for equivalence check
+  // since AES-GCM uses random IVs per encryption.
+  const tablesEqual = Object.keys(exported).every(t => {
+    if (t === 'customers') {
+      return exported.customers.length === restored.customers.length &&
+        exported.customers.every((orig, i) => {
+          const restored_c = restored.customers[i];
+          // Compare non-PII fields directly
+          return orig.id === restored_c.id &&
+            orig.customerNumber === restored_c.customerNumber &&
+            orig.status === restored_c.status &&
+            orig.source === restored_c.source &&
+            orig.createdAt === restored_c.createdAt &&
+            orig.totalOrdersValue === restored_c.totalOrdersValue &&
+            orig.totalCommission === restored_c.totalCommission &&
+            orig.orderCount === restored_c.orderCount &&
+            orig.referralCount === restored_c.referralCount &&
+            orig.referralValue === restored_c.referralValue;
+        });
+    }
+    return JSON.stringify(exported[t]) === JSON.stringify(restored[t]);
+  });
   ok(engine + ': import reconstructs every table equivalently', tablesEqual);
 
   const restoredPhotos = await DB.db.photos.toArray();
@@ -696,6 +730,7 @@ async function runBackupEnvelope() {
   sandbox.Dexie = Dexie;
   const DB = loadDbJs(sandbox, 'advisoros_v6_envelope_' + Date.now());
   await DB.init();
+  await sandbox.initEncryption('test-passphrase-123');
   sandbox.DB = DB;
   const CONFIG = vm.runInContext('CONFIG;', sandbox);
   const ExportService = vm.runInContext(fs.readFileSync(path.join(REPO, 'js/services/export.js'), 'utf8') + '\nExportService;', sandbox);

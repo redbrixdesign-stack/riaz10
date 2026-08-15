@@ -34,6 +34,10 @@ const App = {
   async init() {
     console.log('AdvisorOS v5.0 initializing...');
 
+    // Prompt for encryption passphrase before opening the database
+    // so the derived key is available for any customer operations.
+    await this.promptPassphrase();
+
     // Initialize database first so DB-backed settings can load.
     try {
       await DB.init();
@@ -108,6 +112,110 @@ const App = {
     console.log('AdvisorOS v5.0 ready');
   },
 
+  // Prompt for encryption passphrase on each app launch.
+  // The key is derived via PBKDF2 and held only in memory for the session.
+  async promptPassphrase() {
+    const hasSalt = localStorage.getItem('advisoros_enc_salt');
+    if (!hasSalt) {
+      // First launch after encryption feature added - create salt and set passphrase
+      return new Promise((resolve) => {
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+          <div class="bottom-sheet" style="max-width:400px;">
+            <div class="sheet-handle"></div>
+            <div class="sheet-header">
+              <h3>Set Encryption Passphrase</h3>
+            </div>
+            <div class="sheet-body p-md">
+              <p class="text-secondary mb-lg">Your customer data (names, phones, addresses, emails) will be encrypted at rest. Choose a passphrase you'll remember — it's required every time you open AdvisorOS.</p>
+              <div class="form-group">
+                <label>Passphrase</label>
+                <input type="password" class="input" id="enc-passphrase-new" placeholder="Enter passphrase" autocomplete="off">
+              </div>
+              <div class="form-group">
+                <label>Confirm Passphrase</label>
+                <input type="password" class="input" id="enc-passphrase-confirm" placeholder="Confirm passphrase" autocomplete="off">
+              </div>
+              <div class="fs-12 text-tertiary mb-md">Forgetting this passphrase means permanent loss of customer data. No recovery is possible.</div>
+              <button class="btn btn-primary btn-block" onclick="App._setPassphrase()">Set Passphrase</button>
+            </div>
+          </div>
+        `;
+        document.getElementById('modal-overlay').appendChild(modal);
+        window.App._setPassphrase = async () => {
+          const p1 = document.getElementById('enc-passphrase-new').value;
+          const p2 = document.getElementById('enc-passphrase-confirm').value;
+          if (!p1 || p1.length < 8) {
+            Toast.show('Passphrase must be at least 8 characters', 'error');
+            return;
+          }
+          if (p1 !== p2) {
+            Toast.show('Passphrases do not match', 'error');
+            return;
+          }
+          modal.remove();
+          delete window.App._setPassphrase;
+          try {
+            await initEncryption(p1);
+            Toast.show('Encryption enabled', 'success');
+          } catch (e) {
+            console.error('Encryption init failed:', e);
+            Toast.show('Failed to initialize encryption', 'error');
+          }
+          resolve();
+        };
+      });
+    } else {
+      // Subsequent launches - prompt for existing passphrase
+      return new Promise((resolve) => {
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+          <div class="bottom-sheet" style="max-width:400px;">
+            <div class="sheet-handle"></div>
+            <div class="sheet-header">
+              <h3>Unlock AdvisorOS</h3>
+            </div>
+            <div class="sheet-body p-md">
+              <p class="text-secondary mb-lg">Enter your passphrase to decrypt customer data.</p>
+              <div class="form-group">
+                <label>Passphrase</label>
+                <input type="password" class="input" id="enc-passphrase" placeholder="Enter passphrase" autocomplete="off">
+              </div>
+              <div id="enc-error" class="fs-12 text-danger mb-md" style="display:none;"></div>
+              <button class="btn btn-primary btn-block" onclick="App._checkPassphrase()">Unlock</button>
+            </div>
+          </div>
+        `;
+        document.getElementById('modal-overlay').appendChild(modal);
+        document.getElementById('enc-passphrase').focus();
+        window.App._checkPassphrase = async () => {
+          const passphrase = document.getElementById('enc-passphrase').value;
+          if (!passphrase) {
+            document.getElementById('enc-error').textContent = 'Please enter your passphrase';
+            document.getElementById('enc-error').style.display = 'block';
+            return;
+          }
+          try {
+            await initEncryption(passphrase);
+            modal.remove();
+            delete window.App._checkPassphrase;
+            resolve();
+          } catch (e) {
+            document.getElementById('enc-error').textContent = 'Incorrect passphrase';
+            document.getElementById('enc-error').style.display = 'block';
+            document.getElementById('enc-passphrase').value = '';
+          }
+        };
+        // Allow Enter key to submit
+        document.getElementById('enc-passphrase').addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') window.App._checkPassphrase();
+        });
+      });
+    }
+  },
+
   async verifyStorage() {
     const status = {
       origin: window.location.origin,
@@ -142,6 +250,27 @@ const App = {
       status.warning = 'This is running from a local file. Use the Vercel HTTPS link on iPhone for reliable app storage.';
     } else if (!status.localStorage || !status.database || status.mode === 'memory') {
       status.warning = 'This browser is not giving the app reliable storage. Export backups often or try Safari without private browsing.';
+    }
+
+    // Check storage quota (once per session)
+    if (!this._storageQuotaWarned) {
+      try {
+        if (navigator.storage && navigator.storage.estimate) {
+          const estimate = await navigator.storage.estimate();
+          const usageMB = estimate.usage ? Math.round(estimate.usage / 1024 / 1024 * 10) / 10 : 0;
+          const quotaMB = estimate.quota ? Math.round(estimate.quota / 1024 / 1024 * 10) / 10 : 0;
+          // Warn at ~4MB usage or 80% of quota, whichever is lower
+          const warnThreshold = Math.min(4, quotaMB * 0.8 || 4);
+          if (usageMB >= warnThreshold) {
+            this._storageQuotaWarned = true;
+            const msg = `Storage usage: ${usageMB}MB${quotaMB ? ` of ${quotaMB}MB` : ''}. Consider exporting a backup.`;
+            console.warn('AdvisorOS storage quota warning:', msg);
+            Toast.show(msg, 'warning', 10000);
+          }
+        }
+      } catch (e) {
+        // navigator.storage.estimate not supported or failed - silently ignore
+      }
     }
 
     this.state.storageStatus = status;

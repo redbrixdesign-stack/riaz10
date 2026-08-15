@@ -284,15 +284,195 @@ class PublicGeoProvider extends GeoProvider {
 }
 
 /**
+ * MapboxGeoProvider — uses Mapbox Geocoding API + Directions API.
+ * Requires CONFIG.geo.mapboxKey to be set. Falls back to PublicGeoProvider
+ * when no key is configured (handled by GeoProviderRegistry).
+ */
+class MapboxGeoProvider extends GeoProvider {
+  constructor(opts = {}) {
+    super();
+    this._accessToken = opts.accessToken || (typeof CONFIG !== 'undefined' && CONFIG.geo?.mapboxKey) || '';
+    this._geocodeCache = this._loadGeocodeCache();
+    this._routeCache = new Map();
+    this._lastRequestTime = 0;
+    this._minRequestInterval = 100;
+    this._fetchTimeoutMs = opts.fetchTimeoutMs || 8000;
+  }
+
+  _loadGeocodeCache() {
+    try {
+      const raw = localStorage.getItem('advisoros_geocode_mapbox_v1');
+      const parsed = raw ? JSON.parse(raw) : null;
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  _saveGeocodeCache() {
+    try {
+      const entries = Object.entries(this._geocodeCache);
+      if (entries.length > 250) {
+        entries.sort((a, b) => (a[1].at || 0) - (b[1].at || 0));
+        for (const [k] of entries.slice(0, entries.length - 250)) delete this._geocodeCache[k];
+      }
+      localStorage.setItem('advisoros_geocode_mapbox_v1', JSON.stringify(this._geocodeCache));
+    } catch (e) { /* quota — the in-memory copy still serves this session */ }
+  }
+
+  _hasKey() {
+    return this._accessToken && this._accessToken.trim().length > 0;
+  }
+
+  async _fetchWithRateLimit(url, options = {}) {
+    if (!this._hasKey()) {
+      throw new Error('Mapbox access token not configured');
+    }
+    const cacheKey = url;
+    if (this._routeCache.has(cacheKey)) {
+      return this._routeCache.get(cacheKey);
+    }
+
+    const now = Date.now();
+    const wait = this._lastRequestTime + this._minRequestInterval - now;
+    if (wait > 0) {
+      await new Promise(r => setTimeout(r, wait));
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this._fetchTimeoutMs);
+    try {
+      const resp = await fetch(url, { ...options, signal: controller.signal });
+      this._lastRequestTime = Date.now();
+      if (resp.status === 429) throw new Error('429');
+      if (!resp.ok) throw new Error(`${resp.status}`);
+      return resp;
+    } catch (err) {
+      if (err && (err.name === 'AbortError' || err.message === 'timeout')) {
+        throw new Error('timeout');
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  // ---- Geocoding ----
+  async geocode(address) {
+    if (!this._hasKey()) {
+      throw new Error('Mapbox access token not configured');
+    }
+    const cacheKey = String(address || '').trim().toLowerCase();
+    const cached = this._geocodeCache[cacheKey];
+    if (cached && typeof cached.lat === 'number') {
+      return { lat: cached.lat, lng: cached.lng, displayName: cached.displayName, postcodeOnly: !!cached.postcodeOnly };
+    }
+
+    try {
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${this._accessToken}&country=gb&limit=1&types=place,address,postcode`;
+      const response = await this._fetchWithRateLimit(url);
+      const data = await response.json();
+      if (data?.features?.length) {
+        const f = data.features[0];
+        const result = {
+          lat: f.center[1],
+          lng: f.center[0],
+          displayName: f.place_name
+        };
+        this._geocodeCache[cacheKey] = { ...result, at: Date.now() };
+        this._saveGeocodeCache();
+        return result;
+      }
+      return null;
+    } catch (err) {
+      console.error('Mapbox geocoding failed:', err);
+      throw err; // Let registry fall back to PublicGeoProvider
+    }
+  }
+
+  // ---- Routing via Mapbox Directions API ----
+  async getRouteSummary(fromLat, fromLng, toLat, toLng) {
+    if (!this._hasKey()) {
+      throw new Error('Mapbox access token not configured');
+    }
+    const cacheKey = `route:${fromLat},${fromLng};${toLat},${toLng}`;
+    if (this._routeCache.has(cacheKey)) {
+      return this._routeCache.get(cacheKey);
+    }
+
+    try {
+      const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${fromLng},${fromLat};${toLng},${toLat}?access_token=${this._accessToken}&overview=false&geometries=geojson`;
+      const response = await this._fetchWithRateLimit(url);
+      const data = await response.json();
+      const route = data?.routes?.[0];
+      if (route?.distance) {
+        const result = {
+          distanceKm: route.distance / 1000,
+          durationMin: route.duration ? Math.round(route.duration / 60) : null,
+          source: 'road'
+        };
+        this._routeCache.set(cacheKey, result);
+        return result;
+      }
+    } catch (err) {
+      console.log('Mapbox route lookup failed:', err);
+    }
+    // Fallback to straight-line estimate (same as PublicGeoProvider)
+    const straightKm = this.calculateDistance(fromLat, fromLng, toLat, toLng);
+    const distanceKm = straightKm * 1.3;
+    return {
+      distanceKm,
+      durationMin: Math.max(5, Math.round((distanceKm / 35) * 60)),
+      source: 'estimate'
+    };
+  }
+
+  async getDistanceKm(fromLat, fromLng, toLat, toLng) {
+    const summary = await this.getRouteSummary(fromLat, fromLng, toLat, toLng);
+    return summary?.distanceKm ?? null;
+  }
+
+  async getTravelTimeMin(fromLat, fromLng, toLat, toLng) {
+    const summary = await this.getRouteSummary(fromLat, fromLng, toLat, toLng);
+    return summary?.durationMin ?? null;
+  }
+
+  // ---- Local Haversine (inherited from GeoProvider base, but we need it) ----
+  calculateDistance(lat1, lng1, lat2, lng2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  // ---- Navigation handoff ----
+  buildNavigationUrl(destination, origin = '') {
+    const dest = encodeURIComponent(destination);
+    const from = origin ? `&origin=${encodeURIComponent(origin)}` : '';
+    return `https://www.google.com/maps/dir/?api=1${from}&destination=${dest}`;
+  }
+}
+
+/**
  * GeoProviderRegistry — single place to get the active provider.
- * Defaults to PublicGeoProvider. Tests can swap with a mock.
+ * Defaults to MapboxGeoProvider when CONFIG.geo.mapboxKey is set,
+ * otherwise falls back to PublicGeoProvider.
  */
 const GeoProviderRegistry = {
   _provider: null,
 
   get() {
     if (!this._provider) {
-      this._provider = new PublicGeoProvider();
+      const hasMapboxKey = typeof CONFIG !== 'undefined' && CONFIG.geo?.mapboxKey;
+      if (hasMapboxKey) {
+        this._provider = new MapboxGeoProvider({ accessToken: CONFIG.geo.mapboxKey });
+      } else {
+        this._provider = new PublicGeoProvider();
+      }
     }
     return this._provider;
   },
@@ -303,6 +483,12 @@ const GeoProviderRegistry = {
 
   reset() {
     this._provider = null;
+  },
+
+  // For Settings UI: returns 'mapbox' or 'public'
+  getActiveProviderName() {
+    const hasMapboxKey = typeof CONFIG !== 'undefined' && CONFIG.geo?.mapboxKey;
+    return hasMapboxKey ? 'mapbox' : 'public';
   }
 };
 

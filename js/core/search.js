@@ -15,23 +15,26 @@ const Search = {
     };
 
     const customers = await DB.db.customers.toArray();
-    this.index.customers = customers.map(c => ({
-      id: c.id,
-      type: 'customer',
-      title: `${c.firstName} ${c.lastName}`,
-      subtitle: c.address ? `${c.address.line1}, ${c.address.postcodeFormatted}` : '',
-      phone: c.phone,
-      customerNumber: c.customerNumber,
-      keywords: [
-        c.firstName,
-        c.lastName,
-        c.phone,
-        c.email,
-        c.customerNumber,
-        c.address?.line1,
-        c.address?.postcode,
-        c.address?.city
-      ].filter(Boolean).join(' ').toLowerCase()
+    this.index.customers = await Promise.all(customers.map(async c => {
+      const decrypted = await decryptCustomer(c);
+      return {
+        id: decrypted.id,
+        type: 'customer',
+        title: `${decrypted.firstName} ${decrypted.lastName}`,
+        subtitle: decrypted.address ? `${decrypted.address.line1}, ${decrypted.address.postcodeFormatted}` : '',
+        phone: decrypted.phone,
+        customerNumber: decrypted.customerNumber,
+        keywords: [
+          decrypted.firstName,
+          decrypted.lastName,
+          decrypted.phone,
+          decrypted.email,
+          decrypted.customerNumber,
+          decrypted.address?.line1,
+          decrypted.address?.postcode,
+          decrypted.address?.city
+        ].filter(Boolean).join(' ').toLowerCase()
+      };
     }));
 
     const appointments = await DB.db.appointments.toArray();

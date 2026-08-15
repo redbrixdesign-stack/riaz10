@@ -30,21 +30,24 @@
                         local testing; everything else below is enforced
                         in BOTH modes.
 
-   Hardening (enforced regardless of mode):
+Hardening (enforced regardless of mode):
      - request body capped at 4 MB; every client-supplied text field
-       capped at 100 KB
+        capped at 100 KB
      - images capped at 2 MB decoded, plus a media-type allowlist
      - model allowlist: unknown models fall back to the type default,
-       never pass through
+        never pass through
      - upstream calls only ever go to the fixed allowlisted endpoint
-     - in-memory sliding-window rate limiting per client address
-       (per-function-instance state: multi-instance or high-traffic
-       deployments need a shared store, e.g. Redis)
+     - sliding-window rate limiting per client address — shared across
+        serverless instances via Upstash Redis when configured
+        (UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN), falling back
+        to per-instance in-memory state when it isn't
 
    Logging policy: this function never logs request bodies, customer
    data, prompts or API keys, and provider error details never leave
    it — clients only ever receive generic error messages.
    ============================================================ */
+
+import { Redis } from '@upstash/redis';
 
 const ALLOWED_MODELS = [
   'claude-sonnet-4-5',
@@ -62,17 +65,104 @@ const ALLOWED_MEDIA_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif
 // never influence it.
 const ANTHROPIC_ENDPOINT = 'https://api.anthropic.com/v1/messages';
 
-// In-memory sliding-window rate limit keyed by client address. State is per
-// function instance: fine for a single serverless instance; add a shared
-// store (Redis) before running multiple instances under load.
-const RATE_LIMIT_MAX_DEFAULT = 120;
-const RATE_LIMIT_WINDOW_MS_DEFAULT = 60_000;
-const rateBuckets = new Map();
-
 // Upstream calls that hang (provider outage, dead connection) must not pin
 // the proxy open forever: each call gets this budget, then aborts. Env-tunable
 // so tests can shorten it.
 const ANTHROPIC_TIMEOUT_MS_DEFAULT = 60_000;
+
+// Sliding-window rate limit keyed by client address. Preferred store:
+// Upstash Redis (shared across serverless instances). Without Redis
+// configured it falls back to the per-instance in-memory Map, which is
+// fine for local dev and the standalone server/ deployment.
+const RATE_LIMIT_MAX_DEFAULT = 120;
+const RATE_LIMIT_WINDOW_MS_DEFAULT = 60_000;
+const rateBuckets = new Map(); // in-memory fallback (per function instance)
+
+let redisClient = null;
+function getRedisClient() {
+  if (redisClient !== null) return redisClient;
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) {
+    redisClient = null;
+    return null;
+  }
+  redisClient = new Redis({ url, token });
+  return redisClient;
+}
+
+// Test seam: injects a mock Redis client (see tests/proxy-server.test.js).
+export function _setRedisClient(client) {
+  redisClient = client;
+}
+
+// One-time console warning (same pattern as warnAboutDefaults()): without
+// Redis, the rate limit is per function instance and resets as Vercel
+// spins instances up/down.
+let warnedAboutRedisFallback = false;
+function warnAboutRedisFallback() {
+  if (warnedAboutRedisFallback) return;
+  warnedAboutRedisFallback = true;
+  console.error('[claude.mjs] UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN not set — rate limiting falls back to per-instance in-memory state. Set both env vars so limits hold across multiple serverless instances.');
+}
+
+// Redis-backed sliding window: a sorted set holds one entry per request
+// (score = arrival ms). Entries older than the window are pruned, the
+// remaining count is the window's request count, and a TTL keeps idle
+// keys from accumulating.
+async function rateLimitRedis(headers, max, windowMs) {
+  const key = `advisoros:rl:${rateLimitKey(headers)}`;
+  const now = Date.now();
+  const cutoff = now - windowMs;
+  const r = getRedisClient();
+  await r.zremrangebyscore(key, 0, cutoff);
+  const count = await r.zcard(key);
+  if (count >= max) {
+    return { limited: true, retryAfter: Math.ceil(windowMs / 1000) };
+  }
+  await r.zadd(key, { score: now, member: `${now}:${Math.random().toString(36).slice(2)}` });
+  await r.expire(key, Math.ceil(windowMs / 1000) * 2);
+  return { limited: false, retryAfter: Math.ceil(windowMs / 1000) };
+}
+
+function rateLimitInMemory(headers, max, windowMs) {
+  const windowSec = Math.max(1, Math.floor(windowMs / 1000));
+  const key = rateLimitKey(headers);
+  const now = Math.floor(Date.now() / 1000);
+  let bucket = rateBuckets.get(key) || [];
+  const cutoff = now - windowSec;
+  while (bucket.length && bucket[0] <= cutoff) bucket.shift();
+  const limited = bucket.length >= max;
+  if (!limited) {
+    bucket.push(now);
+    rateBuckets.set(key, bucket);
+    // Opportunistic sweep so the map can't grow without bound.
+    if (rateBuckets.size > 10000) {
+      for (const [k, v] of rateBuckets) {
+        if (!v.length || v[v.length - 1] <= cutoff) rateBuckets.delete(k);
+      }
+    }
+  }
+  return { limited, retryAfter: Math.ceil(windowMs / 1000) };
+}
+
+async function rateLimit(headers) {
+  const max = parseInt(process.env.RATE_LIMIT_MAX || String(RATE_LIMIT_MAX_DEFAULT), 10) || RATE_LIMIT_MAX_DEFAULT;
+  const windowMs = parseInt(process.env.RATE_LIMIT_WINDOW_MS || String(RATE_LIMIT_WINDOW_MS_DEFAULT), 10) || RATE_LIMIT_WINDOW_MS_DEFAULT;
+  const r = getRedisClient();
+  if (r) {
+    try {
+      return await rateLimitRedis(headers, max, windowMs);
+    } catch (err) {
+      // A Redis outage must not take the proxy down with it — fall back to
+      // the in-memory limiter for this request.
+      console.error('[claude.mjs] Redis rate limit failed, falling back to in-memory:', err?.message || err);
+    }
+  } else {
+    warnAboutRedisFallback();
+  }
+  return rateLimitInMemory(headers, max, windowMs);
+}
 
 // Generic client-facing messages for upstream failures: the provider's own
 // error text can contain internal details, so it never crosses the wire.
@@ -324,29 +414,6 @@ function rateLimitKey(headers) {
   return 'unknown';
 }
 
-function rateLimit(headers) {
-  const max = parseInt(process.env.RATE_LIMIT_MAX || String(RATE_LIMIT_MAX_DEFAULT), 10) || RATE_LIMIT_MAX_DEFAULT;
-  const windowMs = parseInt(process.env.RATE_LIMIT_WINDOW_MS || String(RATE_LIMIT_WINDOW_MS_DEFAULT), 10) || RATE_LIMIT_WINDOW_MS_DEFAULT;
-  const windowSec = Math.max(1, Math.floor(windowMs / 1000));
-  const key = rateLimitKey(headers);
-  const now = Math.floor(Date.now() / 1000);
-  let bucket = rateBuckets.get(key) || [];
-  const cutoff = now - windowSec;
-  while (bucket.length && bucket[0] <= cutoff) bucket.shift();
-  const limited = bucket.length >= max;
-  if (!limited) {
-    bucket.push(now);
-    rateBuckets.set(key, bucket);
-    // Opportunistic sweep so the map can't grow without bound.
-    if (rateBuckets.size > 10000) {
-      for (const [k, v] of rateBuckets) {
-        if (!v.length || v[v.length - 1] <= cutoff) rateBuckets.delete(k);
-      }
-    }
-  }
-  return { limited, retryAfter: Math.ceil(windowMs / 1000) };
-}
-
 // Production (NODE_ENV=production, as Vercel sets) fails closed until the
 // deployment is configured: ALLOWED_ORIGIN and AI_SECRET must both be set.
 // Dev mode stays lenient (warnings only) so local testing stays easy.
@@ -432,7 +499,7 @@ export async function handle(request) {
 
   // Rate limit before the auth/origin checks so abusive clients burn slots,
   // never upstream quota.
-  const rl = rateLimit(request.headers);
+  const rl = await rateLimit(request.headers);
   if (rl.limited) {
     return json(429, { ok: false, error: 'rate_limited', message: 'Too many requests — try again shortly' },
       { ...corsHeaders(origin), 'retry-after': String(rl.retryAfter) });

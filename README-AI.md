@@ -34,6 +34,8 @@ Then set the environment variables in the Vercel dashboard
 | `ANTHROPIC_API_KEY` | yes | server-side only, never shipped |
 | `AI_SECRET` | production | shared secret the app sends as `X-AI-Key` (must equal `CONFIG.ai.secret` in the app); missing → 403 |
 | `ALLOWED_ORIGIN` | production | the exact app origin (e.g. `https://your-site.vercel.app`); every other origin → 403 |
+| `UPSTASH_REDIS_REST_URL` | no | enables shared rate limiting across serverless instances via Upstash Redis (falls back to in-memory per-instance if unset) |
+| `UPSTASH_REDIS_REST_TOKEN` | no | paired with `UPSTASH_REDIS_REST_URL`; required together to activate Redis-backed rate limiting |
 | `RATE_LIMIT_MAX` | no (120) | requests per address per window |
 | `RATE_LIMIT_WINDOW_MS` | no (60000) | rate-limit window |
 | `ANTHROPIC_TIMEOUT_MS` | no (60000) | upstream call budget before the proxy aborts with 504 |

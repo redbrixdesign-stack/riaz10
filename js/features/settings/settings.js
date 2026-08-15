@@ -71,6 +71,8 @@ const SettingsFeature = {
 
         ${this.renderAICard()}
 
+        ${this.renderRoutingCard()}
+
         ${this.renderAutoMessagesCard()}
 
         ${this.renderCommissionCard()}
@@ -324,6 +326,42 @@ const SettingsFeature = {
         <button class="btn btn-outline btn-sm btn-block mt-10"  onclick="SettingsFeature.testAI()"><span class="material-symbols-rounded fs-16" >bolt</span>Test connection</button>
       </div>
     `;
+  },
+
+  // ---- Routing (Mapbox) ----
+  renderRoutingCard() {
+    const geo = CONFIG.geo || {};
+    const activeProvider = typeof GeoProviderRegistry !== 'undefined' ? GeoProviderRegistry.getActiveProviderName() : (geo.mapboxKey ? 'mapbox' : 'public');
+    const providerLabel = activeProvider === 'mapbox' ? 'Mapbox (paid)' : 'OSRM / Nominatim (free, no SLA)';
+
+    return `
+      <div class="card mb-md" >
+        <div class="flex items-center justify-between" >
+          <div>
+            <div class="fw-600" >Routing & Geocoding</div>
+            <div class="fs-12 text-secondary mt-2" >Powers route distances, ETAs, and address lookups. Mapbox provides faster, more reliable results with commercial licensing.</div>
+          </div>
+          <span class="badge" style="background:${activeProvider === 'mapbox' ? 'var(--secondary)' : 'var(--warning)'};color:white;">${Utils.escapeHtml(providerLabel)}</span>
+        </div>
+
+        <div class="fs-12 text-tertiary mt-10 lh-150" >Mapbox uses your access token for the Geocoding API (address → coordinates) and Directions API (driving routes + ETAs). Get a token at <a href="https://account.mapbox.com/access-tokens/" target="_blank" class="text-primary">account.mapbox.com/access-tokens</a> — the free tier includes 100k requests/month.</div>
+
+        <div class="form-group mt-10" >
+          <label>Mapbox Access Token</label>
+          <input type="password" class="input" id="set-mapbox-key" value="${Utils.escapeHtml(geo.mapboxKey || '')}" placeholder="pk.eyJ1Ijoi..." onblur="SettingsFeature.setMapboxKey(this.value)">
+        </div>
+
+        <div class="inset-dark mt-12 dark-note fs-12 text-secondary" >Current provider: ${Utils.escapeHtml(providerLabel)}. ${!geo.mapboxKey ? 'Add a Mapbox key to enable paid geocoding/routing.' : 'Remove the key to fall back to public OSRM/Nominatim.'}</div>
+      </div>
+    `;
+  },
+
+  setMapboxKey(value) {
+    const trimmed = (value || '').trim();
+    CONFIG.geo = { ...(CONFIG.geo || {}), mapboxKey: trimmed };
+    this.persist();
+    Toast.show(trimmed ? 'Mapbox key saved — routing now uses Mapbox' : 'Mapbox key removed — falling back to OSRM/Nominatim', 'success');
+    this.refreshInPlace();
   },
 
   toggleAI() {

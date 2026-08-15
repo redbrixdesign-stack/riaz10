@@ -20,6 +20,26 @@
   "devDependencies": {
     "dexie": "^4.0.11",
     "fake-indexeddb": "^6.2.5",
+    "playwright": "^1.62.1",
     "terser": "^5.49.0"
-  }
+  },
+  "dependencies": {
+    "@upstash/redis": "^1.38.2"
+  },
+  "main": "sw.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/redbrixdesign-stack/riaz10.git"
+  },
+  "keywords": [],
+  "author": "",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/redbrixdesign-stack/riaz10/issues"
+  },
+  "homepage": "https://github.com/redbrixdesign-stack/riaz10#readme"
 }

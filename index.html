@@ -9,6 +9,23 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="description" content="AdvisorOS - The self-employed companion app for field service professionals">
+  <!-- Content-Security-Policy. Built from what the app actually loads:
+       - 'unsafe-inline' in script-src: the app uses ~289 inline onclick/onchange/
+         oninput attributes throughout js/ — removing them is a separate job.
+       - 'wasm-unsafe-eval': Tesseract.js loads its OCR core as Emscripten WASM
+         (https://cdn.jsdelivr.net/npm/tesseract.js-core/...), which needs this
+         or CSP blocks the WebAssembly compile.
+       - unpkg.com: Leaflet (js + css) and the Tesseract main script.
+       - cdn.jsdelivr.net: Tesseract's default worker + core (importScripts).
+       - fonts.googleapis.com / fonts.gstatic.com: Google Fonts (Hanken Grotesk,
+         JetBrains Mono, Material Symbols).
+       - tile.openstreetmap.org: Leaflet raster tiles (a/b/c subdomains).
+       - connect-src 'self' https: — the AI proxy URL is user-configurable in
+         Settings and can be any origin, so https: is allowed broadly rather
+         than pinning one host users would then have to edit by hand.
+       - frame-ancestors is NOT enforced by <meta> CSP (HTTP header only) — it
+         is included for when this policy is ever moved to headers. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.tile.openstreetmap.org; connect-src 'self' https:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
   <style>html,body{background-color:#14170f;}</style>
 
   <title>AdvisorOS</title>
