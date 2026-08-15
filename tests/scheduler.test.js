@@ -43,15 +43,25 @@ function makeLocalStorage() {
 
 // Build a sandbox with a controllable UK clock and captured timers.
 // uk: {year, month, day, hour, minute, second} wall-clock values for now.
-function loadScheduler({ uk, aiEnabled = false, autoMessages, appointments = [], apptById = {} } = {}) {
+// nowMs: optional frozen "new Date()" instant (all Date-constructed "now"
+// calls return this instant; parsed dates still work normally).
+function loadScheduler({ uk, aiEnabled = false, autoMessages, appointments = [], apptById = {}, nowMs } = {}) {
   const sandbox = {
     console, Math, JSON, Date, Promise, Map, Set, Array, Object,
     Number, String, Boolean, RegExp, Error, parseInt, parseFloat, isNaN,
     AbortController, URL, localStorage: makeLocalStorage()
   };
+  if (nowMs !== undefined) {
+    const RealDate = Date;
+    class FakeDate extends RealDate {
+      constructor(...args) { super(...(args.length ? args : [nowMs])); }
+    }
+    sandbox.Date = FakeDate;
+  }
   sandbox.globalThis = sandbox;
   sandbox.self = sandbox;
   sandbox.window = sandbox;
+  sandbox.Toast = { show() {} };
 
   // Captured timers: tests fire them manually by index.
   sandbox.timers = [];
@@ -243,6 +253,55 @@ function appt(id, dateISO, phone = '07700123456') {
     });
     await s.onDeparture(9);
     ok('placeholder hint when no live ETA', s.sandbox.TalkFeature.lastSheet.hint.includes("Couldn't work out a live ETA"), s.sandbox.TalkFeature.lastSheet.hint);
+  }
+
+  console.log('\nTest I: a failed fire retries instead of burning the stage');
+  {
+    const s = loadScheduler({
+      uk: { year: 2026, month: 8, day: 11, hour: 18, minute: 30, second: 0 },
+      appointments: [appt(1, ukDay(2026, 8, 12))]
+    });
+    await s.reschedule();
+    // Break the static template: the draft cannot be built, so nothing
+    // should be flagged — the next boot's catch-up can retry the stage.
+    vm.runInContext('CONFIG.templates.evening_before = undefined;', s.sandbox);
+    await s.sandbox.timers[0].fn();
+    ok('failed draft opens no sheet', !s.sandbox.TalkFeature.lastSheet);
+    ok('failed draft leaves the flag unset', s.sandbox.localStorage.getItem(s._flag('evening_before', 1)) === null);
+    // Template restored: the same stage (simulating the next boot) fires and flags.
+    vm.runInContext('CONFIG.templates.evening_before = "See you tomorrow {{firstName}} — {{advisorName}}";', s.sandbox);
+    await s.sandbox.timers[0].fn();
+    ok('retry fires the draft once the template exists', !!s.sandbox.TalkFeature.lastSheet && s.sandbox.TalkFeature.lastSheet.message.includes('Alice'), s.sandbox.TalkFeature.lastSheet);
+    ok('retry sets the flag', s.sandbox.localStorage.getItem(s._flag('evening_before', 1)) === '1');
+  }
+
+  console.log('\nTest J: notification service reliability (popup fallback + UK-day tiers)');
+  {
+    const s = loadScheduler({
+      uk: { year: 2026, month: 8, day: 11, hour: 13, minute: 0, second: 0 },
+      nowMs: Date.UTC(2026, 7, 11, 12, 0, 0)
+    });
+    const NotificationService = vm.runInContext('NotificationService;', s.sandbox);
+    // Popup-blocked window.open falls back to navigating the tab.
+    vm.runInContext('window.open = () => null;', s.sandbox);
+    vm.runInContext('window.location = { href: null };', s.sandbox);
+    const sent = vm.runInContext('NotificationService.sendWhatsApp("07700 900123", "Hi");', s.sandbox);
+    ok('popup-blocked send falls back to tab navigation', sent === true && String(vm.runInContext('window.location.href', s.sandbox)).includes('wa.me/447700900123'), vm.runInContext('window.location.href', s.sandbox));
+    // UK-day tiers: visit on 12 Aug (frozen now 11 Aug, UK clock) = tomorrow.
+    const tomorrowMsg = vm.runInContext('NotificationService.buildBookingConfirmationMessage({ firstName: "Sam", dateLabel: "12 Aug", time: "at 09:00", address: "", type: "measure", advisorName: "Tom", date: new Date("2026-08-12T08:00:00Z") });', s.sandbox);
+    ok('booking confirmation tiers tomorrow correctly', tomorrowMsg.includes('tomorrow') && tomorrowMsg.includes('measurement'), tomorrowMsg);
+    // Visit four UK days out = the "later" tier with the reminder promise.
+    const laterMsg = vm.runInContext('NotificationService.buildBookingConfirmationMessage({ firstName: "Sam", dateLabel: "15 Aug", time: "at 09:00", address: "", type: "consultation", advisorName: "Tom", date: new Date("2026-08-15T08:00:00Z") });', s.sandbox);
+    ok('booking confirmation tiers later with the reminder promise', laterMsg.includes("little way off") && laterMsg.includes('reminder'), laterMsg);
+    // DST boundary: 23:30Z on 24 Oct 2026 is 00:30 BST on the 25th in the UK,
+    // so a visit booked for 25 Oct is TODAY's visit, not tomorrow's.
+    const s2 = loadScheduler({
+      uk: { year: 2026, month: 10, day: 25, hour: 0, minute: 30, second: 0 },
+      nowMs: Date.UTC(2026, 9, 24, 23, 30, 0)
+    });
+    const N2 = vm.runInContext('NotificationService;', s2.sandbox);
+    const boundaryMsg = vm.runInContext('NotificationService.buildBookingConfirmationMessage({ firstName: "Sam", dateLabel: "25 Oct", time: "at 09:00", address: "", type: "measure", advisorName: "Tom", date: new Date("2026-10-25T08:00:00Z") });', s2.sandbox);
+    ok('booking confirmation follows the UK day across the autumn DST jump', boundaryMsg.includes('with you today'), boundaryMsg);
   }
 
   console.log('\n' + (failures === 0 ? 'ALL TESTS PASSED' : failures + ' TEST(S) FAILED'));

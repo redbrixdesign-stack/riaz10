@@ -118,7 +118,6 @@ const MessageScheduler = {
     const appt = await DB.db.appointments.get(appointmentId);
     if (!appt) return;
     if (localStorage.getItem(this._flag('on_my_way', appt.id)) === '1') return;
-    localStorage.setItem(this._flag('on_my_way', appt.id), '1');
 
     let etaText = '';
     try {
@@ -136,11 +135,13 @@ const MessageScheduler = {
     TalkFeature.openPreviewSheet(message, pending, etaText
       ? `Live ETA from your current position — about ${etaText}. Double-check before sending.`
       : "Couldn't work out a live ETA (location unavailable) - this is a placeholder, edit before sending.");
+    // Flag only after the sheet opened — a failed draft retries on the next
+    // departure instead of being burned (same policy as _fire).
+    localStorage.setItem(this._flag('on_my_way', appt.id), '1');
   },
 
   async _fire(appt, stage) {
     if (localStorage.getItem(this._flag(stage, appt.id)) === '1') return;
-    localStorage.setItem(this._flag(stage, appt.id), '1');
 
     const phone = await this._resolvePhone(appt);
     if (!phone) return;
@@ -153,6 +154,11 @@ const MessageScheduler = {
     };
     TalkFeature.pendingMessage = pending;
     TalkFeature.openPreviewSheet(message, pending, hints[stage] || null);
+    // Flag only AFTER the draft actually reached the review sheet. A fire
+    // that failed earlier (no phone, AI down AND template missing) leaves
+    // the flag unset, so the next boot's catch-up retries it instead of
+    // silently burning the stage forever.
+    localStorage.setItem(this._flag(stage, appt.id), '1');
   },
 
   async _resolvePhone(appt) {

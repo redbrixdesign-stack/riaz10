@@ -31,9 +31,16 @@ const NotificationService = {
     const author = advisorName || 'Your Advisor';
     let daysUntil = null;
     if (date instanceof Date && !isNaN(date)) {
-      const today = new Date(); today.setHours(0, 0, 0, 0);
-      const visitDay = new Date(date); visitDay.setHours(0, 0, 0, 0);
-      daysUntil = Math.round((visitDay - today) / 86400000);
+      // UK calendar-day difference (same convention as the rest of the app):
+      // "now" and the visit day are both read through Europe/London, so a
+      // device set to a non-UK timezone still tiers the message correctly
+      // (e.g. a visit "tomorrow" by the advisor's calendar, not by the
+      // device clock).
+      const nowP = Utils.ukParts();
+      const tgtP = Utils.ukParts(date);
+      const a = new Date(nowP.year, nowP.month - 1, nowP.day).getTime();
+      const b = new Date(tgtP.year, tgtP.month - 1, tgtP.day).getTime();
+      daysUntil = Math.round((b - a) / 86400000);
     }
     const tier = daysUntil === null ? 'soon' : daysUntil <= 0 ? 'today' : daysUntil === 1 ? 'tomorrow' : daysUntil <= 3 ? 'soon' : 'later';
 
@@ -72,7 +79,13 @@ const NotificationService = {
       Toast.show('Add a valid phone number for WhatsApp', 'error');
       return false;
     }
-    window.open(url, '_blank');
+    // window.open returns null when a popup blocker swallows the window —
+    // fall back to navigating this tab so the draft is never silently lost.
+    const win = window.open(url, '_blank');
+    if (!win) {
+      window.location.href = url;
+      Toast.show('Opened WhatsApp — check it sent', 'info');
+    }
     return true;
   },
 
