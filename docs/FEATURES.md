@@ -216,28 +216,49 @@ Prompt design is deliberately safe:
 
 ## 7. Security notes
 
-- No API key in client code; proxy validates origin/secret.
-- IDs coerced to positive integers before DB access (hash-link injection
-  defense), all rendering HTML-escaped.
-- Import of backups validates shape before touching data and is atomic on
-  the real engine (rollback on failure).
-- AI response parsing whitelists fields/categories/commands so the model
-  can't inject app behavior.
+- **No API key in client code.** All AI traffic goes through one proxy
+  contract (`api/claude.mjs`, also served as a thin Express wrapper in
+  `server/`) which enforces: shared-secret header (`X-AI-Key`, 403
+  without), exact-origin allowlist (403), per-address sliding-window rate
+  limit, body/media-size caps, model/media-type allowlists, and generic
+  error mapping so upstream details never reach the client. In
+  production the proxy refuses ALL requests until `AI_SECRET` and
+  `ALLOWED_ORIGIN` are both set.
+- **Upstream hard timeouts.** Anthropic calls abort after
+  `ANTHROPIC_TIMEOUT_MS` (default 60 s) and map to a 504; clients abort
+  hung requests in bounded time.
+- **Data minimisation on the wire.** AI context carries only what the
+  message needs (quote value, measured windows, order figures, message
+  history) — no customer addresses, areas, or lead sources; backups
+  sanitize the AI secret and restore only allowlisted, type-checked
+  config keys.
+- **IDS coerced to positive integers before DB access** (hash-link
+  injection defense), all rendering HTML-escaped (incl. customer
+  name/address/phone/notes).
+- **Import of backups validates shape before touching data and is atomic**
+  on the real engine (rollback on failure); journey F covers export →
+  factory reset → restore.
+- **AI response parsing whitelists fields/categories/commands** so the
+  model can't inject app behavior.
+- **Egress inventory** (all user-initiated, HTTPS): Nominatim
+  (geocoding, UK-only), OSRM (routing), Open-Meteo (weather), Anthropic
+  via the proxy (AI drafts). Permission surface: geolocation (trips) and
+  notifications (morning brief); no camera/mic/filesystem.
+- **Git history note:** an early commit once contained a real-looking
+  Anthropic key in `server/.env.example`; it was replaced with a
+  placeholder in Phase 13. If that key was ever live, revoke it in the
+  Anthropic console; scrub history (`git filter-repo`) before making the
+  repo public.
 
 ## 8. Testing & quality
 
-`npm test` runs headless unit suites (Node + fake-indexeddb):
-
-- **storage** — engine parity between Dexie and the shim, legacy
-  migration, sequence guards, export/import rollback, factory reset.
-- **ai** — proxy guards (secret/origin/image-size/model allowlist),
-  prompt payloads, parsing ladders, graceful degradation.
-- **companion** — routing, rule answers, whitelisted suggestions.
-- **followups / scheduler / ocr** — task generation, UK-time timer math,
-  date parsing and stale-date roll-forward logic.
+`npm test` runs 12 headless unit suites (Node + fake-indexeddb):
+datetime, storage, ai, proxy-server, companion, followups, scheduler,
+ocr, measure, money, geoprovider, weather.
 
 Plus browser E2E suites (OCR save, features, companion navigation) via
-`npm run test:browser`.
+`npm run test:browser`, and 7 end-to-end journeys (A–F, incl. the
+backup/restore journey F) via `node tests/browser/run-journeys.js`.
 
 ## 9. Build & deploy
 
@@ -251,7 +272,11 @@ Plus browser E2E suites (OCR save, features, companion navigation) via
 ## 10. Known limitations
 
 - Routing/geocoding uses free public OSRM/Nominatim instances (no SLA,
-  rate-limited) — swap for a paid provider before commercial rollout.
+  rate-limited; hard timeouts + estimate fallbacks make it degrade, not
+  break) — swap for a paid provider before commercial rollout.
 - Tax figures are estimates for planning, not filing advice.
 - Data is device-local: no sync, no backup server, no account recovery if
   storage is cleared (use the export/import backup).
+- AI drafting needs connectivity (proxy); the app itself works offline —
+  shell + data + cached geocodes + stale weather serve the day.
+- Scheduler timers run while the app is open, with catch-up on boot.
