@@ -61,7 +61,36 @@ global.RouteFeature = {
 };
 global.Geo = { geocode: async () => ({ lat: 53.5, lng: -2.3 }) };
 global.TalkFeature = { sendMessage() {} };
-global.AppointmentsFeature = { navigateToVisit() {} };
+global.AppointmentsFeature = { 
+  navigateToVisit() {},
+  getAreaLabel(appt) {
+    if (!appt?.address) return 'Unknown area';
+    const parts = appt.address.split(',').map(p => p.trim()).filter(Boolean);
+    if (parts.length >= 2) return parts[parts.length - 2];
+    return parts[0] || 'Area unknown';
+  }
+};
+
+// getAreaLabel helper for tests
+function getAreaLabel(appt) {
+  if (!appt?.address) return 'Unknown area';
+  const parts = appt.address.split(',').map(p => p.trim()).filter(Boolean);
+  if (parts.length >= 2) return parts[parts.length - 2];
+  return parts[0] || 'Area unknown';
+}
+
+global.AppointmentsFeature = { 
+  navigateToVisit() {},
+  getAreaLabel
+};
+
+// Provide getAreaLabel to CompanionFeature so buildHomeData works in tests
+global.CompanionFeature = {
+  getAreaLabel: function(appt) {
+    return global.AppointmentsFeature.getAreaLabel(appt);
+  }
+};
+
 global.AIService = { isEnabled: () => false, assistantTurn: async () => ({ ok: false, message: 'off' }) };
 global.HomeScreenController = {
   renderDynamicHomeScreen() {},

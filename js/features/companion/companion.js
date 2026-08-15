@@ -45,6 +45,14 @@ const CompanionFeature = {
     'evening review': '▸ What have I missed?'
   },
 
+  // Extract area label from appointment address (e.g., "123 Main St, Manchester" -> "Manchester")
+  getAreaLabel(appt) {
+    if (!appt?.address) return 'Unknown area';
+    const parts = appt.address.split(',').map(p => p.trim()).filter(Boolean);
+    if (parts.length >= 2) return parts[parts.length - 2];
+    return parts[0] || 'Area unknown';
+  },
+
   get aiPrefKey() {
     return (CONFIG.companion && CONFIG.companion.aiPreferenceKey) || 'advisoros_companion_ai';
   },
@@ -129,14 +137,14 @@ const CompanionFeature = {
     const scroll = document.getElementById('comp-scroll');
     if (!scroll) return;
     if (this._turns.length === 0) {
-      // First paint: welcome shell immediately, live chips when they land.
-      scroll.innerHTML = this.welcomeHtml([]);
-      this.buildWelcomeChips().then(chips => {
+      // First paint: welcome shell immediately, live home data when they land.
+      scroll.innerHTML = this.welcomeHtml({ greetingSub: 'Loading…', nextVisit: null, todayVisits: [], attention: [], suggestions: [] });
+      this.buildHomeData().then(homeData => {
         const again = document.getElementById('comp-scroll');
         if (again && this._turns.length === 0 && again.innerHTML) {
-          again.innerHTML = this.welcomeHtml(chips);
+          again.innerHTML = this.welcomeHtml(homeData);
         }
-      }).catch(() => { /* static cards seen already */ });
+      }).catch(() => { /* static fallback seen already */ });
       return;
     }
     const inner = this._turns.map(t =>
@@ -146,82 +154,329 @@ const CompanionFeature = {
     scroll.scrollTop = scroll.scrollHeight;
   },
 
-  welcomeHtml(chips) {
+  welcomeHtml(homeData) {
     const firstName = Utils.firstNameFrom(CONFIG.advisorName || '');
-    const cards = (chips && chips.length ? chips : [
-      ["Today's Overview", 'event_available', 'your day at a glance', 'today'],
-      ['Weekly Overview', 'trending_up', 'earnings + sales', 'week'],
-      ['Money & Tax', 'payments', 'expenses, mileage, tax', 'money'],
-      ['Follow-ups Due', 'campaign', 'who needs a nudge', 'follow-ups'],
-      ['Next Visit', 'near_me', 'who, when, how far', 'next visit'],
-      ['Log Expense', 'receipt_long', 'scan or type a receipt', 'log expense']
-    ]);
-    return `
-      <div class="comp-welcome">
-        <div class="comp-avatar comp-avatar-lg">B</div>
-        <h2 class="comp-welcome-title">Hi, I'm Beelo.</h2>
-        <p class="comp-welcome-sub">${firstName !== 'there' ? `Morning, ${Utils.escapeHtml(firstName)}.` : 'Morning.'} What would help?</p>
-        <div class="comp-cards">
-          ${cards.map(card => `
-            <button class="comp-card" type="button" onclick="CompanionFeature.send(${Utils.escapeJsString(JSON.stringify(card[3]))})">
-              <span class="material-symbols-rounded comp-card-icon">${card[1]}</span>
-              <span class="comp-card-body">
-                <span class="comp-card-title">${Utils.escapeHtml(card[2])}</span>
-                <span class="comp-card-sub">${Utils.escapeHtml(card[0])}</span>
-              </span>
-              <span class="material-symbols-rounded comp-card-arrow">chevron_right</span>
-            </button>
-          `).join('')}
+    const hour = Utils.hourUK();
+    const greeting = hour < 5 ? 'Working late' : hour < 12 ? 'Morning' : hour < 17 ? 'Afternoon' : hour < 22 ? 'Evening' : 'Late shift';
+    
+    // A. BELO GREETING
+    const greetingHtml = `
+      <div class="comp-home-greeting">
+        <div class="comp-home-avatar">B</div>
+        <div class="comp-home-greeting-text">
+          <div class="comp-home-greeting-main">${greeting}, ${firstName !== 'there' ? Utils.escapeHtml(firstName) : ''}.</div>
+          <div class="comp-home-greeting-sub">${homeData.greetingSub}</div>
         </div>
+      </div>`;
+
+    // B. NEXT VISIT (Right Now)
+    let nextVisitHtml = '';
+    if (homeData.nextVisit) {
+      const nv = homeData.nextVisit;
+      nextVisitHtml = `
+        <div class="comp-home-section">
+          <div class="comp-home-section-header">
+            <span class="comp-home-section-label">RIGHT NOW</span>
+            <span class="comp-home-section-time">${nv.time}</span>
+          </div>
+          <div class="comp-home-next-visit">
+            <div class="comp-home-next-visit-main">
+              <div class="comp-home-next-visit-name">${Utils.escapeHtml(nv.name)}</div>
+              <div class="comp-home-next-visit-meta">${Utils.escapeHtml(nv.area)} · ${Utils.escapeHtml(nv.type)}</div>
+              <div class="comp-home-next-visit-address">${Utils.escapeHtml(nv.address)}</div>
+            </div>
+            <div class="comp-home-next-visit-eta">
+              <span class="material-symbols-rounded">directions_car</span>
+              <span>${nv.eta}</span>
+            </div>
+          </div>
+          <div class="comp-home-next-visit-actions">
+            <button class="btn btn-primary btn-sm" onclick="AppointmentsFeature.navigateToVisit('${Utils.escapeJsString(nv.address || '')}', ${nv.id})">
+              <span class="material-symbols-rounded">navigation</span>
+              <span>Navigate</span>
+            </button>
+            <button class="btn btn-outline btn-sm" onclick="TalkFeature.sendMessage(${nv.id}, 'on_my_way')">
+              <span class="material-symbols-rounded">directions_car</span>
+              <span>On my way</span>
+            </button>
+          </div>`;
+    }
+
+    // C. TODAY - Lightweight day awareness
+    let todayHtml = '';
+    if (homeData.todayVisits && homeData.todayVisits.length > 0) {
+      const visitsHtml = homeData.todayVisits.map((v, i) => {
+        let stateClass = '';
+        let stateLabel = '';
+        if (v.completed) { stateClass = 'completed'; stateLabel = 'Done'; }
+        else if (i === 0 && !v.completed) { stateClass = 'current'; stateLabel = 'Next'; }
+        else { stateClass = 'upcoming'; stateLabel = 'Upcoming'; }
+        
+        return `
+          <div class="comp-home-visit ${stateClass}">
+            <span class="comp-home-visit-state">${stateLabel}</span>
+            <div class="comp-home-visit-main">
+              <span class="comp-home-visit-time">${Utils.formatTimeUK(v.date)}</span>
+              <span class="comp-home-visit-name">${Utils.escapeHtml(v.name)}</span>
+              <span class="comp-home-visit-area">${Utils.escapeHtml(v.area)}</span>
+            </div>
+            <span class="comp-home-visit-type">${Utils.escapeHtml(v.type)}</span>
+          </div>`;
+      }).join('');
+      
+      todayHtml = `
+        <div class="comp-home-section">
+          <div class="comp-home-section-header">
+            <span class="comp-home-section-label">TODAY</span>
+            <span class="comp-home-section-count">${homeData.todayVisits.length} visit${homeData.todayVisits.length === 1 ? '' : 's'}</span>
+          </div>
+          <div class="comp-home-visits">${visitsHtml}</div>
+          ${homeData.todayVisits.length > 3 ? `<button class="btn btn-ghost btn-sm comp-home-see-all" onclick="App.navigate('appointments', {tab: 'upcoming'})">See all ${homeData.todayVisits.length} visits</button>` : ''}`;
+    } else {
+      todayHtml = `
+        <div class="comp-home-section">
+          <div class="comp-home-section-header">
+            <span class="comp-home-section-label">TODAY</span>
+            <span class="comp-home-section-count">No visits</span>
+          </div>
+          <div class="comp-home-empty">No visits booked today. A good day for follow-ups.</div>
+        </div>`;
+    }
+
+    // D. NEEDS YOUR ATTENTION
+    let attentionHtml = '';
+    if (homeData.attention && homeData.attention.length > 0) {
+      const itemsHtml = homeData.attention.map(item => `
+        <div class="comp-home-attention-item">
+          <span class="material-symbols-rounded comp-home-attention-icon">${item.icon}</span>
+          <div class="comp-home-attention-content">
+            <span class="comp-home-attention-label">${Utils.escapeHtml(item.label)}</span>
+            <span class="comp-home-attention-value">${Utils.escapeHtml(item.value)}</span>
+          </div>
+          ${item.action ? `<button class="btn btn-outline btn-sm" onclick="${item.action}">${item.actionLabel}</button>` : ''}
+        </div>`).join('');
+      
+      attentionHtml = `
+        <div class="comp-home-section">
+          <div class="comp-home-section-header">
+            <span class="comp-home-section-label">NEEDS YOUR ATTENTION</span>
+            <span class="comp-home-section-count">${homeData.attention.length}</span>
+          </div>
+          <div class="comp-home-attention-list">${itemsHtml}</div>
+        </div>`;
+    }
+
+    // E. ASK BEELO - Suggestion chips
+    const suggestions = homeData.suggestions || [];
+    const suggestionsHtml = suggestions.length > 0 ? `
+      <div class="comp-home-section">
+        <div class="comp-home-section-header">
+          <span class="comp-home-section-label">ASK BEELO</span>
+        </div>
+        <div class="comp-home-suggestions">
+          ${suggestions.map(s => `<button class="comp-suggestion-chip" type="button" onclick="CompanionFeature.send(${Utils.escapeJsString(JSON.stringify(s))})">${Utils.escapeHtml(this.CHIP_LABELS[s] || s)}</button>`).join('')}
+        </div>
+      </div>` : '';
+
+    return `
+      <div class="comp-home">
+        ${greetingHtml}
+        ${nextVisitHtml}
+        ${todayHtml}
+        ${attentionHtml}
+        ${suggestionsHtml}
+        <div class="comp-home-composer-spacer"></div>
       </div>`;
   },
 
   // Live, data-driven welcome chips: real names/times/amounts the advisor
   // actually cares about right now. Falls back to the static card bag when
   // a data source is missing or offline.
-  async buildWelcomeChips() {
-    const chips = [];
+  async buildHomeData() {
     const hour = Utils.hourUK();
-    try {
-      const today = Utils.getToday();
-      const todayAppts = (await DB.getAppointmentsForDate(today.toISOString())).filter(a => a.status !== 'cancelled');
-      const doneToday = todayAppts.filter(a => a.outcome || a.status === 'completed');
-      const pendingToday = todayAppts.filter(a => !a.outcome && a.status !== 'completed');
-      const upcoming = await DB.getUpcomingAppointments(14);
-      const next = upcoming.find(a => a.status !== 'cancelled' && (a.phone || a.customerId)) || upcoming.find(a => a.status !== 'cancelled') || null;
+    const greeting = hour < 5 ? 'Working late' : hour < 12 ? 'Morning' : hour < 17 ? 'Afternoon' : hour < 22 ? 'Evening' : 'Late shift';
+    const firstName = Utils.firstNameFrom(CONFIG.advisorName || '');
+    
+    // A. Greeting subtext
+    let count = 0;
+    try { count = await FollowupsFeature.getDueCount(); } catch (e) {}
+    const greetingSub = count > 0 ? `You've got ${count} thing${count === 1 ? '' : 's'} due today. What would help?` : 'What would help?';
 
-      if (next) {
-        chips.push(['Next visit', 'near_me', `${next.clientName || 'Customer'} · ${Utils.formatDateUK(next.date, 'short')} ${Utils.formatTimeUK(next.date)}`, 'next visit']);
-      }
-      const introOwed = upcoming.find(a => a.status === 'confirmed' && !a.introSent && (a.phone || a.customerId));
-      if (introOwed) {
-        chips.push(['Intro to send', 'waving_hand', `${introOwed.clientName || 'Customer'} · ${Utils.formatDateUK(introOwed.date, 'short')}`, 'messages']);
-      }
-      // After visit: show if there's a completed visit today
-      if (doneToday.length && (hour < 18 || pendingToday.length)) {
-        chips.push(['What now?', 'check_circle', `${doneToday[0].clientName || 'Customer'} done${pendingToday.length ? ` · ${pendingToday.length} more today` : ''}`, 'after visit']);
-      }
-      // Evening review: show in afternoon/evening
-      if (hour >= 16) {
-        chips.push(['Evening review', 'wb_sunny', 'Unsent messages, unlogged outcomes, unpaid', 'evening review']);
-      }
-    } catch (e) { /* chips are optional */ }
+    // Gather all data needed
+    const today = Utils.getToday();
+    let todayAppts = [];
+    let upcoming = [];
+    let orders = [];
+    let dueFollowUps = [];
+    
     try {
-      const orders = await DB.db.orders.toArray();
-      const openTotal = orders.reduce((s, o) => s + (o.balanceDue || 0), 0);
-      const owed = orders.filter(o => (o.balanceDue || 0) > 0).sort((a, b) => (b.balanceDue || 0) - (a.balanceDue || 0));
-      if (owed.length) {
-        const cust = owed[0].customerId ? await DB.db.customers.get(owed[0].customerId) : null;
-        chips.push(['Unpaid', 'payments', `${Utils.formatCurrency(openTotal)}${owed.length > 1 ? ` over ${owed.length} orders` : cust ? ' — ' + (cust.firstName || cust.fullName) : ''}`, 'orders']);
+      todayAppts = (await DB.getAppointmentsForDate(today.toISOString())).filter(a => a.status !== 'cancelled');
+      upcoming = await DB.getUpcomingAppointments(14);
+      orders = await DB.db.orders.toArray();
+      const tasks = await FollowupsFeature.loadTasks();
+      dueFollowUps = tasks.filter(t => t.due);
+    } catch (e) {}
+
+    const doneToday = todayAppts.filter(a => a.outcome || a.status === 'completed');
+    const pendingToday = todayAppts.filter(a => !a.outcome && a.status !== 'completed');
+    const upcomingToday = upcoming.filter(a => a.status !== 'cancelled');
+
+    // Next visit (most urgent upcoming)
+    const next = upcoming.find(a => a.status !== 'cancelled' && (a.phone || a.customerId)) || upcoming.find(a => a.status !== 'cancelled') || null;
+    
+    // Next visit data
+    let nextVisit = null;
+    if (next) {
+      const eta = await this.etaFor(next);
+      nextVisit = {
+        id: next.id,
+        name: next.clientName || 'Customer',
+        time: Utils.formatTimeUK(next.date),
+        area: this.getAreaLabel(next),
+        type: next.type ? (CONFIG.appointmentTypes.find(t => t.id === next.type)?.name || next.type) : 'Visit',
+        address: next.address || 'No address set',
+        eta: await this.etaFor(next) || '—'
+      };
+    }
+
+    // Today's visits with state
+    const todayVisits = [...todayAppts].sort((a, b) => new Date(a.date) - new Date(b.date)).map((v, i) => ({
+      id: v.id,
+      name: v.clientName || 'Customer',
+      time: Utils.formatTimeUK(v.date),
+      area: this.getAreaLabel(v),
+      type: v.type ? (CONFIG.appointmentTypes.find(t => t.id === v.type)?.name || v.type) : 'Visit',
+      completed: v.outcome || v.status === 'completed'
+    }));
+
+    // Attention items
+    const attention = [];
+    
+    // Unpaid orders
+    const unpaidOrders = orders.filter(o => (o.balanceDue || 0) > 0);
+    if (unpaidOrders.length > 0) {
+      const totalDue = unpaidOrders.reduce((s, o) => s + (o.balanceDue || 0), 0);
+      attention.push({
+        icon: 'payments',
+        label: 'Payments outstanding',
+        value: `${Utils.formatCurrency(totalDue)} over ${unpaidOrders.length} order${unpaidOrders.length === 1 ? '' : 's'}`,
+        action: "App.navigate('orders')",
+        actionLabel: 'View Orders'
+      });
+    }
+
+    // Unlogged outcomes today
+    const unloggedToday = todayAppts.filter(a => !a.outcome && a.status !== 'completed');
+    if (unloggedToday.length > 0) {
+      attention.push({
+        icon: 'event_busy',
+        label: 'Outcomes not logged',
+        value: `${unloggedToday.length} visit${unloggedToday.length === 1 ? '' : 's'} today`,
+        action: "App.navigate('appointments', {tab: 'upcoming'})",
+        actionLabel: 'Log outcomes'
+      });
+    }
+
+    // Unsent messages (intro, day-before, morning-of)
+    let messagesDue = 0;
+    const pastFirstVisit = new Set();
+    for (const a of (await DB.db.appointments.toArray())) {
+      if (!a.customerId || a.status === 'cancelled') continue;
+      if (new Date(a.date) >= new Date()) continue;
+      pastFirstVisit.add(a.customerId);
+    }
+    const upcomingAll = await DB.getUpcomingAppointments(7);
+    for (const a of upcomingAll) {
+      if (a.status !== 'confirmed' || !a.phone && !a.customerId) continue;
+      if (new Date(a.date).toDateString() === Utils.getToday().toDateString()) {
+        if (!localStorage.getItem(`advisoros_auto_morning_of_${a.id}`)) messagesDue++;
+      } else if (new Date(a.date).toDateString() === new Date(Date.now() + 86400000).toDateString()) {
+        if (!a.dayBeforeSent && !localStorage.getItem(`advisoros_auto_evening_before_${a.id}`)) messagesDue++;
+      } else if (!a.introSent && (!a.customerId || !pastFirstVisit.has(a.customerId))) {
+        messagesDue++;
       }
-    } catch (e) { /* chips are optional */ }
-    try {
-      const target = CONFIG.weeklyTarget || 600;
-      const weekEarnings = await MoneyFeature.getWeekEarnings();
-      if (weekEarnings < target) {
-        chips.push(['Target', 'trending_up', `${Utils.formatCurrency(target - weekEarnings)} to this week's target`, 'week']);
-      }
-    } catch (e) { /* chips are optional */ }
+    }
+    if (messagesDue > 0) {
+      attention.push({
+        icon: 'mark_email_unread',
+        label: 'Messages unsent',
+        value: `${messagesDue} visit${messagesDue === 1 ? '' : 's'} need a message`,
+        action: "App.navigate('followups')",
+        actionLabel: 'Open Follow-ups'
+      });
+    }
+
+    // Unpaid orders (already added above)
+    if (unpaidOrders.length > 0 && !attention.some(a => a.label === 'Payments outstanding')) {
+      // already added
+    }
+
+    // Follow-ups due
+    const followUpsDue = (await FollowupsFeature.loadTasks()).filter(t => t.due);
+    if (followUpsDue.length > 0) {
+      attention.push({
+        icon: 'campaign',
+        label: 'Follow-ups due',
+        value: `${followUpsDue.length} task${followUpsDue.length === 1 ? '' : 's'} due`,
+        action: "App.navigate('followups')",
+        actionLabel: 'Open Follow-ups'
+      });
+    }
+
+    // Suggestions
+    const suggestions = ['today', 'next visit', 'week', 'money', 'follow-ups', 'messages'];
+
+    return {
+      greetingSub: `You've got ${todayAppts.length} visit${todayAppts.length === 1 ? '' : 's'} today. What would help?`,
+      nextVisit,
+      todayVisits: todayAppts.map((v, i) => ({
+        id: v.id,
+        name: v.clientName || 'Customer',
+        time: Utils.formatTimeUK(v.date),
+        area: this.getAreaLabel(v),
+        type: v.type ? (CONFIG.appointmentTypes.find(t => t.id === v.type)?.name || v.type) : 'Visit',
+        completed: v.outcome || v.status === 'completed'
+      })),
+      attention,
+      suggestions
+    };
+  },
+
+  // Backward compatibility: transform buildHomeData into the old chips format for tests
+  async buildWelcomeChips() {
+    const homeData = await this.buildHomeData();
+    const chips = [];
+    
+    if (homeData.nextVisit) {
+      chips.push(['Next visit', 'near_me', `${homeData.nextVisit.name} · ${homeData.nextVisit.time}`, 'next visit']);
+    }
+    if (homeData.attention.some(a => a.label === 'Messages unsent')) {
+      chips.push(['Messages', 'mark_email_unread', 'Messages unsent', 'messages']);
+    }
+    if (homeData.attention.some(a => a.label === 'Payments outstanding')) {
+      chips.push(['Unpaid', 'payments', 'Payments outstanding', 'orders']);
+    }
+    if (homeData.attention.some(a => a.label === 'Follow-ups due')) {
+      chips.push(['Follow-ups', 'campaign', 'Follow-ups due', 'follow-ups']);
+    }
+    if (homeData.attention.some(a => a.label === 'Outcomes not logged')) {
+      chips.push(['Outcomes', 'event_busy', 'Outcomes not logged', 'today']);
+    }
+    if (homeData.attention.some(a => a.label === 'Target')) {
+      chips.push(['Target', 'trending_up', 'Target', 'week']);
+    }
+    
+    // Fallback to static chips if no dynamic data
+    if (chips.length === 0) {
+      return [
+        ["Today's Overview", 'event_available', 'your day at a glance', 'today'],
+        ['Weekly Overview', 'trending_up', 'earnings + sales', 'week'],
+        ['Money & Tax', 'payments', 'expenses, mileage, tax', 'money'],
+        ['Follow-ups Due', 'campaign', 'who needs a nudge', 'follow-ups'],
+        ['Next Visit', 'near_me', 'who, when, how far', 'next visit'],
+        ['Log Expense', 'receipt_long', 'scan or type a receipt', 'log expense']
+      ];
+    }
     return chips.slice(0, 5);
   },
 
