@@ -29,11 +29,11 @@
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  color: #fff;
+  color: var(--text-inverse);
 }
 
 .trip-banner-inner .material-symbols-rounded {
-  color: #fff;
+  color: var(--text-inverse);
   animation: trip-banner-pulse 1.6s ease-in-out infinite;
 }
 
@@ -69,12 +69,12 @@
 }
 
 .trip-banner-inner .btn-primary {
-  background: #fff;
+  background: var(--surface-elevated);
   color: var(--primary);
 }
 
 .trip-banner-inner .btn-ghost {
-  color: #fff;
+  color: var(--text-inverse);
 }
 
 /* ============================================
@@ -317,7 +317,7 @@
 /* BADGE FIX: better dark mode contrast */
 .badge-warning {
   background: var(--warning-light);
-  color: #8f5410;
+  color: var(--warning);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -1686,7 +1686,7 @@ body.trip-active .toast-container {
 .route-map {
   flex: 1 1 320px;
   min-height: 300px;
-  background: #e5e5e5;
+  background: var(--surface-muted);
 }
 
 .route-list {
@@ -1771,9 +1771,9 @@ body.trip-active .toast-container {
 
 .route-plan-metrics div {
   background: var(--bg);
-  --text-primary: #f5f4ea;
-  --text-secondary: #c3c9ae;
-  --text-tertiary: #838a6c;
+  --text-primary: #f2efe6;
+  --text-secondary: #c8c3b5;
+  --text-tertiary: #8e8a7e;
   color: var(--text-primary);
   border-radius: var(--radius-sm);
   padding: 8px;
@@ -1843,9 +1843,9 @@ body.trip-active .toast-container {
   border: 1px solid var(--border-light);
   border-radius: var(--radius-sm);
   background: var(--bg);
-  --text-primary: #f5f4ea;
-  --text-secondary: #c3c9ae;
-  --text-tertiary: #838a6c;
+  --text-primary: #f2efe6;
+  --text-secondary: #c8c3b5;
+  --text-tertiary: #8e8a7e;
   color: var(--text-primary);
   text-align: left;
 }
@@ -1937,9 +1937,9 @@ body.trip-active .toast-container {
 .route-order {
   margin-top: 10px;
   background: var(--bg);
-  --text-primary: #f5f4ea;
-  --text-secondary: #c3c9ae;
-  --text-tertiary: #838a6c;
+  --text-primary: #f2efe6;
+  --text-secondary: #c8c3b5;
+  --text-tertiary: #8e8a7e;
   color: var(--text-primary);
   border-radius: var(--radius-sm);
   padding: 10px;
@@ -2140,7 +2140,7 @@ body.trip-active .toast-container {
   height: 36px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  color: #fff;
+  color: var(--text-inverse);
   display: flex;
   align-items: center;
   justify-content: center;

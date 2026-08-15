@@ -4,41 +4,38 @@
 
 /* CSS Variables */
 :root {
-  /* Colors — dark olive canvas with cream cards and a lime accent,
-     inspired by the Conneq CRM reference. --primary/--secondary/--warning/
-     --danger keep their original semantic roles (buttons, badges, status)
-     but are retuned to sit well against light cream cards. */
-  --primary: #23261c;
-  --primary-dark: #14160f;
-  --primary-light: #e9edda;
-  --secondary: #4f6a2f;
-  --secondary-light: #e6f0d8;
-  --warning: #8d5d0f;
-  --warning-light: #f5ead8;
-  --danger: #9a3d32;
-  --danger-light: #f3dfdc;
-  --info: #4a5d68;
+  /* Colors — warm ink on warm paper with warm gold brand accent.
+     --primary/--secondary/--warning/--danger keep their semantic roles
+     (buttons, badges, status) retuned for warm paper contrast. */
+  --primary: #1c1c15;
+  --primary-dark: #0f0f0d;
+  --primary-light: #e8e4d4;
+  --secondary: #3a6b2c;
+  --secondary-light: #dcead3;
+  --warning: #b87a1a;
+  --warning-light: #f5e8d0;
+  --danger: #b03a2e;
+  --danger-light: #f5d8d6;
+  --info: #3d5a6b;
 
-  /* Lime accent — the "today" / highlight colour from the reference (used for
-     selected calendar day, active nav, primary highlight moments). */
-  --accent: #d7f24e;
-  --accent-contrast: #20250f;
+  /* Warm gold accent — brand moments only (active nav, progress highlight).
+     Selection states (calendar, etc.) fall back to --primary (warm ink). */
+  --accent: #f5c518;
+  --accent-contrast: #1c1c15;
 
-  /* Neutrals — page canvas is dark olive-black; cards are cream. */
-  --bg: #14170f;
-  --bg-elevated: #1b1f13;
-  --surface: #f4f2e6;
+  /* Neutrals — warm near-black canvas; warm paper cards. */
+  --bg: #1a1a15;
+  --bg-elevated: #22211d;
+  --surface: #f0ead9;
   --surface-elevated: #ffffff;
-  --surface-muted: #aab29a;
-  --border: #4b4740;
-  --border-light: rgba(75, 71, 64, 0.22);
+  --surface-muted: #b8b0a0;
+  --border: #5a554a;
+  --border-light: rgba(90, 85, 74, 0.22);
 
-  /* Default text tokens — for content sitting directly on the dark --bg
-     canvas (page titles, section labels between cards). Anything inside a
-     card/header/nav/input/modal/sheet gets re-scoped to dark text below. */
-  --text-primary: #f5f4ea;
-  --text-secondary: #c3c9ae;
-  --text-tertiary: #838a6c;
+  /* Default text tokens — warm cream on dark canvas. */
+  --text-primary: #f2efe6;
+  --text-secondary: #c8c3b5;
+  --text-tertiary: #8e8a7e;
   --text-inverse: #ffffff;
 
   /* Shadows */
@@ -72,14 +69,14 @@
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #14170f;
-    --surface: #f4f2e6;
+    --bg: #1a1a15;
+    --surface: #f0ead9;
     --surface-elevated: #ffffff;
-    --border: #4b4740;
-    --border-light: rgba(75, 71, 64, 0.22);
-    --text-primary: #f5f4ea;
-    --text-secondary: #c3c9ae;
-    --text-tertiary: #838a6c;
+    --border: #5a554a;
+    --border-light: rgba(90, 85, 74, 0.22);
+    --text-primary: #f2efe6;
+    --text-secondary: #c8c3b5;
+    --text-tertiary: #8e8a7e;
   }
 }
 
@@ -131,9 +128,9 @@
 .hsc-stat,
 .hsc-empty,
 .hsc-appt-row {
-  --text-primary: #1c1f16;
-  --text-secondary: #5c6152;
-  --text-tertiary: #6a6457;
+  --text-primary: #1c1c15;
+  --text-secondary: #5a554a;
+  --text-tertiary: #7a756a;
   /* Elements below that don't set their own `color` inherit the RESOLVED
      value of `color`, not a live re-evaluation of --text-primary. Setting
      `color` explicitly here (not just the custom property) is what makes
@@ -144,12 +141,12 @@
 }
 
 /* modal-full body sits on the dark canvas by design (full-screen forms) —
-   its content is made of .card / .form-group blocks, so give it the light
-   (on-dark) text tokens back rather than the generic override above. */
+   its content is made of .card / .form-group blocks, so give it the warm
+   cream (on-dark) text tokens back rather than the generic override above. */
 .modal-full .modal-body {
-  --text-primary: #f5f4ea;
-  --text-secondary: #c3c9ae;
-  --text-tertiary: #838a6c;
+  --text-primary: #f2efe6;
+  --text-secondary: #c8c3b5;
+  --text-tertiary: #8e8a7e;
   color: var(--text-primary);
 }
 
@@ -157,12 +154,12 @@
    deliberately keep background: var(--bg) even inside a cream card (e.g.
    message previews, highlighted detail panels). Add this class alongside
    the inline background so descendants using var(--text-secondary) etc.
-   correctly resolve to the light-on-dark tokens instead of inheriting the
-   card's dark-on-cream tokens. */
+   correctly resolve to the warm-cream-on-dark tokens instead of inheriting the
+   card's warm-ink-on-paper tokens. */
 .inset-dark {
-  --text-primary: #f5f4ea;
-  --text-secondary: #c3c9ae;
-  --text-tertiary: #838a6c;
+  --text-primary: #f2efe6;
+  --text-secondary: #c8c3b5;
+  --text-tertiary: #8e8a7e;
   color: var(--text-primary);
 }
 
@@ -587,7 +584,7 @@ button:not(:disabled):active,
   }
 
   body {
-    background: #0c0e08;
+    background: var(--bg);
   }
 }
 
