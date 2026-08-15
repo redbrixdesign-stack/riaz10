@@ -1,4 +1,4 @@
-const CACHE_NAME = 'advisoros-v6-29';
+const CACHE_NAME = 'advisoros-v6-30';
 const FONT_CACHE_NAME = 'advisoros-fonts-1';
 const STATIC_ASSETS = [
   './','index.html','css/core.css','css/components.css?v=17',
@@ -66,7 +66,10 @@ self.addEventListener('fetch', e => {
       fetch(e.request),
       new Promise((_, reject) => setTimeout(() => reject(new Error('network timeout')), 6000))
     ]).then(resp => {
-      if (resp && resp.ok) caches.open(CACHE_NAME).then(c => c.put(e.request, resp.clone()));
+      if (resp && resp.ok) {
+        const toCache = resp.clone();
+        caches.open(CACHE_NAME).then(c => c.put(e.request, toCache));
+      }
       return resp;
     }).catch(() => caches.match(e.request).then(cached => cached || caches.match('index.html')))
   );
