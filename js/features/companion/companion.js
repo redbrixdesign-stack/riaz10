@@ -16,6 +16,9 @@
 
 const CompanionFeature = {
   id: 'companion',
+  name: 'Companion',
+  icon: 'psychology',
+  route: false,
   // Session transcript: [{role:'user', text} | {role:'assistant', answer, phrase?}]
   _turns: [],
   _busy: false,
