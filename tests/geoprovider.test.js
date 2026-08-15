@@ -37,7 +37,7 @@ function makeLocalStorage() {
 }
 
 // Build a sandbox with a mock provider
-function loadGeoProvider({ mockProvider = null } = {}) {
+function loadGeoProvider({ mockProvider = null, mapboxKey = '' } = {}) {
   const sandbox = {
     console, Math, JSON, Date, Promise, Map, Set, Array, Object,
     Number, String, Boolean, RegExp, Error, parseInt, parseFloat, isNaN,
@@ -58,8 +58,10 @@ function loadGeoProvider({ mockProvider = null } = {}) {
 
   vm.createContext(sandbox);
 
-  // Load config
-  vm.runInContext(fs.readFileSync(path.join(REPO, 'js/core/config.js'), 'utf8') + ';CONFIG;', sandbox);
+  // Load config with optional mapboxKey
+  const configSrc = fs.readFileSync(path.join(REPO, 'js/core/config.js'), 'utf8')
+    .replace("mapboxKey: ''", `mapboxKey: '${mapboxKey}'`);
+  vm.runInContext(configSrc + ';CONFIG;', sandbox);
 
   // Load utils (needed for Geo)
   vm.runInContext(fs.readFileSync(path.join(REPO, 'js/core/utils.js'), 'utf8'), sandbox);
@@ -301,6 +303,93 @@ function loadGeoProvider({ mockProvider = null } = {}) {
     // Exact same address (different casing) still hits the cache.
     const third = await p2.geocode('  10 downing street, london  ');
     ok('cache key is case/space normalised', third && third.lat === 51.5034, third);
+  }
+
+  console.log('\nTest K: MapboxGeoProvider class exists and implements interface');
+  {
+    const { GeoProvider, sandbox } = loadGeoProvider({ mapboxKey: 'pk.test-key' });
+    const MapboxGeoProvider = vm.runInContext('MapboxGeoProvider;', sandbox);
+    ok('MapboxGeoProvider class exported', typeof MapboxGeoProvider === 'function');
+
+    const provider = new MapboxGeoProvider({ accessToken: 'pk.test-key' });
+    ok('instanceof GeoProvider', provider instanceof GeoProvider);
+    ok('has geocode', typeof provider.geocode === 'function');
+    ok('has getRouteSummary', typeof provider.getRouteSummary === 'function');
+    ok('has getDistanceKm', typeof provider.getDistanceKm === 'function');
+    ok('has getTravelTimeMin', typeof provider.getTravelTimeMin === 'function');
+    ok('has calculateDistance', typeof provider.calculateDistance === 'function');
+    ok('has buildNavigationUrl', typeof provider.buildNavigationUrl === 'function');
+  }
+
+  console.log('\nTest L: GeoProviderRegistry prefers Mapbox when key is set');
+  {
+    const { GeoProviderRegistry, sandbox } = loadGeoProvider({ mapboxKey: 'pk.test-key' });
+    GeoProviderRegistry.reset();
+    const provider = GeoProviderRegistry.get();
+    ok('returns MapboxGeoProvider when key set', provider.constructor.name === 'MapboxGeoProvider');
+    ok('getActiveProviderName returns mapbox', GeoProviderRegistry.getActiveProviderName() === 'mapbox');
+  }
+
+  console.log('\nTest M: GeoProviderRegistry falls back to PublicGeoProvider when no key');
+  {
+    const { GeoProviderRegistry, PublicGeoProvider, sandbox } = loadGeoProvider({ mapboxKey: '' });
+    GeoProviderRegistry.reset();
+    const provider = GeoProviderRegistry.get();
+    ok('returns PublicGeoProvider when key empty', provider instanceof PublicGeoProvider);
+    ok('getActiveProviderName returns public', GeoProviderRegistry.getActiveProviderName() === 'public');
+  }
+
+  console.log('\nTest N: Mapbox geocode uses Mapbox API (mocked)');
+  {
+    let mapboxCalls = 0;
+    const { GeoProviderRegistry, sandbox } = loadGeoProvider({
+      mapboxKey: 'pk.test-key',
+      mockProvider: { fetch: async (url, options) => {
+        mapboxCalls++;
+        if (url.includes('geocoding/v5')) {
+          return {
+            ok: true, status: 200,
+            json: async () => ({
+              features: [{ center: [-0.1276, 51.5034], place_name: '10 Downing Street, London' }]
+            })
+          };
+        }
+        if (url.includes('directions/v5')) {
+          return {
+            ok: true, status: 200,
+            json: async () => ({
+              routes: [{ distance: 260000, duration: 3600, geometry: { coordinates: [] } }]
+            })
+          };
+        }
+        throw new Error('unexpected url: ' + url);
+      } }
+    });
+    GeoProviderRegistry.reset();
+    const provider = GeoProviderRegistry.get();
+
+    const geoResult = await provider.geocode('10 Downing Street, London');
+    ok('geocode calls Mapbox API', mapboxCalls === 1, mapboxCalls);
+    ok('geocode returns coords', geoResult.lat === 51.5034 && geoResult.lng === -0.1276, geoResult);
+
+    const routeResult = await provider.getRouteSummary(51.5, -0.1, 53.4, -2.9);
+    ok('getRouteSummary calls Mapbox API', mapboxCalls === 2, mapboxCalls);
+    ok('getRouteSummary returns road distance', routeResult.distanceKm === 260 && routeResult.source === 'road', routeResult);
+  }
+
+  console.log('\nTest O: Mapbox falls back to estimate when API fails');
+  {
+    let mapboxCalls = 0;
+    const { GeoProviderRegistry, sandbox } = loadGeoProvider({
+      mapboxKey: 'pk.test-key',
+      mockProvider: { fetch: async () => { throw new Error('network error'); } }
+    });
+    GeoProviderRegistry.reset();
+    const provider = GeoProviderRegistry.get();
+
+    const routeResult = await provider.getRouteSummary(51.5, -0.1, 53.4808, -2.2426);
+    ok('returns estimate on API failure', routeResult && routeResult.source === 'estimate', routeResult);
+    ok('estimate distance is plausible', routeResult.distanceKm > 250 && routeResult.distanceKm < 450, routeResult.distanceKm);
   }
 
   console.log('\n' + (failures === 0 ? 'ALL TESTS PASSED' : failures + ' TEST(S) FAILED'));

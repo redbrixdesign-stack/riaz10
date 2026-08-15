@@ -319,7 +319,7 @@ const MessageScheduler = {
     if (appt.phone) return appt.phone;
     if (appt.customerId) {
       try {
-        const c = await DB.db.customers.get(appt.customerId);
+        const c = await DB.getCustomer(appt.customerId);
         if (c?.phone) return c.phone;
       } catch (e) { /* fall through */ }
     }

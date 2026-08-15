@@ -733,7 +733,7 @@ const OCRFeature = {
       // An order screenshot can belong to a customer already on record —
       // reuse them instead of creating a duplicate, exactly like the
       // New Visit form does.
-      let customer = phone ? await DB.db.customers.where('phone').equals(phone).first() : null;
+      let customer = phone ? await DB.findCustomerByPhone(phone) : null;
       if (!customer) {
         customer = await DB.addCustomer({ firstName: Utils.firstNameFrom(name), lastName: String(name).trim().replace(Utils.HONORIFICS, '').split(/\s+/).slice(1).join(' ') || '', fullName: name, phone, postcodeNormalized, address: { line1: address, town, city, postcode, postcodeNormalized }, source: 'company_system' });
       }
@@ -845,7 +845,7 @@ const OCRFeature = {
       const { postcode, postcodeNormalized } = this.resolvePostcode(postcodeInput, address);
       const fullAddress = [address, postcode].filter(Boolean).join(', ');
 
-      let customer = phone ? await DB.db.customers.where('phone').equals(phone).first() : null;
+      let customer = phone ? await DB.findCustomerByPhone(phone) : null;
       if (!customer) {
         customer = await DB.addCustomer({ firstName: Utils.firstNameFrom(name), lastName: String(name).trim().replace(Utils.HONORIFICS, '').split(/\s+/).slice(1).join(' ') || '', fullName: name, phone, postcodeNormalized, address: { line1: address, postcode, postcodeNormalized }, source: 'manual' });
       }

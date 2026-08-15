@@ -139,6 +139,9 @@ async function evaluate(ws, expression) {
     // Skip onboarding (fresh profile) — the boot marker in minified builds is
     // dropped (pure_funcs strips console.log), so poll app state instead.
     await evaluate(ws, `localStorage.setItem('advisoros_config', JSON.stringify({ onboardingComplete: true }))`);
+    // Encryption test mode: the passphrase modal would block App.init() on a
+    // fresh profile; the test passphrase is derived instead (see app.js).
+    await evaluate(ws, `localStorage.setItem('advisoros_enc_test', '1')`);
     await cdpCall(ws, 'Page.navigate', { url: BASE + '/index.html' });
     const bootDeadline = Date.now() + 30000;
     while (true) {

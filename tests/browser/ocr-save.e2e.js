@@ -117,24 +117,21 @@ async function evaluate(ws, expression) {
     });
 
     console.log('STEP1 loading the real app…');
-    // First load: fresh profile lands in onboarding. That's fine — it
-    // establishes the app is booting. Distinct ?boot=N query strings force
-    // Chrome to create a real new document (same-URL navigations can be
-    // silently deduplicated in this harness).
-    await cdpCall(ws, 'Page.navigate', { url: BASE + '/index.html?boot=1' });
-    const bootDeadline = Date.now() + 30000;
+    // Establish the http origin first (about:blank has none — localStorage
+    // is denied there), then set up the profile and do a real boot.
+    await cdpCall(ws, 'Page.navigate', { url: BASE + '/index.html?preboot=1' });
+    const preDeadline = Date.now() + 20000;
     while (true) {
       await sleep(500);
-      const booted = await evaluate(ws, `typeof App !== 'undefined' && !!App.currentHash && !!document.querySelector('#main')`);
-      if (booted) break;
-      if (Date.now() > bootDeadline) {
-        console.error('app never became ready. Exceptions so far:', exceptions.slice(-10));
-        throw new Error('app never became ready');
-      }
+      try { await evaluate(ws, `localStorage.setItem('__probe', '1')`); break; } catch (e) { /* not there yet */ }
+      if (Date.now() > preDeadline) throw new Error('pre-boot origin never became ready');
     }
-    // Mark onboarding done and boot again into the daily screen, which is
-    // what the OCR flow expects to sit on.
+    // Encryption test mode: the passphrase modal would block App.init() on
+    // a fresh profile; the test passphrase is derived instead (see app.js).
+    await evaluate(ws, `localStorage.setItem('advisoros_enc_test', '1')`);
     await evaluate(ws, `localStorage.setItem('advisoros_config', JSON.stringify({ onboardingComplete: true }))`);
+    // Distinct ?boot=N query strings force Chrome to create a real new
+    // document (same-URL navigations can be silently deduplicated here).
     await cdpCall(ws, 'Page.navigate', { url: BASE + '/index.html?boot=2' });
     const bootDeadline2 = Date.now() + 30000;
     while (true) {

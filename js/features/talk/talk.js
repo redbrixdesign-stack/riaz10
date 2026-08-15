@@ -225,7 +225,7 @@ const TalkFeature = {
       const daysSince = Utils.daysBetween(now, new Date(appt.date));
       let customer = null;
       try {
-        customer = appt.customerId ? await DB.db.customers.get(appt.customerId) : null;
+        customer = appt.customerId ? await DB.getCustomer(appt.customerId) : null;
       } catch (e) {}
 
       const match = this.getTemplateForOutcome(appt.outcome);
@@ -401,7 +401,7 @@ const TalkFeature = {
     }
 
     try {
-      customer = appt?.customerId ? await DB.db.customers.get(appt.customerId) : null;
+      customer = appt?.customerId ? await DB.getCustomer(appt.customerId) : null;
     } catch (e) {}
 
     if (!customer?.phone && !appt?.phone) {
@@ -660,7 +660,7 @@ const TalkFeature = {
 
   async buildAiContext(pending) {
     const { customerId, appointmentId, templateKey } = pending;
-    const customer = customerId ? await DB.db.customers.get(customerId) : null;
+    const customer = customerId ? await DB.getCustomer(customerId) : null;
     const appt = appointmentId ? await DB.db.appointments.get(appointmentId) : null;
 
     // Order history supports "your order is on its way" style draft contexts,
@@ -780,7 +780,7 @@ const TalkFeature = {
   // from the customer's last visit.
   async buildMessageContext(pending) {
     const { customerId, appointmentId, templateKey } = pending;
-    const customer = customerId ? await DB.db.customers.get(customerId) : null;
+    const customer = customerId ? await DB.getCustomer(customerId) : null;
     const appt = appointmentId ? await DB.db.appointments.get(appointmentId) : null;
 
     // First-visit at this address = no prior non-cancelled appointment

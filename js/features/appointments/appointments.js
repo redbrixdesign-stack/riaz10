@@ -433,7 +433,7 @@ const AppointmentsFeature = {
   async buildAreaAnalytics(query) {
     const area = this.getPostcodeArea(query);
     const normalizedQuery = this.normalizeBookingText(query);
-    const customers = await DB.db.customers.toArray();
+    const customers = await DB.getAllCustomers();
     const appointments = await DB.db.appointments.toArray();
     const orders = await DB.db.orders.toArray();
 
@@ -820,7 +820,7 @@ const AppointmentsFeature = {
   },
 
   async openEditCustomerModal(customerId) {
-    const customer = await DB.db.customers.get(customerId);
+    const customer = await DB.getCustomer(customerId);
     if (!customer) {
       Toast.show('Customer not found', 'error');
       return;
@@ -861,7 +861,7 @@ const AppointmentsFeature = {
   },
 
   async saveEditCustomer(customerId) {
-    const customer = await DB.db.customers.get(customerId);
+    const customer = await DB.getCustomer(customerId);
     if (!customer) {
       Toast.show('Customer not found', 'error');
       return;
@@ -882,7 +882,7 @@ const AppointmentsFeature = {
         ? OCRFeature.extractPostcodeFromAddress(address)
         : { postcode: '', postcodeNormalized: '' };
 
-      await DB.db.customers.update(customerId, {
+      await DB.updateCustomer(customerId, {
         fullName: name,
         firstName: name.split(' ')[0],
         lastName: name.split(' ').slice(1).join(' ') || '',
@@ -1009,7 +1009,7 @@ const AppointmentsFeature = {
     let customer = null;
     try {
       appt = await DB.db.appointments.get(id);
-      customer = appt?.customerId ? await DB.db.customers.get(appt.customerId) : null;
+      customer = appt?.customerId ? await DB.getCustomer(appt.customerId) : null;
     } catch (e) {
       Toast.show('Could not load visit', 'error');
       return;
@@ -1433,7 +1433,7 @@ const AppointmentsFeature = {
     let apptCount = 0;
     let photoCount = 0;
     try {
-      customer = await DB.db.customers.get(customerId);
+      customer = await DB.getCustomer(customerId);
       apptCount = await DB.db.appointments.where('customerId').equals(customerId).count();
       photoCount = await DB.db.photos.where('customerId').equals(customerId).count();
     } catch (e) {}
@@ -1482,7 +1482,7 @@ const AppointmentsFeature = {
 
     let customer = null;
     try {
-      customer = appt.customerId ? await DB.db.customers.get(appt.customerId) : null;
+      customer = appt.customerId ? await DB.getCustomer(appt.customerId) : null;
     } catch (e) {}
 
     let measurements = [];
@@ -1953,7 +1953,7 @@ const AppointmentsFeature = {
   async offerBookingConfirmation(appointmentId) {
     const appt = await DB.db.appointments.get(appointmentId);
     if (!appt) { App.navigate('appointments'); return; }
-    const customer = appt.customerId ? await DB.db.customers.get(appt.customerId) : null;
+    const customer = appt.customerId ? await DB.getCustomer(appt.customerId) : null;
     const phone = customer?.phone || appt.phone;
     const apptDate = new Date(appt.date);
     const message = NotificationService.buildBookingConfirmationMessage({
@@ -2073,7 +2073,7 @@ const AppointmentsFeature = {
       // Create or find customer
       let customerId = null;
       if (phone) {
-        const existing = await DB.db.customers.where('phone').equals(phone).first();
+        const existing = await DB.findCustomerByPhone(phone);
         if (existing) {
           customerId = existing.id;
         }
@@ -2597,8 +2597,8 @@ const AppointmentsFeature = {
         const { postcode, postcodeNormalized } = (typeof OCRFeature !== 'undefined' && OCRFeature.extractPostcodeFromAddress)
           ? OCRFeature.extractPostcodeFromAddress(data.address)
           : { postcode: '', postcodeNormalized: '' };
-        const customer = await DB.db.customers.get(appt.customerId);
-        await DB.db.customers.update(appt.customerId, {
+        const customer = await DB.getCustomer(appt.customerId);
+        await DB.updateCustomer(appt.customerId, {
           fullName: data.name,
           firstName: data.name.split(' ')[0],
           lastName: data.name.split(' ').slice(1).join(' ') || '',

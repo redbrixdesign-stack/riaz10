@@ -284,6 +284,13 @@ const CONFIG = {
     draftModel: 'claude-haiku-4-5'   // Fast/cheap — used for Talk drafts + companion turns
   },
 
+  // Mapbox — paid geocoding & routing (Directions API).
+  // Optional: when set, used instead of public OSRM/Nominatim.
+  // Get a key at https://account.mapbox.com/access-tokens/
+  geo: {
+    mapboxKey: ''
+  },
+
   // Beelo companion (js/features/companion) — the DeepSeek-style chat home
   // screen. Rule-built answers always work (offline, free); aiPhrasing lets
   // Claude rephrase the reply + suggest the next question when AI is on.

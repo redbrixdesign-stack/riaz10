@@ -8,6 +8,169 @@
 // mirrored in the backup envelope's versioning (js/services/export.js).
 const BACKUP_TABLES = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'photos', 'settings', 'sequences'];
 
+// ============================================
+// Field-level encryption (AES-GCM 256-bit, key from passphrase via PBKDF2)
+// ============================================
+const PII_FIELDS = ['firstName', 'lastName', 'phone', 'email', 'address'];
+const ADDRESS_PII_FIELDS = ['line1', 'town', 'city', 'postcode', 'postcodeNormalized'];
+const PBKDF2_ITERATIONS = 100000;
+const KEY_LENGTH = 256;
+const IV_LENGTH = 12;
+
+let encryptionKey = null;
+let encryptionSalt = null;
+
+async function deriveKey(passphrase, salt) {
+  const encoder = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(passphrase),
+    'PBKDF2',
+    false,
+    ['deriveKey']
+  );
+  return await crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
+    keyMaterial,
+    { name: 'AES-GCM', length: KEY_LENGTH },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+async function getOrCreateSalt() {
+  if (encryptionSalt) return encryptionSalt;
+  const stored = localStorage.getItem('advisoros_enc_salt');
+  if (stored) {
+    encryptionSalt = new Uint8Array(JSON.parse(stored));
+    return encryptionSalt;
+  }
+  encryptionSalt = crypto.getRandomValues(new Uint8Array(16));
+  localStorage.setItem('advisoros_enc_salt', JSON.stringify(Array.from(encryptionSalt)));
+  return encryptionSalt;
+}
+
+async function initEncryption(passphrase) {
+  const salt = await getOrCreateSalt();
+  encryptionKey = await deriveKey(passphrase, salt);
+  // Verify the key works by encrypting/decrypting a test value
+  const test = await encryptField('__test__');
+  const decrypted = await decryptField(test);
+  if (decrypted !== '__test__') throw new Error('Encryption verification failed');
+  return true;
+}
+
+function clearEncryptionKey() {
+  encryptionKey = null;
+}
+
+function hasEncryptionKey() {
+  return encryptionKey !== null;
+}
+
+async function encryptField(plaintext) {
+  if (plaintext === null || plaintext === undefined || plaintext === '') return plaintext;
+  if (typeof plaintext !== 'string') plaintext = String(plaintext);
+  if (!encryptionKey) throw new Error('Encryption key not initialized');
+  const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
+  const encoder = new TextEncoder();
+  const ciphertext = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    encryptionKey,
+    encoder.encode(plaintext)
+  );
+  return {
+    iv: btoa(String.fromCharCode(...iv)),
+    ct: btoa(String.fromCharCode(...new Uint8Array(ciphertext)))
+  };
+}
+
+async function decryptField(encrypted) {
+  if (!encrypted || typeof encrypted !== 'object') return encrypted;
+  if (typeof encrypted === 'string') return encrypted; // already plaintext (legacy)
+  if (!encryptionKey) throw new Error('Encryption key not initialized');
+  const iv = new Uint8Array(atob(encrypted.iv).split('').map(c => c.charCodeAt(0)));
+  const ct = new Uint8Array(atob(encrypted.ct).split('').map(c => c.charCodeAt(0)));
+  const decoder = new TextDecoder();
+  const plaintext = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv },
+    encryptionKey,
+    ct
+  );
+  return decoder.decode(plaintext);
+}
+
+function isEncrypted(value) {
+  return value && typeof value === 'object' && 'iv' in value && 'ct' in value;
+}
+
+async function encryptCustomer(customer) {
+  const encrypted = { ...customer };
+  for (const field of PII_FIELDS) {
+    if (field === 'address' && encrypted.address) {
+      const addr = { ...encrypted.address };
+      for (const afield of ADDRESS_PII_FIELDS) {
+        if (addr[afield] !== undefined && addr[afield] !== null && !isEncrypted(addr[afield])) {
+          addr[afield] = await encryptField(addr[afield]);
+        }
+      }
+      encrypted.address = addr;
+    } else if (encrypted[field] !== undefined && encrypted[field] !== null && !isEncrypted(encrypted[field])) {
+      encrypted[field] = await encryptField(encrypted[field]);
+    }
+  }
+  return encrypted;
+}
+
+async function decryptCustomer(customer) {
+  if (!customer) return customer;
+  const decrypted = { ...customer };
+  for (const field of PII_FIELDS) {
+    if (field === 'address' && decrypted.address) {
+      const addr = { ...decrypted.address };
+      for (const afield of ADDRESS_PII_FIELDS) {
+        if (addr[afield] !== undefined && addr[afield] !== null && isEncrypted(addr[afield])) {
+          addr[afield] = await decryptField(addr[afield]);
+        }
+      }
+      decrypted.address = addr;
+    } else if (decrypted[field] !== undefined && decrypted[field] !== null && isEncrypted(decrypted[field])) {
+      decrypted[field] = await decryptField(decrypted[field]);
+    }
+  }
+  return decrypted;
+}
+
+async function migratePlaintextCustomers() {
+  if (!encryptionKey) return;
+  const customers = await DB.db.customers.toArray();
+  let migrated = 0;
+  for (const customer of customers) {
+    let needsUpdate = false;
+    for (const field of PII_FIELDS) {
+      if (field === 'address' && customer.address) {
+        for (const afield of ADDRESS_PII_FIELDS) {
+          if (customer.address[afield] !== undefined && customer.address[afield] !== null && !isEncrypted(customer.address[afield])) {
+            needsUpdate = true;
+            break;
+          }
+        }
+      } else if (customer[field] !== undefined && customer[field] !== null && !isEncrypted(customer[field])) {
+        needsUpdate = true;
+      }
+      if (needsUpdate) break;
+    }
+    if (needsUpdate) {
+      const encrypted = await encryptCustomer(customer);
+      await DB.db.customers.put(encrypted);
+      migrated++;
+    }
+  }
+  if (migrated) {
+    console.log(`Encrypted ${migrated} customer record(s)`);
+  }
+}
+
 const DB = {
   db: null,
 
@@ -80,6 +243,9 @@ const DB = {
     // since been merged (see js/core/config.js). Rewrite any appointments
     // still carrying the old ids so filters/reports don't silently miss them.
     await this.migrateLegacyOutcomes();
+
+    // One-time migration: encrypt any plaintext customer PII fields
+    await migratePlaintextCustomers();
 
     console.log('Database initialized');
   },
@@ -281,8 +447,9 @@ const DB = {
       createdAt: new Date().toISOString()
     };
 
-    const id = await this.db.customers.add(customer);
-    return { ...customer, id };
+    const encryptedCustomer = await encryptCustomer(customer);
+    const id = await this.db.customers.add(encryptedCustomer);
+    return { ...encryptedCustomer, id };
   },
 
   // Deletes the customer plus everything keyed to them - appointments and
@@ -368,18 +535,70 @@ const DB = {
   async searchCustomers(query) {
     const normalized = query.toLowerCase().trim();
 
-    return await this.db.customers
-      .filter(c => {
-        return (c.firstName && c.firstName.toLowerCase().includes(normalized)) ||
-               (c.lastName && c.lastName.toLowerCase().includes(normalized)) ||
-               (c.fullName && c.fullName.toLowerCase().includes(normalized)) ||
-               (c.customerNumber && c.customerNumber.toLowerCase().includes(normalized)) ||
-               (c.phone && c.phone.includes(normalized)) ||
-               ((c.postcodeNormalized || c.address?.postcodeNormalized || '').includes(normalized.replace(/\s/g, '').toUpperCase())) ||
-               (c.address && c.address.line1 && c.address.line1.toLowerCase().includes(normalized));
-      })
-      .limit(20)
-      .toArray();
+    const customers = await this.db.customers.toArray();
+    const results = [];
+    for (const c of customers) {
+      const decrypted = await decryptCustomer(c);
+      if ((decrypted.firstName && decrypted.firstName.toLowerCase().includes(normalized)) ||
+          (decrypted.lastName && decrypted.lastName.toLowerCase().includes(normalized)) ||
+          (decrypted.fullName && decrypted.fullName.toLowerCase().includes(normalized)) ||
+          (decrypted.customerNumber && decrypted.customerNumber.toLowerCase().includes(normalized)) ||
+          (decrypted.phone && decrypted.phone.includes(normalized)) ||
+          ((decrypted.postcodeNormalized || decrypted.address?.postcodeNormalized || '').includes(normalized.replace(/\s/g, '').toUpperCase())) ||
+          (decrypted.address && decrypted.address.line1 && decrypted.address.line1.toLowerCase().includes(normalized))) {
+        results.push(decrypted);
+        if (results.length >= 20) break;
+      }
+    }
+    return results;
+  },
+
+  // Fetch one customer by id, decrypting PII fields (the raw row carries
+  // encrypted {iv,ct} values; features must not read DB.db.customers.get()).
+  async getCustomer(customerId) {
+    if (!customerId) return null;
+    const row = await this.db.customers.get(customerId);
+    return row ? decryptCustomer(row) : null;
+  },
+
+  // Fetch every customer, decrypting PII fields.
+  async getAllCustomers() {
+    const rows = await this.db.customers.toArray();
+    return Promise.all(rows.map(c => decryptCustomer(c)));
+  },
+
+  // Batch-fetch customers by id, decrypting PII fields (bulkGet returns the
+  // raw rows, which carry encrypted {iv,ct} values under field-level
+  // encryption — features must not read DB.db.customers directly).
+  async getCustomersByIds(ids) {
+    const valid = [...new Set((ids || []).filter(Boolean))];
+    if (!valid.length) return [];
+    const rows = await this.db.customers.bulkGet(valid);
+    return Promise.all(rows.filter(Boolean).map(c => decryptCustomer(c)));
+  },
+
+  // Find a customer by phone number. The phone column is encrypted at rest
+  // (PII_FIELDS), so an indexed .where('phone') query can never match —
+  // scan + decrypt instead, mirroring searchCustomers.
+  async findCustomerByPhone(phone) {
+    if (!phone) return null;
+    const normalized = String(phone).trim();
+    const customers = await this.db.customers.toArray();
+    for (const c of customers) {
+      const decrypted = await decryptCustomer(c);
+      if (decrypted.phone && String(decrypted.phone).trim() === normalized) {
+        return decrypted;
+      }
+    }
+    return null;
+  },
+
+  // Update a customer row, encrypting PII fields so updates never write
+  // plaintext into the encrypted columns (raw DB.db.customers.update()
+  // would leave mixed-state rows that break the at-rest guarantee).
+  async updateCustomer(customerId, fields) {
+    const encrypted = await encryptCustomer(fields);
+    await this.db.customers.update(customerId, encrypted);
   },
 
   // Appointment operations
@@ -689,6 +908,15 @@ const DB = {
     // is rejected wholesale; partial imports are impossible by construction.
     await this._validateBackup(data);
 
+    // Prepare encrypted customer records before the transaction (encryption
+    // is async and would otherwise yield, causing the transaction to become
+    // inactive).
+    let importData = data;
+    if (encryptionKey && data.customers) {
+      importData = { ...data };
+      importData.customers = await Promise.all(data.customers.map(c => encryptCustomer(c)));
+    }
+
     // On the real engine this is a single atomic readwrite transaction
     // across every table: a failure anywhere aborts the whole import and
     // the previous data comes back untouched. (The mini-Dexie shim fallback
@@ -698,12 +926,13 @@ const DB = {
         await this.db.transaction('rw', BACKUP_TABLES.map(t => this.db[t]), async () => {
           for (const table of BACKUP_TABLES) {
             await this.db[table].clear();
-            if (data[table]) {
-              await this.db[table].bulkAdd(data[table]);
+            if (importData[table]) {
+              await this.db[table].bulkAdd(importData[table]);
             }
           }
         });
       } catch (err) {
+        console.error('Import failed:', err);
         throw new Error('Import failed and was rolled back. Your previous data should be intact — please check Money, Visits and Customers.');
       }
     } else {
@@ -721,8 +950,8 @@ const DB = {
       try {
         for (const table of BACKUP_TABLES) {
           await this.db[table].clear();
-          if (data[table]) {
-            await this.db[table].bulkAdd(data[table]);
+          if (importData[table]) {
+            await this.db[table].bulkAdd(importData[table]);
           }
         }
       } catch (err) {
@@ -891,9 +1120,22 @@ const DB = {
       }, 0);
       if (!maxSeq) continue;
       const seq = await this.db.sequences.get(name);
-      if (!seq || seq.value < maxSeq) {
+if (!seq || seq.value < maxSeq) {
         await this.db.sequences.put({ name, value: maxSeq });
       }
     }
   }
 };
+
+// Expose encryption functions globally for app.js
+if (typeof window !== 'undefined') {
+  window.initEncryption = initEncryption;
+  window.clearEncryptionKey = clearEncryptionKey;
+  window.hasEncryptionKey = hasEncryptionKey;
+  window.encryptCustomer = encryptCustomer;
+  window.decryptCustomer = decryptCustomer;
+  window.migratePlaintextCustomers = migratePlaintextCustomers;
+  window.isEncrypted = isEncrypted;
+  window.encryptField = encryptField;
+  window.decryptField = decryptField;
+}

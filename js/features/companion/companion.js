@@ -1089,7 +1089,7 @@ const CompanionFeature = {
           suggestions: ['money', 'follow-ups']
         };
       }
-      const cust = match.customerId ? await DB.db.customers.get(match.customerId) : null;
+      const cust = match.customerId ? await DB.getCustomer(match.customerId) : null;
       const due = match.balanceDue || 0;
       return {
         text: `${match.orderNumber} — ${cust ? cust.fullName : 'customer'} · ${match.stage || match.status || 'ordered'}.`,
@@ -1119,7 +1119,7 @@ const CompanionFeature = {
     const ids = [...new Set(open.map(o => o.customerId).filter(Boolean))];
     const names = new Map();
     try {
-      const fetched = ids.length ? await DB.db.customers.bulkGet(ids) : [];
+      const fetched = ids.length ? await DB.getCustomersByIds(ids) : [];
       for (const cust of fetched) if (cust) names.set(cust.id, cust.fullName || cust.firstName);
     } catch (e) {}
 

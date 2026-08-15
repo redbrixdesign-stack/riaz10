@@ -50,6 +50,8 @@ window.addEventListener("load", async () => {
   const step = (label, pass, extra) => results.push({ label, pass, extra });
 
   await DB.init();
+  // Test-mode encryption key (see app.js promptPassphrase test branch)
+  await initEncryption("test-passphrase-123");
   await DB.deleteAllData();
 
   const at = (d, h) => { const dt = new Date(d); dt.setHours(h, 0, 0, 0); return dt.toISOString(); };

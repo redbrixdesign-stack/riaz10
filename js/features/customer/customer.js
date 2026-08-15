@@ -23,7 +23,7 @@ const CustomerFeature = {
   async renderProfile(customerId) {
     let customer = null;
     try {
-      customer = await DB.db.customers.get(customerId);
+      customer = await DB.getCustomer(customerId);
     } catch (e) {
       console.error('Failed to load customer:', e);
     }

@@ -50,7 +50,13 @@ window.addEventListener("load", async () => {
   const step = (label, pass, extra) => results.push({ label, pass, extra });
 
   await DB.init();
+  // Test-mode encryption key (see app.js promptPassphrase test branch)
+  await initEncryption("test-passphrase-123");
   await DB.deleteAllData();
+
+  // The raw-CDP harness never answers JS dialogs, so the restore
+  // confirmation (export.js importBackup) would hang the journey.
+  window.confirm = () => true;
 
   const today = Utils.getToday();
   const at = (d, h) => { const dt = new Date(d); dt.setHours(h, 0, 0, 0); return dt.toISOString(); };
@@ -135,7 +141,7 @@ window.addEventListener("load", async () => {
   step('every table restored to its exported size', JSON.stringify(restored) === JSON.stringify(before), { got: { before, restored } });
 
   // ---- 4. Restored records keep their identity + relationships ----
-  const restCustomer = await DB.db.customers.get(customer.id);
+  const restCustomer = await DB.getCustomer(customer.id);
   step('customer restored with number + profile',
     restCustomer && restCustomer.customerNumber === customer.customerNumber && restCustomer.phone === '07700900123' && restCustomer.status === 'active',
     { got: restCustomer && restCustomer.customerNumber });

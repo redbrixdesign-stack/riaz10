@@ -121,10 +121,12 @@ fail-closed production settings.
 
 ## Known limitations
 
-- **Routing/geocoding** (`js/core/geo.js`) uses public OSRM and Nominatim
-  instances. No SLA, rate-limited, not licensed for commercial traffic.
-  Swap in a paid provider (Google Maps, Mapbox, HERE) with an API key before
-  any real deployment.
+- **Routing/geocoding** (`js/core/geoprovider.js`) uses a pluggable provider
+  abstraction. The default is **Mapbox** (Directions + Geocoding APIs) when a
+  valid access token is configured in Settings → Routing. Without a token,
+  it automatically falls back to public **OSRM + Nominatim** instances — no
+  SLA, rate-limited, not licensed for commercial traffic. The Mapbox free
+  tier includes 100k requests/month; add a token for production reliability.
 - **Tax calculations** are estimates based on current UK rates and are not a
   substitute for an accountant.
 - All data is local to the device/browser — there is no sync, no backup

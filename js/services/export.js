@@ -3,6 +3,68 @@
    CSV, PDF, JSON backup
    ============================================ */
 
+// Encryption helpers for password-protected backups (AES-GCM 256-bit)
+const ENCRYPTION_MARKER = 'advisoros:enc:v1:';
+const EXPORT_PBKDF2_ITERATIONS = 100000;
+const EXPORT_KEY_LENGTH = 256;
+const EXPORT_IV_LENGTH = 12;
+
+async function exportDeriveKey(passphrase, salt) {
+  const encoder = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(passphrase),
+    'PBKDF2',
+    false,
+    ['deriveKey']
+  );
+  return await crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: EXPORT_PBKDF2_ITERATIONS, hash: 'SHA-256' },
+    keyMaterial,
+    { name: 'AES-GCM', length: EXPORT_KEY_LENGTH },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+async function exportEncrypt(jsonString, passphrase) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const key = await exportDeriveKey(passphrase, salt);
+  const iv = crypto.getRandomValues(new Uint8Array(EXPORT_IV_LENGTH));
+  const encoder = new TextEncoder();
+  const ciphertext = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    encoder.encode(jsonString)
+  );
+  const combined = new Uint8Array(salt.length + iv.length + ciphertext.byteLength);
+  combined.set(salt, 0);
+  combined.set(iv, salt.length);
+  combined.set(new Uint8Array(ciphertext), salt.length + iv.length);
+  return ENCRYPTION_MARKER + btoa(String.fromCharCode(...combined));
+}
+
+async function exportDecrypt(encryptedString, passphrase) {
+  if (!encryptedString.startsWith(ENCRYPTION_MARKER)) {
+    return encryptedString; // Not encrypted, return as-is
+  }
+  const combined = new Uint8Array(
+    atob(encryptedString.slice(ENCRYPTION_MARKER.length))
+      .split('').map(c => c.charCodeAt(0))
+  );
+  const salt = combined.slice(0, 16);
+  const iv = combined.slice(16, 16 + EXPORT_IV_LENGTH);
+  const ct = combined.slice(16 + EXPORT_IV_LENGTH);
+  const key = await exportDeriveKey(passphrase, salt);
+  const decoder = new TextDecoder();
+  const plaintext = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    ct
+  );
+  return decoder.decode(plaintext);
+}
+
 const ExportService = {
   // Track last backup for UI
   _LAST_BACKUP_KEY: 'beelo_last_backup',
@@ -165,7 +227,7 @@ const ExportService = {
   // The format version is deliberately separate from the DB schema version:
   // a future schema bump doesn't have to change the file layout, and a
   // layout change doesn't imply a schema change.
-  async exportBackup() {
+  async exportBackup(password = null) {
     const data = await DB.exportAll();
     const backup = {
       backupFormatVersion: 1,
@@ -177,10 +239,17 @@ const ExportService = {
       data
     };
 
-    const json = JSON.stringify(backup, null, 2);
+    let json = JSON.stringify(backup, null, 2);
+    let filename = `beelo_backup_${Utils.formatDateUK(new Date(), 'iso')}.json`;
+
+    if (password) {
+      json = await exportEncrypt(json, password);
+      filename = `beelo_backup_${Utils.formatDateUK(new Date(), 'iso')}.enc.json`;
+    }
+
     this.downloadFile(
       json,
-      `beelo_backup_${Utils.formatDateUK(new Date(), 'iso')}.json`,
+      filename,
       'application/json'
     );
 
@@ -206,10 +275,28 @@ const ExportService = {
   // Import from JSON backup with user-friendly errors
   async importBackup(file) {
     const text = await file.text();
+
+    // Check if the backup is encrypted (AES-GCM via passphrase)
     let backup;
     try {
-      backup = JSON.parse(text);
+      if (text.startsWith(ENCRYPTION_MARKER)) {
+        // Encrypted backup - prompt for password
+        const password = await this._promptForPassword('This backup is encrypted. Enter the password to decrypt it.');
+        if (!password) {
+          throw new Error('Password required to import encrypted backup');
+        }
+        const decrypted = await exportDecrypt(text, password);
+        backup = JSON.parse(decrypted);
+      } else {
+        backup = JSON.parse(text);
+      }
     } catch (e) {
+      if (e && (e.message || '').startsWith('Password')) {
+        throw e;
+      }
+      if (e && e.name === 'OperationError') {
+        throw new Error('Could not decrypt this backup — the password is wrong');
+      }
       throw new Error('This file is not a valid Beelo backup (not valid JSON)');
     }
 
@@ -301,6 +388,49 @@ const ExportService = {
 
     Toast.show('Backup restored successfully', 'success');
     return backup;
+  },
+
+  // Prompt for password via a modal
+  _promptForPassword(message) {
+    return new Promise((resolve) => {
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.innerHTML = `
+        <div class="bottom-sheet" style="max-width:400px;">
+          <div class="sheet-handle"></div>
+          <div class="sheet-header">
+            <h3>Encrypted Backup</h3>
+          </div>
+          <div class="sheet-body p-md">
+            <p class="text-secondary mb-lg">${Utils.escapeHtml(message)}</p>
+            <div class="form-group">
+              <label>Password</label>
+              <input type="password" class="input" id="enc-backup-password" placeholder="Enter password" autocomplete="off">
+            </div>
+            <div id="enc-backup-error" class="fs-12 text-danger mb-md" style="display:none;"></div>
+            <button class="btn btn-primary btn-block" onclick="ExportService._submitPassword()">Decrypt & Import</button>
+          </div>
+        </div>
+      `;
+      document.getElementById('modal-overlay').appendChild(modal);
+      document.getElementById('enc-backup-password').focus();
+
+      window.ExportService._submitPassword = () => {
+        const password = document.getElementById('enc-backup-password').value;
+        if (!password) {
+          document.getElementById('enc-backup-error').textContent = 'Please enter the password';
+          document.getElementById('enc-backup-error').style.display = 'block';
+          return;
+        }
+        modal.remove();
+        delete window.ExportService._submitPassword;
+        resolve(password);
+      };
+
+      document.getElementById('enc-backup-password').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') window.ExportService._submitPassword();
+      });
+    });
   },
 
   // Download helper

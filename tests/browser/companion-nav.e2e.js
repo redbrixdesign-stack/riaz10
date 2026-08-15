@@ -156,6 +156,7 @@ async function screenshot(ws, file) {
       if (Date.now() > preDeadline) throw new Error('pre-boot origin never became ready');
     }
     await evaluate(ws, `localStorage.setItem('advisoros_config', JSON.stringify({ onboardingComplete: true }))`);
+    await evaluate(ws, `localStorage.setItem('advisoros_enc_test', '1')`);
     await evaluate(ws, `localStorage.setItem('advisoros_companion_ai', '0')`);
     await evaluate(ws, `localStorage.setItem('advisoros_v6', '{}')`);
     await cdpCall(ws, 'Page.navigate', { url: BASE + '/index.html?navboot=1' });

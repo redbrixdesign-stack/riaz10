@@ -39,7 +39,7 @@ const OrdersFeature = {
     const customerMap = new Map();
     if (customerIds.length) {
       try {
-        const fetched = await DB.db.customers.bulkGet(customerIds);
+        const fetched = await DB.getCustomersByIds(customerIds);
         for (const c of fetched) if (c) customerMap.set(c.id, c);
       } catch (e) {}
     }
@@ -168,7 +168,7 @@ const OrdersFeature = {
     if (!order) { Toast.show('Order not found', 'error'); return; }
 
     let customer = null;
-    try { customer = order.customerId ? await DB.db.customers.get(order.customerId) : null; } catch (e) {}
+    try { customer = order.customerId ? await DB.getCustomer(order.customerId) : null; } catch (e) {}
     const name = customer?.fullName || (customer ? `${customer.firstName || ''} ${customer.lastName || ''}`.trim() : '') || 'Unknown';
     const phone = customer?.phone || '';
     const isPaid = (order.balanceDue || 0) <= 0;
@@ -309,7 +309,7 @@ const OrdersFeature = {
     if (!order) { Toast.show('Order not found', 'error'); return; }
     if (!order.appointmentId) {
       let customer = null;
-      try { customer = order.customerId ? await DB.db.customers.get(order.customerId) : null; } catch (e) {}
+      try { customer = order.customerId ? await DB.getCustomer(order.customerId) : null; } catch (e) {}
       if (!customer?.phone) { Toast.show('No phone number available', 'error'); return; }
       const name = customer.fullName || `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'Customer';
       ContactFeature.open({ name, phone: customer.phone });

@@ -50,6 +50,8 @@ window.addEventListener("load", async () => {
   const step = (label, pass, extra) => results.push({ label, pass, extra });
 
   await DB.init();
+  // Test-mode encryption key (see app.js promptPassphrase test branch)
+  await initEncryption("test-passphrase-123");
   await DB.deleteAllData();
   try { Geo.init(); } catch (e) { /* banner needs no DOM here */ }
 

@@ -50,6 +50,8 @@ window.addEventListener("load", async () => {
   const step = (label, pass, extra) => results.push({ label, pass, extra });
 
   await DB.init();
+  // Test-mode encryption key (see app.js promptPassphrase test branch)
+  await initEncryption("test-passphrase-123");
   await DB.deleteAllData();
 
   Object.assign(CONFIG, {
@@ -70,19 +72,22 @@ window.addEventListener("load", async () => {
 
   const today = Utils.getToday();
   const tomorrow = Utils.addDays(today, 1);
-  // Seed "today" visits late in the day (23:00/23:30) so the production
-  // scheduler's "upcoming" window (now → +7 days) still contains them for
-  // any run before ~23:30 UK. Day-before scheduling for the tomorrow visit
-  // is clock-independent (tomorrow 10:00 is always in the future).
+  // Seed "today" visits at a FUTURE time of the current UK day (30/60 min
+  // from now, clamped before 23:59) so the production scheduler's upcoming
+  // window (now → +7 days) always contains them at any run hour — a fixed
+  // 23:00/23:30 fixture silently fell out of the window after ~23:30 UK.
   const at = (d, h, m = 0) => { const dt = new Date(d); dt.setHours(h, m, 0, 0); return dt.toISOString(); };
+  const endOfToday = new Date(at(today, 23, 59)).getTime();
+  const seed1 = new Date(Math.min(Date.now() + 30 * 60 * 1000, endOfToday));
+  const seed2 = new Date(Math.min(seed1.getTime() + 30 * 60 * 1000, endOfToday));
 
   const appt1 = await DB.addAppointment({
     customerId: customer.id, clientName: 'John', type: 'consultation',
-    date: at(today, 23, 0), latLng: [53.4808, -2.2426]
+    date: seed1.toISOString(), latLng: [53.4808, -2.2426]
   });
   const appt2 = await DB.addAppointment({
     customerId: customer.id, clientName: 'John', type: 'measure',
-    date: at(today, 23, 30), latLng: [53.4830, -2.2600]
+    date: seed2.toISOString(), latLng: [53.4830, -2.2600]
   });
   const appt3 = await DB.addAppointment({
     customerId: customer.id, clientName: 'John', type: 'consultation',

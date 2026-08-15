@@ -52,7 +52,7 @@ const FollowupsFeature = {
     const customerMap = new Map();
     if (customerIds.length) {
       try {
-        const fetched = await DB.db.customers.bulkGet(customerIds);
+        const fetched = await DB.getCustomersByIds(customerIds);
         for (const c of fetched) if (c) customerMap.set(c.id, c);
       } catch (e) {}
     }

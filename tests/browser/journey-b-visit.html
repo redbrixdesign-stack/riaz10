@@ -55,6 +55,8 @@ window.addEventListener("load", async () => {
   const step = (label, pass, extra) => results.push({ label, pass, extra });
 
   await DB.init();
+  // Test-mode encryption key (see app.js promptPassphrase test branch)
+  await initEncryption("test-passphrase-123");
   await DB.deleteAllData();
 
   const customer = await DB.addCustomer({
@@ -83,9 +85,13 @@ window.addEventListener("load", async () => {
     type: 'whatsapp_attempted', template: 'follow_up.quote', content: 'Hi Sarah, following up on your quote'
   });
 
+  // The fitting must be UPCOMING for the Companion facts below to classify
+  // it as the next visit (a "today at 14:00" fixture breaks when the suite
+  // runs after 14:00 — the visit lands in lastVisit with no outcome yet).
+  const fitTime = new Date(Date.now() + 60 * 60 * 1000); // 1h from now
   const todayAppt = await DB.addAppointment({
     customerId: customer.id, clientName: 'Sarah', type: 'fitting',
-    date: at(Utils.getToday(), 14)
+    date: at(fitTime, fitTime.getHours())
   });
 
   // 1. Search finds the customer through production search.
@@ -96,7 +102,8 @@ window.addEventListener("load", async () => {
   const profile = await CompanionFeature.answerPerson('Sarah Johnson');
   const fact = l => (profile.facts.find(f => f.label === l) || {}).value;
   step('Companion surfaces last visit with its real outcome', String(fact('Last visit')).includes('quoted'), { got: fact('Last visit') });
-  step('Companion surfaces the upcoming fitting', String(fact('Next visit')).includes('14:00'), { got: fact('Next visit') });
+  const fitHourLabel = String(fitTime.getHours()).padStart(2, '0') + ':00';
+  step('Companion surfaces the upcoming fitting', String(fact('Next visit')).includes(fitHourLabel), { got: fact('Next visit') });
   step('intro draft is flagged as not sent for the new visit', fact('Intro message') === 'Not sent yet', { got: fact('Intro message') });
   step('profile text names the customer', profile.text.startsWith('Sarah Johnson'), { got: profile.text });
 
@@ -107,9 +114,9 @@ window.addEventListener("load", async () => {
   step('drop used = least drop', measurement.dropUsed === 1500, { got: measurement.dropUsed });
   step('no diagonals → variance is null', measurement.diagonalVariance === null && measurement.isSquare === null);
 
-  // 4. Today's fitting visit exists and is the only one.
-  const todays = await DB.getAppointmentsForDate(Utils.getToday().toISOString());
-  step('today has exactly the one fitting visit', todays.length === 1 && todays[0].type === 'fitting', { got: todays.length });
+  // 4. The fitting visit exists and is the only one booked for its day.
+  const todays = await DB.getAppointmentsForDate(fitTime.toISOString());
+  step('the fitting visit exists and is the only one', todays.length === 1 && todays[0].type === 'fitting', { got: todays.length });
 
   // 5. Record the outcome through the production save path (real DB write,
   //    real order upsert + real customer totals refresh).

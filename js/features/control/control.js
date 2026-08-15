@@ -184,7 +184,7 @@ const ControlFeature = {
 
   async clearPitchDemo() {
     try {
-      const customers = await DB.db.customers.where('phone').anyOf(this.PITCH_DEMO_PHONES).toArray();
+      const customers = (await DB.getAllCustomers()).filter(c => this.PITCH_DEMO_PHONES.includes(c.phone));
       for (const customer of customers) {
         await DB.deleteCustomer(customer.id);
       }
