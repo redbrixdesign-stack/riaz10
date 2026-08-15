@@ -38,6 +38,7 @@ const MoneyFeature = {
     const target = CONFIG.weeklyTarget || 600;
     const targetGap = Math.max(0, target - weekEarnings);
     const recordCount = expenses.length + trips.length;
+    const progressPct = target > 0 ? Math.min(100, Math.round((weekEarnings / target) * 100)) : 0;
 
     return `<div class="fade-in">
       ${App.renderTopHeader({ 
@@ -45,99 +46,133 @@ const MoneyFeature = {
         actions: '<button class="btn btn-sm btn-ghost" aria-label="Download tax summary" onclick="ExportService.exportTaxSummary()"><span class="material-symbols-rounded">download</span></button>' 
       })}
       <div class="p-md pb-0" >
-        <div class="card hero-card" >
+        <!-- HERO: This Week Earnings -->
+        <div class="card" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; border: none;">
           <div class="fs-13 op-90" >This Week · Earnings (commission)</div>
-          <div class="fs-32 fw-700 mt-6" >${Utils.formatCurrency(weekEarnings)}</div>
-          <div class="fs-15 op-90 mt-xs" >${targetGap > 0 ? `${Utils.formatCurrency(targetGap)} to earnings target` : 'Earnings target reached'}</div>
-          <div class="progress-bar mt-14 bg-soft-light" >
-            <div class="fill ${weekEarnings >= target ? 'success' : 'accent'}" style="width:${Math.min(100, target > 0 ? (weekEarnings / target) * 100 : 0)}%;background:${weekEarnings >= target ? 'var(--secondary)' : 'var(--accent)'};"></div>
+          <div class="fs-40 fw-700 mt-4" >${Utils.formatCurrency(weekEarnings)}</div>
+          <div class="fs-16 op-90 mt-2" >
+            ${targetGap > 0 
+              ? `${Utils.formatCurrency(targetGap)} to target`
+              : 'Target reached'}
           </div>
-          <div class="fs-11 op-70 mt-6" >Today shows sales value; this shows your commission. Both share the same weekly target.</div>
+          <div class="progress-bar mt-10" style="background: rgba(255,255,255,0.15);">
+            <div class="fill" style="width:${progressPct}%;background:var(--accent);"></div>
+          </div>
+          <div class="fs-11 op-70 mt-4" >${progressPct}% of £${target} target</div>
         </div>
 
-        <div class="stats-grid">
-          <div class="stat-card stat-card-clickable" role="button" tabindex="0" aria-label="View upcoming visits" onclick="App.navigate('appointments', {tab: 'upcoming'})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();App.navigate('appointments', {tab: 'upcoming'});}"><div class="value">${Utils.formatCurrency(targetGap)}</div><div class="label">Earnings Gap</div></div>
-          <div class="stat-card stat-card-clickable" role="button" tabindex="0" aria-label="View this month's records" onclick="MoneyFeature.openRecordsModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();MoneyFeature.openRecordsModal();}"><div class="value">${Utils.formatCurrency(mileageClaim)}</div><div class="label">Mileage Claim</div></div>
-          <div class="stat-card stat-card-clickable" role="button" tabindex="0" aria-label="View this month's records" onclick="MoneyFeature.openRecordsModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();MoneyFeature.openRecordsModal();}"><div class="value">${Utils.formatCurrency(monthTotal)}</div><div class="label">Expenses</div></div>
-          <div class="stat-card stat-card-clickable" role="button" tabindex="0" aria-label="View this month's records" onclick="MoneyFeature.openRecordsModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();MoneyFeature.openRecordsModal();}"><div class="value">${recordCount || '—'}</div><div class="label">Records This Month</div></div>
-        </div>
-      </div>
-
-      ${formatted ? `
-      <div class="card card-page-mb" id="tax-estimate-card" >
-        <div class="flex justify-between gap-12 items-start mb-12" >
-          <div>
-            <div class="fw-600" >Tax Estimate</div>
-            <div class="fs-12 text-tertiary" >Tax year ${taxSummary.tax.taxYear.label}</div>
-          </div>
-          <span class="badge badge-primary">Estimate</span>
-        </div>
-        <div class="grid-2 gap-12" >
-          <div><div class="fs-12 text-tertiary" >Profit</div><div class="fs-20 fw-700" >${formatted.profit}</div></div>
-          <div><div class="fs-12 text-tertiary" >Tax due</div><div class="fs-20 fw-700 text-danger" >${formatted.taxDue}</div></div>
-          <div><div class="fs-12 text-tertiary" >Income tax</div><div class="fw-600" >${formatted.incomeTax}</div></div>
-          <div><div class="fs-12 text-tertiary" >Class 4 NIC</div><div class="fw-600" >${formatted.class4NIC}</div></div>
-        </div>
-      </div>
-
-      <div class="card card-page-gap" >
-        <div class="fw-600 mb-12" >Payment Deadlines</div>
-        <div class="flex flex-col gap-12" >
-          <div class="flex justify-between items-center" >
-            <div><div class="fw-500" >31 January ${taxSummary.tax.taxYear.endYear + 1}</div><div class="fs-12 text-tertiary" >${formatted.weeksLeft} weeks away</div></div>
-            <div class="fs-18 fw-700 text-danger" >${formatted.jan31}</div>
-          </div>
-          <div class="progress-bar"><div class="fill danger" style="width:${Math.min(100,(52-taxSummary.tax.weeksToJan31)/52*100)}%"></div></div>
-          <div class="flex justify-between items-center top-divider-8" >
-            <div><div class="fw-500" >31 July ${taxSummary.tax.taxYear.endYear + 1}</div><div class="fs-12 text-tertiary" >Payment on account</div></div>
-            <div class="fs-16 fw-600 text-secondary" >${formatted.jul31}</div>
+        <!-- What needs attention -->
+        ${targetGap > 0 ? `
+        <div class="card card-page-mb" style="border-left: 3px solid var(--accent);">
+          <div class="flex items-center justify-between gap-12">
+            <div>
+              <div class="fw-600" >Earnings gap</div>
+              <div class="fs-13 text-tertiary" >£${targetGap} to hit your £${target} weekly target</div>
+            </div>
+            <span class="badge" style="background: var(--accent); color: var(--accent-contrast);">${Utils.formatCurrency(targetGap)}</span>
           </div>
         </div>
-      </div>
+        ` : ''}
 
-      ${taxSummary.profit > 0 ? `
-      <div class="card card-page-gap bg-success-light" >
-        <div class="flex items-center gap-12" >
-          <span class="material-symbols-rounded text-success fs-28" >savings</span>
-          <div class="flex-1" >
-            <div class="fw-600 text-success" >Save ${formatted.weeklySave} this week</div>
-            <div class="fs-13 text-secondary" >To cover your January tax bill</div>
+        <!-- Tax & Deadlines (progressive disclosure) -->
+        ${formatted ? `
+        <details class="card card-page-mb" id="tax-section" open="${formatted.profit > 0 ? 'true' : 'false'}">
+          <summary class="flex items-center justify-between gap-12 cursor-pointer" style="list-style: none;">
+            <div>
+              <div class="fw-600" >Tax & deadlines</div>
+              <div class="fs-12 text-tertiary" >Tax year ${taxSummary.tax.taxYear.label} · ${formatted.weeksLeft} weeks to 31 Jan</div>
+            </div>
+            <span class="material-symbols-rounded text-tertiary" style="transition: transform 0.2s;">expand_more</span>
+          </summary>
+          <div class="mt-12 grid-2 gap-12" style="padding-top: 12px; border-top: 1px solid var(--border-light);">
+            <div><div class="fs-12 text-tertiary" >Profit</div><div class="fs-20 fw-700" >${formatted.profit}</div></div>
+            <div><div class="fs-12 text-tertiary" >Tax due</div><div class="fs-20 fw-700 text-danger" >${formatted.taxDue}</div></div>
+            <div><div class="fs-12 text-tertiary" >Income tax</div><div class="fw-600" >${formatted.incomeTax}</div></div>
+            <div><div class="fs-12 text-tertiary" >Class 4 NIC</div><div class="fw-600" >${formatted.class4NIC}</div></div>
           </div>
-          <button class="btn btn-sm btn-secondary" onclick="MoneyFeature.markSaved()">Saved ✓</button>
-        </div>
-      </div>
-      ` : ''}
-      ` : `<div class="card card-empty-center" >
-        <span class="material-symbols-rounded fs-32 text-tertiary" >receipt_long</span>
-        <div class="fw-600 mt-sm" >No tax estimate yet</div>
-        <div class="text-tertiary fs-13 mt-xs" >Log one of these to get started - your estimate builds automatically from there</div>
-        <div class="flex flex-col gap-sm mt-md" >
-          <button class="btn btn-outline btn-sm btn-block" onclick="App.navigate('appointments')"><span class="material-symbols-rounded">event_available</span>Record a visit outcome</button>
-          <button class="btn btn-outline btn-sm btn-block" onclick="MoneyFeature.openExpenseModal()"><span class="material-symbols-rounded">receipt</span>Log an expense</button>
-          <button class="btn btn-outline btn-sm btn-block" onclick="MoneyFeature.openMileageModal()"><span class="material-symbols-rounded">route</span>Log mileage</button>
-        </div>
-      </div>`}
+          <div class="mt-12 flex flex-col gap-10" style="padding-top: 12px; border-top: 1px solid var(--border-light);">
+            <div class="flex justify-between items-center">
+              <div><div class="fw-500" >31 January ${taxSummary.tax.taxYear.endYear + 1}</div><div class="fs-12 text-tertiary" >${formatted.weeksLeft} weeks away</div></div>
+              <div class="fs-18 fw-700 text-danger" >${formatted.jan31}</div>
+            </div>
+            <div class="progress-bar" style="height: 6px;"><div class="fill danger" style="width:${Math.min(100, Math.round((52 - taxSummary.tax.weeksToJan31) / 52 * 100))}%"></div></div>
+            <div class="flex justify-between items-center top-divider-8">
+              <div><div class="fw-500" >31 July ${taxSummary.tax.taxYear.endYear + 1}</div><div class="fs-12 text-tertiary" >Payment on account</div></div>
+              <div class="fs-16 fw-600 text-secondary" >${formatted.jul31}</div>
+            </div>
+          </div>
+          ${taxSummary.profit > 0 ? `
+          <div class="mt-12 p-12 bg-success-light" style="border-radius: var(--radius-sm);">
+            <div class="flex items-center gap-12">
+              <span class="material-symbols-rounded text-success fs-24">savings</span>
+              <div class="flex-1">
+                <div class="fw-600 text-success">Save ${formatted.weeklySave} this week</div>
+                <div class="fs-13 text-secondary">To cover your January tax bill</div>
+              </div>
+              <button class="btn btn-sm btn-secondary" onclick="MoneyFeature.markSaved()">Saved ✓</button>
+            </div>
+          </div>
+          ` : ''}
+        </details>
+        ` : `<details class="card card-page-mb">
+          <summary class="flex items-center justify-between gap-12 cursor-pointer" style="list-style: none;">
+            <div>
+              <div class="fw-600">Tax & deadlines</div>
+              <div class="fs-12 text-tertiary">No estimate yet — log a visit, expense or mileage</div>
+            </div>
+            <span class="material-symbols-rounded text-tertiary">expand_more</span>
+          </summary>
+          <div class="mt-12 flex flex-col gap-sm" style="padding-top: 12px; border-top: 1px solid var(--border-light);">
+            <button class="btn btn-outline btn-sm btn-block" onclick="App.navigate('appointments')"><span class="material-symbols-rounded">event_available</span>Record a visit outcome</button>
+            <button class="btn btn-outline btn-sm btn-block" onclick="MoneyFeature.openExpenseModal()"><span class="material-symbols-rounded">receipt</span>Log an expense</button>
+            <button class="btn btn-outline btn-sm btn-block" onclick="MoneyFeature.openMileageModal()"><span class="material-symbols-rounded">route</span>Log mileage</button>
+          </div>
+        </details>`}
 
-      <div class="px-md mt-md" >
-        <div class="divider-text">This Month</div>
-        <div class="stats-grid">
-          <div class="stat-card stat-card-clickable" role="button" tabindex="0" aria-label="View this month's records" onclick="MoneyFeature.openRecordsModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();MoneyFeature.openRecordsModal();}"><div class="value">${Utils.formatDistance(monthMiles)}</div><div class="label">Mileage</div></div>
-          <div class="stat-card stat-card-clickable" role="button" tabindex="0" aria-label="View this month's records" onclick="MoneyFeature.openRecordsModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();MoneyFeature.openRecordsModal();}"><div class="value">${expenses.length}</div><div class="label">Expenses Logged</div></div>
-          <div class="stat-card stat-card-clickable" role="button" tabindex="0" aria-label="View this month's records" onclick="MoneyFeature.openRecordsModal()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();MoneyFeature.openRecordsModal();}"><div class="value">${trips.length}</div><div class="label">Trips Logged</div></div>
-          <div class="stat-card ${formatted ? 'stat-card-clickable' : ''}" ${formatted ? `role="button" tabindex="0" aria-label="View tax estimate" onclick="MoneyFeature.scrollToTaxEstimate()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();MoneyFeature.scrollToTaxEstimate();}"` : ''}><div class="value">${formatted ? formatted.effectiveRate : '—'}</div><div class="label">Effective Tax</div></div>
+        <!-- This Week | This Month segmented control -->
+        <div class="segmented mt-md" id="money-period">
+          <button class="segment active" data-period="week" onclick="MoneyFeature.switchPeriod('week')">This Week</button>
+          <button class="segment" data-period="month" onclick="MoneyFeature.switchPeriod('month')">This Month</button>
         </div>
-      </div>
 
-      <div class="p-md" >
-        <div class="divider-text">Quick Actions</div>
-        <div class="grid-2 gap-12" >
-          <button class="btn btn-outline btn-sm" onclick="MoneyFeature.openExpenseModal()"><span class="material-symbols-rounded">receipt</span>Log Expense</button>
-          <button class="btn btn-outline btn-sm" onclick="MoneyFeature.openMileageModal()"><span class="material-symbols-rounded">route</span>Log Mileage</button>
-          <button class="btn btn-outline btn-sm" onclick="MoneyFeature.openRecordsModal()"><span class="material-symbols-rounded">list</span>View Records</button>
-          <button class="btn btn-outline btn-sm" onclick="ExportService.exportBackup()"><span class="material-symbols-rounded">backup</span>Backup Data</button>
+        <!-- This Week details (shown by default) -->
+        <div id="money-week" class="mt-md">
+          <div class="stats-grid">
+            <div class="stat-card" onclick="MoneyFeature.openRecordsModal()"><div class="value">${Utils.formatCurrency(mileageClaim)}</div><div class="label">Mileage claim</div></div>
+            <div class="stat-card" onclick="MoneyFeature.openRecordsModal()"><div class="value">${Utils.formatCurrency(monthTotal)}</div><div class="label">Expenses</div></div>
+            <div class="stat-card" onclick="MoneyFeature.openRecordsModal()"><div class="value">${recordCount || '—'}</div><div class="label">Records</div></div>
+          </div>
+        </div>
+
+        <!-- This Month details (hidden by default) -->
+        <div id="money-month" class="mt-md" hidden>
+          <div class="stats-grid">
+            <div class="stat-card" onclick="MoneyFeature.openRecordsModal()"><div class="value">${Utils.formatDistance(monthMiles)}</div><div class="label">Mileage</div></div>
+            <div class="stat-card" onclick="MoneyFeature.openRecordsModal()"><div class="value">${expenses.length}</div><div class="label">Expenses logged</div></div>
+            <div class="stat-card" onclick="MoneyFeature.openRecordsModal()"><div class="value">${trips.length}</div><div class="label">Trips logged</div></div>
+            <div class="stat-card"><div class="value">${formatted ? formatted.effectiveRate : '—'}</div><div class="label">Effective tax</div></div>
+          </div>
+        </div>
+
+        <!-- Quick Actions - one primary -->
+        <div class="p-md mt-md" >
+          <div class="grid-2 gap-12" >
+            <button class="btn btn-primary btn-sm" onclick="MoneyFeature.openExpenseModal()"><span class="material-symbols-rounded">receipt</span>Log Expense</button>
+            <button class="btn btn-outline btn-sm" onclick="MoneyFeature.openMileageModal()"><span class="material-symbols-rounded">route</span>Log Mileage</button>
+            <button class="btn btn-outline btn-sm" onclick="MoneyFeature.openRecordsModal()"><span class="material-symbols-rounded">list</span>View Records</button>
+            <button class="btn btn-outline btn-sm" onclick="ExportService.exportBackup()"><span class="material-symbols-rounded">backup</span>Backup Data</button>
+          </div>
         </div>
       </div>
     </div>`;
+  },
+
+  switchPeriod(period) {
+    document.querySelectorAll('#money-period .segment').forEach(el => {
+      el.classList.toggle('active', el.dataset.period === period);
+    });
+    document.getElementById('money-week').hidden = period !== 'week';
+    document.getElementById('money-month').hidden = period !== 'month';
   },
 
   async getWeekEarnings() {
