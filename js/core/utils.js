@@ -104,6 +104,19 @@ const Utils = {
     return new Date(start.getFullYear() + 1, 3, 5); // April 5
   },
 
+  // The instant at which a UK calendar day begins (UK midnight), regardless
+  // of the device's own timezone. Hard legal boundaries — the April 6 tax
+  // year cutover — must be anchored to the UK wall clock, not device-local
+  // midnight, or a non-UK device silently shifts the boundary. Exact on
+  // both DST jump days: UK time is always within 00:00-01:00Z at UTC
+  // midnight, and the jumps never touch that window.
+  ukMidnightInstant(year, month, day) {
+    const guess = new Date(Date.UTC(year, month - 1, day)); // 00:00Z that date
+    const p = this.ukParts(guess);                          // UK wall clock at 00:00Z
+    const backMs = (p.hour * 3600 + p.minute * 60 + p.second) * 1000;
+    return new Date(guess.getTime() - backMs);
+  },
+
   isSameDay(d1, d2) {
     const a = new Date(d1);
     const b = new Date(d2);

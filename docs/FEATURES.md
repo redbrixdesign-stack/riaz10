@@ -62,7 +62,7 @@ The home tab is an AI-style chat assistant, not a static dashboard.
 - **Running UK Self-Assessment tax estimate**: income from sold visits,
   minus expenses and mileage claim, with tax + Class 4 NIC + payment-on-
   account dates (31 Jan / 31 Jul) and recommended weekly savings.
-- **Mileage claim**: HMRC-style bands (£0.55/mile first 10,000, then £0.25).
+- **Mileage claim**: HMRC-style bands (£0.45/mile first 10,000, then £0.25).
 - Expense logging (fuel, samples, tools, phone, insurance, vehicle,
   marketing, training…), mileage logging, weekly target progress.
 - **Visit floor calculator** — after a price objection, works out the

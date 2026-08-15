@@ -138,15 +138,30 @@ async function sectionA() {
   setCommission({});
   ok('sales target: zero effective rate -> 0', Tax.getRequiredWeeklySales(600) === 0, Tax.getRequiredWeeklySales(600));
 
-  // Mileage: 0.55/mile up to 10,000 miles, 0.25 above; negatives clamp.
+  // Mileage: 0.45/mile up to 10,000 miles (HMRC approved car rate), 0.25
+  // above; negatives clamp. The 0.55 default was corrected to 0.45 — a 55p
+  // first band overclaimed the relief by 22%, understating the tax bill.
   ok('mileage: zero km -> 0', Tax.calculateMileageClaim(0) === 0, Tax.calculateMileageClaim(0));
   ok('mileage: negative km -> 0', Tax.calculateMileageClaim(-100) === 0, Tax.calculateMileageClaim(-100));
   const exactly = Tax.calculateMileageClaim(10000 / 0.621371);
-  ok('mileage: exactly 10,000 miles -> 5500', Math.abs(exactly - 5500) < 0.01, exactly);
+  ok('mileage: exactly 10,000 miles -> 4500', Math.abs(exactly - 4500) < 0.01, exactly);
   const above = Tax.calculateMileageClaim(18000);
   const miles = 18000 * 0.621371;
-  const expectedAbove = 10000 * 0.55 + (miles - 10000) * 0.25;
+  const expectedAbove = 10000 * 0.45 + (miles - 10000) * 0.25;
   ok('mileage: above 10,000 miles uses second band', Math.abs(above - expectedAbove) < 0.01, above);
+
+  // UK-midnight instants: hard legal boundaries (the April 6 tax-year
+  // cutover) must be anchored to the UK clock, not the device timezone.
+  const apr6 = Utils.ukMidnightInstant(2026, 4, 6);
+  ok('ukMidnightInstant: 6 Apr 2026 (BST) is 2026-04-05T23:00:00Z', apr6.toISOString() === '2026-04-05T23:00:00.000Z', apr6.toISOString());
+  const jan6 = Utils.ukMidnightInstant(2027, 1, 6);
+  ok('ukMidnightInstant: 6 Jan 2027 (GMT) is 2027-01-06T00:00:00Z', jan6.toISOString() === '2027-01-06T00:00:00.000Z', jan6.toISOString());
+  const dstDay = Utils.ukMidnightInstant(2026, 10, 25); // autumn jump day
+  ok('ukMidnightInstant: the DST jump day still starts at 23:00Z', dstDay.toISOString() === '2026-10-24T23:00:00.000Z', dstDay.toISOString());
+  const p6 = Utils.ukParts(apr6);
+  const p6round = Utils.ukParts(new Date(apr6.getTime() + 3600e3)); // one hour later
+  ok('ukMidnightInstant: UK day fields resolve to the boundary day', p6.hour === 0 && p6.year === 2026 && p6.month === 4 && p6.day === 6, p6);
+  ok('ukMidnightInstant: the next hour is still the same UK day', p6round.hour === 1 && p6round.day === 6, p6round);
 }
 
 // ---------- Section B: DB-backed stats (real Dexie + real TaxCalculator) ----------

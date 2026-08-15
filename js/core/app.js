@@ -168,8 +168,12 @@ const App = {
     if (!CONFIG.class4NIC?.lowerThreshold) {
       CONFIG.class4NIC = { lowerThreshold: 12570, upperThreshold: 50270, mainRate: 0.06, additionalRate: 0.02 };
     }
-    if (CONFIG.country === 'GB' && CONFIG.mileageRate === 0.45) {
-      CONFIG.mileageRate = 0.55;
+    // HMRC's approved car mileage rate is 45p/mile (first 10,000 miles),
+    // 25p above. A legacy migration once overwrote the correct 0.45 default
+    // with 0.55 (overclaiming the relief by 22% in the tax estimate), so
+    // this normalises any install back to the HMRC rate.
+    if (CONFIG.country === 'GB' && CONFIG.mileageRate === 0.55) {
+      CONFIG.mileageRate = 0.45;
       CONFIG.mileageRateOver = 0.25;
     }
     // Weekly sales target is now DERIVED (weeklyTarget ÷ effective commission rate) —

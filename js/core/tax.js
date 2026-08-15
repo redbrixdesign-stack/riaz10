@@ -270,7 +270,10 @@ const TaxCalculator = {
   // Running estimate for current tax year
   async getRunningEstimate() {
     const taxYear = this.getCurrentTaxYear();
-    const startDate = new Date(taxYear.startYear, 3, 6).toISOString();
+    // UK midnight on April 6 — the tax year is a legal boundary defined by
+    // the UK calendar, so device-local midnight would misplace it on any
+    // device whose clock isn't set to the UK.
+    const startDate = Utils.ukMidnightInstant(taxYear.startYear, 4, 6).toISOString();
     const endDate = new Date().toISOString();
 
     return await this.calculateFromData(startDate, endDate);
