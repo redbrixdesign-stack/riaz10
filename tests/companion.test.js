@@ -7,8 +7,8 @@
 const path = require('path');
 const fs = require('fs');
 
-function loadAll(entries) {
-  const code = entries.map(e => e.startsWith('::raw::') ? e.slice(7) : fs.readFileSync(path.join(__dirname, '..', e), 'utf8')).join('\n;\n');
+function loadAll(entries, tailExpr) {
+  const code = entries.map(e => e.startsWith('::raw::') ? e.slice(7) : fs.readFileSync(path.join(__dirname, '..', e), 'utf8')).join('\n;\n') + (tailExpr ? '\n' + tailExpr : '');
   (0, eval)(code);
 }
 
@@ -72,6 +72,8 @@ global.HomeScreenController = {
 const APPOINTMENTS = [];
 const CUSTOMERS = [];
 const ORDERS = [];
+const MEASUREMENTS = [];
+const COMMUNICATIONS = [];
 const RANGE_APPTS = { appts: [] };
 function makeTableStub(rows) {
   return {
@@ -85,7 +87,9 @@ global.DB = {
   db: {
     appointments: makeTableStub(APPOINTMENTS),
     customers: makeTableStub(CUSTOMERS),
-    orders: makeTableStub(ORDERS)
+    orders: makeTableStub(ORDERS),
+    measurements: makeTableStub(MEASUREMENTS),
+    communications: makeTableStub(COMMUNICATIONS)
   },
   getAppointmentsForDate: async () => APPOINTMENTS.filter(a => a.status !== 'cancelled'),
   getWeekStats: async () => ({ sales: 1250, earnings: 620, orderedCount: 2 }),
@@ -107,8 +111,9 @@ global.Search = {
 loadAll([
   'js/core/config.js',
   'js/core/utils.js',
-  'js/features/companion/companion.js'
-]);
+  'js/features/companion/companion.js',
+  'js/features/talk/talk.js'
+], 'var utilsRef = Utils; var talkRef = TalkFeature;');
 
 const assert = (cond, msg, extra) => { if (!cond) { console.error('FAIL:', msg, extra || ''); process.exitCode = 1; } else console.log('OK:', msg); };
 const iso = days => new Date(Date.now() + days * 86400000).toISOString();
@@ -291,6 +296,22 @@ assert(norm('') === 'default', 'empty routes to default');
   // Follow-ups filtered by kind.
   const fq = await Companion.answerFollowUps('who needs a quote chase');
   assert(fq.facts.length === 1 && fq.facts[0].label === 'Sarah', 'Follow-ups filter by kind (quotes)', fq.facts);
+
+  // ---------- AI data minimisation ----------
+  // Whatever goes to Claude must not carry the customer's most sensitive
+  // fields (street address, postcode, lead source) — a chat reply or a
+  // customer-facing draft has no use for them, so they stay on-device.
+  const snapMin = await Companion.buildSnapshot();
+  assert(snapMin.today.visits.every(v => !('address' in v)), 'Snapshot visits carry no street addresses', snapMin.today.visits[0]);
+  assert(snapMin.today.visits[0].time === global.utilsRef.formatTimeUK(APPOINTMENTS[0].date), 'Snapshot visit times are UK wall-clock', { got: snapMin.today.visits[0].time });
+  assert(snapMin.today.date === global.utilsRef.formatDateUK(new Date(), 'iso'), 'Snapshot date is the UK calendar day', snapMin.today.date);
+
+  // Sarah Jones (id 1) has an address in the DB; her appointment (id 5)
+  // has one too — neither may reach the draft context.
+  const ctx = await global.talkRef.buildAiContext({ customerId: 1, appointmentId: 5, templateKey: 'follow_up.gentle' });
+  assert(!('visitAddress' in ctx) && !('customerArea' in ctx) && !('leadSource' in ctx), 'Draft context carries no address/postcode/lead source', Object.keys(ctx));
+  assert(ctx.customerName === 'Sarah Jones' && typeof ctx.quoteValue === 'string', 'Draft context keeps name + quote value', ctx.customerName);
+  assert(ctx.orderHistory.includes('Order history: 1 order(s)'), 'Draft context keeps the order summary', ctx.orderHistory);
 
   console.log(process.exitCode ? '\nCOMPANION TEST FAILED' : '\nCOMPANION TEST PASSED');
 })();

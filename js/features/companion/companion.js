@@ -1302,11 +1302,14 @@ const CompanionFeature = {
     return {
       advisor_name: CONFIG.advisorName || 'Advisor',
       today: {
-        date: Utils.formatDate(today, 'iso'),
+        // Data minimisation: the AI sees only what a chat reply can use —
+        // name/time/status/outcome. Full street addresses, postcodes and
+        // phone numbers never leave the device (a Companion answer never
+        // needs them, and they are the customer's most sensitive fields).
+        date: Utils.formatDateUK(today, 'iso'),
         visits: appts.map(a => ({
           name: a.clientName || 'Customer',
-          time: Utils.formatTime(a.date),
-          address: a.address || '',
+          time: Utils.formatTimeUK(a.date),
           status: a.status || '',
           outcome: a.outcome || ''
         }))

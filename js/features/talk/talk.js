@@ -720,7 +720,6 @@ const TalkFeature = {
     const quoteValue = appt?.value && appt.value > 0 ? Utils.formatCurrency(appt.value) : '';
     const windowScope = measurements.map(m => m.windowName).filter(Boolean).slice(0, 6).join(', ');
     const outcomeAction = appt?.outcome ? (this.getTemplateForOutcome(appt.outcome)?.action || '') : '';
-    const customerArea = [customer?.address?.city, customer?.address?.postcode].filter(Boolean).join(', ');
     const lastSentDaysAgo = recentMessages[0]?.sentAt
       ? Utils.daysBetween(new Date(), new Date(recentMessages[0].sentAt))
       : null;
@@ -738,7 +737,11 @@ const TalkFeature = {
       appointmentDay: appt?.date ? Utils.formatDate(appt.date, 'long') : '',
       appointmentTime: this.apptTimeText(appt),
       visitType: visitTypeLabel,
-      visitAddress: appt?.address || customer?.address?.line1 || '',
+      // Data minimisation: street addresses, postcodes and lead source are
+      // never sent to the AI — a customer-facing draft has no use for them,
+      // and they are exactly the fields the customer should not need to
+      // hear repeated. The customer's OWN order reference (supplierOrderNumber)
+      // is kept because the payment_reminder template puts it in the message.
       templateKey,
       templateText,
       advisorName,
@@ -749,8 +752,6 @@ const TalkFeature = {
       daysSince,
       outcome: appt?.outcome || '',
       outcomeAction,
-      customerArea,
-      leadSource: customer?.source || '',
       eta: String(extra.eta || '').trim(),
       delay: String(extra.delay || '').trim(),
       supplierOrderNumber: String(latestOrder?.supplierOrderNumber || '').trim(),
