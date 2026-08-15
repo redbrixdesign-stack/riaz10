@@ -42,9 +42,10 @@ function loadGeoProvider({ mockProvider = null } = {}) {
     console, Math, JSON, Date, Promise, Map, Set, Array, Object,
     Number, String, Boolean, RegExp, Error, parseInt, parseFloat, isNaN,
     AbortController, URL, localStorage: makeLocalStorage(),
-    fetch: async (url) => {
+    setTimeout, clearTimeout,
+    fetch: async (url, options) => {
       if (mockProvider && mockProvider.fetch) {
-        return mockProvider.fetch(url);
+        return mockProvider.fetch(url, options);
       }
       throw new Error('No mock fetch');
     },
@@ -237,6 +238,69 @@ function loadGeoProvider({ mockProvider = null } = {}) {
     for (const m of methods) {
       ok(`Geo.${m} exists`, typeof Geo[m] === 'function', m);
     }
+  }
+
+  console.log('\nTest I: Fetch timeout falls back to estimate, does not hang');
+  {
+    let aborted = 0;
+    const { PublicGeoProvider } = loadGeoProvider({
+      mockProvider: { fetch: async (url, options) => {
+        const p = new Promise((resolve, reject) => {
+          options.signal.addEventListener('abort', () => {
+            aborted++;
+            const e = new Error('The operation was aborted.');
+            e.name = 'AbortError';
+            reject(e);
+          });
+        });
+        return p;
+      } }
+    });
+
+    const start = Date.now();
+    const provider = new PublicGeoProvider({ fetchTimeoutMs: 150 });
+    const summary = await provider.getRouteSummary(51.5, -0.1, 53.4, -2.9);
+    const elapsed = Date.now() - start;
+
+    ok('timeout aborts the request', aborted === 1, aborted);
+    ok('returns within a bounded time (< 3s)', elapsed < 3000, elapsed);
+    ok('falls back to estimate source', summary && summary.source === 'estimate', summary);
+    ok('estimate is plausible (~260km * 1.3)', summary && summary.distanceKm > 250 && summary.distanceKm < 450, summary && summary.distanceKm);
+    ok('estimate has a duration', summary && summary.durationMin > 0, summary);
+  }
+
+  console.log('\nTest J: Geocode persistent cache serves repeat addresses offline');
+  {
+    const calls = [];
+    const { PublicGeoProvider, sandbox } = loadGeoProvider({
+      mockProvider: { fetch: async url => {
+        calls.push(url);
+        return {
+          ok: true, status: 200,
+          json: async () => [{ lat: '51.5034', lon: '-0.1276', display_name: '10 Downing Street, London' }]
+        };
+      } }
+    });
+
+    const p1 = new PublicGeoProvider();
+    const first = await p1.geocode('10 Downing Street, London');
+    ok('first geocode resolves via network', first && first.lat === 51.5034, first);
+
+    // Second instance with the same (shared) localStorage — fetch now dead.
+    sandbox.fetch = async () => { throw new Error('offline'); };
+    const p2 = new PublicGeoProvider();
+    const second = await p2.geocode('10 Downing Street, London');
+    ok('repeat geocode served from cache offline', second && second.lat === 51.5034 && second.lng === -0.1276, second);
+    ok('no additional network call for cached address', calls.length === 1, calls.length);
+    ok('cache persisted to localStorage', sandbox.localStorage.getItem('advisoros_geocode_v1') !== null);
+
+    // Offline miss returns null, not an exception.
+    const miss = await p2.geocode('Somewhere, Nowhere XX1 1XX');
+    ok('offline miss returns null', miss === null, miss);
+
+    // Exact same address (different casing) still hits the cache.
+    const third = await p2.geocode('  10 downing street, london  ');
+    ok('cache key is case/space normalised', third && third.lat === 51.5034, third);
   }
 
   console.log('\n' + (failures === 0 ? 'ALL TESTS PASSED' : failures + ' TEST(S) FAILED'));

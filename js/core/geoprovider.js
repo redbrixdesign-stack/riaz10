@@ -66,7 +66,7 @@ class GeoProvider {
  * Provides the same capabilities with rate limiting, caching, postcode fallback.
  */
 class PublicGeoProvider extends GeoProvider {
-  constructor() {
+  constructor(opts = {}) {
     super();
     this._requestCache = new Map();
     this._lastRequestTime = 0;
@@ -74,6 +74,34 @@ class PublicGeoProvider extends GeoProvider {
     this._backoffUntil = 0;
     this._consecutiveErrors = 0;
     this._maxRetries = 2;
+    // A hung public-API request (OSRM/Nominatim can stall or be blocked)
+    // must not pin the app's route/trip flows forever — the caller falls
+    // back to the local estimate the moment this budget expires.
+    this._fetchTimeoutMs = opts.fetchTimeoutMs || 8000;
+    this._geocodeCache = this._loadGeocodeCache();
+  }
+
+  _loadGeocodeCache() {
+    try {
+      const raw = localStorage.getItem('advisoros_geocode_v1');
+      const parsed = raw ? JSON.parse(raw) : null;
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  // Persist the geocode cache (capped at 250 addresses, oldest dropped).
+  // Repeat customers' postcodes then resolve instantly and offline.
+  _saveGeocodeCache() {
+    try {
+      const entries = Object.entries(this._geocodeCache);
+      if (entries.length > 250) {
+        entries.sort((a, b) => (a[1].at || 0) - (b[1].at || 0));
+        for (const [k] of entries.slice(0, entries.length - 250)) delete this._geocodeCache[k];
+      }
+      localStorage.setItem('advisoros_geocode_v1', JSON.stringify(this._geocodeCache));
+    } catch (e) { /* quota — the in-memory copy still serves this session */ }
   }
 
   // ---- Rate-limiting helpers ----
@@ -97,8 +125,10 @@ class PublicGeoProvider extends GeoProvider {
 
     const attempt = async (retry = 0) => {
       this._lastRequestTime = Date.now();
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), this._fetchTimeoutMs);
       try {
-        const resp = await fetch(url, options);
+        const resp = await fetch(url, { ...options, signal: controller.signal });
         if (resp.status === 429) {
           throw new Error('429');
         }
@@ -108,6 +138,11 @@ class PublicGeoProvider extends GeoProvider {
         this._consecutiveErrors = 0;
         return resp;
       } catch (err) {
+        // A timed-out request is not a retryable outage — the fallback
+        // (estimate distance / null geocode) is faster and safer.
+        if (err && (err.name === 'AbortError' || err.message === 'timeout')) {
+          throw new Error('timeout');
+        }
         const isRateLimit = err.message === '429' || (err.message && err.message.includes('429'));
         if (isRateLimit) {
           this._consecutiveErrors++;
@@ -123,6 +158,8 @@ class PublicGeoProvider extends GeoProvider {
           return attempt(retry + 1);
         }
         throw err;
+      } finally {
+        clearTimeout(timer);
       }
     };
 
@@ -140,16 +177,25 @@ class PublicGeoProvider extends GeoProvider {
   }
 
   async geocode(address) {
+    const cacheKey = String(address || '').trim().toLowerCase();
+    const cached = this._geocodeCache[cacheKey];
+    if (cached && typeof cached.lat === 'number') {
+      return { lat: cached.lat, lng: cached.lng, displayName: cached.displayName, postcodeOnly: !!cached.postcodeOnly };
+    }
+
     try {
       const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=gb`;
       const response = await this._fetchWithRateLimit(url);
       const data = await response.json();
       if (data && data[0]) {
-        return {
+        const result = {
           lat: parseFloat(data[0].lat),
           lng: parseFloat(data[0].lon),
           displayName: data[0].display_name
         };
+        this._geocodeCache[cacheKey] = { ...result, at: Date.now() };
+        this._saveGeocodeCache();
+        return result;
       }
 
       const postcode = this.extractPostcode(address);
@@ -158,12 +204,15 @@ class PublicGeoProvider extends GeoProvider {
         const pcResponse = await this._fetchWithRateLimit(pcUrl);
         const pcData = await pcResponse.json();
         if (pcData && pcData[0]) {
-          return {
+          const result = {
             lat: parseFloat(pcData[0].lat),
             lng: parseFloat(pcData[0].lon),
             displayName: pcData[0].display_name,
             postcodeOnly: true
           };
+          this._geocodeCache[cacheKey] = { ...result, at: Date.now() };
+          this._saveGeocodeCache();
+          return result;
         }
       }
       return null;
