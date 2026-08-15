@@ -106,5 +106,14 @@ t('month end is UK midnight of the last day (31 Aug, BST: 23:00Z on the 30th)', 
 t('Monday 10 Aug BST picks Monday 10 Aug as week start (no drift)', Utils.getStartOfWeek(new Date('2026-08-10T12:00:00Z')).toISOString() === '2026-08-09T23:00:00.000Z', { got: Utils.getStartOfWeek(new Date('2026-08-10T12:00:00Z')).toISOString() });
 t('week start in GMT is 00:00Z on the Monday', Utils.getStartOfWeek(new Date('2026-01-15T12:00:00Z')).toISOString() === '2026-01-12T00:00:00.000Z', { got: Utils.getStartOfWeek(new Date('2026-01-15T12:00:00Z')).toISOString() });
 
+// ---- daysBetween counts whole UK calendar days (regression: ms/86400000
+//      read "yesterday" as 0 days on the 23-hour spring-forward day) ----
+t('daysBetween: plain pair is exact', Utils.daysBetween(new Date('2026-01-15T12:00:00Z'), new Date('2026-01-10T12:00:00Z')) === 5, { got: Utils.daysBetween(new Date('2026-01-15T12:00:00Z'), new Date('2026-01-10T12:00:00Z')) });
+t('daysBetween: spring-forward 23h day is still 1 day', Utils.daysBetween(new Date('2026-03-29T22:00:00Z'), new Date('2026-03-28T23:00:00Z')) === 1, { got: Utils.daysBetween(new Date('2026-03-29T22:00:00Z'), new Date('2026-03-28T23:00:00Z')) });
+t('daysBetween: autumn 25h day is still 1 day', Utils.daysBetween(new Date('2026-10-25T12:00:00Z'), new Date('2026-10-24T12:00:00Z')) === 1, { got: Utils.daysBetween(new Date('2026-10-25T12:00:00Z'), new Date('2026-10-24T12:00:00Z')) });
+t('daysBetween: across the spring jump (Mar 30 noon vs Mar 28 23:30) is 2 days', Utils.daysBetween(new Date('2026-03-30T12:00:00Z'), new Date('2026-03-28T23:30:00Z')) === 2, { got: Utils.daysBetween(new Date('2026-03-30T12:00:00Z'), new Date('2026-03-28T23:30:00Z')) });
+t('daysBetween: 00:30 BST next morning is 0 days', Utils.daysBetween(new Date('2026-03-30T00:30:00Z'), new Date('2026-03-29T23:30:00Z')) === 0, { got: Utils.daysBetween(new Date('2026-03-30T00:30:00Z'), new Date('2026-03-29T23:30:00Z')) });
+t('daysBetween: future dates stay negative', Utils.daysBetween(new Date('2026-01-10T12:00:00Z'), new Date('2026-01-15T12:00:00Z')) === -5, { got: Utils.daysBetween(new Date('2026-01-10T12:00:00Z'), new Date('2026-01-15T12:00:00Z')) });
+
 console.log(failed === 0 ? '\nALL DATE/TIME TESTS PASSED' : `\n${failed} DATE/TIME TEST(S) FAILED`);
 process.exit(failed === 0 ? 0 : 1);

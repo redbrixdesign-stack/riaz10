@@ -135,10 +135,15 @@ const Utils = {
   },
 
   daysBetween(d1, d2) {
-    const a = new Date(d1);
-    const b = new Date(d2);
-    const diff = a - b;
-    return Math.floor(diff / (1000 * 60 * 60 * 24));
+    // Whole UK calendar days, never ms/86400000: on the 23-hour spring-
+    // forward day the ms-based version read "yesterday" as 0 days ago,
+    // silently delaying quote chases and payment reminders by a day every
+    // DST boundary. UK day numbers are exact multiples of 86400000.
+    const a = this.ukParts(new Date(d1));
+    const b = this.ukParts(new Date(d2));
+    const dayA = Date.UTC(a.year, a.month - 1, a.day) / 86400000;
+    const dayB = Date.UTC(b.year, b.month - 1, b.day) / 86400000;
+    return Math.round(dayA - dayB);
   },
 
   addDays(date, days) {
