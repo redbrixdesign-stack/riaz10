@@ -5,6 +5,7 @@
 
 const CONFIG = {
   // Current settings (loaded from DB on init)
+  appVersion: '5.0', // single source for the backup envelope + About
   advisorMode: 'company',
   trade: 'window_coverings',
   country: 'GB',

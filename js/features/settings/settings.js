@@ -510,7 +510,16 @@ const SettingsFeature = {
   async handleImport(event) {
     const file = event.target.files[0];
     if (!file) return;
-    try { await ExportService.importBackup(file); Toast.show('Data imported', 'success'); } catch(err) { Toast.show('Import failed: ' + err.message, 'error'); }
+    try {
+      await ExportService.importBackup(file);
+      // Reload so every feature reboots against the restored database and
+      // config — in-memory caches, Dexie instances and the home screen all
+      // rebuild from the imported state instead of the pre-import one.
+      Toast.show('Data imported — reloading', 'success');
+      setTimeout(() => location.reload(), 600);
+    } catch (err) {
+      Toast.show('Import failed: ' + err.message, 'error');
+    }
   },
   exportCSV() { ExportService.exportCSV('appointments'); ExportService.exportCSV('expenses'); ExportService.exportCSV('trips'); },
 

@@ -673,7 +673,7 @@ async function runBackupRoundtrip(engine, tag) {
 // on the real Dexie engine.
 async function runBackupEnvelope() {
   const sandbox = baseSandbox({
-    Utils: { formatDate: () => '2026-08-14' },
+    Utils: { formatDate: () => '2026-08-14', formatDateUK: () => '2026-08-14' },
     App: {},
     Toast: { show: () => {} }
   });

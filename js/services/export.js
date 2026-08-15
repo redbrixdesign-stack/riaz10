@@ -27,7 +27,7 @@ const ExportService = {
       )
     ].join('\n');
 
-    this.downloadFile(csv, `${tableName}_${Utils.formatDate(new Date(), 'iso')}.csv`, 'text/csv');
+    this.downloadFile(csv, `${tableName}_${Utils.formatDateUK(new Date(), 'iso')}.csv`, 'text/csv');
     return csv;
   },
 
@@ -106,8 +106,8 @@ const ExportService = {
     const backup = {
       backupFormatVersion: 1,
       databaseSchemaVersion: DB.schemaVersion ? DB.schemaVersion() : 2,
-      appVersion: '5.0',
-      version: '5.0',
+      appVersion: CONFIG.appVersion || '5.0',
+      version: CONFIG.appVersion || '5.0',
       exportedAt: new Date().toISOString(),
       config: this._sanitizeConfig(CONFIG),
       data
@@ -116,7 +116,7 @@ const ExportService = {
     const json = JSON.stringify(backup, null, 2);
     this.downloadFile(
       json,
-      `advisoros_backup_${Utils.formatDate(new Date(), 'iso')}.json`,
+      `advisoros_backup_${Utils.formatDateUK(new Date(), 'iso')}.json`,
       'application/json'
     );
 
