@@ -1,5 +1,5 @@
 /* ============================================
-   ADVISOROS v5.0 — CONTROL CENTER
+   BEELO — TOOLS
    Quiet home, practical tools one tap away
    ============================================ */
 
@@ -10,65 +10,105 @@ const ControlFeature = {
 
   async render() {
     const demoSeeded = await DB.getSetting('pitchDemoSeeded', false);
+
     return `
       <div class="fade-in notebook-page control-center">
-        <div class="notebook-brand">
-          <div class="notebook-logo">${Utils.escapeHtml((CONFIG.companyName || 'Beelo').trim())}</div>
+        ${App.renderTopHeader({ title: 'Tools' })}
+
+        <div class="p-md" >
+
+          <!-- TODAY (most frequent) -->
+          <section class="notebook-section control-section">
+            <div class="notebook-title">
+              <h2>Today</h2>
+            </div>
+            <div class="control-grid">
+              <button class="control-tile" type="button" onclick="App.navigate('appointments', {action: 'add'})">
+                <span class="material-symbols-rounded">add</span>
+                <span>Add Visit</span>
+              </button>
+              <button class="control-tile" type="button" onclick="MoneyFeature.openMileageModal()">
+                <span class="material-symbols-rounded">route</span>
+                <span>Log Mileage</span>
+              </button>
+              <button class="control-tile" type="button" onclick="MoneyFeature.openExpenseModal()">
+                <span class="material-symbols-rounded">receipt_long</span>
+                <span>Log Expense</span>
+              </button>
+              <button class="control-tile" type="button" onclick="TodayFeature.openEODModal()">
+                <span class="material-symbols-rounded">fact_check</span>
+                <span>End of Day</span>
+              </button>
+            </div>
+          </section>
+
+          <!-- CUSTOMER -->
+          <section class="notebook-section control-section">
+            <div class="notebook-title">
+              <h2>Customer</h2>
+            </div>
+            <div class="control-grid">
+              <button class="control-tile" type="button" onclick="App.navigate('appointments')">
+                <span class="material-symbols-rounded">person_search</span>
+                <span>Find Customer</span>
+              </button>
+              <button class="control-tile" type="button" onclick="App.navigate('orders')">
+                <span class="material-symbols-rounded">view_kanban</span>
+                <span>Orders Board</span>
+              </button>
+              <button class="control-tile" type="button" onclick="App.navigate('followups')">
+                <span class="material-symbols-rounded">campaign</span>
+                <span>Follow-ups</span>
+              </button>
+            </div>
+          </section>
+
+          <!-- MONEY & ROUTE -->
+          <section class="notebook-section control-section">
+            <div class="notebook-title">
+              <h2>Money & Route</h2>
+            </div>
+            <div class="control-grid">
+              <button class="control-tile" type="button" onclick="App.navigate('route')">
+                <span class="material-symbols-rounded">map</span>
+                <span>Route Planner</span>
+              </button>
+              <button class="control-tile" type="button" onclick="ControlFeature.openMeasurePicker()">
+                <span class="material-symbols-rounded">straighten</span>
+                <span>Measure</span>
+              </button>
+              <button class="control-tile" type="button" onclick="App.navigate('ocr')">
+                <span class="material-symbols-rounded">document_scanner</span>
+                <span>Scan Document</span>
+              </button>
+            </div>
+          </section>
+
+          <!-- DATA & SETTINGS -->
+          <section class="notebook-section control-section">
+            <div class="notebook-title">
+              <h2>Data & Settings</h2>
+            </div>
+            <div class="control-grid">
+              <button class="control-tile" type="button" onclick="App.navigate('settings')">
+                <span class="material-symbols-rounded">settings</span>
+                <span>Settings</span>
+              </button>
+              <button class="control-tile" type="button" onclick="ExportService.exportBackup()">
+                <span class="material-symbols-rounded">backup</span>
+                <span>Export Backup</span>
+              </button>
+              ${demoSeeded ? `
+              <button class="control-tile" type="button" onclick="ControlFeature.confirmClearPitchDemo()">
+                <span class="material-symbols-rounded text-danger">delete_sweep</span>
+                <span>Remove Demo Data</span>
+              </button>
+              ` : ''}
+            </div>
+          </section>
+
         </div>
-
-        <section class="notebook-section">
-          <div class="notebook-title">
-            <h1>TOOLS</h1>
-          </div>
-          <p class="control-intro">Fast actions, money tools and route helpers, kept off Home so the day stays calm.</p>
-        </section>
-
-        ${this.renderSection('Today actions', [
-          { icon: 'add', label: 'Add Visit', action: "App.navigate('appointments', {action: 'add'})" },
-          { icon: 'route', label: 'Log Mileage', action: "MoneyFeature.openMileageModal()" },
-          { icon: 'receipt_long', label: 'Log Expense', action: "MoneyFeature.openExpenseModal()" },
-          { icon: 'fact_check', label: 'End of Day', action: "TodayFeature.openEODModal()" }
-        ])}
-
-        ${this.renderSection('Selling & service', [
-          { icon: 'view_kanban', label: 'Orders Board', action: "App.navigate('orders')" },
-          { icon: 'campaign', label: 'Follow-ups', action: "App.navigate('followups')" },
-          { icon: 'person_search', label: 'Find Customer', action: "App.navigate('appointments')" }
-        ])}
-
-        ${this.renderSection('Plan & measure', [
-          { icon: 'map', label: 'Route Planner', action: "App.navigate('route')" },
-          { icon: 'straighten', label: 'Measure', action: "ControlFeature.openMeasurePicker()" },
-          { icon: 'document_scanner', label: 'Scan Document', action: "App.navigate('ocr')" }
-        ])}
-
-        ${this.renderSection('Account', [
-          { icon: 'settings', label: 'Settings', action: "App.navigate('settings')" },
-          { icon: 'cloud_download', label: 'Export Backup', action: "ExportService.exportBackup()" },
-          // Only shown if the pitch-demo dataset was ever loaded on this
-          // device - self-hiding once cleared, rather than a permanent
-          // tile that would just be more of the noise this was meant to fix.
-          ...(demoSeeded ? [{ icon: 'delete_sweep', label: 'Remove Demo Data', action: "ControlFeature.confirmClearPitchDemo()" }] : [])
-        ])}
       </div>
-    `;
-  },
-
-  renderSection(title, items) {
-    return `
-      <section class="notebook-section control-section">
-        <div class="notebook-title">
-          <h2>${Utils.escapeHtml(title)}</h2>
-        </div>
-        <div class="control-grid">
-          ${items.map(item => `
-            <button class="control-tile" type="button" onclick="${item.action}">
-              <span class="material-symbols-rounded">${item.icon}</span>
-              <span>${Utils.escapeHtml(item.label)}</span>
-            </button>
-          `).join('')}
-        </div>
-      </section>
     `;
   },
 
