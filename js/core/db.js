@@ -661,7 +661,13 @@ const DB = {
     future.setDate(future.getDate() + days);
 
     const rows = await this.db.appointments.toArray();
-    return rows.filter(a => a.status !== 'cancelled' && this._inDateWindow(a.date, now, future));
+    // Chronological order — "next visit" everywhere is the first row after
+    // .find(), and insertion order (row id) is NOT booking date order, so an
+    // appointment booked later for an earlier date would otherwise mask the
+    // ones in between (e.g. a 24th created before two 17ths).
+    return rows
+      .filter(a => a.status !== 'cancelled' && this._inDateWindow(a.date, now, future))
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
   },
 
   // Canonical weekly stats: sales value, earnings (commission) and order
