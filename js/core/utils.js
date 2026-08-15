@@ -26,7 +26,9 @@ const Utils = {
     for (const p of fmt.formatToParts(date)) {
       if (p.type !== 'literal') parts[p.type] = parseInt(p.value, 10);
     }
-    const asDate = new Date(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second);
+    // Weekday derived from the UK calendar date via UTC (never the device's
+    // local day — near UK midnight the device calendar can be a day off).
+    const weekday = new Date(Date.UTC(parts.year, parts.month - 1, parts.day)).getUTCDay(); // 0=Sun..6=Sat
     return {
       year: parts.year,
       month: parts.month, // 1-12
@@ -34,20 +36,23 @@ const Utils = {
       hour: parts.hour,
       minute: parts.minute,
       second: parts.second,
-      weekday: asDate.getDay() // 0=Sun..6=Sat, derived from the UK calendar date above
+      weekday
     };
   },
 
-  // "Now", but read as UK wall-clock fields (see warning above).
+  // "Now", but read as UK wall-clock fields. The returned Date is the real
+  // instant of UK wall clock (exact midnight anchoring via
+  // ukMidnightInstant), so .getTime() comparisons are safe.
   nowUK(date = new Date()) {
     const p = this.ukParts(date);
-    return new Date(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
+    const base = this.ukMidnightInstant(p.year, p.month, p.day);
+    return new Date(base.getTime() + (p.hour * 3600 + p.minute * 60 + p.second) * 1000);
   },
 
   // Date helpers — "today" follows the UK calendar day, not the device's.
   getToday() {
     const p = this.ukParts();
-    return new Date(p.year, p.month - 1, p.day);
+    return this.ukMidnightInstant(p.year, p.month, p.day);
   },
 
   getTomorrow() {
@@ -66,7 +71,7 @@ const Utils = {
     const p = this.ukParts(date ? new Date(date) : undefined);
     const dow = new Date(Date.UTC(p.year, p.month - 1, p.day)).getUTCDay();
     const mondayDay = p.day - ((dow + 6) % 7);
-    return new Date(p.year, p.month - 1, mondayDay);
+    return this.ukMidnightInstant(p.year, p.month, mondayDay);
   },
 
   getEndOfWeek(date) {
@@ -87,12 +92,13 @@ const Utils = {
 
   getStartOfMonth(date) {
     const p = this.ukParts(date ? new Date(date) : undefined);
-    return new Date(p.year, p.month - 1, 1);
+    return this.ukMidnightInstant(p.year, p.month, 1);
   },
 
   getEndOfMonth(date) {
     const p = this.ukParts(date ? new Date(date) : undefined);
-    return new Date(p.year, p.month, 0);
+    const lastDay = new Date(Date.UTC(p.year, p.month, 0)).getUTCDate();
+    return this.ukMidnightInstant(p.year, p.month, lastDay);
   },
 
   // UK tax year runs April 6 - April 5. The cutover must check the full date
@@ -102,12 +108,13 @@ const Utils = {
     const p = this.ukParts();
     const beforeCutover = p.month < 4 || (p.month === 4 && p.day < 6);
     const year = beforeCutover ? p.year - 1 : p.year;
-    return new Date(year, 3, 6); // April 6
+    return this.ukMidnightInstant(year, 4, 6); // April 6, UK midnight
   },
 
   getTaxYearEnd() {
     const start = this.getTaxYearStart();
-    return new Date(start.getFullYear() + 1, 3, 5); // April 5
+    const startP = this.ukParts(start);
+    return this.ukMidnightInstant(startP.year + 1, 4, 5); // April 5, UK midnight
   },
 
   // The instant at which a UK calendar day begins (UK midnight), regardless
@@ -124,11 +131,7 @@ const Utils = {
   },
 
   isSameDay(d1, d2) {
-    const a = new Date(d1);
-    const b = new Date(d2);
-    return a.getFullYear() === b.getFullYear() &&
-           a.getMonth() === b.getMonth() &&
-           a.getDate() === b.getDate();
+    return this.formatDateUK(d1, 'iso') === this.formatDateUK(d2, 'iso');
   },
 
   daysBetween(d1, d2) {

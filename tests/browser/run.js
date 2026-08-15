@@ -107,11 +107,16 @@ async function loadAndWait(ws, url, markerStarts, label, timeoutMs) {
   }
 
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'advisoros-e2e-'));
-  const chromeProc = spawn(chrome, [
+  const chromeArgs = [
     '--headless=new', '--disable-gpu', '--no-first-run', '--disable-background-networking',
     '--disable-component-update', `--remote-debugging-port=${CDP_PORT}`,
-    `--user-data-dir=${profile}`, 'about:blank'
-  ], { stdio: 'ignore' });
+    `--user-data-dir=${profile}`,
+    // TZ_BROWSER runs the whole app on a foreign device timezone — the
+    // UK-calendar contract must hold there, not just on a UK machine.
+    ...(process.env.TZ_BROWSER ? [`--timezone=${process.env.TZ_BROWSER}`] : []),
+    'about:blank'
+  ];
+  const chromeProc = spawn(chrome, chromeArgs, { stdio: 'ignore' });
 
   let ws = null;
   try {

@@ -72,9 +72,9 @@ async function sectionA() {
   const withUK = parts => {
     const real = Utils.ukParts;
     Utils.ukParts = d => {
-      if (d === undefined) return parts;
+      if (d === undefined) return { year: parts.year, month: parts.month, day: parts.day, hour: 0, minute: 0, second: 0 };
       const r = real(d);
-      return { year: r.year, month: r.month, day: r.day };
+      return { year: r.year, month: r.month, day: r.day, hour: r.hour, minute: r.minute, second: r.second };
     };
     const year = Tax.getCurrentTaxYear();
     Utils.ukParts = real;

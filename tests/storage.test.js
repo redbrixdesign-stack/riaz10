@@ -315,7 +315,7 @@ async function runDbJs(engine, tag) {
   // on any device timezone; the day window is [UK midnight, +24h).
   const sandboxUtils = vm.runInContext('Utils;', sandbox);
   const ukNow = sandboxUtils.ukParts(new Date());
-  const t = new Date(ukNow.year, ukNow.month - 1, ukNow.day);
+  const t = sandboxUtils.ukMidnightInstant(ukNow.year, ukNow.month, ukNow.day);
   const tISO = t.toISOString();
   await DB.addAppointment({ customerId: 1, clientName: 'Date Object Row', date: tISO, status: 'confirmed' });
   const rawDate = new Date(t.getTime() + 3600000);

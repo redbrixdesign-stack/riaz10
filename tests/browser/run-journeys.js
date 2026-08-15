@@ -125,11 +125,15 @@ async function runJourney(ws, journeyName, url, markerStarts, timeoutMs = 30000)
   }
 
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'advisoros-journey-'));
-  const chromeProc = spawn(chrome, [
+  const chromeArgs = [
     '--headless=new', '--disable-gpu', '--no-first-run', '--disable-background-networking',
     '--disable-component-update', `--remote-debugging-port=${CDP_PORT}`,
-    `--user-data-dir=${profile}`, 'about:blank'
-  ], { stdio: 'ignore' });
+    `--user-data-dir=${profile}`,
+    // TZ_BROWSER: run the journeys on a foreign device timezone (see run.js).
+    ...(process.env.TZ_BROWSER ? [`--timezone=${process.env.TZ_BROWSER}`] : []),
+    'about:blank'
+  ];
+  const chromeProc = spawn(chrome, chromeArgs, { stdio: 'ignore' });
 
   let ws = null;
   try {

@@ -13,7 +13,9 @@
     "test:ai": "node tests/ai.test.js",
     "test:browser": "node tests/browser/run.js",
     "test:browser:ocr": "node tests/browser/ocr-save.e2e.js",
-    "test:browser:features": "node tests/browser/features.e2e.js"
+    "test:browser:features": "node tests/browser/features.e2e.js",
+    "test:tz": "node tests/run-tz.js",
+    "test:tz:browser": "TZ_BROWSER=America/New_York node tests/browser/run-journeys.js && TZ_BROWSER=Pacific/Kiritimati node tests/browser/run-journeys.js"
   },
   "devDependencies": {
     "dexie": "^4.0.11",

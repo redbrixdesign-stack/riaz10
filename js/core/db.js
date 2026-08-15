@@ -402,7 +402,7 @@ const DB = {
     // the "today" list silently started/finished hours off (early-morning
     // UK visits dropped, late-evening ones bleeding across days).
     const p = Utils.ukParts(new Date(date));
-    const start = new Date(p.year, p.month - 1, p.day);
+    const start = Utils.ukMidnightInstant(p.year, p.month, p.day);
     const end = new Date(start.getTime() + 86400000);
 
     const rows = await this.db.appointments.toArray();
