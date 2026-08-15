@@ -724,7 +724,7 @@ const CompanionFeature = {
   },
 
   async answerGreeting() {
-    const h = new Date().getHours();
+    const h = Utils.hourUK();
     const part = h < 5 ? 'Working late' : h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : h < 22 ? 'Evening' : 'Late shift';
     let count = 0;
     try { count = await FollowupsFeature.getDueCount(); } catch (e) {}
@@ -973,10 +973,12 @@ const CompanionFeature = {
         pastFirstVisit.add(a.customerId);
       }
     } catch (e) {}
-    const sameDay = a => new Date(a.date).toDateString() === now.toDateString();
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const sameDayOn = (dateStr, ref) => new Date(dateStr).toDateString() === ref.toDateString();
+    // UK-day matching (iso keys) — the day a message is owed follows the UK
+    // calendar like every other deadline in the app, not the device's.
+    const dayKey = d => Utils.formatDate(d, 'iso');
+    const sameDay = a => dayKey(a.date) === dayKey(now);
+    const tomorrow = Utils.getTomorrow();
+    const sameDayOn = (dateStr, ref) => dayKey(dateStr) === dayKey(ref);
     const autoFlag = (stage, id) => {
       try { return localStorage.getItem(`advisoros_auto_${stage}_${id}`) === '1'; } catch (e) { return false; }
     };
