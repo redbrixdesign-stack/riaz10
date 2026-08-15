@@ -3157,11 +3157,6 @@ body.trip-active .toast-container {
   animation: beelo-idle 3.5s ease-in-out infinite;
 }
 
-@keyframes beelo-idle {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.02); }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .comp-home-avatar {
     animation: none;
@@ -3482,22 +3477,6 @@ body.trip-active .toast-container {
   transform: scale(0.98);
 }
 
-/* Home greeting avatar idle animation */
-@keyframes beelo-idle {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.02); }
-}
-
-.comp-home-greeting .comp-home-avatar {
-  animation: beelo-idle 3.5s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .comp-home-avatar {
-    animation: none;
-  }
-}
-
 .comp-home-section {
   margin-bottom: 4px;
 }
@@ -3653,20 +3632,4 @@ body.trip-active .toast-container {
 
 .comp-suggestion-chip:active {
   transform: scale(0.98);
-}
-
-/* Idle animation for avatar */
-@keyframes beelo-idle {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.02); }
-}
-
-.comp-home-greeting .comp-home-avatar {
-  animation: beelo-idle 3.5s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .comp-home-avatar {
-    animation: none;
-  }
 }
