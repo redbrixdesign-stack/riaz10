@@ -45,11 +45,11 @@ const MeasureFeature = {
     const v = (mm) => existing && mm ? this.mmToDisplay(mm) : '';
 
     return `<div class="fade-in">
-      <div class="top-header">
-        <button class="btn btn-ghost btn-sm" onclick="App.navigate('appointments',{id:${safeAppointmentId}})"><span class="material-symbols-rounded">arrow_back</span></button>
-        <h1 class="page-heading" >${existing ? 'Edit Measurement' : 'Measure'}</h1>
-        <div class="w-40" ></div>
-      </div>
+      ${App.renderTopHeader({ 
+        title: existing ? 'Edit Measurement' : 'Measure', 
+        showBack: true, 
+        backHref: `appointments?id=${safeAppointmentId}` 
+      })}
       <div class="p-md" >
         <div class="form-group"><label>Window / Location</label><input type="text" class="input" id="meas-name" placeholder="e.g. Living Room Bay - Left" value="${existing ? Utils.escapeHtml(existing.windowName || '') : ''}"></div>
 

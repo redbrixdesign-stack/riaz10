@@ -40,13 +40,10 @@ const MoneyFeature = {
     const recordCount = expenses.length + trips.length;
 
     return `<div class="fade-in">
-      <div class="top-header">
-        <h1>Money</h1>
-        <div class="header-actions">
-          <button class="btn btn-sm btn-ghost" aria-label="Download tax summary" onclick="ExportService.exportTaxSummary()"><span class="material-symbols-rounded">download</span></button>
-        </div>
-      </div>
-
+      ${App.renderTopHeader({ 
+        title: 'Money', 
+        actions: '<button class="btn btn-sm btn-ghost" aria-label="Download tax summary" onclick="ExportService.exportTaxSummary()"><span class="material-symbols-rounded">download</span></button>' 
+      })}
       <div class="p-md pb-0" >
         <div class="card hero-card" >
           <div class="fs-13 op-90" >This Week · Earnings (commission)</div>

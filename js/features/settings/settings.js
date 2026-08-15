@@ -13,7 +13,7 @@ const SettingsFeature = {
     const briefEnabled = NotificationService.isMorningBriefEnabled();
 
     return `<div class="fade-in">
-      <div class="top-header"><h1>Settings</h1></div>
+      ${App.renderTopHeader({ title: 'Settings' })}
       <div class="p-md" >
 
         <div class="card mb-md" >
@@ -44,7 +44,7 @@ const SettingsFeature = {
           <div class="form-group mb-0" >
             <label>Company Name</label>
             <input type="text" class="input" id="set-company-name" value="${Utils.escapeHtml(CONFIG.companyName || '')}" placeholder="e.g. Your Company Ltd" onblur="SettingsFeature.setCompanyName(this.value)">
-            <div class="hint">Shown throughout the app in place of "AdvisorOS". Leave blank to use the default AdvisorOS branding.</div>
+            <div class="hint">Shown throughout the app in place of "Beelo". Leave blank to use the default Beelo branding.</div>
           </div>
         </div>
 
@@ -61,7 +61,7 @@ const SettingsFeature = {
           <div class="flex items-center justify-between" >
             <div>
               <div class="fw-600" >Morning Brief</div>
-              <div class="fs-12 text-secondary mt-2" >7am UK time — but only if AdvisorOS is open (or was recently) around then. Phones suspend background tabs/PWAs, so this won't reliably fire overnight; it's a bonus, not a real alarm.</div>
+              <div class="fs-12 text-secondary mt-2" >7am UK time — but only if Beelo is open (or was recently) around then. Phones suspend background tabs/PWAs, so this won't reliably fire overnight; it's a bonus, not a real alarm.</div>
             </div>
             <button class="btn btn-sm ${briefEnabled ? 'btn-primary' : 'btn-outline'}" onclick="SettingsFeature.toggleMorningBrief()">
               ${briefEnabled ? 'On' : 'Off'}
@@ -125,7 +125,7 @@ const SettingsFeature = {
         </div>
 
         <div class="mt-xl text-center text-tertiary fs-13" >
-          <div>${CONFIG.companyName ? Utils.escapeHtml(CONFIG.companyName) + ' · ' : ''}AdvisorOS v5.0</div>
+          <div>${CONFIG.companyName ? Utils.escapeHtml(CONFIG.companyName) + ' · ' : ''}Beelo v5.0</div>
           <div class="mt-xs" >Your day, visits, follow-ups, and money in one place.</div>
         </div>
       </div>

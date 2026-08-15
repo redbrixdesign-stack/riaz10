@@ -42,11 +42,11 @@ const OCRFeature = {
 
   render() {
     return `<div class="fade-in">
-      <div class="top-header">
-        <button class="btn btn-ghost btn-sm" onclick="App.navigate('appointments', {action: 'add'})"><span class="material-symbols-rounded">arrow_back</span></button>
-        <h1 class="page-heading" >Scan Document</h1>
-        <div class="w-40" ></div>
-      </div>
+      ${App.renderTopHeader({ 
+        title: 'Scan Document', 
+        showBack: true, 
+        backHref: "appointments?action=add" 
+      })}
       <div class="p-md" >
         <div class="center-box" >
           <span class="material-symbols-rounded fs-64 text-tertiary mb-md" >document_scanner</span>

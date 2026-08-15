@@ -1,11 +1,11 @@
 {
-  "name": "AdvisorOS",
-  "short_name": "AdvisorOS",
+  "name": "Beelo",
+  "short_name": "Beelo",
   "description": "The self-employed companion for field service professionals",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#f8f9fa",
-  "theme_color": "#14170f",
+  "background_color": "#F3EEDF",
+  "theme_color": "#1B1B18",
   "orientation": "portrait",
   "scope": "./",
   "icons": [

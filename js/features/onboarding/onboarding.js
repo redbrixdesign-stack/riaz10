@@ -29,7 +29,7 @@ const OnboardingFeature = {
       <div class="fade-in minh-screen flex flex-col" >
         <div class="flex-1 pad-scroll" >
           <div class="fs-40 mb-sm" >👋</div>
-          <h1 class="fs-26 fw-700 mb-sm" >Welcome to AdvisorOS</h1>
+          <h1 class="fs-26 fw-700 mb-sm" >Welcome to Beelo</h1>
           <p class="text-secondary mb-28 lh-150" >
             It adapts to you — you don't adapt to it. Everything below can be changed later in Settings, so don't overthink it.
           </p>
@@ -88,7 +88,7 @@ const OnboardingFeature = {
           </div>
 
           <button class="btn btn-primary btn-block mt-xl"  onclick="OnboardingFeature.finish()">
-            Start Using AdvisorOS <span class="material-symbols-rounded">check</span>
+            Start Using Beelo <span class="material-symbols-rounded">check</span>
           </button>
 
           <button class="btn btn-outline btn-block mt-10"  onclick="OnboardingFeature.importBackup()">

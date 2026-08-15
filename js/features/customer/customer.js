@@ -94,13 +94,11 @@ const CustomerFeature = {
 
     return `
       <div class="fade-in">
-        <div class="top-header">
-          <button class="btn btn-ghost btn-sm" onclick="App.navigate('appointments')">
-            <span class="material-symbols-rounded">arrow_back</span>
-          </button>
-          <h1 class="page-heading" >Customer 360</h1>
-          <div class="w-40" ></div>
-        </div>
+        ${App.renderTopHeader({ 
+          title: 'Customer 360', 
+          showBack: true, 
+          backHref: 'appointments' 
+        })}
 
         <div class="card card-page-gap" >
           <div class="flex items-center gap-md" >

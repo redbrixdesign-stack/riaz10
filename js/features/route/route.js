@@ -100,19 +100,17 @@ const RouteFeature = {
 
     return `
       <div class="fade-in route-screen">
-        <!-- Header -->
-        <div class="top-header">
-          <h1>Today's Route</h1>
-          <div class="header-actions">
+        ${App.renderTopHeader({ 
+          title: "Today's Route", 
+          actions: `
             <button class="btn btn-sm btn-ghost" onclick="RouteFeature.openTodayRoute()" aria-label="Open full day route">
               <span class="material-symbols-rounded">navigation</span>
             </button>
             <button class="btn btn-sm btn-ghost" onclick="RouteFeature.optimizeRoute()">
               <span class="material-symbols-rounded">route</span>
             </button>
-          </div>
-        </div>
-
+          ` 
+        })}
         <!-- Route Stats -->
         <div class="route-stats">
           <div class="route-stats-grid">

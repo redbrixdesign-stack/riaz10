@@ -72,18 +72,17 @@ const AppointmentsFeature = {
 
     return `
       <div class="fade-in">
-        <!-- Header -->
-        <div class="top-header">
-          <h1>Visits</h1>
-          <div class="header-actions">
+        ${App.renderTopHeader({ 
+          title: 'Visits', 
+          actions: `
             <button class="btn btn-sm btn-outline" aria-label="Search" onclick="AppointmentsFeature.openCustomerSearch()">
               <span class="material-symbols-rounded">search</span>
             </button>
             <button class="btn btn-sm btn-primary" aria-label="Add visit" onclick="AppointmentsFeature.showAddModal()">
               <span class="material-symbols-rounded">add</span>
             </button>
-          </div>
-        </div>
+          ` 
+        })}
 
         <!-- Tabs -->
         <div class="px-md" >
@@ -1503,14 +1502,11 @@ const AppointmentsFeature = {
 
     return `
       <div class="fade-in">
-        <!-- Header -->
-        <div class="top-header">
-          <button class="btn btn-ghost btn-sm" onclick="App.navigate('appointments')">
-            <span class="material-symbols-rounded">arrow_back</span>
-          </button>
-          <h1 class="page-heading" >Visit</h1>
-          <div class="w-40" ></div>
-        </div>
+        ${App.renderTopHeader({ 
+          title: 'Visit', 
+          showBack: true, 
+          backHref: 'appointments' 
+        })}
 
         <!-- Customer Info -->
         <div class="card card-page-gap" >
@@ -1734,13 +1730,11 @@ const AppointmentsFeature = {
     const scannedAddress = params.address || '';
     return `
       <div class="fade-in">
-        <div class="top-header">
-          <button class="btn btn-ghost btn-sm" onclick="App.navigate('appointments')">
-            <span class="material-symbols-rounded">arrow_back</span>
-          </button>
-          <h1 class="page-heading" >New Visit</h1>
-          <div class="w-40" ></div>
-        </div>
+        ${App.renderTopHeader({ 
+          title: 'New Visit', 
+          showBack: true, 
+          backHref: 'appointments' 
+        })}
 
         <div class="p-md" >
           <div class="form-group">

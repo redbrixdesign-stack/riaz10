@@ -66,9 +66,7 @@ const OrdersFeature = {
 
     return `
       <div class="fade-in">
-        <div class="top-header">
-          <h1 class="page-heading">Orders</h1>
-        </div>
+        ${App.renderTopHeader({ title: 'Orders' })}
 
         <div class="kanban-summary">
           <div class="kanban-summary-item">

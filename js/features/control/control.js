@@ -13,7 +13,7 @@ const ControlFeature = {
     return `
       <div class="fade-in notebook-page control-center">
         <div class="notebook-brand">
-          <div class="notebook-logo">${Utils.escapeHtml((CONFIG.companyName || 'AdvisorOS').trim())}</div>
+          <div class="notebook-logo">${Utils.escapeHtml((CONFIG.companyName || 'Beelo').trim())}</div>
         </div>
 
         <section class="notebook-section">

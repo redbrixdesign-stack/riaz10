@@ -243,8 +243,7 @@ const TalkFeature = {
     const nextName = nextVisit ? (nextVisit.clientName || 'next visit') : null;
 
     return `<div class="fade-in">
-      <div class="top-header"><h1>Talk</h1></div>
-
+      ${App.renderTopHeader({ title: 'Talk' })}
       <div class="px-md" >
         ${this.renderUrgentActions(nextId, nextName)}
 

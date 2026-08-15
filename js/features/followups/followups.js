@@ -256,9 +256,7 @@ const FollowupsFeature = {
 
     return `
       <div class="fade-in">
-        <div class="top-header">
-          <h1 class="page-heading" >Follow-ups</h1>
-        </div>
+        ${App.renderTopHeader({ title: 'Follow-ups' })}
         <div class="px-md pb-lg" >
           ${due.length === 0 && later.length === 0 ? `
             <div class="empty-state empty-state-lg" >

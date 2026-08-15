@@ -153,7 +153,7 @@ const CompanionFeature = {
       <div class="comp-welcome">
         <div class="comp-avatar comp-avatar-lg">B</div>
         <h2 class="comp-welcome-title">Hi, I'm Beelo.</h2>
-        <p class="comp-welcome-sub">How can I help you today${firstName !== 'there' ? `, ${Utils.escapeHtml(firstName)}` : ''}?</p>
+        <p class="comp-welcome-sub">${firstName !== 'there' ? `Morning, ${Utils.escapeHtml(firstName)}.` : 'Morning.'} What would help?</p>
         <div class="comp-cards">
           ${cards.map(card => `
             <button class="comp-card" type="button" onclick="CompanionFeature.send(${Utils.escapeJsString(JSON.stringify(card[3]))})">
@@ -738,7 +738,7 @@ const CompanionFeature = {
 
   answerDefault() {
     return {
-      text: "I can't look that up yet — but I can help with any of these.",
+      text: "I can't look that up — but I can help with your day, money, visits, follow-ups, or orders.",
       facts: [],
       actions: [],
       suggestions: ['today', 'week', 'money', 'follow-ups', 'next visit', 'help']

@@ -204,6 +204,31 @@
 .top-header .header-actions {
   display: flex;
   gap: var(--space-sm);
+  align-items: center;
+}
+
+/* Small Beelo avatar in header — navigates to companion */
+.top-header .beelo-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent) 0%, #FDB913 100%);
+  color: var(--accent-contrast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.top-header .beelo-avatar:active {
+  transform: scale(0.95);
+}
+.top-header .beelo-avatar:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* ============================================
