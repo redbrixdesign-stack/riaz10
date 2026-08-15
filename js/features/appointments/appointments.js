@@ -117,7 +117,7 @@ const AppointmentsFeature = {
             const date = new Date(dateKey + 'T00:00:00');
             const isToday = Utils.isSameDay(date, today);
             const isTomorrow = Utils.isSameDay(date, Utils.getTomorrow());
-            const label = isToday ? 'Today' : isTomorrow ? 'Tomorrow' : date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
+            const label = isToday ? 'Today' : isTomorrow ? 'Tomorrow' : Utils.formatDate(date, 'weekday-day-month');
 
             return `
               <div class="px-md mb-sm" >
@@ -215,7 +215,7 @@ const AppointmentsFeature = {
       if (key === todayKey) classes.push('calendar-cell-today');
       if (key === selectedKey) classes.push('calendar-cell-selected');
       const dayNum = cursor.getDate();
-      const weekday = cursor.toLocaleDateString('en-GB', { weekday: 'short' });
+      const weekday = Utils.formatDate(cursor, 'weekday-short');
       cells += `
         <button class="${classes.join(' ')} aspect-auto minh-56 flex-col gap-2 pad-6-2"  onclick="AppointmentsFeature.selectCalendarDate('${key}')">
           <span class="fs-10 text-tertiary text-uppercase" >${weekday}</span>
@@ -284,7 +284,7 @@ const AppointmentsFeature = {
   },
 
   renderCalendarMonth(monthDate, gridStart, byDate, selectedKey) {
-    const monthLabel = monthDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+    const monthLabel = Utils.formatDate(monthDate, 'month-year');
     const todayKey = Utils.formatDate(Utils.getToday(), 'iso');
     const weekdayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -334,7 +334,7 @@ const AppointmentsFeature = {
     const date = new Date(selectedKey + 'T00:00:00');
     const today = Utils.getToday();
     const isToday = Utils.isSameDay(date, today);
-    const label = isToday ? 'Today' : date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
+    const label = isToday ? 'Today' : Utils.formatDate(date, 'weekday-day-month');
     const mode = this.getDayMode(selectedKey + 'T00:00:00');
     const salesValue = dayAppointments.reduce((sum, a) => sum + (a.value || 0), 0);
 
@@ -1965,7 +1965,7 @@ const AppointmentsFeature = {
     const message = NotificationService.buildBookingConfirmationMessage({
       firstName: customer?.firstName || appt.clientName?.split(' ')[0] || 'there',
       date: apptDate,
-      dateLabel: apptDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }),
+      dateLabel: Utils.formatDate(apptDate, 'long'),
       // time carries its own preposition so a window reads naturally:
       // "I'll be with you today at 09:00" vs "…today between 09:00 and 11:00".
       time: this.getArrivalWindowLabel(appt) || `at ${Utils.formatTime(appt.date)}`,
@@ -2296,7 +2296,7 @@ const AppointmentsFeature = {
         for (const appt of matchingFuture) {
           warnings.push({
             title: `${appt.clientName || 'Customer'} is already in the diary`,
-            detail: `${new Date(appt.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} at ${Utils.formatTime(appt.date)}`
+            detail: `${Utils.formatDate(appt.date, 'weekday-day-month')} at ${Utils.formatTime(appt.date)}`
           });
         }
       } catch (e) {}

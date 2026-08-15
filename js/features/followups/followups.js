@@ -158,7 +158,7 @@ const FollowupsFeature = {
         if (!a.customerId || !a.date) continue;
         if (a.status === 'cancelled') continue;
         if (new Date(a.date) >= now) continue;
-        const key = new Date(a.date).toDateString();
+        const key = Utils.formatDate(a.date, 'iso');
         (firstVisitByCustomer[a.customerId] = firstVisitByCustomer[a.customerId] || new Set()).add(key);
       }
     } catch (e) { /* treat everyone as first-time */ }

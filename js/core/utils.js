@@ -144,56 +144,17 @@ const Utils = {
     return d;
   },
 
+  // Legacy renderers — delegated to the UK wall-clock implementations so
+  // every remaining call site (appointment lists, order lines, follow-up
+  // grouping, input values) reads the same UK calendar day as everything
+  // else. On a UK device the output is byte-identical to the old local
+  // render; on a foreign-timezone device it stops showing the wrong day.
   formatDate(date, format = 'short') {
-    const d = new Date(date);
-    if (format === 'short') {
-      return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-    }
-    if (format === 'medium') {
-      return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-    }
-    if (format === 'long') {
-      return d.toLocaleDateString('en-GB', { 
-        weekday: 'long', 
-        day: 'numeric', 
-        month: 'long',
-        year: 'numeric'
-      });
-    }
-    if (format === 'weekday-short') {
-      return d.toLocaleDateString('en-GB', { weekday: 'short' });
-    }
-    if (format === 'time') {
-      return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    }
-    if (format === 'datetime') {
-      return d.toLocaleString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    }
-    if (format === 'iso') {
-      // Build from LOCAL date parts — do NOT use toISOString() here. That
-      // converts through UTC, and during BST (UK summer time, UTC+1) a
-      // local-midnight Date shifts back into the previous day once
-      // converted, silently keying "today" as yesterday for anything built
-      // from local-midnight dates (calendar grids, getToday(), etc.).
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${y}-${m}-${day}`;
-    }
-    return d.toISOString();
+    return this.formatDateUK(date, format);
   },
 
   formatTime(date) {
-    return new Date(date).toLocaleTimeString('en-GB', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: false 
-    });
+    return this.formatTimeUK(date);
   },
 
   // ---- UK wall-clock rendering ----
@@ -219,6 +180,8 @@ const Utils = {
     if (format === 'medium') return `${p.day} ${month.slice(0, 3)} ${p.year}`;
     if (format === 'long') return `${WEEKDAYS[p.weekday]} ${p.day} ${month} ${p.year}`;
     if (format === 'weekday-short') return WEEKDAYS[p.weekday].slice(0, 3);
+    if (format === 'weekday-day-month') return `${WEEKDAYS[p.weekday]} ${p.day} ${month.slice(0, 3)}`;
+    if (format === 'month-year') return `${month} ${p.year}`;
     if (format === 'datetime') return `${p.day} ${month.slice(0, 3)}, ${hh}:${mm}`;
     if (format === 'iso') return `${p.year}-${String(p.month).padStart(2, '0')}-${String(p.day).padStart(2, '0')}`;
     return `${p.day} ${month.slice(0, 3)}`;
