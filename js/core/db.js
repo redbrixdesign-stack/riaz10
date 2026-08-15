@@ -222,7 +222,7 @@ const DB = {
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (!key || !key.startsWith('advisoros:') || !key.endsWith(':' + table)) continue;
-        const parsed = safeJSONParse(localStorage.getItem(key), key);
+        const parsed = this.safeJSONParse(localStorage.getItem(key), key);
         if (parsed && Array.isArray(parsed.rows) && parsed.rows.length) {
           return parsed.rows;
         }

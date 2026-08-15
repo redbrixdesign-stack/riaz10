@@ -275,7 +275,7 @@ const Geo = {
     try {
       const raw = localStorage.getItem('advisoros_active_trip');
       if (!raw) return;
-      const trip = safeJSONParse(raw, 'advisoros_active_trip');
+      const trip = this.safeJSONParse(raw, 'advisoros_active_trip');
       if (!trip) return;
       this.activeTrip = trip;
       this.watchId = navigator.geolocation.watchPosition(

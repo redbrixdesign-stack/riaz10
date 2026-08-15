@@ -64,7 +64,7 @@ const App = {
     let parsedSavedConfig = null;
     if (savedConfig) {
       try {
-        parsedSavedConfig = safeJSONParse(savedConfig, 'advisoros_config');
+        parsedSavedConfig = this.safeJSONParse(savedConfig, 'advisoros_config');
         Object.assign(CONFIG, parsedSavedConfig);
       } catch (e) {
         console.warn('Failed to load saved config');
@@ -350,12 +350,18 @@ const App = {
         // first paint.
         main.innerHTML = App.renderSkeleton(feature.name || featureId);
         content.then(html => {
+          // Guard against stale resolves: if the user navigated away while
+          // the render was in flight, don't paint a screen they no longer
+          // asked for (it would overwrite the new screen and leave the
+          // URL hash out of sync with what's on screen).
+          if (App.currentFeature !== feature) return;
           if (typeof html === 'string') {
             main.innerHTML = html;
           }
           if (feature.activate) {
             feature.activate(params);
           }
+          App.finalizeNavigation(main, targetHash);
         }).catch(err => {
           console.error('Render error:', err);
           main.innerHTML = `<div class="empty-state">
@@ -366,6 +372,7 @@ const App = {
               ${featureId !== 'today' ? `<button class="btn btn-primary btn-sm" onclick="App.navigate('today')">Go to Today</button>` : ''}
             </div>
           </div>`;
+          App.finalizeNavigation(main, targetHash);
         });
         return; // activate called in promise
       }
@@ -379,12 +386,9 @@ const App = {
           ${featureId !== 'today' ? `<button class="btn btn-primary btn-sm" onclick="App.navigate('today')">Go to Today</button>` : ''}
         </div>
       </div>`;
+      App.finalizeNavigation(main, targetHash);
       return;
     }
-
-    // Add fade-in
-    main.classList.add('fade-in');
-    setTimeout(() => main.classList.remove('fade-in'), 300);
 
     // Activate
     if (feature.activate) {
@@ -394,6 +398,18 @@ const App = {
         console.error('Activate error:', e);
       }
     }
+
+    this.finalizeNavigation(main, targetHash);
+  },
+
+  // Shared tail of navigate(): fade-in, URL hash, scroll-to-top. Extracted
+  // so both the synchronous and async render paths land here — without it,
+  // async renders never updated the hash, so the browser back button /
+  // back gesture returned to a stale screen (or nothing) instead of Home.
+  finalizeNavigation(main, targetHash) {
+    // Add fade-in
+    main.classList.add('fade-in');
+    setTimeout(() => main.classList.remove('fade-in'), 300);
 
     // Update URL hash
     this.currentHash = targetHash;
