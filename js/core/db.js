@@ -396,10 +396,14 @@ const DB = {
   },
 
   async getAppointmentsForDate(date) {
-    const start = new Date(date);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(date);
-    end.setHours(23, 59, 59, 999);
+    // The day window is [UK midnight, +24h) of the instant's UK calendar
+    // day — the app's date contract everywhere else. The old version did
+    // setHours(0,0,0,0) in the DEVICE's timezone, so on any non-UK device
+    // the "today" list silently started/finished hours off (early-morning
+    // UK visits dropped, late-evening ones bleeding across days).
+    const p = Utils.ukParts(new Date(date));
+    const start = new Date(p.year, p.month - 1, p.day);
+    const end = new Date(start.getTime() + 86400000);
 
     const rows = await this.db.appointments.toArray();
     return rows.filter(a => a.status !== 'cancelled' && this._inDateWindow(a.date, start, end));
@@ -407,10 +411,12 @@ const DB = {
 
   // Generic date-range fetch — used by the standard month calendar view.
   async getAppointmentsForRange(startDate, endDate) {
+    // startDate/endDate arrive as UK-midnight instants (Utils week/month
+    // windows); use them exactly. The old version re-mangled them through
+    // device-local setHours, which on a non-UK device shrank the range to a
+    // few hours and cut the week/month view to a sliver of appointments.
     const start = new Date(startDate);
-    start.setHours(0, 0, 0, 0);
     const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
 
     const rows = await this.db.appointments.toArray();
     return rows.filter(a => a.status !== 'cancelled' && this._inDateWindow(a.date, start, end));

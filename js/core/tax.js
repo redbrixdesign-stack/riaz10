@@ -99,7 +99,11 @@ const TaxCalculator = {
   // 5 days early every year.
   getCurrentTaxYear() {
     const start = Utils.getTaxYearStart();
-    const startYear = start.getFullYear();
+    // Read the year through the UK calendar, not the device's: the Apr 6
+    // midnight instant is Apr 5 19:00 on a UTC-5 device, and
+    // getFullYear() there would label the year one short.
+    const p = Utils.ukParts(start);
+    const startYear = p.year;
     const endYear = startYear + 1;
     return {
       startYear,

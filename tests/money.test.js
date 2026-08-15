@@ -67,11 +67,17 @@ async function sectionA() {
   const { sandbox, CONFIG, Utils, Tax } = calcSandbox();
 
   // Tax-year boundary: the cutover is April 6, checked in UK wall clock.
+  // The stub forces "now" (the no-arg call) but still reads the real UK
+  // calendar for dates getCurrentTaxYear derives from the tax-year start.
   const withUK = parts => {
-    const prev = Utils.ukParts;
-    Utils.ukParts = () => parts;
+    const real = Utils.ukParts;
+    Utils.ukParts = d => {
+      if (d === undefined) return parts;
+      const r = real(d);
+      return { year: r.year, month: r.month, day: r.day };
+    };
     const year = Tax.getCurrentTaxYear();
-    Utils.ukParts = prev;
+    Utils.ukParts = real;
     return year;
   };
   ok('tax year: April 5 is previous year', JSON.stringify(withUK({ year: 2026, month: 4, day: 5 })) === JSON.stringify({ startYear: 2025, endYear: 2026, label: '2025-26' }), withUK({ year: 2026, month: 4, day: 5 }));

@@ -77,6 +77,10 @@ function loadDbJs(sandbox, dbName) {
   // (otherwise the migration flag from run 1 would skip run 2 entirely).
   let src = fs.readFileSync(path.join(REPO, 'js/core/db.js'), 'utf8');
   if (dbName) src = src.replace("new Dexie('advisoros_v6')", `new Dexie('${dbName}')`);
+  // db.js now reads the UK calendar via Utils.ukParts (day/range windows),
+  // so the real config + utils run in the sandbox ahead of it.
+  vm.runInContext(fs.readFileSync(path.join(REPO, 'js/core/config.js'), 'utf8') + ';CONFIG;', sandbox);
+  vm.runInContext(fs.readFileSync(path.join(REPO, 'js/core/utils.js'), 'utf8'), sandbox);
   // 'const DB' is a global lexical binding — not a sandbox property — so the
   // script's completion value (a trailing `DB;` expression) carries it out.
   return vm.runInContext(src + '\nDB;', sandbox);
@@ -307,22 +311,31 @@ async function runDbJs(engine, tag) {
 
   // Mixed date storage: a Date object (older engines/imports) must appear in
   // the day/range queries too — string-bounded index ranges silently skip it.
-  // The raw row is deliberately 1h ahead so it sits inside every window
-  // ("now" is captured after the add, so an exact-now row is at the edge).
-  const rawDate = new Date(Date.now() + 3600000);
-  const t = new Date(rawDate);
-  t.setHours(0, 0, 0, 0);
+  // Pinned to the UK day (the app's date contract) so these assertions hold
+  // on any device timezone; the day window is [UK midnight, +24h).
+  const sandboxUtils = vm.runInContext('Utils;', sandbox);
+  const ukNow = sandboxUtils.ukParts(new Date());
+  const t = new Date(ukNow.year, ukNow.month - 1, ukNow.day);
   const tISO = t.toISOString();
   await DB.addAppointment({ customerId: 1, clientName: 'Date Object Row', date: tISO, status: 'confirmed' });
+  const rawDate = new Date(t.getTime() + 3600000);
   await DB.db.appointments.add({ customerId: 2, clientName: 'Raw Date Row', date: rawDate, status: 'confirmed' });
+  const earlyRow = new Date(t.getTime() + 90 * 60000);
+  await DB.db.appointments.add({ customerId: 2, clientName: 'Early UK Row', date: earlyRow.toISOString(), status: 'confirmed' });
+  const prevLate = new Date(t.getTime() - 3600000);
+  await DB.db.appointments.add({ customerId: 2, clientName: 'Prev Late Row', date: prevLate.toISOString(), status: 'confirmed' });
+  const upcomingRow = new Date(Date.now() + 3600000);
+  await DB.db.appointments.add({ customerId: 2, clientName: 'Upcoming Row', date: upcomingRow, status: 'confirmed' });
   const dayRows = await DB.getAppointmentsForDate(t);
   ok(engine + ': day query finds ISO-string rows', dayRows.some(a => a.clientName === 'Date Object Row'));
   ok(engine + ': day query finds Date-object rows', dayRows.some(a => a.clientName === 'Raw Date Row'), dayRows.map(a => a.clientName));
+  ok(engine + ': UK 01:30 row lands in the UK day window', dayRows.some(a => a.clientName === 'Early UK Row'));
+  ok(engine + ': UK 23:00 previous-day row stays out of the window', !dayRows.some(a => a.clientName === 'Prev Late Row'));
   const rangeRows = await DB.getAppointmentsForRange(t, new Date(rawDate.getTime() + 86400000));
   ok(engine + ': range query finds Date-object rows', rangeRows.some(a => a.clientName === 'Raw Date Row'));
   const upcoming = await DB.getUpcomingAppointments(1);
-  ok(engine + ': upcoming finds Date-object rows', upcoming.some(a => a.clientName === 'Raw Date Row'));
-  await DB.db.appointments.filter(a => a.clientName === 'Raw Date Row').delete();
+  ok(engine + ': upcoming finds Date-object rows', upcoming.some(a => a.clientName === 'Upcoming Row'));
+  await DB.db.appointments.filter(a => ['Raw Date Row', 'Early UK Row', 'Prev Late Row', 'Upcoming Row'].includes(a.clientName)).delete();
 
   // Factory reset: every table empties and app-prefixed localStorage keys go.
   sandbox.localStorage.setItem('advisoros_config', JSON.stringify({ advisorName: 'Riaz' }));
@@ -684,7 +697,7 @@ async function runBackupEnvelope() {
   const DB = loadDbJs(sandbox, 'advisoros_v6_envelope_' + Date.now());
   await DB.init();
   sandbox.DB = DB;
-  const CONFIG = vm.runInContext(fs.readFileSync(path.join(REPO, 'js/core/config.js'), 'utf8') + '\nCONFIG;', sandbox);
+  const CONFIG = vm.runInContext('CONFIG;', sandbox);
   const ExportService = vm.runInContext(fs.readFileSync(path.join(REPO, 'js/services/export.js'), 'utf8') + '\nExportService;', sandbox);
   ExportService.downloadFile = () => {};
 
