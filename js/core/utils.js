@@ -56,11 +56,17 @@ const Utils = {
     return t;
   },
 
+  // Week/month windows follow the UK calendar day (same rule as getToday):
+  // a device in another timezone must not count a different set of days
+  // into "this week" / "this month" earnings. The returned Date is the UK
+  // midnight instant of the Monday / 1st — exact in UTC on both DST jump
+  // days, so .toISOString() consumers (money, companion, today) get the
+  // true UK boundary no matter where the device is.
   getStartOfWeek(date) {
-    const d = date ? new Date(date) : this.getToday();
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    return new Date(d.setDate(diff));
+    const p = this.ukParts(date ? new Date(date) : undefined);
+    const dow = new Date(Date.UTC(p.year, p.month - 1, p.day)).getUTCDay();
+    const mondayDay = p.day - ((dow + 6) % 7);
+    return new Date(p.year, p.month - 1, mondayDay);
   },
 
   getEndOfWeek(date) {
@@ -80,13 +86,13 @@ const Utils = {
   },
 
   getStartOfMonth(date) {
-    const d = date || this.getToday();
-    return new Date(d.getFullYear(), d.getMonth(), 1);
+    const p = this.ukParts(date ? new Date(date) : undefined);
+    return new Date(p.year, p.month - 1, 1);
   },
 
   getEndOfMonth(date) {
-    const d = date || this.getToday();
-    return new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    const p = this.ukParts(date ? new Date(date) : undefined);
+    return new Date(p.year, p.month, 0);
   },
 
   // UK tax year runs April 6 - April 5. The cutover must check the full date

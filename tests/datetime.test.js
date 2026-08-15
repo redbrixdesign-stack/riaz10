@@ -95,5 +95,16 @@ t('Sunday sits inside the week window', inWeek(sunday), { start: weekStart.toISO
 t('Monday of that week sits inside the window', inWeek(new Date('2026-08-10T12:00:00Z')));
 t('following Monday is outside the window', !inWeek(new Date('2026-08-17T12:00:00Z')));
 
+// ---- Week/month window boundaries are UK-midnight instants (regression:
+//      they used the device's local midnight, so on any non-UK device the
+//      money/companion "this week"/"this month" totals counted wrong days) ----
+t('week start is UK midnight of Monday 10 Aug (BST: 23:00Z on the 9th)', weekStart.toISOString() === '2026-08-09T23:00:00.000Z', { got: weekStart.toISOString() });
+t('week end is UK midnight of Monday 17 Aug (BST: 23:00Z on the 16th)', weekEnd.toISOString() === '2026-08-16T23:00:00.000Z', { got: weekEnd.toISOString() });
+t('month start is UK midnight of 1 Aug (BST: 23:00Z on 31 Jul)', Utils.getStartOfMonth(new Date('2026-08-16T12:00:00Z')).toISOString() === '2026-07-31T23:00:00.000Z', { got: Utils.getStartOfMonth(new Date('2026-08-16T12:00:00Z')).toISOString() });
+t('month start in GMT is 00:00Z on the 1st', Utils.getStartOfMonth(new Date('2026-01-16T12:00:00Z')).toISOString() === '2026-01-01T00:00:00.000Z', { got: Utils.getStartOfMonth(new Date('2026-01-16T12:00:00Z')).toISOString() });
+t('month end is UK midnight of the last day (31 Aug, BST: 23:00Z on the 30th)', Utils.getEndOfMonth(new Date('2026-08-16T12:00:00Z')).toISOString() === '2026-08-30T23:00:00.000Z', { got: Utils.getEndOfMonth(new Date('2026-08-16T12:00:00Z')).toISOString() });
+t('Monday 10 Aug BST picks Monday 10 Aug as week start (no drift)', Utils.getStartOfWeek(new Date('2026-08-10T12:00:00Z')).toISOString() === '2026-08-09T23:00:00.000Z', { got: Utils.getStartOfWeek(new Date('2026-08-10T12:00:00Z')).toISOString() });
+t('week start in GMT is 00:00Z on the Monday', Utils.getStartOfWeek(new Date('2026-01-15T12:00:00Z')).toISOString() === '2026-01-12T00:00:00.000Z', { got: Utils.getStartOfWeek(new Date('2026-01-15T12:00:00Z')).toISOString() });
+
 console.log(failed === 0 ? '\nALL DATE/TIME TESTS PASSED' : `\n${failed} DATE/TIME TEST(S) FAILED`);
 process.exit(failed === 0 ? 0 : 1);
