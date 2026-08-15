@@ -69,7 +69,7 @@ const CompanionFeature = {
       <div class="comp-root">
         <div class="comp-topbar">
           <span class="comp-brand">Beelo</span>
-          <span class="comp-clock" id="comp-clock">${Utils.escapeHtml(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}</span>
+          <span class="comp-clock" id="comp-clock">${Utils.escapeHtml(Utils.formatTimeUK())}</span>
         </div>
         <div class="comp-scroll" id="comp-scroll"></div>
         <div class="comp-composer">
@@ -91,7 +91,7 @@ const CompanionFeature = {
 
     this._clockTimer = setInterval(() => {
       const el = document.getElementById('comp-clock');
-      if (el) el.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      if (el) el.textContent = Utils.formatTimeUK();
     }, 60000);
 
     const toggle = document.getElementById('comp-ai-toggle');
@@ -174,8 +174,7 @@ const CompanionFeature = {
   // a data source is missing or offline.
   async buildWelcomeChips() {
     const chips = [];
-    const now = new Date();
-    const hour = now.getHours();
+    const hour = Utils.hourUK();
     try {
       const today = Utils.getToday();
       const todayAppts = (await DB.getAppointmentsForDate(today.toISOString())).filter(a => a.status !== 'cancelled');
@@ -185,11 +184,11 @@ const CompanionFeature = {
       const next = upcoming.find(a => a.status !== 'cancelled' && (a.phone || a.customerId)) || upcoming.find(a => a.status !== 'cancelled') || null;
 
       if (next) {
-        chips.push(['Next visit', 'near_me', `${next.clientName || 'Customer'} · ${Utils.formatDate(next.date, 'short')} ${Utils.formatTime(next.date)}`, 'next visit']);
+        chips.push(['Next visit', 'near_me', `${next.clientName || 'Customer'} · ${Utils.formatDateUK(next.date, 'short')} ${Utils.formatTimeUK(next.date)}`, 'next visit']);
       }
       const introOwed = upcoming.find(a => a.status === 'confirmed' && !a.introSent && (a.phone || a.customerId));
       if (introOwed) {
-        chips.push(['Intro to send', 'waving_hand', `${introOwed.clientName || 'Customer'} · ${Utils.formatDate(introOwed.date, 'short')}`, 'messages']);
+        chips.push(['Intro to send', 'waving_hand', `${introOwed.clientName || 'Customer'} · ${Utils.formatDateUK(introOwed.date, 'short')}`, 'messages']);
       }
       // After visit: show if there's a completed visit today
       if (doneToday.length && (hour < 18 || pendingToday.length)) {
@@ -519,7 +518,7 @@ const CompanionFeature = {
     if (next) {
       facts.push({
         label: 'Next up',
-        value: `${next.clientName || 'Customer'} · ${Utils.formatTime(next.date)}${eta ? ` · ${eta} away` : ''}`
+        value: `${next.clientName || 'Customer'} · ${Utils.formatTimeUK(next.date)}${eta ? ` · ${eta} away` : ''}`
       });
     }
     if (weather && Number.isFinite(weather.tempC)) {
@@ -532,7 +531,7 @@ const CompanionFeature = {
     } else if (done === total) {
       text = `All ${total} visit${total === 1 ? '' : 's'} done — great day.` + (weather && Number.isFinite(weather.tempC) ? ` (${weather.tempC}°C out there.)` : '');
     } else {
-      text = `${total - done} visit${total - done === 1 ? '' : 's'} to go${next ? ` — ${next.clientName || 'Customer'} at ${Utils.formatTime(next.date)}${eta ? `, about ${eta} away` : ''} is next` : ''}.`;
+      text = `${total - done} visit${total - done === 1 ? '' : 's'} to go${next ? ` — ${next.clientName || 'Customer'} at ${Utils.formatTimeUK(next.date)}${eta ? `, about ${eta} away` : ''} is next` : ''}.`;
     }
     return {
       text,
@@ -670,14 +669,14 @@ const CompanionFeature = {
 
     const eta = await this.etaFor(next);
     const facts = [
-      { label: 'Next visit', value: `${next.clientName || 'Customer'} · ${Utils.formatDate(next.date, 'long')}` },
-      { label: 'Time', value: Utils.formatTime(next.date) },
+      { label: 'Next visit', value: `${next.clientName || 'Customer'} · ${Utils.formatDateUK(next.date, 'long')}` },
+      { label: 'Time', value: Utils.formatTimeUK(next.date) },
       { label: 'Address', value: next.address || 'No address set' }
     ];
     if (eta) facts.push({ label: 'Drive', value: eta });
 
     return {
-      text: `Next up: ${next.clientName || 'Customer'} at ${Utils.formatTime(next.date)}${eta ? ` — about ${eta} away` : ''}.`,
+      text: `Next up: ${next.clientName || 'Customer'} at ${Utils.formatTimeUK(next.date)}${eta ? ` — about ${eta} away` : ''}.`,
       facts,
       actions: [
         { label: 'Navigate', onclick: `AppointmentsFeature.navigateToVisit('${Utils.escapeJsString(next.address || '')}', ${next.id})` },
@@ -784,10 +783,10 @@ const CompanionFeature = {
 
     const facts = [];
     if (next) {
-      facts.push({ label: 'Next visit', value: `${Utils.formatDate(next.date, 'short')} · ${Utils.formatTime(next.date)}` });
+      facts.push({ label: 'Next visit', value: `${Utils.formatDateUK(next.date, 'short')} · ${Utils.formatTimeUK(next.date)}` });
     }
     if (lastVisit) {
-      facts.push({ label: 'Last visit', value: `${Utils.formatDate(lastVisit.date, 'short')}${lastVisit.outcome ? ' — ' + String(lastVisit.outcome).replace(/_/g, ' ') : ''}` });
+      facts.push({ label: 'Last visit', value: `${Utils.formatDateUK(lastVisit.date, 'short')}${lastVisit.outcome ? ' — ' + String(lastVisit.outcome).replace(/_/g, ' ') : ''}` });
     }
     if (outstanding > 0) facts.push({ label: 'Outstanding', value: Utils.formatCurrency(outstanding), highlight: true });
     if (next && !next.introSent && (next.phone || next.customerId)) facts.push({ label: 'Intro message', value: 'Not sent yet' });
@@ -801,7 +800,7 @@ const CompanionFeature = {
     }
 
     return {
-      text: `${c.fullName || c.firstName}${next ? ` — booked ${Utils.formatDate(next.date, 'short')} at ${Utils.formatTime(next.date)}` : lastVisit ? ` — last seen ${Utils.formatDate(lastVisit.date, 'short')}` : ''}.`,
+      text: `${c.fullName || c.firstName}${next ? ` — booked ${Utils.formatDateUK(next.date, 'short')} at ${Utils.formatTimeUK(next.date)}` : lastVisit ? ` — last seen ${Utils.formatDateUK(lastVisit.date, 'short')}` : ''}.`,
       facts,
       actions,
       suggestions: ['messages', 'money', 'follow-ups']
@@ -943,13 +942,13 @@ const CompanionFeature = {
     }
 
     const facts = list.slice(0, 6).map(a => ({
-      label: `${Utils.formatTime(a.date)} · ${a.clientName || 'Customer'}`,
+      label: `${Utils.formatTimeUK(a.date)} · ${a.clientName || 'Customer'}`,
       value: a.status === 'completed' ? 'Done' : String(a.status || 'Booked').replace(/_/g, ' ')
     }));
     const first = list[0];
 
     return {
-      text: `${list.length} visit${list.length === 1 ? '' : 's'} ${range.label.toLowerCase()}${first ? ` — first is ${first.clientName || 'Customer'} at ${Utils.formatTime(first.date)}` : ''}.`,
+      text: `${list.length} visit${list.length === 1 ? '' : 's'} ${range.label.toLowerCase()}${first ? ` — first is ${first.clientName || 'Customer'} at ${Utils.formatTimeUK(first.date)}` : ''}.`,
       facts,
       actions: [
         { label: 'My Day calendar', onclick: "CompanionFeature.openMyDay()" },
@@ -1014,13 +1013,13 @@ const CompanionFeature = {
     }
 
     const facts = owed.slice(0, 6).map(({ appt, stage }) => ({
-      label: `${appt.clientName || 'Customer'} · ${Utils.formatDate(appt.date, 'short')}`,
+      label: `${appt.clientName || 'Customer'} · ${Utils.formatDateUK(appt.date, 'short')}`,
       value: stage.label
     }));
     const first = owed[0];
 
     return {
-      text: `${owed.length} visit${owed.length === 1 ? '' : 's'} owe a message${first ? ` — ${first.appt.clientName || 'Customer'} on ${Utils.formatDate(first.appt.date, 'short')} first` : ''}.`,
+      text: `${owed.length} visit${owed.length === 1 ? '' : 's'} owe a message${first ? ` — ${first.appt.clientName || 'Customer'} on ${Utils.formatDateUK(first.appt.date, 'short')} first` : ''}.`,
       facts,
       actions: [{ label: 'Send in Follow-ups', onclick: "App.navigate('followups')" }],
       suggestions: ['next visit', 'follow-ups', 'today']
@@ -1070,7 +1069,7 @@ const CompanionFeature = {
 
     if (doneToday.length) {
       const last = doneToday[0];
-      facts.push({ label: 'Last visit', value: `${last.clientName || 'Customer'} · ${Utils.formatTime(last.date)}` });
+      facts.push({ label: 'Last visit', value: `${last.clientName || 'Customer'} · ${Utils.formatTimeUK(last.date)}` });
       // Suggest logging outcome if not done
       if (!last.outcome) {
         actions.push({ label: 'Log outcome', onclick: `App.navigate('appointments', {id: ${last.id}})` });
@@ -1098,7 +1097,7 @@ const CompanionFeature = {
     const next = pendingToday[0] || upcoming.find(a => a.status !== 'cancelled');
     if (next) {
       const eta = await this.etaFor(next);
-      facts.push({ label: 'Next up', value: `${next.clientName || 'Customer'} · ${Utils.formatDate(next.date, 'short')} ${Utils.formatTime(next.date)}${eta ? ` · ${eta}` : ''}` });
+      facts.push({ label: 'Next up', value: `${next.clientName || 'Customer'} · ${Utils.formatDateUK(next.date, 'short')} ${Utils.formatTimeUK(next.date)}${eta ? ` · ${eta}` : ''}` });
       actions.push({ label: 'Navigate', onclick: `AppointmentsFeature.navigateToVisit('${Utils.escapeJsString(next.address || '')}', ${next.id})` });
     }
 

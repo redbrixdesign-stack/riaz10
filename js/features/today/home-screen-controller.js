@@ -219,7 +219,7 @@ const HomeScreenController = {
   renderGroupedVisitList(appts, travelLabels) {
     const groups = { Morning: [], Afternoon: [], Evening: [] };
     for (const a of appts) {
-      const h = new Date(a.date).getHours();
+      const h = Utils.hourUK(a.date);
       (h < 12 ? groups.Morning : h < 17 ? groups.Afternoon : groups.Evening).push(a);
     }
     return Object.entries(groups)
@@ -233,7 +233,7 @@ const HomeScreenController = {
   renderWeeklyVisitRow(appt, travel) {
     const name = Utils.escapeHtml(appt.clientName || 'Customer');
     const address = Utils.escapeHtml(appt.address || 'No address set');
-    const time = Utils.escapeHtml(Utils.formatTime(appt.date));
+    const time = Utils.escapeHtml(Utils.formatTimeUK(appt.date));
     const isDone = appt.status === 'completed';
     const phone = appt.phone || '';
 

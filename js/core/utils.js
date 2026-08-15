@@ -177,6 +177,41 @@ const Utils = {
     });
   },
 
+  // ---- UK wall-clock rendering ----
+  // Visit times and the home-screen clock must read through the same UK
+  // timezone as the calendar-day logic above (getToday/ukParts) — otherwise
+  // a device set to a foreign timezone shows a UK 10:00 visit at a different
+  // local hour while every "today"/"tomorrow" decision around it still
+  // follows the UK day.
+  formatTimeUK(date) {
+    const p = this.ukParts(date ? new Date(date) : undefined);
+    return `${String(p.hour).padStart(2, '0')}:${String(p.minute).padStart(2, '0')}`;
+  },
+
+  formatDateUK(date, format = 'short') {
+    const p = this.ukParts(date ? new Date(date) : undefined);
+    const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'];
+    const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const month = MONTHS[p.month - 1];
+    const hh = String(p.hour).padStart(2, '0');
+    const mm = String(p.minute).padStart(2, '0');
+    if (format === 'short') return `${p.day} ${month.slice(0, 3)}`;
+    if (format === 'medium') return `${p.day} ${month.slice(0, 3)} ${p.year}`;
+    if (format === 'long') return `${WEEKDAYS[p.weekday]} ${p.day} ${month} ${p.year}`;
+    if (format === 'weekday-short') return WEEKDAYS[p.weekday].slice(0, 3);
+    if (format === 'datetime') return `${p.day} ${month.slice(0, 3)}, ${hh}:${mm}`;
+    if (format === 'iso') return `${p.year}-${String(p.month).padStart(2, '0')}-${String(p.day).padStart(2, '0')}`;
+    return `${p.day} ${month.slice(0, 3)}`;
+  },
+
+  // UK wall-clock hour of an instant — Morning/Afternoon/Evening visit
+  // bucketing on the home screen must follow the UK clock like everything
+  // else, not the device's.
+  hourUK(date) {
+    return this.ukParts(date ? new Date(date) : undefined).hour;
+  },
+
   // Currency
   formatCurrency(amount, currency = CONFIG.currency) {
     return new Intl.NumberFormat('en-GB', {
