@@ -152,7 +152,7 @@ const Geo = {
     );
 
     this.renderTripBanner();
-    Toast.show(destination ? "Trip started — I'll check for arrival whenever you reopen AdvisorOS" : 'Trip started', 'success');
+    Toast.show(destination ? "Trip started — I'll check for arrival whenever you reopen Beelo" : 'Trip started', 'success');
     return this.activeTrip;
   },
 

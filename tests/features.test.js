@@ -32,7 +32,9 @@ global.App = {
   renderTopHeader({ title = '', showBack = false, backHref = '#today', actions = '' } = {}) {
     const avatarHtml = `<button class="beelo-avatar" type="button" aria-label="Open Beelo companion" onclick="App.navigate('today')">B</button>`;
     let leftHtml = '';
-    if (showBack) {
+    if (showBack && title) {
+      leftHtml = `<button class="btn btn-ghost btn-sm" onclick="App.navigate('${backHref}')"><span class="material-symbols-rounded">arrow_back</span></button><h1 class="page-heading">${title}</h1>`;
+    } else if (showBack) {
       leftHtml = `<button class="btn btn-ghost btn-sm" onclick="App.navigate('${backHref}')"><span class="material-symbols-rounded">arrow_back</span></button>`;
     } else if (title) {
       leftHtml = `<h1 class="page-heading">${title}</h1>`;

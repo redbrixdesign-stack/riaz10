@@ -224,7 +224,9 @@ const App = {
         B
       </button>`;
     let leftHtml = '';
-    if (showBack) {
+    if (showBack && title) {
+      leftHtml = `<button class="btn btn-ghost btn-sm" onclick="App.navigate('${Utils.escapeJsString(backHref)}')"><span class="material-symbols-rounded">arrow_back</span></button><h1 class="page-heading">${Utils.escapeHtml(title)}</h1>`;
+    } else if (showBack) {
       leftHtml = `<button class="btn btn-ghost btn-sm" onclick="App.navigate('${Utils.escapeJsString(backHref)}')"><span class="material-symbols-rounded">arrow_back</span></button>`;
     } else if (title) {
       leftHtml = `<h1 class="page-heading">${Utils.escapeHtml(title)}</h1>`;

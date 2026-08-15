@@ -793,7 +793,7 @@ const TalkFeature = {
       if (customerId) {
         const all = await DB.db.appointments.where('customerId').equals(customerId).toArray();
         all.sort((a, b) => new Date(a.date) - new Date(b.date));
-        pastVisits = all.filter(a => a.date && new Date(a.date) < new Date() && a.status !== 'cancelled');
+        pastVisits = all.filter(a => a.date && new Date(a.date) < new Date() && a.status !== 'cancelled' && a.id !== appointmentId);
         const seen = new Set();
         pastVisits = pastVisits.filter(a => {
           const key = new Date(a.date).toDateString();
