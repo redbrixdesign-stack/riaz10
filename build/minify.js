@@ -98,6 +98,39 @@ async function run() {
     console.log(`  ✓ Built ${changed.length}/${sources.length} file(s)`);
   }
   copyVendorDeps();
+  verifyAssetTokens();
+}
+
+// The service worker precaches exactly the cache-busted assets index.html
+// loads. If the ?v=N tokens drift apart, the offline shell silently serves
+// a mismatched app (stale assets listed in sw.js, or a fresh build the SW
+// never precached) — the classic PWA "works online, breaks offline" bug.
+// The build is the one place both files are touched, so fail it on drift.
+function verifyAssetTokens() {
+  const read = p => fs.readFileSync(path.join(ROOT, p), 'utf8');
+  const tokenRe = /([A-Za-z0-9_./-]+\.(?:js|css))\?v=(\d+)/g;
+  const collect = src => {
+    const m = new Map();
+    for (const [, file, v] of src.matchAll(tokenRe)) m.set(file, Number(v));
+    return m;
+  };
+  const index = collect(read('index.html'));
+  const sw = collect(read('sw.js'));
+  const issues = [];
+  for (const [file, v] of index) {
+    if (sw.has(file) && sw.get(file) !== v) issues.push(`  ${file}?v=${v} in index.html but ?v=${sw.get(file)} in sw.js`);
+    if (!sw.has(file)) issues.push(`  ${file}?v=${v} is loaded by index.html but not precached by sw.js`);
+  }
+  for (const [file, v] of sw) {
+    if (!index.has(file)) issues.push(`  ${file}?v=${v} is precached by sw.js but not loaded by index.html`);
+  }
+  if (issues.length > 0) {
+    console.error('  ✗ ASSET VERSION DRIFT — fix the ?v= tokens before shipping:');
+    for (const i of issues) console.error(i);
+    process.exitCode = 1;
+  } else {
+    console.log('  ✓ sw.js ?v= tokens match index.html');
+  }
 }
 
 // Copies third-party libraries from node_modules into js/vendor/ so the app

@@ -13,15 +13,17 @@ const WeatherService = {
   async getTodayWeather() {
     const todayKey = Utils.formatDate(Utils.getToday(), 'iso');
 
+    let cached = null;
     try {
-      const cached = JSON.parse(localStorage.getItem(this.cacheKey) || 'null');
-      if (cached && cached.dateKey === todayKey && (Date.now() - cached.fetchedAt) < this.cacheTtlMs) {
-        return cached.data;
-      }
+      cached = JSON.parse(localStorage.getItem(this.cacheKey) || 'null');
     } catch (e) { /* ignore corrupt cache */ }
 
+    if (cached && cached.dateKey === todayKey && (Date.now() - cached.fetchedAt) < this.cacheTtlMs) {
+      return cached.data;
+    }
+
     const coords = await this.resolveCoords();
-    if (!coords) return null;
+    if (!coords) return cached && cached.dateKey === todayKey ? cached.data : null;
 
     try {
       const data = await this.fetchCurrent(coords);
@@ -29,7 +31,9 @@ const WeatherService = {
       return data;
     } catch (e) {
       console.log('Weather fetch failed:', e);
-      return null;
+      // Offline or API down: a same-day reading is still a better badge
+      // than nothing — stale-while-revalidate.
+      return cached && cached.dateKey === todayKey ? cached.data : null;
     }
   },
 
