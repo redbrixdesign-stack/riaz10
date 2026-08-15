@@ -1,5 +1,5 @@
 /* ============================================
-   ADVISOROS v5.0 — SETTINGS FEATURE
+   BEELO — SETTINGS FEATURE
    Config, targets, notifications, data management
    ============================================ */
 
@@ -9,127 +9,423 @@ const SettingsFeature = {
   icon: 'settings',
   route: false, // reached from Tools (kept the bottom nav to 5 items)
 
-  render() {
+  // Current detail section being viewed (null = index)
+  _currentSection: null,
+
+  render(params = {}) {
+    // If a section parameter is provided, show that detail screen
+    if (params.section) {
+      this._currentSection = params.section;
+      return this.renderDetail(params.section);
+    }
+    this._currentSection = null;
+    return this.renderIndex();
+  },
+
+  renderIndex() {
     const briefEnabled = NotificationService.isMorningBriefEnabled();
+    const aiEnabled = !!(CONFIG.ai && CONFIG.ai.enabled);
+    const autoMsgEnabled = !!(CONFIG.autoMessages && CONFIG.autoMessages.enabled);
+    const commission = CONFIG.commission || {};
+    const commissionMode = commission.mode || 'two_stage';
+    const effectiveRate = TaxCalculator.getEffectiveCommissionRate();
+    const weeklyTarget = CONFIG.weeklyTarget || 600;
+
+    const sections = [
+      {
+        id: 'details',
+        title: 'Your Details',
+        icon: 'person',
+        summary: `${CONFIG.advisorName || '—'} · £${weeklyTarget}/week`,
+        description: 'Name, weekly target, minimum hourly value'
+      },
+      {
+        id: 'branding',
+        title: 'Company Branding',
+        icon: 'business',
+        summary: CONFIG.companyName || 'Beelo (default)',
+        description: 'Company name shown throughout the app'
+      },
+      {
+        id: 'business-base',
+        title: 'Business Base',
+        icon: 'location_on',
+        summary: CONFIG.businessAddress ? 'Set' : 'Not set',
+        description: 'Home address for route distances & ETAs'
+      },
+      {
+        id: 'morning-brief',
+        title: 'Morning Brief',
+        icon: 'wb_sunny',
+        summary: briefEnabled ? 'On · 7am' : 'Off',
+        description: 'Daily overview when you open the app'
+      },
+      {
+        id: 'auto-messages',
+        title: 'Automated Messages',
+        icon: 'schedule_send',
+        summary: autoMsgEnabled ? 'On' : 'Off',
+        description: 'Evening-before & morning-of visit drafts'
+      },
+      {
+        id: 'commission',
+        title: 'Commission Rate',
+        icon: 'percent',
+        summary: `${effectiveRate}% effective · ${commissionMode}`,
+        description: 'How commission is calculated from sales'
+      },
+      {
+        id: 'advisor-mode',
+        title: 'Advisor Mode',
+        icon: 'business_center',
+        summary: CONFIG.advisorMode || 'independent',
+        description: 'Company vs Independent workflow'
+      },
+      {
+        id: 'trade',
+        title: 'Trade',
+        icon: 'construction',
+        summary: CONFIG.trades.find(t => t.id === CONFIG.trade)?.name || 'Not set',
+        description: 'Your trade type'
+      },
+      {
+        id: 'units',
+        title: 'Units',
+        icon: 'straighten',
+        summary: `${CONFIG.distanceUnit || 'mi'} · ${CONFIG.measurementUnit || 'mm'}`,
+        description: 'Distance & measurement units'
+      },
+      {
+        id: 'ai',
+        title: 'Claude AI',
+        icon: 'psychology',
+        summary: aiEnabled ? 'Connected' : 'Off',
+        description: 'Document scanning & message drafting'
+      },
+      {
+        id: 'data',
+        title: 'Data & Backup',
+        icon: 'backup',
+        summary: (App.state.storageStatus?.database && App.state.storageStatus?.localStorage) ? 'Persistent' : 'Check storage',
+        description: 'Export, import, factory reset'
+      }
+    ];
 
     return `<div class="fade-in">
       ${App.renderTopHeader({ title: 'Settings' })}
       <div class="p-md" >
-
-        <div class="card mb-md" >
-          <div class="fw-600 mb-12" >Your Details</div>
-          <div class="form-group">
-            <label>Name</label>
-            <input type="text" class="input" id="set-name" value="${Utils.escapeHtml(CONFIG.advisorName || '')}" placeholder="Your full name" onblur="SettingsFeature.setName(this.value)">
-          </div>
-          <div class="form-group">
-            <label>Weekly Earnings Target (£)</label>
-            <input type="number" class="input" inputmode="decimal" id="set-target" value="${CONFIG.weeklyTarget || 600}" step="10" min="0" onblur="SettingsFeature.setTarget(this.value)">
-            <div class="hint">What you want to take home this week. Everything else derives from this.</div>
-          </div>
-          <div class="form-group mb-0" >
-            <label>Weekly Sales Target (derived)</label>
-            <input type="text" class="input op-75" id="set-sales-target" value="${Utils.formatCurrency(TaxCalculator.getRequiredWeeklySales(CONFIG.weeklyTarget)).replace('.00','')}" disabled >
-            <div class="hint">Sales needed to hit your earnings target at the current ${(TaxCalculator.getEffectiveCommissionRate() * 100).toFixed(1)}% effective commission rate. Change your commission structure below to update this automatically.</div>
-          </div>
-          <div class="form-group mb-0 mt-14" >
-            <label>Minimum Hourly Value (&pound;)</label>
-            <input type="number" class="input" inputmode="decimal" id="set-min-hourly" value="${CONFIG.minHourlyRate || ''}" placeholder="${TaxCalculator.getMinHourlyRate().rate.toFixed(0)} (estimated)" step="1" min="0" onblur="SettingsFeature.setMinHourlyRate(this.value)">
-            <div class="hint">What your time is worth, at minimum. Only used by "Check my floor" on a visit after a price objection — leave blank to use a rough estimate from your weekly target.</div>
-          </div>
-        </div>
-
-        <div class="card mb-md" >
-          <div class="fw-600 mb-12" >Company Branding</div>
-          <div class="form-group mb-0" >
-            <label>Company Name</label>
-            <input type="text" class="input" id="set-company-name" value="${Utils.escapeHtml(CONFIG.companyName || '')}" placeholder="e.g. Your Company Ltd" onblur="SettingsFeature.setCompanyName(this.value)">
-            <div class="hint">Shown throughout the app in place of "Beelo". Leave blank to use the default Beelo branding.</div>
-          </div>
-        </div>
-
-        <div class="card mb-md" >
-          <div class="fw-600 mb-xs" >Business Base</div>
-          <div class="fs-12 text-secondary mb-12" >Where you normally start and return from. Used for route distance and ETA planning.</div>
-          <div class="form-group mb-0" >
-            <label>Home / Business Address</label>
-            <textarea class="textarea" id="set-business-address" placeholder="e.g. 12 Example Street, Manchester M14 7FZ" onblur="SettingsFeature.setBusinessAddress(this.value)">${Utils.escapeHtml(CONFIG.businessAddress || '')}</textarea>
-          </div>
-        </div>
-
-        <div class="card mb-md" >
-          <div class="flex items-center justify-between" >
-            <div>
-              <div class="fw-600" >Morning Brief</div>
-              <div class="fs-12 text-secondary mt-2" >7am UK time — but only if Beelo is open (or was recently) around then. Phones suspend background tabs/PWAs, so this won't reliably fire overnight; it's a bonus, not a real alarm.</div>
-            </div>
-            <button class="btn btn-sm ${briefEnabled ? 'btn-primary' : 'btn-outline'}" onclick="SettingsFeature.toggleMorningBrief()">
-              ${briefEnabled ? 'On' : 'Off'}
-            </button>
-          </div>
-        </div>
-
-        ${this.renderAICard()}
-
-        ${this.renderAutoMessagesCard()}
-
-        ${this.renderCommissionCard()}
-
-        <div class="card mb-md" >
-          <div class="fw-600 mb-12" >Advisor Mode</div>
-          <div class="segmented">
-            <button class="segment ${CONFIG.advisorMode === 'company' ? 'active' : ''}" onclick="SettingsFeature.setMode('company')">Company</button>
-            <button class="segment ${CONFIG.advisorMode === 'independent' ? 'active' : ''}" onclick="SettingsFeature.setMode('independent')">Independent</button>
-          </div>
-        </div>
-
-        <div class="form-group"><label>Trade</label>
-          <select class="select" onchange="SettingsFeature.setTrade(this.value)">
-            ${CONFIG.trades.map(t => `<option value="${t.id}" ${CONFIG.trade === t.id ? 'selected' : ''}>${t.name}</option>`).join('')}
-          </select>
-        </div>
-
-        <div class="card mb-md" >
-          <div class="fw-600 mb-12" >Units</div>
-          <div class="flex gap-md" >
-            <div class="flex-1" ><label class="fs-12 text-secondary" >Distance</label>
-              <div class="segmented mt-xs" >
-                <button class="segment ${CONFIG.distanceUnit === 'miles' ? 'active' : ''}" onclick="SettingsFeature.setDistanceUnit('miles')">mi</button>
-                <button class="segment ${CONFIG.distanceUnit === 'km' ? 'active' : ''}" onclick="SettingsFeature.setDistanceUnit('km')">km</button>
+        ${sections.map(s => `
+          <button class="card mb-md" onclick="App.navigate('settings?section=${s.id}')" style="text-align:left;">
+            <div class="flex items-start gap-md">
+              <span class="material-symbols-rounded fs-24 shrink-0" style="color:var(--accent);">${s.icon}</span>
+              <div class="flex-1 min-w-0">
+                <div class="fw-600">${s.title}</div>
+                <div class="fs-13 text-secondary mt-1">${s.description}</div>
+                <div class="fs-14 fw-500 mt-2" style="color:var(--text-primary);">${Utils.escapeHtml(s.summary)}</div>
               </div>
-              ${CONFIG.country === 'GB' ? '<div class="fs-11 text-tertiary mt-xs" >HMRC pays mileage relief in miles</div>' : ''}
+              <span class="material-symbols-rounded text-tertiary shrink-0">chevron_right</span>
             </div>
-            <div class="flex-1" ><label class="fs-12 text-secondary" >Measurement</label>
-              <div class="segmented mt-xs" >
-                <button class="segment ${CONFIG.measurementUnit === 'mm' ? 'active' : ''}" onclick="SettingsFeature.setMeasurementUnit('mm')">mm</button>
-                <button class="segment ${CONFIG.measurementUnit === 'cm' ? 'active' : ''}" onclick="SettingsFeature.setMeasurementUnit('cm')">cm</button>
-                <button class="segment ${CONFIG.measurementUnit === 'inches' ? 'active' : ''}" onclick="SettingsFeature.setMeasurementUnit('inches')">in</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="divider-text">Data</div>
-        ${this.renderStorageCard()}
-        <div class="flex flex-col gap-sm" >
-          <button class="btn btn-outline btn-sm" onclick="ExportService.exportBackup()"><span class="material-symbols-rounded">backup</span>Export Backup</button>
-          <button class="btn btn-outline btn-sm" onclick="SettingsFeature.importBackup()"><span class="material-symbols-rounded">restore</span>Import Backup</button>
-          <button class="btn btn-outline btn-sm" onclick="SettingsFeature.exportCSV()"><span class="material-symbols-rounded">download</span>Export to CSV</button>
-          <input type="file" id="import-file" accept=".json" style="display:none;" onchange="SettingsFeature.handleImport(event)">
-        </div>
-
-        <div class="flex flex-col gap-sm mt-sm" >
-          <button class="btn btn-outline btn-sm text-danger border-danger-soft"  onclick="SettingsFeature.confirmWipe()">
-            <span class="material-symbols-rounded">delete_forever</span>Start fresh — delete all data
           </button>
-        </div>
+        `).join('')}
 
+        <div class="divider-text mt-lg">About</div>
         <div class="mt-xl text-center text-tertiary fs-13" >
           <div>${CONFIG.companyName ? Utils.escapeHtml(CONFIG.companyName) + ' · ' : ''}Beelo v5.0</div>
           <div class="mt-xs" >Your day, visits, follow-ups, and money in one place.</div>
         </div>
       </div>
     </div>`;
+  },
+
+  renderDetail(section) {
+    const briefEnabled = NotificationService.isMorningBriefEnabled();
+
+    const detailScreens = {
+      'details': this.renderDetailsDetail(),
+      'branding': this.renderBrandingDetail(),
+      'business-base': this.renderBusinessBaseDetail(),
+      'morning-brief': this.renderMorningBriefDetail(briefEnabled),
+      'auto-messages': this.renderAutoMessagesDetail(),
+      'commission': this.renderCommissionDetail(),
+      'advisor-mode': this.renderAdvisorModeDetail(),
+      'trade': this.renderTradeDetail(),
+      'units': this.renderUnitsDetail(),
+      'ai': this.renderAIDetail(),
+      'data': this.renderDataDetail()
+    };
+
+    const content = detailScreens[section] || this.renderIndex();
+    const title = this.getSectionTitle(section);
+
+    return `<div class="fade-in">
+      ${App.renderTopHeader({ title, showBack: true, backHref: 'settings' })}
+      <div class="p-md" >${content}</div>
+    </div>`;
+  },
+
+  getSectionTitle(section) {
+    const titles = {
+      'details': 'Your Details',
+      'branding': 'Company Branding',
+      'business-base': 'Business Base',
+      'morning-brief': 'Morning Brief',
+      'auto-messages': 'Automated Messages',
+      'commission': 'Commission Rate',
+      'advisor-mode': 'Advisor Mode',
+      'trade': 'Trade',
+      'units': 'Units',
+      'ai': 'Claude AI',
+      'data': 'Data & Backup'
+    };
+    return titles[section] || 'Settings';
+  },
+
+  renderDetailsDetail() {
+    return `
+      <div class="card mb-md">
+        <div class="fw-600 mb-12">Your Details</div>
+        <div class="form-group">
+          <label>Name</label>
+          <input type="text" class="input" id="set-name" value="${Utils.escapeHtml(CONFIG.advisorName || '')}" placeholder="Your full name" onblur="SettingsFeature.setName(this.value)">
+        </div>
+        <div class="form-group">
+          <label>Weekly Earnings Target (£)</label>
+          <input type="number" class="input" inputmode="decimal" id="set-target" value="${CONFIG.weeklyTarget || 600}" step="10" min="0" onblur="SettingsFeature.setTarget(this.value)">
+          <div class="hint">What you want to take home this week. Everything else derives from this.</div>
+        </div>
+        <div class="form-group mb-0">
+          <label>Weekly Sales Target (derived)</label>
+          <input type="text" class="input op-75" id="set-sales-target" value="${Utils.formatCurrency(TaxCalculator.getRequiredWeeklySales(CONFIG.weeklyTarget)).replace('.00','')}" disabled>
+          <div class="hint">Sales needed to hit your earnings target at the current ${(TaxCalculator.getEffectiveCommissionRate() * 100).toFixed(1)}% effective commission rate. Change your commission structure below to update this automatically.</div>
+        </div>
+        <div class="form-group mb-0 mt-14">
+          <label>Minimum Hourly Value (&pound;)</label>
+          <input type="number" class="input" inputmode="decimal" id="set-min-hourly" value="${CONFIG.minHourlyRate || ''}" placeholder="${TaxCalculator.getMinHourlyRate().rate.toFixed(0)} (estimated)" step="1" min="0" onblur="SettingsFeature.setMinHourlyRate(this.value)">
+          <div class="hint">What your time is worth, at minimum. Only used by "Check my floor" on a visit after a price objection — leave blank to use a rough estimate from your weekly target.</div>
+        </div>
+      </div>`;
+  },
+
+  renderBrandingDetail() {
+    return `
+      <div class="card mb-md">
+        <div class="fw-600 mb-12">Company Branding</div>
+        <div class="form-group mb-0">
+          <label>Company Name</label>
+          <input type="text" class="input" id="set-company-name" value="${Utils.escapeHtml(CONFIG.companyName || '')}" placeholder="e.g. Your Company Ltd" onblur="SettingsFeature.setCompanyName(this.value)">
+          <div class="hint">Shown throughout the app in place of "Beelo". Leave blank to use the default Beelo branding.</div>
+        </div>
+      </div>`;
+  },
+
+  renderBusinessBaseDetail() {
+    return `
+      <div class="card mb-md">
+        <div class="fw-600 mb-xs">Business Base</div>
+        <div class="fs-12 text-secondary mb-12">Where you normally start and return from. Used for route distance and ETA planning.</div>
+        <div class="form-group mb-0">
+          <label>Home / Business Address</label>
+          <textarea class="textarea" id="set-business-address" placeholder="e.g. 12 Example Street, Manchester M14 7FZ" onblur="SettingsFeature.setBusinessAddress(this.value)">${Utils.escapeHtml(CONFIG.businessAddress || '')}</textarea>
+        </div>
+      </div>`;
+  },
+
+  renderMorningBriefDetail(briefEnabled) {
+    return `
+      <div class="card mb-md">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="fw-600">Morning Brief</div>
+            <div class="fs-12 text-secondary mt-2">7am UK time — but only if Beelo is open (or was recently) around then. Phones suspend background tabs/PWAs, so this won't reliably fire overnight; it's a bonus, not a real alarm.</div>
+          </div>
+          <button class="btn btn-sm ${briefEnabled ? 'btn-primary' : 'btn-outline'}" onclick="SettingsFeature.toggleMorningBrief()">
+            ${briefEnabled ? 'On' : 'Off'}
+          </button>
+        </div>
+      </div>`;
+  },
+
+  renderAutoMessagesDetail() {
+    const am = CONFIG.autoMessages || {};
+    const enabled = !!am.enabled;
+    return `
+      <div class="card mb-md">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="fw-600">Automated Messages</div>
+            <div class="fs-12 text-secondary mt-2">Drafts a message the evening before and morning of each visit (and an "on my way" draft when you start driving). Every draft opens the preview sheet for your review — nothing is ever sent on its own.</div>
+          </div>
+          <button class="btn btn-sm ${enabled ? 'btn-primary' : 'btn-outline'}" onclick="SettingsFeature.toggleAutoMessages()">
+            ${enabled ? 'On' : 'Off'}
+          </button>
+        </div>
+
+        ${enabled ? `
+        <div class="fs-12 text-tertiary mt-10 lh-150">Drafts wait in the preview sheet until you send them, so even a time you miss while the app is closed is waiting for you the next time you open it. These fire along the same lines as the Morning Brief — best treated as a prompt, not an alarm.</div>
+
+        <div class="form-group mt-10">
+          <label>Evening-before draft (day before the visit)</label>
+          <input type="time" class="input" id="set-msg-evening" value="${String(am.eveningHour ?? 18).padStart(2, '0')}:00" onchange="SettingsFeature.setAutoMessageHour('eveningHour', this.value)">
+        </div>
+        <div class="form-group mb-0">
+          <label>Morning-of draft (visit day)</label>
+          <input type="time" class="input" id="set-msg-morning" value="${String(am.morningHour ?? 8).padStart(2, '0')}:00" onchange="SettingsFeature.setAutoMessageHour('morningHour', this.value)">
+        </div>
+        ` : ''}
+      </div>`;
+  },
+
+  renderCommissionDetail() {
+    const commission = CONFIG.commission || {};
+    const mode = commission.mode || 'two_stage';
+    const example = 1000;
+    const previewCommission = TaxCalculator.estimateCommission(example);
+    const previewRate = example > 0 ? ((previewCommission / example) * 100).toFixed(1) : '0.0';
+
+    return `
+      <div class="card mb-md">
+        <div class="fw-600 mb-xs">Commission Rate</div>
+        <div class="fs-12 text-secondary mb-12">How commission is calculated from a sale's value.</div>
+
+        <div class="segmented mb-12">
+          <button class="segment ${mode === 'two_stage' ? 'active' : ''}" onclick="SettingsFeature.setCommissionMode('two_stage')">Sale reduction + net %</button>
+          <button class="segment ${mode === 'simple' ? 'active' : ''}" onclick="SettingsFeature.setCommissionMode('simple')">Simple %</button>
+        </div>
+
+        ${mode === 'two_stage' ? `
+          <div class="form-group">
+            <label>Step 1: Reduce sale value by (%)</label>
+            <input type="number" class="input" inputmode="decimal" id="set-commission-reduction" value="${commission.saleReductionRate ?? 20}" step="0.1" min="0" max="100" onblur="SettingsFeature.setSaleReductionRate(this.value)">
+            <div class="hint">e.g. 20 means the net figure is 80% of the sale value.</div>
+          </div>
+          <div class="form-group mb-0">
+            <label>Step 2: Commission on the net (%)</label>
+            <input type="number" class="input" inputmode="decimal" id="set-commission-net" value="${commission.netCommissionRate ?? 15.25}" step="0.01" min="0" max="100" onblur="SettingsFeature.setNetCommissionRate(this.value)">
+            <div class="hint">Applied to the net figure from Step 1.</div>
+          </div>
+        ` : `
+          <div class="form-group mb-0">
+            <label>Commission Rate (%)</label>
+            <input type="number" class="input" inputmode="decimal" id="set-commission-simple" value="${commission.simpleRate ?? 10}" step="0.1" min="0" max="100" onblur="SettingsFeature.setSimpleCommissionRate(this.value)">
+            <div class="hint">Applied directly to the full sale value.</div>
+          </div>
+        `}
+
+        <div class="inset-dark mt-12 dark-note fs-12 text-secondary">
+          Example: on a ${Utils.formatCurrency(example)} sale, commission is ${Utils.formatCurrency(previewCommission)} (${previewRate}% effective).
+        </div>
+      </div>`;
+  },
+
+  renderAdvisorModeDetail() {
+    return `
+      <div class="card mb-md">
+        <div class="fw-600 mb-12">Advisor Mode</div>
+        <div class="segmented">
+          <button class="segment ${CONFIG.advisorMode === 'company' ? 'active' : ''}" onclick="SettingsFeature.setMode('company')">Company</button>
+          <button class="segment ${CONFIG.advisorMode === 'independent' ? 'active' : ''}" onclick="SettingsFeature.setMode('independent')">Independent</button>
+        </div>
+      </div>`;
+  },
+
+  renderTradeDetail() {
+    return `
+      <div class="form-group"><label>Trade</label>
+        <select class="select" onchange="SettingsFeature.setTrade(this.value)">
+          ${CONFIG.trades.map(t => `<option value="${t.id}" ${CONFIG.trade === t.id ? 'selected' : ''}>${t.name}</option>`).join('')}
+        </select>
+      </div>`;
+  },
+
+  renderUnitsDetail() {
+    return `
+      <div class="card mb-md">
+        <div class="fw-600 mb-12">Units</div>
+        <div class="flex gap-md">
+          <div class="flex-1"><label class="fs-12 text-secondary">Distance</label>
+            <div class="segmented mt-xs">
+              <button class="segment ${CONFIG.distanceUnit === 'miles' ? 'active' : ''}" onclick="SettingsFeature.setDistanceUnit('miles')">mi</button>
+              <button class="segment ${CONFIG.distanceUnit === 'km' ? 'active' : ''}" onclick="SettingsFeature.setDistanceUnit('km')">km</button>
+            </div>
+            ${CONFIG.country === 'GB' ? '<div class="fs-11 text-tertiary mt-xs">HMRC pays mileage relief in miles</div>' : ''}
+          </div>
+          <div class="flex-1"><label class="fs-12 text-secondary">Measurement</label>
+            <div class="segmented mt-xs">
+              <button class="segment ${CONFIG.measurementUnit === 'mm' ? 'active' : ''}" onclick="SettingsFeature.setMeasurementUnit('mm')">mm</button>
+              <button class="segment ${CONFIG.measurementUnit === 'cm' ? 'active' : ''}" onclick="SettingsFeature.setMeasurementUnit('cm')">cm</button>
+              <button class="segment ${CONFIG.measurementUnit === 'inches' ? 'active' : ''}" onclick="SettingsFeature.setMeasurementUnit('inches')">in</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  },
+
+  renderAIDetail() {
+    const ai = CONFIG.ai || {};
+    const usage = AIService.lastUsage;
+    const usageLine = usage
+      ? `Last call: ${usage.type === 'ocr' ? 'OCR' : 'draft'} · ${(usage.input_tokens || 0).toLocaleString()}/${(usage.output_tokens || 0).toLocaleString()} tokens · ${Utils.formatCurrency(usage.cost ?? 0)}`
+      : 'No AI calls yet.';
+
+    return `
+      <div class="card mb-md">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="fw-600">Claude AI</div>
+            <div class="fs-12 text-secondary mt-2">Reads scanned documents (Scan screen) and drafts customer messages (Talk screen).</div>
+          </div>
+          <button class="btn btn-sm ${ai.enabled ? 'btn-primary' : 'btn-outline'}" onclick="SettingsFeature.toggleAI()">
+            ${ai.enabled ? 'On' : 'Off'}
+          </button>
+        </div>
+
+        <div class="fs-12 text-tertiary mt-10 lh-150">Works through your own serverless function (Vercel), which holds the API key — it never ships inside this app. Deploy <code class="fs-11">api/claude.mjs</code> (Vercel) with your <code class="fs-11">ANTHROPIC_API_KEY</code> environment variable, then paste the function URL below.</div>
+
+        <div class="form-group mt-10">
+          <label>Proxy URL</label>
+          <input type="text" class="input" id="set-ai-url" value="${Utils.escapeHtml(ai.proxyUrl || '')}" placeholder="https://your-site.vercel.app/api/claude" onblur="SettingsFeature.setAIUrl(this.value)">
+        </div>
+        <div class="form-group">
+          <label>Shared Secret (optional)</label>
+          <input type="password" class="input" id="set-ai-secret" value="" placeholder="${ai.secret ? 'Saved — leave blank to keep it' : 'Only if your proxy requires X-AI-Key'}" onblur="SettingsFeature.setAISecret(this.value)">
+        </div>
+        <div class="form-group">
+          <label>OCR model (document reading)</label>
+          <select class="select" id="set-ai-ocr-model" onchange="SettingsFeature.setAIModel('ocrModel', this.value)">
+            <option value="claude-sonnet-4-5" ${ai.ocrModel === 'claude-sonnet-4-5' ? 'selected' : ''}>Claude Sonnet 4.5 — best accuracy</option>
+            <option value="claude-3-7-sonnet-latest" ${ai.ocrModel === 'claude-3-7-sonnet-latest' ? 'selected' : ''}>Claude Sonnet 3.7</option>
+            <option value="claude-haiku-4-5" ${ai.ocrModel === 'claude-haiku-4-5' ? 'selected' : ''}>Claude Haiku 4.5 — fastest/cheapest</option>
+          </select>
+        </div>
+        <div class="form-group mb-0">
+          <label>Draft model (message writing)</label>
+          <select class="select" id="set-ai-draft-model" onchange="SettingsFeature.setAIModel('draftModel', this.value)">
+            <option value="claude-haiku-4-5" ${ai.draftModel === 'claude-haiku-4-5' ? 'selected' : ''}>Claude Haiku 4.5 — fast & cheap</option>
+            <option value="claude-sonnet-4-5" ${ai.draftModel === 'claude-sonnet-4-5' ? 'selected' : ''}>Claude Sonnet 4.5 — higher quality</option>
+            <option value="claude-3-5-haiku-latest" ${ai.draftModel === 'claude-3-5-haiku-latest' ? 'selected' : ''}>Claude Haiku 3.5</option>
+          </select>
+        </div>
+
+        <div class="inset-dark mt-12 dark-note fs-12 text-secondary">${Utils.escapeHtml(usageLine)}</div>
+        <button class="btn btn-outline btn-sm btn-block mt-10" onclick="SettingsFeature.testAI()"><span class="material-symbols-rounded fs-16">bolt</span>Test connection</button>
+      </div>`;
+  },
+
+  renderDataDetail() {
+    return `
+      ${this.renderStorageCard()}
+      <div class="flex flex-col gap-sm">
+        <button class="btn btn-outline btn-sm" onclick="ExportService.exportBackup()"><span class="material-symbols-rounded">backup</span>Export Backup</button>
+        <button class="btn btn-outline btn-sm" onclick="SettingsFeature.importBackup()"><span class="material-symbols-rounded">restore</span>Import Backup</button>
+        <button class="btn btn-outline btn-sm" onclick="SettingsFeature.exportCSV()"><span class="material-symbols-rounded">download</span>Export to CSV</button>
+        <input type="file" id="import-file" accept=".json" style="display:none;" onchange="SettingsFeature.handleImport(event)">
+      </div>
+
+      <div class="flex flex-col gap-sm mt-sm">
+        <button class="btn btn-outline btn-sm text-danger border-danger-soft" onclick="SettingsFeature.confirmWipe()">
+          <span class="material-symbols-rounded">delete_forever</span>Start fresh — delete all data
+        </button>
+      </div>`;
   },
 
   renderStorageCard() {
