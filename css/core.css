@@ -4,13 +4,11 @@
 
 /* CSS Variables */
 :root {
-  /* Colors — dark olive canvas with cream cards and a lime accent,
-     inspired by the Conneq CRM reference. --primary/--secondary/--warning/
-     --danger keep their original semantic roles (buttons, badges, status)
-     but are retuned to sit well against light cream cards. */
-  --primary: #23261c;
-  --primary-dark: #14160f;
-  --primary-light: #e9edda;
+  /* Colors — Manchester Ink foundation, Beelo Gold identity, Paper surface.
+     --secondary/--warning/--danger/--info keep semantic roles only. */
+  --primary: #1B1B18;
+  --primary-dark: #11110F;
+  --primary-light: #E8E0D0;
   --secondary: #4f6a2f;
   --secondary-light: #e6f0d8;
   --warning: #8d5d0f;
@@ -19,27 +17,26 @@
   --danger-light: #f3dfdc;
   --info: #4a5d68;
 
-  /* Lime accent — the "today" / highlight colour from the reference (used for
-     selected calendar day, active nav, primary highlight moments). */
-  --accent: #d7f24e;
-  --accent-contrast: #20250f;
+  /* Beelo Gold — from Beelo avatar (comp-bee: #FDB913). Brand, primary CTA,
+     active nav, important progress, selected states. */
+  --accent: #FDB913;
+  --accent-contrast: #1B1B18;
 
-  /* Neutrals — page canvas is dark olive-black; cards are cream. */
-  --bg: #14170f;
-  --bg-elevated: #1b1f13;
-  --surface: #f4f2e6;
-  --surface-elevated: #ffffff;
-  --surface-muted: #aab29a;
-  --border: #4b4740;
-  --border-light: rgba(75, 71, 64, 0.22);
+  /* Neutrals — Manchester Ink canvas; warm Paper cards. */
+  --bg: #1B1B18;
+  --bg-elevated: #22221E;
+  --surface: #F3EEDF;
+  --surface-elevated: #FFFDF7;
+  --surface-muted: #B8B2A3;
+  --border: #5C574D;
+  --border-light: rgba(92, 87, 77, 0.22);
 
-  /* Default text tokens — for content sitting directly on the dark --bg
-     canvas (page titles, section labels between cards). Anything inside a
-     card/header/nav/input/modal/sheet gets re-scoped to dark text below. */
-  --text-primary: #f5f4ea;
-  --text-secondary: #c3c9ae;
-  --text-tertiary: #838a6c;
-  --text-inverse: #ffffff;
+  /* Default text tokens — warm white on dark canvas. Inside cards/surfaces
+     get re-scoped to dark ink via surface text scoping rule below. */
+  --text-primary: #F5F0E8;
+  --text-secondary: #C7C1B0;
+  --text-tertiary: #8E8878;
+  --text-inverse: #FFFFFF;
 
   /* Shadows */
   --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.22);
@@ -72,14 +69,14 @@
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #14170f;
-    --surface: #f4f2e6;
-    --surface-elevated: #ffffff;
-    --border: #4b4740;
-    --border-light: rgba(75, 71, 64, 0.22);
-    --text-primary: #f5f4ea;
-    --text-secondary: #c3c9ae;
-    --text-tertiary: #838a6c;
+    --bg: #1B1B18;
+    --surface: #F3EEDF;
+    --surface-elevated: #FFFDF7;
+    --border: #5C574D;
+    --border-light: rgba(92, 87, 77, 0.22);
+    --text-primary: #F5F0E8;
+    --text-secondary: #C7C1B0;
+    --text-tertiary: #8E8878;
   }
 }
 
@@ -131,9 +128,9 @@
 .hsc-stat,
 .hsc-empty,
 .hsc-appt-row {
-  --text-primary: #1c1f16;
-  --text-secondary: #5c6152;
-  --text-tertiary: #6a6457;
+  --text-primary: #1B1B18;
+  --text-secondary: #5C574D;
+  --text-tertiary: #7D7665;
   /* Elements below that don't set their own `color` inherit the RESOLVED
      value of `color`, not a live re-evaluation of --text-primary. Setting
      `color` explicitly here (not just the custom property) is what makes
@@ -147,9 +144,9 @@
    its content is made of .card / .form-group blocks, so give it the light
    (on-dark) text tokens back rather than the generic override above. */
 .modal-full .modal-body {
-  --text-primary: #f5f4ea;
-  --text-secondary: #c3c9ae;
-  --text-tertiary: #838a6c;
+  --text-primary: #F5F0E8;
+  --text-secondary: #C7C1B0;
+  --text-tertiary: #8E8878;
   color: var(--text-primary);
 }
 
@@ -160,9 +157,9 @@
    correctly resolve to the light-on-dark tokens instead of inheriting the
    card's dark-on-cream tokens. */
 .inset-dark {
-  --text-primary: #f5f4ea;
-  --text-secondary: #c3c9ae;
-  --text-tertiary: #838a6c;
+  --text-primary: #F5F0E8;
+  --text-secondary: #C7C1B0;
+  --text-tertiary: #8E8878;
   color: var(--text-primary);
 }
 
@@ -587,7 +584,7 @@ button:not(:disabled):active,
   }
 
   body {
-    background: #0c0e08;
+    background: #0F0F0A;
   }
 }
 
