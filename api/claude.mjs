@@ -69,6 +69,11 @@ const RATE_LIMIT_MAX_DEFAULT = 120;
 const RATE_LIMIT_WINDOW_MS_DEFAULT = 60_000;
 const rateBuckets = new Map();
 
+// Upstream calls that hang (provider outage, dead connection) must not pin
+// the proxy open forever: each call gets this budget, then aborts. Env-tunable
+// so tests can shorten it.
+const ANTHROPIC_TIMEOUT_MS_DEFAULT = 60_000;
+
 // Generic client-facing messages for upstream failures: the provider's own
 // error text can contain internal details, so it never crosses the wire.
 const UPSTREAM_MESSAGES = {
@@ -76,10 +81,19 @@ const UPSTREAM_MESSAGES = {
   rate_limited: 'AI provider is rate-limiting requests — try again shortly',
   overloaded: 'AI provider is overloaded — try again shortly',
   upstream: 'AI provider returned an error — try again shortly',
+  timeout: 'AI provider took too long to respond — try again shortly',
   proxy: 'AI request failed — try again shortly'
 };
 function upstreamMessage(code) {
   return UPSTREAM_MESSAGES[code] || UPSTREAM_MESSAGES.proxy;
+}
+
+// Upstream failures are mapped to the client as generic, non-leaking JSON.
+// Timeouts get their own status so callers can distinguish "slow provider"
+// from "provider error".
+function upstreamErrorResponse(err, origin) {
+  const code = err?.code || 'proxy';
+  return json(code === 'timeout' ? 504 : 502, { ok: false, error: code, message: upstreamMessage(code) }, corsHeaders(origin));
 }
 
 // The OCR prompt is generated per request so the model knows today's real
@@ -344,20 +358,36 @@ function productionConfigError() {
 }
 
 async function callAnthropic(model, system, userContent) {
-  const res = await fetch(ANTHROPIC_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-api-key': process.env.ANTHROPIC_API_KEY || '',
-      'anthropic-version': '2023-06-01'
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: model.startsWith('claude-sonnet') ? 2000 : 800,
-      system,
-      messages: [{ role: 'user', content: userContent }]
-    })
-  });
+  const timeoutMs = parseInt(process.env.ANTHROPIC_TIMEOUT_MS || String(ANTHROPIC_TIMEOUT_MS_DEFAULT), 10) || ANTHROPIC_TIMEOUT_MS_DEFAULT;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let res;
+  try {
+    res = await fetch(ANTHROPIC_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: model.startsWith('claude-sonnet') ? 2000 : 800,
+        system,
+        messages: [{ role: 'user', content: userContent }]
+      }),
+      signal: controller.signal
+    });
+  } catch (err) {
+    // Aborts map to the client as a distinct "timeout" error; network-level
+    // failures stay "proxy". Provider internals are never forwarded either way.
+    if (err && err.name === 'AbortError') {
+      throw Object.assign(new Error('timeout'), { code: 'timeout' });
+    }
+    throw Object.assign(new Error('proxy'), { code: 'proxy' });
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!res.ok) {
     // Only the status code is mapped — the provider's error text may hold
@@ -444,7 +474,7 @@ export async function handle(request) {
       const { text, usage } = await callAnthropic('claude-haiku-4-5', SYSTEM_PROMPTS.ping, [{ type: 'text', text: 'ping' }]);
       return json(200, { ok: true, text, usage: enrichUsage(usage, 'claude-haiku-4-5'), model: 'claude-haiku-4-5', type }, corsHeaders(origin));
     } catch (err) {
-      return json(502, { ok: false, error: err.code || 'proxy', message: upstreamMessage(err.code || 'proxy') }, corsHeaders(origin));
+      return upstreamErrorResponse(err, origin);
     }
   }
 
@@ -519,7 +549,7 @@ export async function handle(request) {
     const { text, usage } = await callAnthropic(model, system, userContent);
     return json(200, { ok: true, text, usage: enrichUsage(usage, model), model, type }, corsHeaders(origin));
   } catch (err) {
-    return json(502, { ok: false, error: err.code || 'proxy', message: upstreamMessage(err.code || 'proxy') }, corsHeaders(origin));
+    return upstreamErrorResponse(err, origin);
   }
 }
 

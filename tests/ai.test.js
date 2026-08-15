@@ -305,6 +305,20 @@ async function proxyTests() {
   ok('proxy: rate limit 429 body + retry-after header', rlBlocked !== null && JSON.parse(rlBlocked.body).error === 'rate_limited' && rlBlocked.headers['retry-after'] !== undefined, rlBlocked);
   r = await req('POST', {}, { type: 'ping' });
   ok('proxy: rate limit is per client address', r.status === 200, r.status);
+
+  // Upstream timeout: a hung provider call must abort (env-tunable budget)
+  // and map to a generic 504, not hang the request forever.
+  stubbedAnthropic = () => anthropicOk('pong');
+  const savedTmo = process.env.ANTHROPIC_TIMEOUT_MS;
+  process.env.ANTHROPIC_TIMEOUT_MS = '300';
+  stubbedAnthropic = opts => new Promise((_, reject) => {
+    opts.signal.addEventListener('abort', () => reject(Object.assign(new Error('Aborted'), { name: 'AbortError' })));
+  });
+  r = await req('POST', {}, { type: 'ping' });
+  if (savedTmo === undefined) delete process.env.ANTHROPIC_TIMEOUT_MS; else process.env.ANTHROPIC_TIMEOUT_MS = savedTmo;
+  const tmoBody = JSON.parse(r.body);
+  ok('proxy: hung upstream aborts -> 504 timeout', r.status === 504 && tmoBody.error === 'timeout', r);
+  ok('proxy: timeout message is generic, no internals leaked', tmoBody.message.includes('too long') && !String(tmoBody.message).includes('AbortError'), tmoBody);
 }
 
 // ---------- client tests ----------
