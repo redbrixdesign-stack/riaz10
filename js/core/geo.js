@@ -7,6 +7,20 @@ const Geo = {
   currentPosition: null,
   watchId: null,
 
+  // Safe JSON.parse wrapper with debugging for corrupted stored data
+  safeJSONParse(str, key) {
+    if (!str) return null;
+    try {
+      return JSON.parse(str);
+    } catch (e) {
+      const preview = str.slice(0, 500);
+      console.error(`JSON.parse failed for localStorage key "${key}":`, e.message);
+      console.error(`Corrupted value preview: ${preview}`);
+      try { localStorage.removeItem(key); } catch (err) {}
+      throw e;
+    }
+  },
+
   // ---- Live trip tracking ----
   // activeTrip: { id, startTime, startLocation, destinationAddress, destination:{lat,lng}|null,
   //               appointmentId, distanceKm, path:[{lat,lng}], lastPos:{lat,lng} }
@@ -261,7 +275,7 @@ const Geo = {
     try {
       const raw = localStorage.getItem('advisoros_active_trip');
       if (!raw) return;
-      const trip = JSON.parse(raw);
+      const trip = safeJSONParse(raw, 'advisoros_active_trip');
       if (!trip) return;
       this.activeTrip = trip;
       this.watchId = navigator.geolocation.watchPosition(

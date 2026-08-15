@@ -74,17 +74,28 @@ class PublicGeoProvider extends GeoProvider {
     this._backoffUntil = 0;
     this._consecutiveErrors = 0;
     this._maxRetries = 2;
-    // A hung public-API request (OSRM/Nominatim can stall or be blocked)
-    // must not pin the app's route/trip flows forever — the caller falls
-    // back to the local estimate the moment this budget expires.
     this._fetchTimeoutMs = opts.fetchTimeoutMs || 8000;
     this._geocodeCache = this._loadGeocodeCache();
+  }
+
+  // Safe JSON.parse wrapper with debugging for corrupted stored data
+  safeJSONParse(str, key) {
+    if (!str) return null;
+    try {
+      return JSON.parse(str);
+    } catch (e) {
+      const preview = str.slice(0, 500);
+      console.error(`JSON.parse failed for localStorage key "${key}":`, e.message);
+      console.error(`Corrupted value preview: ${preview}`);
+      try { localStorage.removeItem(key); } catch (err) {}
+      throw e;
+    }
   }
 
   _loadGeocodeCache() {
     try {
       const raw = localStorage.getItem('advisoros_geocode_v1');
-      const parsed = raw ? JSON.parse(raw) : null;
+      const parsed = raw ? this.safeJSONParse(raw, 'advisoros_geocode_v1') : null;
       return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
     } catch (e) {
       return {};

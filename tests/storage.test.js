@@ -56,7 +56,19 @@ function baseSandbox(extra) {
     isNaN, isFinite, setTimeout, clearTimeout,
     App: { calculateDeposit: total => ({ amount: Math.round(total * 0.2) }) },
     TaxCalculator: { estimateCommission: value => Math.round(value * 0.1) },
-    window: {}
+    window: {},
+    // Safe JSON.parse wrapper for corrupted stored data
+    safeJSONParse(str, key) {
+      if (!str) return null;
+      try {
+        return JSON.parse(str);
+      } catch (e) {
+        const preview = str.slice(0, 500);
+        console.error(`JSON.parse failed for localStorage key "${key}":`, e.message);
+        console.error(`Corrupted value preview: ${preview}`);
+        throw e;
+      }
+    }
   };
   sandbox.globalThis = sandbox;
   sandbox.self = sandbox;

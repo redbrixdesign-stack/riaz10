@@ -46,6 +46,10 @@ const CompanionFeature = {
     return (CONFIG.companion && CONFIG.companion.aiPreferenceKey) || 'advisoros_companion_ai';
   },
 
+  render() {
+    return `<div id="companion-root" class="comp-page"></div>`;
+  },
+
   /* ---------- lifecycle (called by TodayFeature) ---------- */
 
   mount(containerId) {

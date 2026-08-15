@@ -574,6 +574,108 @@ button:not(:disabled):active,
 }
 
 /* ============================================
+   RESTRAINED MOTION — Phase 4
+   Subtle, purposeful animations that respect
+   prefers-reduced-motion
+   ============================================ */
+
+/* Card entry — gentle fade + slight rise (150–200ms, 4–8px) */
+@keyframes card-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.card-enter {
+  animation: card-enter 180ms ease-out forwards;
+}
+
+/* Staggered card entrance for lists (applied via JS if needed) */
+.card-enter-stagger:nth-child(1) { animation-delay: 0ms; }
+.card-enter-stagger:nth-child(2) { animation-delay: 30ms; }
+.card-enter-stagger:nth-child(3) { animation-delay: 60ms; }
+.card-enter-stagger:nth-child(4) { animation-delay: 90ms; }
+.card-enter-stagger:nth-child(5) { animation-delay: 120ms; }
+.card-enter-stagger:nth-child(6) { animation-delay: 150ms; }
+.card-enter-stagger:nth-child(7) { animation-delay: 180ms; }
+.card-enter-stagger:nth-child(8) { animation-delay: 210ms; }
+
+/* Bottom nav active indicator — smooth transition (~150ms) */
+.nav-item {
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.nav-item .material-symbols-rounded {
+  transition: font-variation-settings 0.15s ease, transform 0.15s ease;
+}
+
+.nav-item.active .material-symbols-rounded {
+  transform: scale(1.05);
+}
+
+.nav-item.active::before {
+  transition: width 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
+}
+
+/* Beelo avatar idle animation — subtle pulse (3–4s cycle, <3% scale) */
+@keyframes beelo-idle {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+.beelo-avatar,
+.comp-avatar-lg {
+  animation: beelo-idle 3.5s ease-in-out infinite;
+}
+
+/* Pause avatar animation on interaction */
+.beelo-avatar:hover,
+.beelo-avatar:focus,
+.beelo-avatar:active,
+.comp-avatar-lg:hover,
+.comp-avatar-lg:focus,
+.comp-avatar-lg:active {
+  animation-play-state: paused;
+}
+
+/* Companion small avatar — no idle animation (too small) */
+
+/* ============================================
+   ACCESSIBILITY — prefers-reduced-motion
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .card-enter,
+  .card-enter-stagger,
+  .fade-in,
+  .slide-up,
+  .nav-item .material-symbols-rounded,
+  .nav-item.active::before,
+  .beelo-avatar,
+  .comp-avatar-lg,
+  .skeleton {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Keep functional state changes */
+  .nav-item.active {
+    color: var(--accent-contrast);
+  }
+  .nav-item.active .material-symbols-rounded {
+    font-variation-settings: 'wght' 600;
+    transform: none;
+  }
+  .nav-item.active::before {
+    opacity: 1;
+    width: 26px;
+  }
+  .beelo-avatar,
+  .comp-avatar-lg {
+    transform: none;
+  }
+}
+
+/* ============================================
    RESPONSIVE
    ============================================ */
 

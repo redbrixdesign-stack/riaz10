@@ -11,6 +11,20 @@ const BACKUP_TABLES = ['customers', 'appointments', 'orders', 'expenses', 'trips
 const DB = {
   db: null,
 
+  // Safe JSON.parse wrapper with debugging for corrupted stored data
+  safeJSONParse(str, key) {
+    if (!str) return null;
+    try {
+      return JSON.parse(str);
+    } catch (e) {
+      const preview = str.slice(0, 500);
+      console.error(`JSON.parse failed for localStorage key "${key}":`, e.message);
+      console.error(`Corrupted value preview: ${preview}`);
+      try { localStorage.removeItem(key); } catch (err) {}
+      throw e;
+    }
+  },
+
   async init() {
     // 'advisoros_v6' (NOT 'advisoros_v5'): the old storage engine (the
     // bundled mini-Dexie shim) created its IndexedDB stores without any
@@ -208,7 +222,7 @@ const DB = {
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (!key || !key.startsWith('advisoros:') || !key.endsWith(':' + table)) continue;
-        const parsed = JSON.parse(localStorage.getItem(key));
+        const parsed = safeJSONParse(localStorage.getItem(key), key);
         if (parsed && Array.isArray(parsed.rows) && parsed.rows.length) {
           return parsed.rows;
         }

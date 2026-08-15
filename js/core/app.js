@@ -31,6 +31,22 @@ const App = {
   },
 
   // Initialize
+  // Safe JSON.parse wrapper with debugging for corrupted stored data
+  safeJSONParse(str, key) {
+    if (!str) return null;
+    try {
+      return JSON.parse(str);
+    } catch (e) {
+      // Log the corrupted value for debugging (truncated for safety)
+      const preview = str.slice(0, 500);
+      console.error(`JSON.parse failed for localStorage key "${key}":`, e.message);
+      console.error(`Corrupted value preview: ${preview}`);
+      // Remove corrupted value to prevent repeated failures
+      try { localStorage.removeItem(key); } catch (err) {}
+      throw e;
+    }
+  },
+
   async init() {
     console.log('AdvisorOS v5.0 initializing...');
 
@@ -48,7 +64,7 @@ const App = {
     let parsedSavedConfig = null;
     if (savedConfig) {
       try {
-        parsedSavedConfig = JSON.parse(savedConfig);
+        parsedSavedConfig = safeJSONParse(savedConfig, 'advisoros_config');
         Object.assign(CONFIG, parsedSavedConfig);
       } catch (e) {
         console.warn('Failed to load saved config');
@@ -463,7 +479,7 @@ const App = {
           message: (err && (err.message || String(err))) || 'Unknown error',
           stack: err && err.stack ? String(err.stack).split('\n').slice(0, 6).join(' | ') : ''
         };
-        const prev = JSON.parse(localStorage.getItem('advisoros_error_log') || '[]');
+        const prev = this.safeJSONParse(localStorage.getItem('advisoros_error_log') || '[]', 'advisoros_error_log') || [];
         prev.push(entry);
         localStorage.setItem('advisoros_error_log', JSON.stringify(prev.slice(-50)));
       } catch (e) { /* storage unavailable — nothing more to do */ }
