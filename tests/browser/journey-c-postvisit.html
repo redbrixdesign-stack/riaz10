@@ -1,154 +1,152 @@
 <!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>journey-c-postvisit</title></head>
-<body>
-<script src="../../js/vendor/dexie.min.js"></script>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Journey C — Post-Visit</title>
 <script>
-/* ============================================
-   JOURNEY C — POST-VISIT
-   Outcome: Ordered / Quoted / Think / Comparing / etc.
-   → next action
-   → Follow-up generated
-   → appropriate communication available
-   ============================================ */
-
-// Inlined from js/features/talk/talk.js - OUTCOME_TEMPLATE_MAP
-const OUTCOME_TEMPLATE_MAP = {
-  ordered: { template: 'outcome_ordered', action: 'Confirm order placed', minDays: 0, priority: 'normal' },
-  quoted: { template: 'follow_up.quote', action: 'Follow up on quote', minDays: 3, priority: 'normal' },
-  thinking: { template: 'follow_up.gentle', action: 'Gentle follow-up', minDays: 5, priority: 'high' },
-  partner: { template: 'follow_up.partner', action: 'Offer joint visit', minDays: 2, priority: 'normal' },
-  compare_quotes: { template: 'follow_up.compare', action: 'Help compare quotes', minDays: 2, priority: 'normal' },
-  expensive: { template: 'follow_up.discount', action: 'Consider controlled discount', minDays: 3, priority: 'normal' },
-  spec_mismatch: { template: 'follow_up.spec', action: 'Adjust specification', minDays: 2, priority: 'normal' },
-  customer_no_show: { template: 'follow_up.rebook', action: 'Rebook missed visit', minDays: 1, priority: 'normal' },
-  advisor_unavailable: { template: 'follow_up.apology', action: 'Apologise and rebook', minDays: 0, priority: 'high' }
-};
-
-const SERVICE_OUTCOMES = {
-  fitting: ['spec_mismatch', 'missing_parts', 'access_issue', 'issues', 'revisit'],
-  service_call: ['parts_needed', 'revisit_needed', 'access_issue']
-};
-
-(async () => {
+  // Boot the REAL production app scripts below (same set as index.html),
+  // but block App.init()'s DOMContentLoaded listener so nothing tries to
+  // render the app shell in this test page.
+  document.addEventListener('DOMContentLoaded', e => e.stopImmediatePropagation(), { capture: true, once: true });
+</script>
+<script src="../../js/vendor/dexie.min.js?v=1" defer></script>
+<script src="../../js/vendor/minidexie.min.js?v=12" defer></script>
+<script src="../../js/core/config.min.js?v=10" defer></script>
+<script src="../../js/core/utils.min.js?v=6" defer></script>
+<script src="../../js/core/db.min.js?v=15" defer></script>
+<script src="../../js/core/geoprovider.min.js?v=1" defer></script>
+<script src="../../js/core/geo.min.js?v=6" defer></script>
+<script src="../../js/core/search.min.js?v=2" defer></script>
+<script src="../../js/core/tax.min.js?v=2" defer></script>
+<script src="../../js/core/app.min.js?v=8" defer></script>
+<script src="../../js/core/contact.min.js?v=3" defer></script>
+<script src="../../js/services/ai.min.js?v=7" defer></script>
+<script src="../../js/services/notification.min.js?v=5" defer></script>
+<script src="../../js/services/message-scheduler.min.js?v=3" defer></script>
+<script src="../../js/services/export.min.js?v=3" defer></script>
+<script src="../../js/services/weather.min.js?v=3" defer></script>
+<script src="../../js/features/onboarding/onboarding.min.js?v=6" defer></script>
+<script src="../../js/features/companion/companion.min.js?v=2" defer></script>
+<script src="../../js/features/today/today.min.js?v=17" defer></script>
+<script src="../../js/features/today/home-screen-controller.min.js?v=10" defer></script>
+<script src="../../js/features/appointments/appointments.min.js?v=23" defer></script>
+<script src="../../js/features/customer/customer.min.js?v=3" defer></script>
+<script src="../../js/features/route/route.min.js?v=9" defer></script>
+<script src="../../js/features/followups/followups.min.js?v=5" defer></script>
+<script src="../../js/features/orders/orders.min.js?v=5" defer></script>
+<script src="../../js/features/money/money.min.js?v=7" defer></script>
+<script src="../../js/features/talk/talk.min.js?v=14" defer></script>
+<script src="../../js/features/measure/measure.min.js?v=6" defer></script>
+<script src="../../js/features/ocr/ocr.min.js?v=17" defer></script>
+<script src="../../js/features/control/control.min.js?v=5" defer></script>
+<script src="../../js/features/settings/settings.min.js?v=11" defer></script>
+</head>
+<body>
+<div id="main"></div>
+<script>
+window.addEventListener("load", async () => {
   const results = [];
-  const step = (label, cond, extra) => results.push({ label, pass: !!cond, extra: extra || null });
+  try {
+  const step = (label, pass, extra) => results.push({ label, pass, extra });
 
-  const db = new Dexie('advisoros_v6');
-  db.version(1).stores({
-    customers: '++id, customerNumber, firstName, lastName, phone, email, postcodeNormalized, source, status, createdAt',
-    appointments: '++id, customerId, date, type, status, outcome, source, createdAt',
-    orders: '++id, customerId, appointmentId, orderNumber, supplierOrderNumber, status, createdAt',
-    expenses: '++id, date, category, amount, tripId, createdAt',
-    trips: '++id, date, appointmentId, purpose, confirmed, createdAt',
-    measurements: '++id, appointmentId, windowName, createdAt',
-    communications: '++id, customerId, type, template, sentAt',
-    settings: 'key',
-    sequences: 'name'
-  });
-  await db.open();
+  await DB.init();
+  await DB.deleteAllData();
 
-  // Clear any existing data for test isolation
-  await db.transaction('rw', db.tables, async () => {
-    for (const table of db.tables) await table.clear();
-  });
+  const at = (d, h) => { const dt = new Date(d); dt.setHours(h, 0, 0, 0); return dt.toISOString(); };
 
-  const iso = d => d.toISOString();
-  const today = new Date();
-  today.setHours(16, 0, 0, 0); // 4pm - visit just finished
+  const customer = await DB.addCustomer({ firstName: 'John', lastName: 'Smith', fullName: 'John Smith', phone: '07123456789' });
 
-  // Helper to test one outcome
-  async function testOutcome(name, outcome, expectedTemplate, expectedAction, expectedFollowUpKind) {
-    const cid = await db.customers.add({
-      firstName: 'Test', lastName: name, phone: '07700 900123',
-      customerNumber: 'CUS-' + today.getFullYear() + '-' + String(Math.floor(Math.random()*1000)).padStart(3,'0'),
-      status: 'active', createdAt: iso(new Date(today.getTime() - 10 * 86400000))
+  // One 6-day-old completed visit per production outcome (9 in total).
+  const outcomes = Object.keys(TalkFeature.OUTCOME_TEMPLATE_MAP);
+  const sixDaysAgo = Utils.addDays(Utils.getToday(), -6);
+  const seeded = {};
+  for (const o of outcomes) {
+    seeded[o] = await DB.addAppointment({
+      customerId: customer.id, clientName: 'John', type: 'consultation',
+      date: at(sixDaysAgo, 10), status: 'completed', outcome: o, value: 800
     });
-
-    const appt = await db.appointments.add({
-      customerId: cid, date: iso(new Date(today.getTime() - 2 * 3600000)), // 2 hours ago
-      type: 'consultation', status: 'completed', outcome,
-      value: outcome === 'ordered' ? 1500 : 800,
-      address: 'Test Address', source: 'manual', createdAt: iso(new Date(today.getTime() - 1 * 86400000))
-    });
-
-    // Get follow-up task from FollowupsFeature logic
-    const match = OUTCOME_TEMPLATE_MAP[outcome];
-    step(`POST-VISIT ${name}: Template map has outcome`, !!match, { outcome, template: match?.template });
-    if (!match) return;
-
-    // Simulate FollowupsFeature.loadTasks() logic
-    const daysSince = Math.floor((today.getTime() - new Date(appt).getTime()) / 86400000);
-    const due = daysSince >= match.minDays;
-    step(`POST-VISIT ${name}: Follow-up due (${daysSince}d >= ${match.minDays}d)`, due);
-
-    if (due) {
-      step(`POST-VISIT ${name}: Correct template`, match.template === expectedTemplate);
-      step(`POST-VISIT ${name}: Correct action`, match.action === expectedAction);
-      // For ordered: template is 'outcome_ordered', follow-up kind is post_fit
-      // For others: template starts with 'follow_up', kind is quote/service
-      const kindMatches = expectedFollowUpKind === 'post_fit'
-        ? match.template === 'outcome_ordered'
-        : match.template.startsWith('follow_up');
-      step(`POST-VISIT ${name}: Follow-up kind matches`, kindMatches);
-    }
-
-    // If ordered, order should be created
-    if (outcome === 'ordered') {
-      await db.orders.add({
-        customerId: cid, appointmentId: appt, orderNumber: 'ORD-2026-' + String(Math.floor(Math.random()*1000)).padStart(3,'0'),
-        supplierOrderNumber: '', status: 'active', total: 1500,
-        depositRequired: 750, depositPaid: 0, balanceDue: 1500,
-        stage: 'ordered', createdAt: iso(today)
-      });
-      const orders = await db.orders.toArray();
-      const myOrder = orders.find(o => o.appointmentId === appt);
-      step(`POST-VISIT ${name}: Order created for ordered outcome`, !!myOrder);
-      step(`POST-VISIT ${name}: Balance due on order`, myOrder?.balanceDue === 1500);
-    }
-
-    // Communication template should be available
-    let commTemplateKey;
-    if (outcome === 'ordered') commTemplateKey = 'outcome_ordered';
-    else if (outcome === 'quoted') commTemplateKey = 'follow_up.quote';
-    else if (outcome === 'thinking') commTemplateKey = 'follow_up.gentle';
-    else if (outcome === 'partner') commTemplateKey = 'follow_up.partner';
-    else if (outcome === 'compare_quotes') commTemplateKey = 'follow_up.compare';
-    else if (outcome === 'expensive') commTemplateKey = 'follow_up.discount';
-    else if (outcome === 'spec_mismatch') commTemplateKey = 'follow_up.spec';
-    else if (outcome === 'customer_no_show') commTemplateKey = 'follow_up.rebook';
-    else if (outcome === 'advisor_unavailable') commTemplateKey = 'follow_up.apology';
-
-    if (commTemplateKey) {
-      // Templates are in CONFIG.templates - we'll just verify the key logic
-      step(`POST-VISIT ${name}: Communication template key mapped (${commTemplateKey})`, true);
-    }
   }
 
-  // Test all outcome types
-  // For 'ordered': template is 'outcome_ordered' (not follow_up.*), follow-up kind is post_fit
-  await testOutcome('Ordered', 'ordered', 'outcome_ordered', 'Confirm order placed', 'post_fit');
-  await testOutcome('Quoted', 'quoted', 'follow_up.quote', 'Follow up on quote', 'quote');
-  await testOutcome('Thinking', 'thinking', 'follow_up.gentle', 'Gentle follow-up', 'quote');
-  await testOutcome('Partner', 'partner', 'follow_up.partner', 'Offer joint visit', 'quote');
-  await testOutcome('Comparing', 'compare_quotes', 'follow_up.compare', 'Help compare quotes', 'quote');
-  await testOutcome('Expensive', 'expensive', 'follow_up.discount', 'Consider controlled discount', 'quote');
-  await testOutcome('Spec Mismatch', 'spec_mismatch', 'follow_up.spec', 'Adjust specification', 'quote');
-  await testOutcome('No Show', 'customer_no_show', 'follow_up.rebook', 'Rebook missed visit', 'quote');
-  await testOutcome('Advisor Unavailable', 'advisor_unavailable', 'follow_up.apology', 'Apologise and rebook', 'quote');
+  // A quoted visit only 2 days old — follow-up exists but is not yet due.
+  const quoteTwoDays = await DB.addAppointment({
+    customerId: customer.id, clientName: 'John', type: 'consultation',
+    date: at(Utils.addDays(Utils.getToday(), -2), 14), status: 'completed', outcome: 'quoted', value: 1250
+  });
 
-  // Fitting completed → post_fit follow-up
-  const cidFit = await db.customers.add({ firstName: 'Fit', lastName: 'Test', phone: '07700 900123', customerNumber: 'CUS-2026-999', status: 'active', createdAt: iso(today) });
-  const fitAppt = await db.appointments.add({ customerId: cidFit, date: iso(new Date(today.getTime() - 1 * 86400000)), type: 'fitting', status: 'completed', outcome: 'completed', address: 'Test', source: 'manual', createdAt: iso(today) });
-  const fitTasks = (await db.appointments.toArray()).filter(a => a.type === 'fitting' && a.outcome === 'completed' && !a.postFitSent);
-  step('POST-VISIT Fitting: Post-fit follow-up task generated', fitTasks.length === 1);
+  // A fitting completed yesterday — post-fit thank-you task.
+  const fitted = await DB.addAppointment({
+    customerId: customer.id, clientName: 'John', type: 'fitting',
+    date: at(Utils.addDays(Utils.getToday(), -1), 11), status: 'completed', outcome: 'completed'
+  });
 
-  // Service issue outcome → service follow-up
-  const cidSvc = await db.customers.add({ firstName: 'Service', lastName: 'Test', phone: '07700 900123', customerNumber: 'CUS-2026-998', status: 'active', createdAt: iso(today) });
-  const svcAppt = await db.appointments.add({ customerId: cidSvc, date: iso(new Date(today.getTime() - 2 * 86400000)), type: 'fitting', status: 'completed', outcome: 'spec_mismatch', address: 'Test', source: 'manual', createdAt: iso(today) });
-  const svcTasks = (await db.appointments.toArray()).filter(a => (a.type === 'fitting' || a.type === 'service_call') && SERVICE_OUTCOMES.fitting?.includes(a.outcome) && !a.serviceSent);
-  step('POST-VISIT Service: Service issue follow-up task generated', svcTasks.length === 1);
+  // A fitting with a service failure 2 days ago — service acknowledgement task.
+  const serviceOutcome = TalkFeature.SERVICE_OUTCOMES.fitting[0];
+  const serviceVisit = await DB.addAppointment({
+    customerId: customer.id, clientName: 'John', type: 'fitting',
+    date: at(Utils.addDays(Utils.getToday(), -2), 12), status: 'completed', outcome: serviceOutcome
+  });
 
-  document.body.textContent = JSON.stringify({ journey: 'C', results });
-})().catch(e => { document.body.textContent = 'SEED_FAILED:' + String(e && e.message || e); });
+  // A brand-new customer with a booking next week — intro message task.
+  const newcomer = await DB.addCustomer({ firstName: 'Peter', lastName: 'Brown', fullName: 'Peter Brown', phone: '07711122233' });
+  const introVisit = await DB.addAppointment({
+    customerId: newcomer.id, clientName: 'Peter', type: 'consultation',
+    date: at(Utils.addDays(Utils.getToday(), 7), 10)
+  });
+
+  // A completed 'ordered' visit today — for the post-visit Companion brief.
+  const orderedToday = await DB.addAppointment({
+    customerId: customer.id, clientName: 'John', type: 'consultation',
+    date: at(Utils.getToday(), 9), status: 'completed', outcome: 'ordered', value: 1900
+  });
+
+  const tasks = await FollowupsFeature.loadTasks();
+
+  // 1. Every production outcome generates a quote-chase task with the
+  //    production template + action, due after 6 days. ('ordered' and
+  //    'spec_mismatch' are excluded: production routes a sale to the order/
+  //    payment tasks and a spec mismatch to the service task instead.)
+  const quoteOutcomes = outcomes.filter(o => o !== 'ordered' && o !== 'spec_mismatch');
+  for (const o of quoteOutcomes) {
+    const match = TalkFeature.getTemplateForOutcome(o);
+    const task = tasks.find(t => t.kind === 'quote' && t.appointment && t.appointment.id === seeded[o].id);
+    step(`quote task created for outcome '${o}'`, !!task);
+    step(`task for '${o}' uses the production template`, task && task.template === match.template, { got: task && task.template });
+    step(`task for '${o}' uses the production action`, task && task.action === match.action, { got: task && task.action });
+    step(`6-day-old '${o}' visit is due for follow-up`, task && task.due === true, { got: task && task.due });
+  }
+  step("no quote-chase task for a completed 'ordered' sale",
+    !tasks.some(t => t.kind === 'quote' && t.appointment && t.appointment.id === seeded.ordered.id));
+  step("no quote-chase task for a 'spec_mismatch' outcome",
+    !tasks.some(t => t.kind === 'quote' && t.appointment && t.appointment.id === seeded.spec_mismatch.id));
+
+  // 2. A recent quote is tracked but NOT due yet (production timing rule).
+  const recentQuote = tasks.find(t => t.kind === 'quote' && t.appointment && t.appointment.id === quoteTwoDays.id);
+  step('2-day-old quote has a follow-up task', !!recentQuote);
+  step('2-day-old quote is not yet due', recentQuote && recentQuote.due === false, { got: recentQuote && recentQuote.due });
+
+  // 3. Completed fitting → post-fit thank-you task; failed fitting → service task.
+  const postFit = tasks.find(t => t.kind === 'post_fit' && t.appointment && t.appointment.id === fitted.id);
+  step('completed fitting gets a post-fit task', !!postFit && postFit.template === 'post_fit_followup', { got: postFit && postFit.template });
+  const service = tasks.find(t => t.kind === 'service' && t.appointment && t.appointment.id === serviceVisit.id);
+  step(`failed fitting (${serviceOutcome}) gets a service task`, !!service && service.template === 'service_or_issue_followup', { got: service && service.template });
+
+  // 4. First-time customer with a booking → intro task (production comms spec).
+  const intro = tasks.find(t => t.kind === 'intro' && t.appointment && t.appointment.id === introVisit.id);
+  step('first-time customer gets an intro task', !!intro && intro.template === 'pre_intro', { got: intro && intro.template });
+
+  // 5. Post-visit Companion brief reflects the real day.
+  const brief = await CompanionFeature.answerAfterVisit();
+  const fact = l => (brief.facts.find(f => f.label === l) || {}).value;
+  step('post-visit brief names the last visit from real data', String(fact('Last visit')).startsWith('John'), { got: fact('Last visit') });
+  step('ordered sale suggests the production confirm-order action',
+    brief.actions.some(a => a.label === 'Send Confirm order placed'), { got: brief.actions.map(a => a.label) });
+
+  document.body.textContent = JSON.stringify({ results });
+
+  } catch (e) {
+    document.body.textContent = "SEED_FAILED: " + (e && e.message ? e.message : String(e));
+  }
+});
 </script>
-</body></html>
+</body>
+</html>

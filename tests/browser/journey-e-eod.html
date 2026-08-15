@@ -1,162 +1,144 @@
 <!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>journey-e-eod</title></head>
-<body>
-<script src="../../js/vendor/dexie.min.js"></script>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Journey E — End of Day</title>
 <script>
-/* ============================================
-   JOURNEY E — END OF DAY
-   Today's visits → missing outcomes → complete outcomes → earnings/sales update
-   → outstanding follow-ups
-   ============================================ */
-(async () => {
-  const results = [];
-  const step = (label, cond, extra) => results.push({ label, pass: !!cond, extra: extra || null });
-
-  const db = new Dexie('advisoros_v6');
-  db.version(1).stores({
-    customers: '++id, customerNumber, firstName, lastName, phone, email, postcodeNormalized, source, status, createdAt',
-    appointments: '++id, customerId, date, type, status, outcome, source, createdAt',
-    orders: '++id, customerId, appointmentId, orderNumber, supplierOrderNumber, status, createdAt',
-    expenses: '++id, date, category, amount, tripId, createdAt',
-    trips: '++id, date, appointmentId, purpose, confirmed, createdAt',
-    measurements: '++id, appointmentId, windowName, createdAt',
-    communications: '++id, customerId, type, template, sentAt',
-    settings: 'key',
-    sequences: 'name'
-  });
-  await db.open();
-
-  // Clear any existing data for test isolation
-  await db.transaction('rw', db.tables, async () => {
-    for (const table of db.tables) await table.clear();
-  });
-
-  const iso = d => d.toISOString();
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // start of today
-  const endOfDay = new Date(today);
-  endOfDay.setHours(17, 30, 0, 0); // 5:30pm - end of day reference
-
-  // Seed: 3 visits today, various states
-  const cid1 = await db.customers.add({ firstName: 'John', lastName: 'Smith', phone: '07700 900111', customerNumber: 'CUS-2026-0001', status: 'active', createdAt: iso(new Date(today.getTime() - 30 * 86400000)) });
-  const cid2 = await db.customers.add({ firstName: 'Jane', lastName: 'Doe', phone: '07700 900222', customerNumber: 'CUS-2026-0002', status: 'active', createdAt: iso(new Date(today.getTime() - 20 * 86400000)) });
-  const cid3 = await db.customers.add({ firstName: 'Bob', lastName: 'Wilson', phone: '07700 900333', customerNumber: 'CUS-2026-0003', status: 'active', createdAt: iso(new Date(today.getTime() - 10 * 86400000)) });
-
-  // Visit 1: 10:00 - consultation, outcome logged as quoted (value 1200)
-  const appt1 = await db.appointments.add({
-    customerId: cid1, date: iso(new Date(today.getTime() + 10 * 3600000)), // 10am
-    type: 'consultation', status: 'completed', outcome: 'quoted', value: 1200,
-    address: '10 High St', source: 'manual', createdAt: iso(new Date(today.getTime() - 2 * 86400000))
-  });
-
-  // Visit 2: 13:00 - fitting, outcome NOT logged yet (needs completion)
-  const appt2 = await db.appointments.add({
-    customerId: cid2, date: iso(new Date(today.getTime() + 13 * 3600000)), // 1pm
-    type: 'fitting', status: 'confirmed', outcome: null,
-    address: '20 King St', source: 'manual', createdAt: iso(new Date(today.getTime() - 1 * 86400000))
-  });
-
-  // Visit 3: 15:30 - measure, outcome NOT logged yet
-  const appt3 = await db.appointments.add({
-    customerId: cid3, date: iso(new Date(today.getTime() + 15.5 * 3600000)), // 3:30pm
-    type: 'measure', status: 'confirmed', outcome: null,
-    address: '30 Queen St', source: 'manual', createdAt: iso(new Date(today.getTime() - 1 * 86400000))
-  });
-
-  // Past visits for earnings
-  await db.appointments.add({
-    customerId: cid1, date: iso(new Date(today.getTime() - 5 * 86400000)),
-    type: 'consultation', status: 'completed', outcome: 'ordered', value: 2000,
-    source: 'manual', createdAt: iso(new Date(today.getTime() - 5 * 86400000))
-  });
-
-  // Unpaid order
-  await db.orders.add({
-    customerId: cid1, appointmentId: appt1, orderNumber: 'ORD-2026-0001',
-    supplierOrderNumber: '', status: 'active', total: 1200,
-    depositRequired: 600, depositPaid: 0, balanceDue: 1200,
-    stage: 'ordered', createdAt: iso(new Date(today.getTime() - 1 * 86400000))
-  });
-
-  // Follow-up task from past quoted visit (5 days ago, minDays=3 for quoted)
-  // This should be due in Followups
-
-  // --- TODAY'S VISITS ---
-  const visits = (await db.appointments.toArray())
-    .filter(a => new Date(a.date).toDateString() === today.toDateString() && a.status !== 'cancelled')
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
-  step('JOURNEY E: 3 visits today', visits.length === 3);
-
-  // --- MISSING OUTCOMES ---
-  const unlogged = visits.filter(a => !a.outcome && a.status !== 'completed');
-  step('JOURNEY E: 2 visits missing outcomes', unlogged.length === 2);
-
-  // --- COMPLETE OUTCOMES ---
-  await db.appointments.update(appt2, { outcome: 'completed', value: 1800, status: 'completed' });
-  await db.appointments.update(appt3, { outcome: 'measured', status: 'completed' });
-  const updated2 = await db.appointments.get(appt2);
-  const updated3 = await db.appointments.get(appt3);
-  step('JOURNEY E: Fitting outcome completed', updated2.outcome === 'completed');
-  step('JOURNEY E: Measure outcome measured', updated3.outcome === 'measured');
-
-  // --- EARNINGS/SALES UPDATE ---
-  // Week stats should include today's completed ordered/quoted
-  const weekStart = new Date(today);
-  weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Sunday
-  weekStart.setHours(0,0,0,0);
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekEnd.getDate() + 6);
-  weekEnd.setHours(23,59,59,999);
-
-  const weekAppts = (await db.appointments.toArray())
-    .filter(a => a.status !== 'cancelled' && a.outcome === 'ordered' && new Date(a.date) >= weekStart && new Date(a.date) <= weekEnd);
-  const weekSales = weekAppts.reduce((s, a) => s + (a.value || 0), 0);
-  const weekEarnings = weekAppts.reduce((s, a) => s + (a.value * 0.25 || 0), 0); // rough 25%
-  step('JOURNEY E: Week sales includes past ordered', weekSales >= 2000);
-  step('JOURNEY E: Week earnings calculated', weekEarnings > 0);
-
-  // Today's ordered visit (appt2 now completed) adds to week
-  // Note: appt2 is fitting, not ordered - so only past ordered counts
-  // If we add a consultation ordered today:
-  await db.appointments.add({
-    customerId: cid2, date: iso(new Date(today.getTime() + 1 * 3600000)), // 9am today
-    type: 'consultation', status: 'completed', outcome: 'ordered', value: 950,
-    address: '20 King St', source: 'manual', createdAt: iso(today)
-  });
-  const weekAppts2 = (await db.appointments.toArray())
-    .filter(a => a.status !== 'cancelled' && a.outcome === 'ordered' && new Date(a.date) >= weekStart && new Date(a.date) <= weekEnd);
-  const weekSales2 = weekAppts2.reduce((s, a) => s + (a.value || 0), 0);
-  step('JOURNEY E: Week sales updates after today order', weekSales2 === 2950); // 2000 + 950
-
-  // --- OUTSTANDING FOLLOW-UPS ---
-  // 1. Quote from 5 days ago (quoted, minDays=3) - due
-  const pipeline = (await db.appointments.toArray()).filter(a => !a.outcome || a.outcome !== 'ordered');
-  // Actually Followups uses pipeline which excludes completed with outcomes
-  // Let's check quoted outcome
-  const quotedAppt = (await db.appointments.toArray()).find(a => a.outcome === 'quoted');
-  step('JOURNEY E: Past quoted visit exists', !!quotedAppt);
-
-  // 2. Post-fit follow-up for today's completed fitting
-  const fitTasks = (await db.appointments.toArray()).filter(a => a.type === 'fitting' && a.outcome === 'completed' && !a.postFitSent);
-  step('JOURNEY E: Post-fit follow-up task for today', fitTasks.length === 1);
-
-  // 3. Unpaid order
-  const unpaidOrders = (await db.orders.toArray()).filter(o => (o.balanceDue || 0) > 0);
-  step('JOURNEY E: Unpaid order outstanding', unpaidOrders.length === 1);
-  step('JOURNEY E: Balance due £1200', unpaidOrders[0].balanceDue === 1200);
-
-  // 4. Messages due: tomorrow's visits need day-before, future visits need intro
-  // Not seeding tomorrow visits but verify the logic exists
-
-  // --- COMPANION EVENING REVIEW ---
-  // Simulate answerEveningReview() logic
-  const facts = [];
-  if (unlogged.length > 0) facts.push({ label: 'Outcomes not logged', value: '2 visits today' });
-  if (fitTasks.length > 0) facts.push({ label: 'Post-fit follow-up', value: '1 visit needs thank-you' });
-  if (unpaidOrders.length > 0) facts.push({ label: 'Outstanding', value: '£1200 over 1 order', highlight: true });
-  step('JOURNEY E: Evening review captures all gaps', facts.length >= 3);
-
-  document.body.textContent = JSON.stringify({ journey: 'E', results });
-})().catch(e => { document.body.textContent = 'SEED_FAILED:' + String(e && e.message || e); });
+  // Boot the REAL production app scripts below (same set as index.html),
+  // but block App.init()'s DOMContentLoaded listener so nothing tries to
+  // render the app shell in this test page.
+  document.addEventListener('DOMContentLoaded', e => e.stopImmediatePropagation(), { capture: true, once: true });
 </script>
-</body></html>
+<script src="../../js/vendor/dexie.min.js?v=1" defer></script>
+<script src="../../js/vendor/minidexie.min.js?v=12" defer></script>
+<script src="../../js/core/config.min.js?v=10" defer></script>
+<script src="../../js/core/utils.min.js?v=6" defer></script>
+<script src="../../js/core/db.min.js?v=15" defer></script>
+<script src="../../js/core/geoprovider.min.js?v=1" defer></script>
+<script src="../../js/core/geo.min.js?v=6" defer></script>
+<script src="../../js/core/search.min.js?v=2" defer></script>
+<script src="../../js/core/tax.min.js?v=2" defer></script>
+<script src="../../js/core/app.min.js?v=8" defer></script>
+<script src="../../js/core/contact.min.js?v=3" defer></script>
+<script src="../../js/services/ai.min.js?v=7" defer></script>
+<script src="../../js/services/notification.min.js?v=5" defer></script>
+<script src="../../js/services/message-scheduler.min.js?v=3" defer></script>
+<script src="../../js/services/export.min.js?v=3" defer></script>
+<script src="../../js/services/weather.min.js?v=3" defer></script>
+<script src="../../js/features/onboarding/onboarding.min.js?v=6" defer></script>
+<script src="../../js/features/companion/companion.min.js?v=2" defer></script>
+<script src="../../js/features/today/today.min.js?v=17" defer></script>
+<script src="../../js/features/today/home-screen-controller.min.js?v=10" defer></script>
+<script src="../../js/features/appointments/appointments.min.js?v=23" defer></script>
+<script src="../../js/features/customer/customer.min.js?v=3" defer></script>
+<script src="../../js/features/route/route.min.js?v=9" defer></script>
+<script src="../../js/features/followups/followups.min.js?v=5" defer></script>
+<script src="../../js/features/orders/orders.min.js?v=5" defer></script>
+<script src="../../js/features/money/money.min.js?v=7" defer></script>
+<script src="../../js/features/talk/talk.min.js?v=14" defer></script>
+<script src="../../js/features/measure/measure.min.js?v=6" defer></script>
+<script src="../../js/features/ocr/ocr.min.js?v=17" defer></script>
+<script src="../../js/features/control/control.min.js?v=5" defer></script>
+<script src="../../js/features/settings/settings.min.js?v=11" defer></script>
+</head>
+<body>
+<div id="main"></div>
+<!-- Hidden form controls the production outcome modal reads from -->
+<input id="outcome-value" value="1800">
+<input id="outcome-discount" value="">
+<input id="outcome-notes" value="">
+<select id="outcome-reason"><option value=""></option></select>
+<script>
+window.addEventListener("load", async () => {
+  const results = [];
+  try {
+  const step = (label, pass, extra) => results.push({ label, pass, extra });
+
+  await DB.init();
+  await DB.deleteAllData();
+
+  Object.assign(CONFIG, { weeklyTarget: 600 });
+
+  const customer = await DB.addCustomer({ firstName: 'John', lastName: 'Smith', fullName: 'John Smith', phone: '07123456789' });
+  const today = Utils.getToday();
+  const at = (d, h, m = 0) => { const dt = new Date(d); dt.setHours(h, m, 0, 0); return dt.toISOString(); };
+
+  // Two orders completed this week (today), one old quoted lead, an unpaid
+  // order, and two visits still awaiting their outcome.
+  const sale1 = await DB.addAppointment({
+    customerId: customer.id, clientName: 'John', type: 'consultation',
+    date: at(today, 9), status: 'completed', outcome: 'ordered', value: 2000
+  });
+  const sale2 = await DB.addAppointment({
+    customerId: customer.id, clientName: 'John', type: 'consultation',
+    date: at(today, 10), status: 'completed', outcome: 'ordered', value: 950
+  });
+  await DB.addAppointment({
+    customerId: customer.id, clientName: 'John', type: 'consultation',
+    date: at(Utils.addDays(today, -6), 14), status: 'completed', outcome: 'quoted', value: 1250
+  });
+  const unpaid = await DB.addOrder({
+    customerId: customer.id, total: 1200
+  });
+  const fitting = await DB.addAppointment({
+    customerId: customer.id, clientName: 'John', type: 'fitting', date: at(today, 13)
+  });
+  const measure = await DB.addAppointment({
+    customerId: customer.id, clientName: 'John', type: 'measure', date: at(today, 15, 30)
+  });
+
+  // 1. Canonical week stats come from production DB.getWeekStats.
+  const stats = await DB.getWeekStats(Utils.getStartOfWeek().toISOString(), Utils.getEndOfWeek().toISOString());
+  const expectedEarnings = TaxCalculator.estimateCommission(2000) + TaxCalculator.estimateCommission(950);
+  step('week sales = the two real orders', stats.sales === 2950, { got: stats.sales });
+  step('week earnings = production commission on both orders', stats.earnings === expectedEarnings, { got: stats.earnings });
+  step('week order count = 2', stats.orderedCount === 2, { got: stats.orderedCount });
+
+  // 2. Companion week brief uses the canonical stats.
+  const week = await CompanionFeature.answerWeek();
+  const wfact = l => (week.facts.find(f => f.label === l) || {}).value;
+  step('week brief earnings match production stats', wfact('Earnings') === Utils.formatCurrency(stats.earnings), { got: wfact('Earnings') });
+  step('week brief sales match production stats', wfact('Sales value') === Utils.formatCurrency(2950), { got: wfact('Sales value') });
+  step('week brief order count is 2', wfact('Orders') === '2', { got: wfact('Orders') });
+
+  // 3. Evening review BEFORE completing today's outstanding visits.
+  const before = await CompanionFeature.answerEveningReview();
+  const bfact = l => (before.facts.find(f => f.label === l) || {}).value;
+  step('evening review flags both unlogged visits', bfact('Outcomes not logged') === '2 visits today', { got: bfact('Outcomes not logged') });
+  step('evening review reports the unpaid order', bfact('Outstanding') === Utils.formatCurrency(1200) + ' over 1 order', { got: bfact('Outstanding') });
+  step('evening review counts the due follow-ups (quote + 2 visits)', bfact('Follow-ups due') === '3 tasks', { got: bfact('Follow-ups due') });
+
+  // 4. Log the two outstanding outcomes through the production save path.
+  await AppointmentsFeature.saveOutcome(fitting.id, 'completed');
+  await AppointmentsFeature.saveOutcome(measure.id, 'measured');
+
+  const fittingSaved = await DB.db.appointments.get(fitting.id);
+  const measureSaved = await DB.db.appointments.get(measure.id);
+  step('fitting outcome logged by production path', fittingSaved.outcome === 'completed' && fittingSaved.status === 'completed');
+  step('measure outcome logged by production path', measureSaved.outcome === 'measured' && measureSaved.status === 'completed');
+
+  // 5. Evening review AFTER — nothing left to log, money and tasks remain.
+  const after = await CompanionFeature.answerEveningReview();
+  const afact = l => (after.facts.find(f => f.label === l) || {}).value;
+  step('no outcomes outstanding after logging', afact('Outcomes not logged') === undefined, { got: afact('Outcomes not logged') });
+  step('unpaid order still reported', afact('Outstanding') === Utils.formatCurrency(1200) + ' over 1 order', { got: afact('Outstanding') });
+  step('only the quote follow-up remains due', afact('Follow-ups due') === '1 task', { got: afact('Follow-ups due') });
+
+  // 6. Task inbox reflects production payment logic (3-day reminder).
+  const tasks = await FollowupsFeature.loadTasks();
+  const payment = tasks.find(t => t.kind === 'payment' && t.order && t.order.id === unpaid.id);
+  step('unpaid order has a payment reminder task', !!payment);
+  step('payment reminder is not due before production reminder day', payment && payment.due === false, { got: payment && payment.due });
+  step('payment task names the balance to collect',
+    payment && payment.action === 'Collect ' + Utils.formatCurrency(1200) + ' (deposit ' + Utils.formatCurrency(0) + ' of ' + Utils.formatCurrency(App.calculateDeposit(1200).amount) + ')',
+    { got: payment && payment.action });
+
+  document.body.textContent = JSON.stringify({ results });
+
+  } catch (e) {
+    document.body.textContent = "SEED_FAILED: " + (e && e.message ? e.message : String(e));
+  }
+});
+</script>
+</body>
+</html>

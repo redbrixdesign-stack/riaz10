@@ -9,9 +9,14 @@
    C. Post-Visit: Outcome → follow-up → communication
    D. Driving: Route → navigation → trip tracking → arrival → distance
    E. End of Day: Missing outcomes → earnings → follow-ups
+   E2. Evening: Day-before comms → evening review → outstanding money/tasks
    F. Backup: Full data → export → clear → restore → verify
 
-   Each journey runs in a fresh browser context with its own IndexedDB.
+   NOTE: journeys run SEQUENTIALLY in one browser profile sharing one
+   IndexedDB — they are NOT isolated browser contexts. Each journey page
+   resets the database itself through the production factory reset
+   (DB.deleteAllData) and seeds its own data, so ordering matters:
+   F (backup) must stay last, since it exercises export/clear/restore.
    ============================================ */
 
 'use strict';
@@ -142,6 +147,7 @@ async function runJourney(ws, journeyName, url, markerStarts, timeoutMs = 30000)
       { name: 'C', file: 'journey-c-postvisit.html', marker: '{' },
       { name: 'D', file: 'journey-d-driving.html', marker: '{' },
       { name: 'E', file: 'journey-e-eod.html', marker: '{' },
+      { name: 'E2', file: 'journey-e-evening.html', marker: '{' },
       { name: 'F', file: 'journey-f-backup.html', marker: '{' },
     ];
 

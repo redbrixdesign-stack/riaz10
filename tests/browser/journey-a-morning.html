@@ -1,112 +1,147 @@
 <!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>journey-a-morning</title></head>
-<body>
-<script src="../../js/vendor/dexie.min.js"></script>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Journey A — Morning</title>
 <script>
-/* ============================================
-   JOURNEY A — MORNING
-   Companion → today's visits → first customer → route → communication status
-   ============================================ */
-(async () => {
-  const results = [];
-  const step = (label, cond, extra) => results.push({ label, pass: !!cond, extra: extra || null });
-
-  const db = new Dexie('advisoros_v6');
-  db.version(1).stores({
-    customers: '++id, customerNumber, firstName, lastName, phone, email, postcodeNormalized, source, status, createdAt',
-    appointments: '++id, customerId, date, type, status, outcome, source, createdAt',
-    orders: '++id, customerId, appointmentId, orderNumber, supplierOrderNumber, status, createdAt',
-    expenses: '++id, date, category, amount, tripId, createdAt',
-    trips: '++id, date, appointmentId, purpose, confirmed, createdAt',
-    measurements: '++id, appointmentId, windowName, createdAt',
-    communications: '++id, customerId, type, template, sentAt',
-    settings: 'key',
-    sequences: 'name'
-  });
-  await db.open();
-
-  // Clear any existing data for test isolation
-  await db.transaction('rw', db.tables, async () => {
-    for (const table of db.tables) await table.clear();
-  });
-
-  // Helper
-  const iso = d => d.toISOString();
-  const today = new Date();
-  today.setHours(8, 0, 0, 0);
-
-  // Seed: Today has 2 visits - consultation at 10:00, fitting at 14:00
-  const cid = await db.customers.add({
-    firstName: 'John', lastName: 'Smith', phone: '07700 900123',
-    customerNumber: 'CUS-' + today.getFullYear() + '-0001',
-    status: 'active', createdAt: iso(new Date(today.getTime() - 30 * 86400000))
-  });
-
-  // Visit 1: Today 10:00 - consultation (needs morning_of message)
-  const appt1 = await db.appointments.add({
-    customerId: cid, date: iso(new Date(today.getTime() + 2 * 3600000)), // 10:00 today
-    type: 'consultation', status: 'confirmed', outcome: null, source: 'manual',
-    address: '10 High Street, Manchester M1 1AA',
-    latLng: [53.4808, -2.2426], createdAt: iso(new Date(today.getTime() - 2 * 86400000))
-  });
-
-  // Visit 2: Today 14:00 - fitting (needs evening_before tomorrow)
-  const appt2 = await db.appointments.add({
-    customerId: cid, date: iso(new Date(today.getTime() + 6 * 3600000)), // 14:00 today
-    type: 'fitting', status: 'confirmed', outcome: null, source: 'manual',
-    address: '20 King Street, Manchester M2 2BB',
-    latLng: [53.4850, -2.2300], createdAt: iso(new Date(today.getTime() - 2 * 86400000))
-  });
-
-  // Base address for route
-  await db.settings.put({ key: 'config', value: { businessAddress: '5 Business Park, Manchester M3 3CC', businessLatLng: [53.4750, -2.2500] } });
-
-  // Pre-seed morning_of not sent (auto flag not set)
-  // This simulates a fresh morning boot
-
-  // --- COMPANION: "today" query ---
-  const visitsToday = (await db.appointments.toArray())
-    .filter(a => {
-      const d = new Date(a.date);
-      return d.toDateString() === today.toDateString() && a.status !== 'cancelled';
-    })
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
-
-  step('JOURNEY A: Companion shows 2 visits today', visitsToday.length === 2);
-
-  // First customer
-  const firstVisit = visitsToday[0];
-  step('JOURNEY A: First visit is consultation at 10:00', firstVisit.type === 'consultation' && new Date(firstVisit.date).getHours() === 10);
-
-  // Customer details
-  const customer = await db.customers.get(firstVisit.customerId);
-  step('JOURNEY A: Customer is John Smith', customer.firstName === 'John' && customer.lastName === 'Smith');
-
-  // Communication status - morning_of not sent yet
-  const autoMorningSent = localStorage.getItem(`advisoros_auto_morning_of_${firstVisit.id}`) === '1';
-  step('JOURNEY A: morning_of not auto-sent yet', autoMorningSent === false);
-
-  // --- ROUTE: Suggested route ---
-  const baseLatLng = [53.4750, -2.2500];
-  const stops = visitsToday.map(a => a.latLng).filter(Boolean);
-  step('JOURNEY A: Both visits have coordinates for routing', stops.length === 2);
-
-  // Route calculation (uses Geo.calculateDistance internally)
-  // Verify the route logic would work
-  const totalStops = stops.length;
-  step('JOURNEY A: Route has base + 2 stops + return', true);
-
-  // --- COMMUNICATION: Intro message owed? ---
-  const pastVisits = (await db.appointments.toArray())
-    .filter(a => a.customerId === cid && new Date(a.date) < new Date() && a.status !== 'cancelled');
-  const isFirstVisit = pastVisits.length === 0;
-  step('JOURNEY A: This is first visit at address', isFirstVisit === true);
-
-  // Intro message should be available
-  step('JOURNEY A: Intro message template available', true); // pre_intro template exists
-
-  // --- RESULT ---
-  document.body.textContent = JSON.stringify({ journey: 'A', results });
-})().catch(e => { document.body.textContent = 'SEED_FAILED:' + String(e && e.message || e); });
+  // Boot the REAL production app scripts below (same set as index.html),
+  // but block App.init()'s DOMContentLoaded listener so nothing tries to
+  // render the app shell in this test page.
+  document.addEventListener('DOMContentLoaded', e => e.stopImmediatePropagation(), { capture: true, once: true });
 </script>
-</body></html>
+<script src="../../js/vendor/dexie.min.js?v=1" defer></script>
+<script src="../../js/vendor/minidexie.min.js?v=12" defer></script>
+<script src="../../js/core/config.min.js?v=10" defer></script>
+<script src="../../js/core/utils.min.js?v=6" defer></script>
+<script src="../../js/core/db.min.js?v=15" defer></script>
+<script src="../../js/core/geoprovider.min.js?v=1" defer></script>
+<script src="../../js/core/geo.min.js?v=6" defer></script>
+<script src="../../js/core/search.min.js?v=2" defer></script>
+<script src="../../js/core/tax.min.js?v=2" defer></script>
+<script src="../../js/core/app.min.js?v=8" defer></script>
+<script src="../../js/core/contact.min.js?v=3" defer></script>
+<script src="../../js/services/ai.min.js?v=7" defer></script>
+<script src="../../js/services/notification.min.js?v=5" defer></script>
+<script src="../../js/services/message-scheduler.min.js?v=3" defer></script>
+<script src="../../js/services/export.min.js?v=3" defer></script>
+<script src="../../js/services/weather.min.js?v=3" defer></script>
+<script src="../../js/features/onboarding/onboarding.min.js?v=6" defer></script>
+<script src="../../js/features/companion/companion.min.js?v=2" defer></script>
+<script src="../../js/features/today/today.min.js?v=17" defer></script>
+<script src="../../js/features/today/home-screen-controller.min.js?v=10" defer></script>
+<script src="../../js/features/appointments/appointments.min.js?v=23" defer></script>
+<script src="../../js/features/customer/customer.min.js?v=3" defer></script>
+<script src="../../js/features/route/route.min.js?v=9" defer></script>
+<script src="../../js/features/followups/followups.min.js?v=5" defer></script>
+<script src="../../js/features/orders/orders.min.js?v=5" defer></script>
+<script src="../../js/features/money/money.min.js?v=7" defer></script>
+<script src="../../js/features/talk/talk.min.js?v=14" defer></script>
+<script src="../../js/features/measure/measure.min.js?v=6" defer></script>
+<script src="../../js/features/ocr/ocr.min.js?v=17" defer></script>
+<script src="../../js/features/control/control.min.js?v=5" defer></script>
+<script src="../../js/features/settings/settings.min.js?v=11" defer></script>
+</head>
+<body>
+<div id="main"></div>
+<script>
+window.addEventListener("load", async () => {
+  const results = [];
+  try {
+  const step = (label, pass, extra) => results.push({ label, pass, extra });
+
+  await DB.init();
+  await DB.deleteAllData();
+
+  Object.assign(CONFIG, {
+    businessAddress: '1 Test Street, Manchester',
+    businessLatLng: [53.475, -2.25],
+    weeklyTarget: 600,
+    autoMessages: { enabled: true, eveningHour: 18, morningHour: 8 },
+    templates: {
+      evening_before: 'Hi {firstName}, just a quick reminder about your visit tomorrow at {time}. See you then!',
+      morning_of: 'Hi {firstName}, looking forward to seeing you at {time} today.'
+    }
+  });
+
+  const customer = await DB.addCustomer({
+    firstName: 'John', lastName: 'Smith', phone: '07123456789',
+    address: { line1: '12 Test Road', city: 'Manchester', postcode: 'M1 1AA', postcodeNormalized: 'M11AA' }
+  });
+
+  const today = Utils.getToday();
+  const tomorrow = Utils.addDays(today, 1);
+  // Seed "today" visits late in the day (23:00/23:30) so the production
+  // scheduler's "upcoming" window (now → +7 days) still contains them for
+  // any run before ~23:30 UK. Day-before scheduling for the tomorrow visit
+  // is clock-independent (tomorrow 10:00 is always in the future).
+  const at = (d, h, m = 0) => { const dt = new Date(d); dt.setHours(h, m, 0, 0); return dt.toISOString(); };
+
+  const appt1 = await DB.addAppointment({
+    customerId: customer.id, clientName: 'John', type: 'consultation',
+    date: at(today, 23, 0), latLng: [53.4808, -2.2426]
+  });
+  const appt2 = await DB.addAppointment({
+    customerId: customer.id, clientName: 'John', type: 'measure',
+    date: at(today, 23, 30), latLng: [53.4830, -2.2600]
+  });
+  const appt3 = await DB.addAppointment({
+    customerId: customer.id, clientName: 'John', type: 'consultation',
+    date: at(tomorrow, 10), latLng: [53.4700, -2.2400]
+  });
+
+  // 1. Production read of today's visits — count, ownership, ordering.
+  const todays = await DB.getAppointmentsForDate(Utils.getToday().toISOString());
+  step('today has exactly 2 visits', todays.length === 2, { got: todays.length });
+  step('both visits belong to the right customer', todays.every(a => a.customerId === customer.id));
+  const sorted = [...todays].sort((a, b) => new Date(a.date) - new Date(b.date));
+  step('visits are ordered by time of day', todays[0].id === sorted[0].id && new Date(todays[0].date) <= new Date(todays[1].date));
+  step('first visit is the morning consultation', todays[0].type === 'consultation', { got: todays[0].type });
+  step('second visit is the measure', todays[1].type === 'measure', { got: todays[1].type });
+
+  // 2. Companion brief for the morning uses the REAL visit data.
+  const brief = await CompanionFeature.answerToday();
+  const fact = l => (brief.facts.find(f => f.label === l) || {}).value;
+  step('Companion counts 2 visits today', fact('Visits today') === '2', { got: fact('Visits today') });
+  step('Companion names the next customer from the real visit', String(fact('Next up')).startsWith('John'), { got: fact('Next up') });
+  step('brief text says how many visits are left', brief.text.includes('2 visits to go'), { got: brief.text });
+
+  // 3. Communication scheduling — morning-of timers for today's visits,
+  //    day-before + morning-of for tomorrow's, none day-before for today's.
+  await MessageScheduler.reschedule();
+  const key = (stage, id) => 'advisoros_auto_' + stage + '_' + id;
+  step('morning-of scheduled for both today visits',
+    MessageScheduler.timers.has(key('morning_of', appt1.id)) && MessageScheduler.timers.has(key('morning_of', appt2.id)));
+  step('no day-before timer for today visits',
+    !MessageScheduler.timers.has(key('evening_before', appt1.id)) && !MessageScheduler.timers.has(key('evening_before', appt2.id)));
+  step('day-before + morning-of scheduled for tomorrow visit',
+    MessageScheduler.timers.has(key('evening_before', appt3.id)) && MessageScheduler.timers.has(key('morning_of', appt3.id)));
+  step('no on-my-way timers scheduled from the schedule pass',
+    !MessageScheduler.timers.has(key('on_my_way', appt1.id)) && !MessageScheduler.timers.has(key('on_my_way', appt2.id)) && !MessageScheduler.timers.has(key('on_my_way', appt3.id)));
+
+  // 4. Duplicate-prevention: a fired stage must not re-schedule.
+  localStorage.setItem(key('morning_of', appt1.id), '1');
+  MessageScheduler._clearTimers();
+  await MessageScheduler.reschedule();
+  step('fired stage is not re-scheduled',
+    !MessageScheduler.timers.has(key('morning_of', appt1.id)) && MessageScheduler.timers.has(key('morning_of', appt2.id)));
+
+  // 5. Route plan uses the REAL base point + visits and builds the loop.
+  const base = await RouteFeature.getBasePoint();
+  step('route base comes from stored business location',
+    Array.isArray(base.latLng) && Math.abs(base.latLng[0] - 53.475) < 0.0001 && Math.abs(base.latLng[1] - (-2.25)) < 0.0001);
+  const plan = RouteFeature.analyseDay(await DB.getAppointmentsForDate(Utils.getToday().toISOString()), Utils.getToday(), base);
+  step('route plan contains both visits', plan.appointments.length === 2, { got: plan.appointments.length });
+  step('route loop = base + both visits + return (3 legs)', plan.legs.length === 3, { got: plan.legs.length });
+  step('first leg goes to the morning visit', plan.legs[0].to && plan.legs[0].to.appointment && plan.legs[0].to.appointment.id === appt1.id);
+  step('final leg returns to base', plan.legs[2].isReturn === true, { got: plan.legs[2].isReturn });
+  step('route distance is a real positive number', typeof plan.currentLegKm === 'number' && plan.currentLegKm > 0, { got: plan.currentLegKm });
+
+  document.body.textContent = JSON.stringify({ results });
+
+  } catch (e) {
+    document.body.textContent = "SEED_FAILED: " + (e && e.message ? e.message : String(e));
+  }
+});
+</script>
+</body>
+</html>

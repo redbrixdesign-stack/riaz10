@@ -1,156 +1,116 @@
 <!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>journey-d-driving</title></head>
-<body>
-<script src="../../js/vendor/dexie.min.js"></script>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Journey E2 — Evening Review</title>
 <script>
-/* ============================================
-   JOURNEY D — DRIVING
-   Today's visits → suggested route → navigation → trip tracking → arrival → distance
-   ============================================ */
-(async () => {
-  const results = [];
-  const step = (label, cond, extra) => results.push({ label, pass: !!cond, extra: extra || null });
-
-  const db = new Dexie('advisoros_v6');
-  db.version(1).stores({
-    customers: '++id, customerNumber, firstName, lastName, phone, email, postcodeNormalized, source, status, createdAt',
-    appointments: '++id, customerId, date, type, status, outcome, source, createdAt',
-    orders: '++id, customerId, appointmentId, orderNumber, supplierOrderNumber, status, createdAt',
-    expenses: '++id, date, category, amount, tripId, createdAt',
-    trips: '++id, date, appointmentId, purpose, confirmed, createdAt',
-    measurements: '++id, appointmentId, windowName, createdAt',
-    communications: '++id, customerId, type, template, sentAt',
-    settings: 'key',
-    sequences: 'name'
-  });
-  await db.open();
-
-  const iso = d => d.toISOString();
-  const today = new Date();
-  today.setHours(8, 0, 0, 0);
-
-  // Seed: 3 visits today with coordinates
-  const cid = await db.customers.add({
-    firstName: 'Route', lastName: 'Customer', phone: '07700 900123',
-    customerNumber: 'CUS-' + today.getFullYear() + '-0001', status: 'active', createdAt: iso(new Date(today.getTime() - 30 * 86400000))
-  });
-
-  const baseLatLng = [53.4750, -2.2500];
-  await db.settings.put({ key: 'config', value: { businessAddress: '5 Business Park, Manchester M3 3CC', businessLatLng: baseLatLng } });
-
-  // Visit 1: 10:00 - M1 1AA
-  const appt1 = await db.appointments.add({
-    customerId: cid, date: iso(new Date(today.getTime() + 2 * 3600000)),
-    type: 'consultation', status: 'confirmed', outcome: null,
-    address: '10 High Street, Manchester M1 1AA', latLng: [53.4808, -2.2426],
-    source: 'manual', createdAt: iso(new Date(today.getTime() - 1 * 86400000))
-  });
-
-  // Visit 2: 12:00 - M2 2BB
-  const appt2 = await db.appointments.add({
-    customerId: cid, date: iso(new Date(today.getTime() + 4 * 3600000)),
-    type: 'measure', status: 'confirmed', outcome: null,
-    address: '20 King Street, Manchester M2 2BB', latLng: [53.4850, -2.2300],
-    source: 'manual', createdAt: iso(new Date(today.getTime() - 1 * 86400000))
-  });
-
-  // Visit 3: 15:00 - M3 3CC
-  const appt3 = await db.appointments.add({
-    customerId: cid, date: iso(new Date(today.getTime() + 7 * 3600000)),
-    type: 'fitting', status: 'confirmed', outcome: null,
-    address: '30 Queen Street, Manchester M3 3CC', latLng: [53.4780, -2.2450],
-    source: 'manual', createdAt: iso(new Date(today.getTime() - 1 * 86400000))
-  });
-
-  // --- TODAY'S VISITS ---
-  const visits = (await db.appointments.toArray())
-    .filter(a => new Date(a.date).toDateString() === today.toDateString() && a.status !== 'cancelled')
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
-  step('JOURNEY D: 3 visits today', visits.length === 3);
-
-  // --- SUGGESTED ROUTE: Nearest neighbour from base ---
-  const withCoords = visits.filter(v => Array.isArray(v.latLng) && v.latLng.length === 2);
-  step('JOURNEY D: All visits have coordinates', withCoords.length === 3);
-
-  // Simulate nearest neighbour ordering from base
-  let current = baseLatLng;
-  const ordered = [];
-  const unvisited = [...withCoords];
-  while (unvisited.length > 0) {
-    let nearest = null, nearestDist = Infinity, nearestIdx = -1;
-    for (let i = 0; i < unvisited.length; i++) {
-      const appt = unvisited[i];
-      const dLat = current[0] - appt.latLng[0];
-      const dLng = current[1] - appt.latLng[1];
-      const dist = Math.sqrt(dLat*dLat + dLng*dLng) * 111; // rough km
-      if (dist < nearestDist) { nearestDist = dist; nearest = appt; nearestIdx = i; }
-    }
-    if (nearest) { ordered.push(nearest); current = nearest.latLng; unvisited.splice(nearestIdx, 1); }
-  }
-  step('JOURNEY D: Route optimization produces ordered stops', ordered.length === 3);
-
-  // --- NAVIGATION: Google Maps URL for first leg ---
-  const firstVisit = visits[0];
-  const navUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent('5 Business Park, Manchester M3 3CC')}&destination=${encodeURIComponent(firstVisit.address)}`;
-  step('JOURNEY D: Navigation URL contains base and destination', navUrl.includes('Business Park') && navUrl.includes('High Street'));
-
-  // --- TRIP TRACKING: Start trip for first visit ---
-  // Simulate Geo.startTrip
-  const startPos = { lat: baseLatLng[0], lng: baseLatLng[1] };
-  const trip = {
-    id: 'trip-' + Date.now(),
-    startTime: new Date().toISOString(),
-    startLocation: 'Base',
-    destinationAddress: firstVisit.address,
-    destination: firstVisit.latLng,
-    appointmentId: firstVisit.id,
-    distanceKm: 0,
-    path: [{ lat: startPos.lat, lng: startPos.lng }],
-    lastPos: { lat: startPos.lat, lng: startPos.lng }
-  };
-  step('JOURNEY D: Trip object created with destination', !!trip.destination);
-
-  // Simulate position updates (moving towards destination)
-  const midPos = { lat: 53.478, lng: -2.246 }; // halfway
-  const segment1 = Math.sqrt(Math.pow(midPos.lat - startPos.lat, 2) + Math.pow(midPos.lng - startPos.lng, 2)) * 111;
-  trip.distanceKm += segment1;
-  trip.path.push(midPos);
-  trip.lastPos = midPos;
-  step('JOURNEY D: Trip distance accumulates', trip.distanceKm > 0);
-
-  // Simulate arrival
-  const destPos = { lat: firstVisit.latLng[0], lng: firstVisit.latLng[1] };
-  const segment2 = Math.sqrt(Math.pow(destPos.lat - midPos.lat, 2) + Math.pow(destPos.lng - midPos.lng, 2)) * 111;
-  trip.distanceKm += segment2;
-  trip.path.push(destPos);
-  trip.lastPos = destPos;
-
-  // Arrival check (within 150m)
-  const distToDest = Math.sqrt(Math.pow(destPos.lat - trip.destination[0], 2) + Math.pow(destPos.lng - trip.destination[1], 2)) * 111;
-  step('JOURNEY D: Arrival detected within radius', distToDest < 0.15);
-
-  // --- FINISH TRIP: Road distance fallback ---
-  // Simulate OSRM road distance (would be called in finishTrip)
-  const straightKm = Math.sqrt(Math.pow(destPos.lat - startPos.lat, 2) + Math.pow(destPos.lng - startPos.lng, 2)) * 111;
-  const roadKm = straightKm * 1.3; // typical road factor
-  const finalDistance = Math.max(trip.distanceKm, roadKm);
-  step('JOURNEY D: Final distance uses road fallback', finalDistance >= roadKm);
-
-  // --- TRIP LOGGED ---
-  await db.trips.add({
-    date: trip.startTime, startLocation: 'Base', endLocation: firstVisit.address,
-    distanceKm: finalDistance, purpose: 'business', appointmentId: firstVisit.id, autoTracked: true
-  });
-  const loggedTrip = (await db.trips.toArray()).find(t => t.appointmentId === firstVisit.id);
-  step('JOURNEY D: Trip logged to database', !!loggedTrip);
-  step('JOURNEY D: Trip distance recorded', loggedTrip?.distanceKm > 0);
-
-  // --- NEXT VISIT: Navigation to second visit ---
-  const secondVisit = visits[1];
-  const navUrl2 = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(firstVisit.address)}&destination=${encodeURIComponent(secondVisit.address)}`;
-  step('JOURNEY D: Navigation to next visit available', navUrl2.includes('King Street'));
-
-  document.body.textContent = JSON.stringify({ journey: 'D', results });
-})().catch(e => { document.body.textContent = 'SEED_FAILED:' + String(e && e.message || e); });
+  // Boot the REAL production app scripts below (same set as index.html),
+  // but block App.init()'s DOMContentLoaded listener so nothing tries to
+  // render the app shell in this test page.
+  document.addEventListener('DOMContentLoaded', e => e.stopImmediatePropagation(), { capture: true, once: true });
 </script>
-</body></html>
+<script src="../../js/vendor/dexie.min.js?v=1" defer></script>
+<script src="../../js/vendor/minidexie.min.js?v=12" defer></script>
+<script src="../../js/core/config.min.js?v=10" defer></script>
+<script src="../../js/core/utils.min.js?v=6" defer></script>
+<script src="../../js/core/db.min.js?v=15" defer></script>
+<script src="../../js/core/geoprovider.min.js?v=1" defer></script>
+<script src="../../js/core/geo.min.js?v=6" defer></script>
+<script src="../../js/core/search.min.js?v=2" defer></script>
+<script src="../../js/core/tax.min.js?v=2" defer></script>
+<script src="../../js/core/app.min.js?v=8" defer></script>
+<script src="../../js/core/contact.min.js?v=3" defer></script>
+<script src="../../js/services/ai.min.js?v=7" defer></script>
+<script src="../../js/services/notification.min.js?v=5" defer></script>
+<script src="../../js/services/message-scheduler.min.js?v=3" defer></script>
+<script src="../../js/services/export.min.js?v=3" defer></script>
+<script src="../../js/services/weather.min.js?v=3" defer></script>
+<script src="../../js/features/onboarding/onboarding.min.js?v=6" defer></script>
+<script src="../../js/features/companion/companion.min.js?v=2" defer></script>
+<script src="../../js/features/today/today.min.js?v=17" defer></script>
+<script src="../../js/features/today/home-screen-controller.min.js?v=10" defer></script>
+<script src="../../js/features/appointments/appointments.min.js?v=23" defer></script>
+<script src="../../js/features/customer/customer.min.js?v=3" defer></script>
+<script src="../../js/features/route/route.min.js?v=9" defer></script>
+<script src="../../js/features/followups/followups.min.js?v=5" defer></script>
+<script src="../../js/features/orders/orders.min.js?v=5" defer></script>
+<script src="../../js/features/money/money.min.js?v=7" defer></script>
+<script src="../../js/features/talk/talk.min.js?v=14" defer></script>
+<script src="../../js/features/measure/measure.min.js?v=6" defer></script>
+<script src="../../js/features/ocr/ocr.min.js?v=17" defer></script>
+<script src="../../js/features/control/control.min.js?v=5" defer></script>
+<script src="../../js/features/settings/settings.min.js?v=11" defer></script>
+</head>
+<body>
+<div id="main"></div>
+<script>
+window.addEventListener("load", async () => {
+  const results = [];
+  try {
+  const step = (label, pass, extra) => results.push({ label, pass, extra });
+
+  await DB.init();
+  await DB.deleteAllData();
+
+  Object.assign(CONFIG, {
+    weeklyTarget: 600,
+    autoMessages: { enabled: true, eveningHour: 18, morningHour: 8 },
+    templates: { evening_before: 'Hi {firstName}, see you tomorrow at {time}.' }
+  });
+
+  const customer = await DB.addCustomer({ firstName: 'John', lastName: 'Smith', fullName: 'John Smith', phone: '07123456789' });
+  const today = Utils.getToday();
+  const at = (d, h, m = 0) => { const dt = new Date(d); dt.setHours(h, m, 0, 0); return dt.toISOString(); };
+
+  // Today's measure is done; tomorrow's consultation still needs its
+  // day-before message; a quote from last week is due; an order is unpaid.
+  const doneToday = await DB.addAppointment({
+    customerId: customer.id, clientName: 'John', type: 'measure',
+    date: at(today, 14), status: 'completed', outcome: 'measured'
+  });
+  const tomorrowVisit = await DB.addAppointment({
+    customerId: customer.id, clientName: 'John', type: 'consultation',
+    date: at(Utils.addDays(today, 1), 10)
+  });
+  await DB.addAppointment({
+    customerId: customer.id, clientName: 'John', type: 'consultation',
+    date: at(Utils.addDays(today, -6), 11), status: 'completed', outcome: 'quoted', value: 1250
+  });
+  const unpaid = await DB.addOrder({ customerId: customer.id, total: 900 });
+
+  // 1. Day-before scheduling for tomorrow's visit.
+  await MessageScheduler.reschedule();
+  const key = (stage, id) => 'advisoros_auto_' + stage + '_' + id;
+  step('evening-before scheduled for tomorrow visit', MessageScheduler.timers.has(key('evening_before', tomorrowVisit.id)));
+  step('morning-of scheduled for tomorrow visit', MessageScheduler.timers.has(key('morning_of', tomorrowVisit.id)));
+  step('no check-in scheduled for the completed visit',
+    !MessageScheduler.timers.has(key('evening_before', doneToday.id)) && !MessageScheduler.timers.has(key('morning_of', doneToday.id)));
+
+  // 2. Evening review: nothing to log, one message due, one order unpaid,
+  //    one quote follow-up due.
+  const review = await CompanionFeature.answerEveningReview();
+  const fact = l => (review.facts.find(f => f.label === l) || {}).value;
+  step('no outcomes outstanding', fact('Outcomes not logged') === undefined, { got: fact('Outcomes not logged') });
+  step('day-before message flagged for tomorrow', fact('Messages unsent') === '1 visit need a message', { got: fact('Messages unsent') });
+  step('unpaid order reported', fact('Outstanding') === Utils.formatCurrency(900) + ' over 1 order', { got: fact('Outstanding') });
+  step('quote follow-up + day-before task both due', fact('Follow-ups due') === '2 tasks', { got: fact('Follow-ups due') });
+
+  // 3. Task inbox: tomorrow's message task, payment task, quote task.
+  const tasks = await FollowupsFeature.loadTasks();
+  const tmrw = tasks.find(t => t.kind === 'visit_tomorrow' && t.appointment && t.appointment.id === tomorrowVisit.id);
+  step('tomorrow visit has a day-before task', !!tmrw && tmrw.due === true, { got: tmrw && tmrw.action });
+  const payment = tasks.find(t => t.kind === 'payment' && t.order && t.order.id === unpaid.id);
+  step('unpaid order has a payment task', !!payment);
+  step('payment task is not due before the production reminder day', payment && payment.due === false, { got: payment && payment.due });
+  const quote = tasks.find(t => t.kind === 'quote' && t.appointment && t.appointment.outcome === 'quoted');
+  step('old quote is due for follow-up', !!quote && quote.due === true, { got: quote && quote.due });
+
+  document.body.textContent = JSON.stringify({ results });
+
+  } catch (e) {
+    document.body.textContent = "SEED_FAILED: " + (e && e.message ? e.message : String(e));
+  }
+});
+</script>
+</body>
+</html>

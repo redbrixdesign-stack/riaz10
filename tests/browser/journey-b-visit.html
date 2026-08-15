@@ -1,119 +1,144 @@
 <!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>journey-b-visit</title></head>
-<body>
-<script src="../../js/vendor/dexie.min.js"></script>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Journey B — Visit</title>
 <script>
-/* ============================================
-   JOURNEY B — CUSTOMER VISIT
-   Open customer → inspect history → view buying interests → view previous communications
-   → measure → record outcome
-   ============================================ */
-(async () => {
-  const results = [];
-  const step = (label, cond, extra) => results.push({ label, pass: !!cond, extra: extra || null });
-
-  const db = new Dexie('advisoros_v6');
-  db.version(1).stores({
-    customers: '++id, customerNumber, firstName, lastName, phone, email, postcodeNormalized, source, status, createdAt',
-    appointments: '++id, customerId, date, type, status, outcome, source, createdAt',
-    orders: '++id, customerId, appointmentId, orderNumber, supplierOrderNumber, status, createdAt',
-    expenses: '++id, date, category, amount, tripId, createdAt',
-    trips: '++id, date, appointmentId, purpose, confirmed, createdAt',
-    measurements: '++id, appointmentId, windowName, createdAt',
-    communications: '++id, customerId, type, template, sentAt',
-    settings: 'key',
-    sequences: 'name'
-  });
-  await db.open();
-
-  // Clear any existing data for test isolation
-  await db.transaction('rw', db.tables, async () => {
-    for (const table of db.tables) await table.clear();
-  });
-
-  const iso = d => d.toISOString();
-  const today = new Date();
-  today.setHours(12, 0, 0, 0);
-
-  // Seed: Customer with history
-  const cid = await db.customers.add({
-    firstName: 'Sarah', lastName: 'Johnson', phone: '07700 900123',
-    customerNumber: 'CUS-' + today.getFullYear() + '-0001',
-    address: { line1: '10 High Street', city: 'Manchester', postcode: 'M1 1AA' },
-    status: 'active', createdAt: iso(new Date(today.getTime() - 60 * 86400000))
-  });
-
-  // Past visit 1: 5 days ago - consultation, outcome: quoted, value 1250
-  const past1 = await db.appointments.add({
-    customerId: cid, date: iso(new Date(today.getTime() - 5 * 86400000)),
-    type: 'consultation', status: 'completed', outcome: 'quoted', value: 1250,
-    address: '10 High Street, Manchester M1 1AA',
-    source: 'manual', createdAt: iso(new Date(today.getTime() - 5 * 86400000))
-  });
-
-  // Measurements from past visit
-  await db.measurements.add({ appointmentId: past1, windowName: 'Lounge Bay', createdAt: iso(new Date(today.getTime() - 5 * 86400000)) });
-  await db.measurements.add({ appointmentId: past1, windowName: 'Kitchen', createdAt: iso(new Date(today.getTime() - 5 * 86400000)) });
-
-  // Past communication from that visit
-  await db.communications.add({ customerId: cid, type: 'whatsapp_attempted', template: 'follow_up.quote', sentAt: iso(new Date(today.getTime() - 4 * 86400000)), content: 'Hi Sarah, checking in on the quote...' });
-
-  // Today's visit: fitting at 14:00
-  const todayAppt = await db.appointments.add({
-    customerId: cid, date: iso(new Date(today.getTime() + 2 * 3600000)),
-    type: 'fitting', status: 'confirmed', outcome: null,
-    address: '10 High Street, Manchester M1 1AA',
-    source: 'manual', createdAt: iso(new Date(today.getTime() - 1 * 86400000))
-  });
-
-  // --- OPEN CUSTOMER ---
-  const customer = await db.customers.get(cid);
-  step('JOURNEY B: Customer profile loads', customer && customer.firstName === 'Sarah');
-
-  // --- INSPECT HISTORY: Past visits ---
-  const pastVisits = (await db.appointments.toArray())
-    .filter(a => a.customerId === cid && new Date(a.date) < new Date())
-    .sort((a, b) => new Date(b.date) - new Date(a.date));
-  step('JOURNEY B: Has 1 past visit', pastVisits.length === 1);
-  step('JOURNEY B: Past visit outcome was quoted', pastVisits[0].outcome === 'quoted');
-  step('JOURNEY B: Past visit value was £1250', pastVisits[0].value === 1250);
-
-  // --- VIEW BUYING INTERESTS: Measurements from past visits ---
-  const pastMeasurements = (await db.measurements.toArray())
-    .filter(m => m.appointmentId === pastVisits[0].id);
-  step('JOURNEY B: Past visit has 2 measured windows', pastMeasurements.length === 2);
-  step('JOURNEY B: Windows: Lounge Bay, Kitchen', pastMeasurements.map(m => m.windowName).join(',') === 'Lounge Bay,Kitchen');
-
-  // --- VIEW PREVIOUS COMMUNICATIONS ---
-  const comms = (await db.communications.toArray())
-    .filter(c => c.customerId === cid)
-    .sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt));
-  step('JOURNEY B: Has previous WhatsApp message', comms.length === 1);
-  step('JOURNEY B: Message was follow_up.quote', comms[0].template === 'follow_up.quote');
-
-  // --- MEASURE: Add measurements for today's visit ---
-  const measureId1 = await db.measurements.add({ appointmentId: todayAppt, windowName: 'Master Bedroom', createdAt: iso(today) });
-  const measureId2 = await db.measurements.add({ appointmentId: todayAppt, windowName: 'Ensuite', createdAt: iso(today) });
-  const todayMeasures = (await db.measurements.toArray()).filter(m => m.appointmentId === todayAppt);
-  step('JOURNEY B: Added 2 measurements for today', todayMeasures.length === 2);
-
-  // --- RECORD OUTCOME: Ordered ---
-  await db.appointments.update(todayAppt, { outcome: 'ordered', value: 2100, status: 'completed' });
-  const updated = await db.appointments.get(todayAppt);
-  step('JOURNEY B: Outcome recorded as ordered', updated.outcome === 'ordered');
-  step('JOURNEY B: Value recorded £2100', updated.value === 2100);
-
-  // --- ORDER CREATED (simulated from outcome) ---
-  await db.orders.add({
-    customerId: cid, appointmentId: todayAppt, orderNumber: 'ORD-2026-0001',
-    supplierOrderNumber: '', status: 'active', total: 2100,
-    depositRequired: 1050, depositPaid: 0, balanceDue: 2100,
-    stage: 'ordered', createdAt: iso(today)
-  });
-  const order = (await db.orders.toArray()).find(o => o.appointmentId === todayAppt);
-  step('JOURNEY B: Order created with deposit required', order && order.depositRequired === 1050);
-
-  document.body.textContent = JSON.stringify({ journey: 'B', results });
-})().catch(e => { document.body.textContent = 'SEED_FAILED:' + String(e && e.message || e); });
+  // Boot the REAL production app scripts below (same set as index.html),
+  // but block App.init()'s DOMContentLoaded listener so nothing tries to
+  // render the app shell in this test page.
+  document.addEventListener('DOMContentLoaded', e => e.stopImmediatePropagation(), { capture: true, once: true });
 </script>
-</body></html>
+<script src="../../js/vendor/dexie.min.js?v=1" defer></script>
+<script src="../../js/vendor/minidexie.min.js?v=12" defer></script>
+<script src="../../js/core/config.min.js?v=10" defer></script>
+<script src="../../js/core/utils.min.js?v=6" defer></script>
+<script src="../../js/core/db.min.js?v=15" defer></script>
+<script src="../../js/core/geoprovider.min.js?v=1" defer></script>
+<script src="../../js/core/geo.min.js?v=6" defer></script>
+<script src="../../js/core/search.min.js?v=2" defer></script>
+<script src="../../js/core/tax.min.js?v=2" defer></script>
+<script src="../../js/core/app.min.js?v=8" defer></script>
+<script src="../../js/core/contact.min.js?v=3" defer></script>
+<script src="../../js/services/ai.min.js?v=7" defer></script>
+<script src="../../js/services/notification.min.js?v=5" defer></script>
+<script src="../../js/services/message-scheduler.min.js?v=3" defer></script>
+<script src="../../js/services/export.min.js?v=3" defer></script>
+<script src="../../js/services/weather.min.js?v=3" defer></script>
+<script src="../../js/features/onboarding/onboarding.min.js?v=6" defer></script>
+<script src="../../js/features/companion/companion.min.js?v=2" defer></script>
+<script src="../../js/features/today/today.min.js?v=17" defer></script>
+<script src="../../js/features/today/home-screen-controller.min.js?v=10" defer></script>
+<script src="../../js/features/appointments/appointments.min.js?v=23" defer></script>
+<script src="../../js/features/customer/customer.min.js?v=3" defer></script>
+<script src="../../js/features/route/route.min.js?v=9" defer></script>
+<script src="../../js/features/followups/followups.min.js?v=5" defer></script>
+<script src="../../js/features/orders/orders.min.js?v=5" defer></script>
+<script src="../../js/features/money/money.min.js?v=7" defer></script>
+<script src="../../js/features/talk/talk.min.js?v=14" defer></script>
+<script src="../../js/features/measure/measure.min.js?v=6" defer></script>
+<script src="../../js/features/ocr/ocr.min.js?v=17" defer></script>
+<script src="../../js/features/control/control.min.js?v=5" defer></script>
+<script src="../../js/features/settings/settings.min.js?v=11" defer></script>
+</head>
+<body>
+<div id="main"></div>
+<!-- Hidden form controls the production outcome modal reads from -->
+<input id="outcome-value" value="2100">
+<input id="outcome-discount" value="">
+<input id="outcome-notes" value="">
+<select id="outcome-reason"><option value=""></option></select>
+<script>
+window.addEventListener("load", async () => {
+  const results = [];
+  try {
+  const step = (label, pass, extra) => results.push({ label, pass, extra });
+
+  await DB.init();
+  await DB.deleteAllData();
+
+  const customer = await DB.addCustomer({
+    firstName: 'Sarah', lastName: 'Johnson', fullName: 'Sarah Johnson', phone: '07700900123',
+    address: { line1: '8 Test Lane', city: 'Manchester', postcode: 'M2 2BB', postcodeNormalized: 'M22BB' }
+  });
+
+  const fiveDaysAgo = Utils.addDays(Utils.getToday(), -5);
+  const at = (d, h) => { const dt = new Date(d); dt.setHours(h, 0, 0, 0); return dt.toISOString(); };
+
+  const pastAppt = await DB.addAppointment({
+    customerId: customer.id, type: 'consultation',
+    date: at(fiveDaysAgo, 11), status: 'completed', outcome: 'quoted', value: 1250
+  });
+
+  const measurement = await DB.addMeasurement({
+    appointmentId: pastAppt.id,
+    windowName: 'Living Room Bay',
+    widthTop: 1100, widthMiddle: 1200, widthBottom: 1150,
+    dropLeft: 1500, dropCentre: 1600, dropRight: 1550,
+    tolerance: 10, fittingType: 'recess'
+  });
+
+  await DB.addCommunication({
+    customerId: customer.id, appointmentId: pastAppt.id,
+    type: 'whatsapp_attempted', template: 'follow_up.quote', content: 'Hi Sarah, following up on your quote'
+  });
+
+  const todayAppt = await DB.addAppointment({
+    customerId: customer.id, clientName: 'Sarah', type: 'fitting',
+    date: at(Utils.getToday(), 14)
+  });
+
+  // 1. Search finds the customer through production search.
+  const found = await DB.searchCustomers('Sarah');
+  step('customer search finds Sarah', found.length === 1 && found[0].firstName === 'Sarah', { got: found.length });
+
+  // 2. Companion profile brief uses the real visit history.
+  const profile = await CompanionFeature.answerPerson('Sarah Johnson');
+  const fact = l => (profile.facts.find(f => f.label === l) || {}).value;
+  step('Companion surfaces last visit with its real outcome', String(fact('Last visit')).includes('quoted'), { got: fact('Last visit') });
+  step('Companion surfaces the upcoming fitting', String(fact('Next visit')).includes('14:00'), { got: fact('Next visit') });
+  step('intro draft is flagged as not sent for the new visit', fact('Intro message') === 'Not sent yet', { got: fact('Intro message') });
+  step('profile text names the customer', profile.text.startsWith('Sarah Johnson'), { got: profile.text });
+
+  // 3. Measurements recorded through production calculate the derived fields.
+  step('least width is the smallest of the three', measurement.widthLeast === 1100, { got: measurement.widthLeast });
+  step('least drop is the smallest of the three', measurement.dropLeast === 1500, { got: measurement.dropLeast });
+  step('recess width used = least minus tolerance', measurement.widthUsed === 1090, { got: measurement.widthUsed });
+  step('drop used = least drop', measurement.dropUsed === 1500, { got: measurement.dropUsed });
+  step('no diagonals → variance is null', measurement.diagonalVariance === null && measurement.isSquare === null);
+
+  // 4. Today's fitting visit exists and is the only one.
+  const todays = await DB.getAppointmentsForDate(Utils.getToday().toISOString());
+  step('today has exactly the one fitting visit', todays.length === 1 && todays[0].type === 'fitting', { got: todays.length });
+
+  // 5. Record the outcome through the production save path (real DB write,
+  //    real order upsert + real customer totals refresh).
+  await AppointmentsFeature.saveOutcome(todayAppt.id, 'ordered');
+  const saved = await DB.db.appointments.get(todayAppt.id);
+  step('visit completed with ordered outcome', saved.status === 'completed' && saved.outcome === 'ordered');
+  step('sale value recorded', saved.value === 2100, { got: saved.value });
+  step('commission matches production estimate', saved.commission === TaxCalculator.estimateCommission(2100), { got: saved.commission });
+
+  const order = await DB.db.orders.where('appointmentId').equals(todayAppt.id).first();
+  step('order created for the sale', !!order);
+  step('deposit is production-calculated (50% of 2100)', order && order.depositRequired === App.calculateDeposit(2100).amount, { got: order && order.depositRequired });
+  step('balance due is the full sale', order && order.balanceDue === 2100, { got: order && order.balanceDue });
+  step('order starts deposit_pending', order && order.status === 'deposit_pending', { got: order && order.status });
+
+  const totals = await DB.db.customers.get(customer.id);
+  step('customer totals refreshed from the order', totals.totalOrdersValue === 2100 && totals.orderCount === 1,
+    { got: { totalOrdersValue: totals.totalOrdersValue, orderCount: totals.orderCount } });
+
+  // 6. The follow-up communication from the quote is on record.
+  const comms = await DB.db.communications.where('customerId').equals(customer.id).toArray();
+  step('quote follow-up communication recorded', comms.length === 1 && comms[0].template === 'follow_up.quote', { got: comms.length });
+
+  document.body.textContent = JSON.stringify({ results });
+
+  } catch (e) {
+    document.body.textContent = "SEED_FAILED: " + (e && e.message ? e.message : String(e));
+  }
+});
+</script>
+</body>
+</html>

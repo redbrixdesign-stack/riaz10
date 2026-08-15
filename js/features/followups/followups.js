@@ -117,7 +117,7 @@ const FollowupsFeature = {
     //    list, not "upcoming" (that window starts at now).
     for (const appt of todayAppts) {
       if (appt.status !== 'confirmed' || appt.outcome) continue;
-      if (dayKey(appt.date) !== dayKey(now)) continue;
+      if (ukDayKey(appt.date) !== todayKey) continue;
       tasks.push({
         kind: 'visit_today',
         due: true,
@@ -133,7 +133,7 @@ const FollowupsFeature = {
     // 4. Tomorrow's visits needing their day-before message.
     for (const appt of upcoming) {
       if (appt.status !== 'confirmed' || appt.dayBeforeSent) continue;
-      if (dayKey(appt.date) !== dayKey(tomorrow)) continue;
+      if (ukDayKey(appt.date) !== tomorrowKey) continue;
       if (!appt.phone && !appt.customerId) continue;
       tasks.push({
         kind: 'visit_tomorrow',
