@@ -4,6 +4,70 @@
    ============================================ */
 
 const ExportService = {
+  // Track last backup for UI
+  _LAST_BACKUP_KEY: 'beelo_last_backup',
+
+  // Record last backup metadata
+  async _recordBackup(backup) {
+    try {
+      const data = await DB.exportAll();
+      const counts = {};
+      let totalRecords = 0;
+      let photoCount = 0;
+      for (const [table, rows] of Object.entries(backup.data || {})) {
+        if (Array.isArray(rows)) {
+          counts[table] = rows.length;
+          totalRecords += rows.length;
+          if (table === 'photos') photoCount = rows.length;
+        }
+      }
+      const meta = {
+        timestamp: new Date().toISOString(),
+        totalRecords,
+        photoCount,
+        tableCounts: counts,
+        backupVersion: 1,
+        filename: `beelo_backup_${Utils.formatDateUK(new Date(), 'iso')}.json`
+      };
+      localStorage.setItem(this._LAST_BACKUP_KEY, JSON.stringify(meta));
+      return meta;
+    } catch (e) {
+      console.warn('Failed to record backup metadata:', e);
+      return null;
+    }
+  },
+
+  // Get last backup metadata
+  getLastBackupMeta() {
+    try {
+      const stored = localStorage.getItem('beelo_last_backup');
+      return stored ? JSON.parse(stored) : null;
+    } catch (e) {
+      return null;
+    }
+  },
+
+  // Check if backup is stale (older than 14 days)
+  isBackupStale() {
+    const meta = this.getLastBackupMeta();
+    if (!meta) return true;
+    const daysSince = (Date.now() - new Date(meta.timestamp).getTime()) / (1000 * 60 * 60 * 24);
+    return daysSince > 14;
+  },
+
+  // Get human-readable backup age
+  getBackupAgeLabel() {
+    const meta = this.getLastBackupMeta();
+    if (!meta) return 'Never backed up';
+    const daysSince = Math.floor((Date.now() - new Date(meta.timestamp).getTime()) / (1000 * 60 * 60 * 24));
+    if (daysSince === 0) return 'Today';
+    if (daysSince === 1) return 'Yesterday';
+    if (daysSince < 7) return `${daysSince} days ago`;
+    if (daysSince < 14) return `${Math.floor(daysSince / 7)} week${daysSince < 14 ? '' : 's'} ago`;
+    if (daysSince < 30) return `${Math.floor(daysSince / 7)} weeks ago`;
+    return `${Math.floor(daysSince / 30)} month${daysSince < 60 ? '' : 's'} ago`;
+  },
+
   // Export to CSV
   async exportCSV(tableName, filters = {}) {
     const data = await DB.db[tableName].toArray();
@@ -116,10 +180,14 @@ const ExportService = {
     const json = JSON.stringify(backup, null, 2);
     this.downloadFile(
       json,
-      `advisoros_backup_${Utils.formatDateUK(new Date(), 'iso')}.json`,
+      `beelo_backup_${Utils.formatDateUK(new Date(), 'iso')}.json`,
       'application/json'
     );
 
+    // Record backup metadata for UI
+    await this._recordBackup(backup);
+
+    Toast.show('Backup saved to your downloads', 'success');
     return backup;
   },
 
@@ -135,10 +203,15 @@ const ExportService = {
     return clean;
   },
 
-  // Import from JSON backup
+  // Import from JSON backup with user-friendly errors
   async importBackup(file) {
     const text = await file.text();
-    const backup = JSON.parse(text);
+    let backup;
+    try {
+      backup = JSON.parse(text);
+    } catch (e) {
+      throw new Error('This file is not a valid Beelo backup (not valid JSON)');
+    }
 
     // Backup format compatibility. Format 1 covers both the explicit
     // backupFormatVersion field (new exports) and the legacy '4.0'/'5.0'
@@ -150,13 +223,35 @@ const ExportService = {
       ? backup.backupFormatVersion
       : (legacyOk ? BACKUP_FORMAT_VERSION : null);
     if (formatVersion === null) {
-      throw new Error('Incompatible backup version');
+      throw new Error('This backup is from an incompatible version of Beelo. Please update the app and try again.');
     }
     if (formatVersion > BACKUP_FORMAT_VERSION) {
-      throw new Error('This backup was created by a newer version of the app — please update first');
+      throw new Error('This backup was created by a newer version of Beelo — please update the app first');
     }
     if (!backup.data || typeof backup.data !== 'object') {
-      throw new Error('Backup file is corrupt: no data found');
+      throw new Error('This backup file appears to be empty or corrupt');
+    }
+
+    // Show preview of what will be restored
+    const counts = {};
+    let totalRecords = 0;
+    for (const [table, rows] of Object.entries(backup.data || {})) {
+      if (Array.isArray(rows)) {
+        counts[table] = rows.length;
+      }
+    }
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+
+    // In browser, show confirmation dialog; in tests, skip confirmation
+    if (typeof window !== 'undefined' && typeof confirm === 'function') {
+      const confirmMsg = `Restore this backup?\n\n` +
+        `Created: ${Utils.formatDateUK(new Date(backup.exportedAt), 'long')} ${Utils.formatTimeUK(new Date(backup.exportedAt))}\n` +
+        `Records: ~${total} (${Object.entries(counts).map(([k, v]) => `${k}: ${v}`).join(', ')})\n\n` +
+        `⚠️ This will REPLACE all data on this device.`;
+
+      if (!confirm(confirmMsg)) {
+        throw new Error('Restore cancelled');
+      }
     }
 
     await DB.importAll(backup.data);
@@ -204,6 +299,7 @@ const ExportService = {
       await DB.setSetting('config', savedConfig);
     }
 
+    Toast.show('Backup restored successfully', 'success');
     return backup;
   },
 

@@ -412,20 +412,99 @@ const SettingsFeature = {
   },
 
   renderDataDetail() {
+    const backupMeta = ExportService.getLastBackupMeta();
+    const isStale = ExportService.isBackupStale();
+    const ageLabel = ExportService.getBackupAgeLabel();
+    const photoCount = backupMeta?.photoCount || 0;
+    const totalRecords = backupMeta?.totalRecords || 0;
+    const tableCounts = backupMeta?.tableCounts || {};
+
+    // Build table counts display
+    let countsHtml = '';
+    const tableOrder = ['customers', 'appointments', 'orders', 'measurements', 'photos', 'expenses', 'trips', 'communications'];
+    for (const table of tableOrder) {
+      const count = tableCounts[table];
+      if (count !== undefined) {
+        countsHtml += `<div class="flex justify-between"><span class="text-secondary">${Utils.escapeHtml(table)}</span><span class="fw-600">${count}</span></div>`;
+      }
+    }
+
     return `
       ${this.renderStorageCard()}
-      <div class="flex flex-col gap-sm">
-        <button class="btn btn-outline btn-sm" onclick="ExportService.exportBackup()"><span class="material-symbols-rounded">backup</span>Export Backup</button>
-        <button class="btn btn-outline btn-sm" onclick="SettingsFeature.importBackup()"><span class="material-symbols-rounded">restore</span>Import Backup</button>
-        <button class="btn btn-outline btn-sm" onclick="SettingsFeature.exportCSV()"><span class="material-symbols-rounded">download</span>Export to CSV</button>
-        <input type="file" id="import-file" accept=".json" style="display:none;" onchange="SettingsFeature.handleImport(event)">
+
+      <!-- Last Backup Info -->
+      <div class="card mb-md">
+        <div class="fw-600 mb-8" >Last Backup</div>
+        <div class="fs-14" style="color:var(--text-primary);" >${backupMeta ? ageLabel : 'Never backed up'}</div>
+        ${backupMeta ? `
+        <div class="fs-12 text-tertiary mt-4" >
+          ${backupMeta.totalRecords || 0} records · ${backupMeta.photoCount || 0} photos · v${backupMeta.backupVersion || 1}
+        </div>
+        <div class="mt-8" >
+          ${Object.keys(backupMeta.tableCounts || {}).length ? `
+          <div class="fs-12 text-tertiary mb-4" >Record counts:</div>
+          <div class="fs-13 lh-160" >${countsHtml}</div>
+          ` : ''}
+        </div>
+        ` : ''}
       </div>
 
-      <div class="flex flex-col gap-sm mt-sm">
-        <button class="btn btn-outline btn-sm text-danger border-danger-soft" onclick="SettingsFeature.confirmWipe()">
-          <span class="material-symbols-rounded">delete_forever</span>Start fresh — delete all data
+      <!-- Primary Backup Action -->
+      <div class="mb-md">
+        <button class="btn btn-primary btn-block" onclick="ExportService.exportBackup()">
+          <span class="material-symbols-rounded mr-8">backup</span>
+          <span class="fw-600">Back Up My Beelo</span>
         </button>
-      </div>`;
+        <div class="fs-12 text-tertiary mt-2 text-center" >Creates a complete backup of all your customers, visits, orders, measurements, photos, and settings</div>
+      </div>
+
+      <!-- Restore Section -->
+      <div class="card mb-md" style="border-left:3px solid var(--warning);">
+        <div class="fw-600 mb-4" >Restore from Backup</div>
+        <div class="fs-13 text-secondary mb-8" >Replaces all data on this device with a previous backup</div>
+        <div class="flex flex-col gap-sm">
+          <button class="btn btn-outline btn-sm" onclick="SettingsFeature.importBackup()">
+            <span class="material-symbols-rounded mr-8">restore</span>
+            <span>Choose Backup File</span>
+          </button>
+          <input type="file" id="import-file" accept=".json" style="display:none;" onchange="SettingsFeature.handleImport(event)">
+        </div>
+        <div class="fs-11 text-tertiary mt-4" >Only restores from Beelo backup files (.json). Your AI proxy secret is never included in backups and will not be affected.</div>
+      </div>
+
+      <!-- Export CSV -->
+      <div class="flex flex-col gap-sm mt-sm">
+        <button class="btn btn-outline btn-sm" onclick="SettingsFeature.exportCSV()">
+          <span class="material-symbols-rounded mr-8">download</span>
+          <span>Export to CSV (single table)</span>
+        </button>
+      </div>
+
+      <!-- Danger Zone -->
+      <div class="card mb-md" style="border-left:3px solid var(--danger);">
+        <div class="fw-600 mb-4 text-danger" >Danger Zone</div>
+        <div class="fs-13 text-secondary mb-8" >Permanent actions that cannot be undone</div>
+        <div class="flex flex-col gap-sm">
+          <button class="btn btn-outline btn-sm text-danger border-danger-soft" onclick="SettingsFeature.confirmWipe()">
+            <span class="material-symbols-rounded mr-8">delete_forever</span>
+            <span>Start Fresh — Delete All Data</span>
+          </button>
+        </div>
+        <div class="fs-11 text-tertiary mt-4" >Deletes all customers, visits, orders, photos, messages, settings, and targets. No undo.</div>
+      </div>
+
+      ${ExportService.isBackupStale() ? `
+      <!-- Backup Reminder -->
+      <div class="card mb-md" style="border-left:3px solid var(--accent);background:rgba(242,201,76,0.08);">
+        <div class="flex items-start gap-8">
+          <span class="material-symbols-rounded text-accent shrink-0" style="margin-top:2px;">notifications</span>
+          <div class="flex-1 min-w-0">
+            <div class="fw-600" >No recent backup</div>
+            <div class="fs-13 text-secondary mt-2" >Your last backup was ${ExportService.getBackupAgeLabel()}. Consider backing up before your next busy day.</div>
+          </div>
+        </div>
+      </div>
+      ` : ''}`;
   },
 
   renderStorageCard() {
