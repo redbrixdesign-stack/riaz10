@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>journey-b-visit</title></head>
+<body>
+<script src="../../js/vendor/dexie.min.js"></script>
+<script>
+/* ============================================
+   JOURNEY B — CUSTOMER VISIT
+   Open customer → inspect history → view buying interests → view previous communications
+   → measure → record outcome
+   ============================================ */
+(async () => {
+  const results = [];
+  const step = (label, cond, extra) => results.push({ label, pass: !!cond, extra: extra || null });
+
+  const db = new Dexie('advisoros_v6');
+  db.version(1).stores({
+    customers: '++id, customerNumber, firstName, lastName, phone, email, postcodeNormalized, source, status, createdAt',
+    appointments: '++id, customerId, date, type, status, outcome, source, createdAt',
+    orders: '++id, customerId, appointmentId, orderNumber, supplierOrderNumber, status, createdAt',
+    expenses: '++id, date, category, amount, tripId, createdAt',
+    trips: '++id, date, appointmentId, purpose, confirmed, createdAt',
+    measurements: '++id, appointmentId, windowName, createdAt',
+    communications: '++id, customerId, type, template, sentAt',
+    settings: 'key',
+    sequences: 'name'
+  });
+  await db.open();
+
+  // Clear any existing data for test isolation
+  await db.transaction('rw', db.tables, async () => {
+    for (const table of db.tables) await table.clear();
+  });
+
+  const iso = d => d.toISOString();
+  const today = new Date();
+  today.setHours(12, 0, 0, 0);
+
+  // Seed: Customer with history
+  const cid = await db.customers.add({
+    firstName: 'Sarah', lastName: 'Johnson', phone: '07700 900123',
+    customerNumber: 'CUS-' + today.getFullYear() + '-0001',
+    address: { line1: '10 High Street', city: 'Manchester', postcode: 'M1 1AA' },
+    status: 'active', createdAt: iso(new Date(today.getTime() - 60 * 86400000))
+  });
+
+  // Past visit 1: 5 days ago - consultation, outcome: quoted, value 1250
+  const past1 = await db.appointments.add({
+    customerId: cid, date: iso(new Date(today.getTime() - 5 * 86400000)),
+    type: 'consultation', status: 'completed', outcome: 'quoted', value: 1250,
+    address: '10 High Street, Manchester M1 1AA',
+    source: 'manual', createdAt: iso(new Date(today.getTime() - 5 * 86400000))
+  });
+
+  // Measurements from past visit
+  await db.measurements.add({ appointmentId: past1, windowName: 'Lounge Bay', createdAt: iso(new Date(today.getTime() - 5 * 86400000)) });
+  await db.measurements.add({ appointmentId: past1, windowName: 'Kitchen', createdAt: iso(new Date(today.getTime() - 5 * 86400000)) });
+
+  // Past communication from that visit
+  await db.communications.add({ customerId: cid, type: 'whatsapp_attempted', template: 'follow_up.quote', sentAt: iso(new Date(today.getTime() - 4 * 86400000)), content: 'Hi Sarah, checking in on the quote...' });
+
+  // Today's visit: fitting at 14:00
+  const todayAppt = await db.appointments.add({
+    customerId: cid, date: iso(new Date(today.getTime() + 2 * 3600000)),
+    type: 'fitting', status: 'confirmed', outcome: null,
+    address: '10 High Street, Manchester M1 1AA',
+    source: 'manual', createdAt: iso(new Date(today.getTime() - 1 * 86400000))
+  });
+
+  // --- OPEN CUSTOMER ---
+  const customer = await db.customers.get(cid);
+  step('JOURNEY B: Customer profile loads', customer && customer.firstName === 'Sarah');
+
+  // --- INSPECT HISTORY: Past visits ---
+  const pastVisits = (await db.appointments.toArray())
+    .filter(a => a.customerId === cid && new Date(a.date) < new Date())
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+  step('JOURNEY B: Has 1 past visit', pastVisits.length === 1);
+  step('JOURNEY B: Past visit outcome was quoted', pastVisits[0].outcome === 'quoted');
+  step('JOURNEY B: Past visit value was £1250', pastVisits[0].value === 1250);
+
+  // --- VIEW BUYING INTERESTS: Measurements from past visits ---
+  const pastMeasurements = (await db.measurements.toArray())
+    .filter(m => m.appointmentId === pastVisits[0].id);
+  step('JOURNEY B: Past visit has 2 measured windows', pastMeasurements.length === 2);
+  step('JOURNEY B: Windows: Lounge Bay, Kitchen', pastMeasurements.map(m => m.windowName).join(',') === 'Lounge Bay,Kitchen');
+
+  // --- VIEW PREVIOUS COMMUNICATIONS ---
+  const comms = (await db.communications.toArray())
+    .filter(c => c.customerId === cid)
+    .sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt));
+  step('JOURNEY B: Has previous WhatsApp message', comms.length === 1);
+  step('JOURNEY B: Message was follow_up.quote', comms[0].template === 'follow_up.quote');
+
+  // --- MEASURE: Add measurements for today's visit ---
+  const measureId1 = await db.measurements.add({ appointmentId: todayAppt, windowName: 'Master Bedroom', createdAt: iso(today) });
+  const measureId2 = await db.measurements.add({ appointmentId: todayAppt, windowName: 'Ensuite', createdAt: iso(today) });
+  const todayMeasures = (await db.measurements.toArray()).filter(m => m.appointmentId === todayAppt);
+  step('JOURNEY B: Added 2 measurements for today', todayMeasures.length === 2);
+
+  // --- RECORD OUTCOME: Ordered ---
+  await db.appointments.update(todayAppt, { outcome: 'ordered', value: 2100, status: 'completed' });
+  const updated = await db.appointments.get(todayAppt);
+  step('JOURNEY B: Outcome recorded as ordered', updated.outcome === 'ordered');
+  step('JOURNEY B: Value recorded £2100', updated.value === 2100);
+
+  // --- ORDER CREATED (simulated from outcome) ---
+  await db.orders.add({
+    customerId: cid, appointmentId: todayAppt, orderNumber: 'ORD-2026-0001',
+    supplierOrderNumber: '', status: 'active', total: 2100,
+    depositRequired: 1050, depositPaid: 0, balanceDue: 2100,
+    stage: 'ordered', createdAt: iso(today)
+  });
+  const order = (await db.orders.toArray()).find(o => o.appointmentId === todayAppt);
+  step('JOURNEY B: Order created with deposit required', order && order.depositRequired === 1050);
+
+  document.body.textContent = JSON.stringify({ journey: 'B', results });
+})().catch(e => { document.body.textContent = 'SEED_FAILED:' + String(e && e.message || e); });
+</script>
+</body></html>

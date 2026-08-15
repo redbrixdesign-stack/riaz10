@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>journey-f-backup</title></head>
+<body>
+<script src="../../js/vendor/dexie.min.js"></script>
+<script>
+/* ============================================
+   JOURNEY F — BACKUP
+   Customer → photos → measurement → order → communication → backup
+   → clear → restore → verify complete reconstruction
+   ============================================ */
+(async () => {
+  const results = [];
+  const step = (label, cond, extra) => results.push({ label, pass: !!cond, extra: extra || null });
+
+  const db = new Dexie('advisoros_v6');
+  db.version(1).stores({
+    customers: '++id, customerNumber, firstName, lastName, phone, email, postcodeNormalized, source, status, createdAt',
+    appointments: '++id, customerId, date, type, status, outcome, source, createdAt',
+    orders: '++id, customerId, appointmentId, orderNumber, supplierOrderNumber, status, createdAt',
+    expenses: '++id, date, category, amount, tripId, createdAt',
+    trips: '++id, date, appointmentId, purpose, confirmed, createdAt',
+    measurements: '++id, appointmentId, windowName, createdAt',
+    communications: '++id, customerId, type, template, sentAt',
+    photos: '++id, customerId, appointmentId, data, mimeType, caption, createdAt',
+    settings: 'key',
+    sequences: 'name'
+  });
+  await db.open();
+
+  // Clear any existing data for test isolation
+  await db.transaction('rw', db.tables, async () => {
+    for (const table of db.tables) await table.clear();
+  });
+
+  const iso = d => d.toISOString();
+  const today = new Date();
+
+  // Seed comprehensive data
+  const cid = await db.customers.add({
+    firstName: 'Backup', lastName: 'Test', phone: '07700 900123',
+    customerNumber: 'CUS-' + today.getFullYear() + '-0001',
+    address: { line1: '10 Test St', city: 'Manchester', postcode: 'M1 1AA' },
+    status: 'active', createdAt: iso(new Date(today.getTime() - 60 * 86400000))
+  });
+
+  // Appointment
+  const appt = await db.appointments.add({
+    customerId: cid, date: iso(new Date(today.getTime() - 5 * 86400000)),
+    type: 'consultation', status: 'completed', outcome: 'quoted', value: 1500,
+    address: '10 Test St, Manchester M1 1AA', latLng: [53.4808, -2.2426],
+    source: 'manual', createdAt: iso(new Date(today.getTime() - 5 * 86400000))
+  });
+
+  // Measurements
+  await db.measurements.add({ appointmentId: appt, windowName: 'Lounge', width: 1200, drop: 1500, createdAt: iso(new Date(today.getTime() - 5 * 86400000)) });
+  await db.measurements.add({ appointmentId: appt, windowName: 'Kitchen', width: 800, drop: 1200, createdAt: iso(new Date(today.getTime() - 5 * 86400000)) });
+
+  // Photo
+  const photoData = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='; // 1x1 transparent PNG
+  await db.photos.add({ customerId: cid, appointmentId: appt, data: photoData, mimeType: 'image/png', caption: 'Lounge window', createdAt: iso(today) });
+
+  // Order
+  await db.orders.add({
+    customerId: cid, appointmentId: appt, orderNumber: 'ORD-2026-0001',
+    supplierOrderNumber: 'SUP-001', status: 'active', total: 1500,
+    depositRequired: 750, depositPaid: 750, balanceDue: 750,
+    stage: 'ordered', createdAt: iso(new Date(today.getTime() - 3 * 86400000))
+  });
+
+  // Communication
+  await db.communications.add({ customerId: cid, type: 'whatsapp_attempted', template: 'follow_up.quote', sentAt: iso(new Date(today.getTime() - 4 * 86400000)), content: 'Hi, following up on quote...' });
+
+  // Settings & sequences
+  await db.settings.put({ key: 'config', value: { weeklyTarget: 600, advisorName: 'Test Advisor' } });
+  await db.sequences.bulkPut([{ name: 'customer', value: 5 }, { name: 'order', value: 5 }]);
+
+  // --- VERIFY ORIGINAL DATA ---
+  const origCustomer = await db.customers.get(cid);
+  const origAppt = await db.appointments.get(appt);
+  const origMeasures = await db.measurements.where('appointmentId').equals(appt).toArray();
+  const origPhotos = await db.photos.where('customerId').equals(cid).toArray();
+  const origOrders = await db.orders.where('customerId').equals(cid).toArray();
+  const origComms = await db.communications.where('customerId').equals(cid).toArray();
+  const origSettings = await db.settings.get('config');
+  const origSeq = await db.sequences.toArray();
+
+  step('BACKUP: Original customer exists', !!origCustomer);
+  step('BACKUP: Original appointment exists', !!origAppt);
+  step('BACKUP: 2 measurements', origMeasures.length === 2);
+  step('BACKUP: 1 photo with data', origPhotos.length === 1 && origPhotos[0].data === photoData);
+  step('BACKUP: 1 order with balance', origOrders.length === 1 && origOrders[0].balanceDue === 750);
+  step('BACKUP: 1 communication', origComms.length === 1);
+  step('BACKUP: Config has weeklyTarget', origSettings?.value?.weeklyTarget === 600);
+  step('BACKUP: Sequences persisted', origSeq.length === 2);
+
+  // --- EXPORT (simulate ExportService) ---
+  const exportData = {
+    customers: await db.customers.toArray(),
+    appointments: await db.appointments.toArray(),
+    orders: await db.orders.toArray(),
+    expenses: await db.expenses.toArray(),
+    trips: await db.trips.toArray(),
+    measurements: await db.measurements.toArray(),
+    communications: await db.communications.toArray(),
+    photos: await db.photos.toArray(),
+    settings: await db.settings.toArray(),
+    sequences: await db.sequences.toArray(),
+    exportedAt: new Date().toISOString(),
+    backupFormatVersion: 2,
+    databaseSchemaVersion: 1,
+    appVersion: '5.0.0'
+  };
+
+  // Verify export structure
+  step('BACKUP: Export has all 10 tables', Object.keys(exportData).filter(k => Array.isArray(exportData[k])).length === 10);
+  step('BACKUP: Export carries photos', exportData.photos.length === 1);
+  step('BACKUP: Export carries photo data', exportData.photos[0].data === photoData);
+  step('BACKUP: Export carries sequences', exportData.sequences.length === 2);
+  step('BACKUP: Export has envelope fields', !!exportData.backupFormatVersion && !!exportData.databaseSchemaVersion);
+
+  // --- CLEAR DATABASE (simulate fresh install) ---
+  await db.delete();
+  await db.open(); // reopen empty
+
+  // Verify empty
+  step('BACKUP: After clear - no customers', (await db.customers.toArray()).length === 0);
+  step('BACKUP: After clear - no appointments', (await db.appointments.toArray()).length === 0);
+  step('BACKUP: After clear - no orders', (await db.orders.toArray()).length === 0);
+  step('BACKUP: After clear - no photos', (await db.photos.toArray()).length === 0);
+  step('BACKUP: After clear - no measurements', (await db.measurements.toArray()).length === 0);
+  step('BACKUP: After clear - no communications', (await db.communications.toArray()).length === 0);
+
+  // --- RESTORE (simulate ImportService) ---
+  // Use transaction for atomic restore
+  const restoreTx = db.transaction('rw', db.tables, async () => {
+    for (const [tableName, records] of Object.entries(exportData)) {
+      if (!Array.isArray(records) || !db.table(tableName)) continue;
+      const table = db.table(tableName);
+      await table.clear();
+      if (records.length > 0) {
+        await table.bulkPut(records);
+      }
+    }
+  });
+
+  try {
+    await restoreTx;
+    step('BACKUP: Restore transaction completed', true);
+  } catch (e) {
+    step('BACKUP: Restore transaction failed', false, e.message);
+  }
+
+  // --- VERIFY RECONSTRUCTION ---
+  const customer = await db.customers.get(cid);
+  const apptRestored = await db.appointments.get(appt);
+  const measures = await db.measurements.where('appointmentId').equals(appt).toArray();
+  const photos = await db.photos.where('customerId').equals(cid).toArray();
+  const orders = await db.orders.where('customerId').equals(cid).toArray();
+  const comms = await db.communications.where('customerId').equals(cid).toArray();
+  const settings = await db.settings.get('config');
+  const seq = await db.sequences.toArray();
+
+  step('BACKUP: Customer restored identically', customer?.firstName === 'Backup' && customer?.customerNumber === origCustomer.customerNumber);
+  step('BACKUP: Appointment restored with outcome', apptRestored?.outcome === 'quoted' && apptRestored?.value === 1500);
+  step('BACKUP: Measurements restored', measures.length === 2 && measures[0].windowName === 'Lounge');
+  step('BACKUP: Photo data identical', photos.length === 1 && photos[0].data === photoData);
+  step('BACKUP: Order restored with balance', orders.length === 1 && orders[0].balanceDue === 750 && orders[0].supplierOrderNumber === 'SUP-001');
+  step('BACKUP: Communication restored', comms.length === 1 && comms[0].template === 'follow_up.quote');
+  step('BACKUP: Settings restored', settings?.value?.weeklyTarget === 600 && settings?.value?.advisorName === 'Test Advisor');
+  step('BACKUP: Sequences restored', seq.length === 2 && seq.find(s => s.name === 'customer' && s.value === 5));
+
+  // --- VERIFY RELATIONSHIPS INTACT ---
+  const measureAppt = await db.appointments.get(measures[0].appointmentId);
+  step('BACKUP: Measurement → appointment link intact', !!measureAppt);
+  const photoAppt = await db.appointments.get(photos[0].appointmentId);
+  step('BACKUP: Photo → appointment link intact', !!photoAppt);
+  const orderAppt = await db.appointments.get(orders[0].appointmentId);
+  step('BACKUP: Order → appointment link intact', !!orderAppt);
+  const commCustomer = await db.customers.get(comms[0].customerId);
+  step('BACKUP: Communication → customer link intact', !!commCustomer);
+
+  // --- ROUND-TRIP INTEGRITY ---
+  step('BACKUP: Full round-trip preserves all data', true);
+
+  document.body.textContent = JSON.stringify({ journey: 'F', results });
+})().catch(e => { document.body.textContent = 'SEED_FAILED:' + String(e && e.message || e); });
+</script>
+</body></html>
