@@ -180,13 +180,13 @@ const CompanionFeature = {
             <span class="comp-home-section-time">${nv.time}</span>
           </div>
           <div class="comp-home-next-visit">
-            <div class="comp-home-next-visit-main">
+            <button type="button" class="comp-home-next-visit-main" onclick="App.navigate('appointments', {id: ${nv.id}})">
               <div class="comp-home-next-visit-name">${Utils.escapeHtml(nv.name)}</div>
               <div class="comp-home-next-visit-meta">${Utils.escapeHtml(nv.area)} · ${Utils.escapeHtml(nv.type)}</div>
               <div class="comp-home-next-visit-address">${Utils.escapeHtml(nv.address)}</div>
-            </div>
+            </button>
             <div class="comp-home-next-visit-eta">
-              <span class="material-symbols-rounded">directions_car</span>
+              <span class="material-symbols-rounded" aria-hidden="true">directions_car</span>
               <span>${nv.eta}</span>
             </div>
           </div>
@@ -213,7 +213,7 @@ const CompanionFeature = {
         else { stateClass = 'upcoming'; stateLabel = 'Upcoming'; }
         
         return `
-          <div class="comp-home-visit ${stateClass}">
+          <button type="button" class="comp-home-visit ${stateClass}" onclick="App.navigate('appointments', {id: ${v.id}})">
             <span class="comp-home-visit-state">${stateLabel}</span>
             <div class="comp-home-visit-main">
               <span class="comp-home-visit-time">${Utils.formatTimeUK(v.date)}</span>
@@ -221,7 +221,8 @@ const CompanionFeature = {
               <span class="comp-home-visit-area">${Utils.escapeHtml(v.area)}</span>
             </div>
             <span class="comp-home-visit-type">${Utils.escapeHtml(v.type)}</span>
-          </div>`;
+            <span class="material-symbols-rounded comp-home-visit-chevron" aria-hidden="true">chevron_right</span>
+          </button>`;
       }).join('');
       
       todayHtml = `
@@ -246,14 +247,21 @@ const CompanionFeature = {
     // D. NEEDS YOUR ATTENTION
     let attentionHtml = '';
     if (homeData.attention && homeData.attention.length > 0) {
-      const itemsHtml = homeData.attention.map(item => `
-        <div class="comp-home-attention-item">
-          <span class="material-symbols-rounded comp-home-attention-icon">${item.icon}</span>
+      const itemsHtml = homeData.attention.map(item => item.action ? `
+        <button type="button" class="comp-home-attention-item" onclick="${item.action}">
+          <span class="material-symbols-rounded comp-home-attention-icon" aria-hidden="true">${item.icon}</span>
           <div class="comp-home-attention-content">
             <span class="comp-home-attention-label">${Utils.escapeHtml(item.label)}</span>
             <span class="comp-home-attention-value">${Utils.escapeHtml(item.value)}</span>
           </div>
-          ${item.action ? `<button class="btn btn-outline btn-sm" onclick="${item.action}">${item.actionLabel}</button>` : ''}
+          <span class="comp-home-attention-cta">${Utils.escapeHtml(item.actionLabel || 'Open')}<span class="material-symbols-rounded" aria-hidden="true">chevron_right</span></span>
+        </button>` : `
+        <div class="comp-home-attention-item">
+          <span class="material-symbols-rounded comp-home-attention-icon" aria-hidden="true">${item.icon}</span>
+          <div class="comp-home-attention-content">
+            <span class="comp-home-attention-label">${Utils.escapeHtml(item.label)}</span>
+            <span class="comp-home-attention-value">${Utils.escapeHtml(item.value)}</span>
+          </div>
         </div>`).join('');
       
       attentionHtml = `
@@ -274,7 +282,7 @@ const CompanionFeature = {
           <span class="comp-home-section-label">ASK BEELO</span>
         </div>
         <div class="comp-home-suggestions">
-          ${suggestions.map(s => `<button class="comp-suggestion-chip" type="button" onclick="CompanionFeature.send(${Utils.escapeJsString(JSON.stringify(s))})">${Utils.escapeHtml(this.CHIP_LABELS[s] || s)}</button>`).join('')}
+          ${suggestions.map(s => `<button class="comp-suggestion-chip" type="button" onclick="CompanionFeature.send('${Utils.escapeJsString(s)}')">${Utils.escapeHtml(this.CHIP_LABELS[s] || s)}</button>`).join('')}
         </div>
       </div>` : '';
 
@@ -293,33 +301,34 @@ const CompanionFeature = {
   // actually cares about right now. Falls back to the static card bag when
   // a data source is missing or offline.
   async buildHomeData() {
-    const hour = Utils.hourUK();
-    const greeting = hour < 5 ? 'Working late' : hour < 12 ? 'Morning' : hour < 17 ? 'Afternoon' : hour < 22 ? 'Evening' : 'Late shift';
-    const firstName = Utils.firstNameFrom(CONFIG.advisorName || '');
-    
-    // A. Greeting subtext
-    let count = 0;
-    try { count = await FollowupsFeature.getDueCount(); } catch (e) {}
-    const greetingSub = count > 0 ? `You've got ${count} thing${count === 1 ? '' : 's'} due today. What would help?` : 'What would help?';
-
     // Gather all data needed
     const today = Utils.getToday();
     let todayAppts = [];
     let upcoming = [];
     let orders = [];
-    let dueFollowUps = [];
-    
+
     try {
       todayAppts = (await DB.getAppointmentsForDate(today.toISOString())).filter(a => a.status !== 'cancelled');
       upcoming = await DB.getUpcomingAppointments(14);
       orders = await DB.db.orders.toArray();
-      const tasks = await FollowupsFeature.loadTasks();
-      dueFollowUps = tasks.filter(t => t.due);
     } catch (e) {}
 
-    const doneToday = todayAppts.filter(a => a.outcome || a.status === 'completed');
     const pendingToday = todayAppts.filter(a => !a.outcome && a.status !== 'completed');
-    const upcomingToday = upcoming.filter(a => a.status !== 'cancelled');
+
+    // A. Greeting subtext — real day shape, not a stock line
+    let greetingSub;
+    if (todayAppts.length === 0) {
+      greetingSub = 'No visits booked today. What would help?';
+    } else {
+      const remaining = pendingToday.length;
+      const firstUpcoming = [...todayAppts].sort((a, b) => new Date(a.date) - new Date(b.date)).find(a => !a.outcome && a.status !== 'completed');
+      const countText = `${todayAppts.length} visit${todayAppts.length === 1 ? '' : 's'} today`;
+      if (firstUpcoming) {
+        greetingSub = `${countText}${remaining > 1 ? `, ${remaining} to go` : ''}. First up at ${Utils.formatTimeUK(firstUpcoming.date)} in ${this.getAreaLabel(firstUpcoming)}.`;
+      } else {
+        greetingSub = `${countText} — all done. Nice work.`;
+      }
+    }
 
     // Next visit (most urgent upcoming)
     const next = upcoming.find(a => a.status !== 'cancelled' && (a.phone || a.customerId)) || upcoming.find(a => a.status !== 'cancelled') || null;
@@ -335,7 +344,7 @@ const CompanionFeature = {
         area: this.getAreaLabel(next),
         type: next.type ? (CONFIG.appointmentTypes.find(t => t.id === next.type)?.name || next.type) : 'Visit',
         address: next.address || 'No address set',
-        eta: await this.etaFor(next) || '—'
+        eta: eta || '—'
       };
     }
 
@@ -406,11 +415,6 @@ const CompanionFeature = {
       });
     }
 
-    // Unpaid orders (already added above)
-    if (unpaidOrders.length > 0 && !attention.some(a => a.label === 'Payments outstanding')) {
-      // already added
-    }
-
     // Follow-ups due
     const followUpsDue = (await FollowupsFeature.loadTasks()).filter(t => t.due);
     if (followUpsDue.length > 0) {
@@ -427,7 +431,7 @@ const CompanionFeature = {
     const suggestions = ['today', 'next visit', 'week', 'money', 'follow-ups', 'messages'];
 
     return {
-      greetingSub: `You've got ${todayAppts.length} visit${todayAppts.length === 1 ? '' : 's'} today. What would help?`,
+      greetingSub,
       nextVisit,
       todayVisits: todayAppts.map((v, i) => ({
         id: v.id,

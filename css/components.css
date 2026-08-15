@@ -3110,6 +3110,7 @@ body.trip-active .toast-container {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  margin-bottom: 4px;
 }
 
 .comp-home-section-label {
@@ -3183,28 +3184,6 @@ body.trip-active .toast-container {
 }
 
 /* B. RIGHT NOW — NEXT VISIT */
-.comp-home-section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
-.comp-home-section-label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--comp-muted);
-}
-
-.comp-home-section-time {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--comp-text);
-}
-
 .comp-home-next-visit {
   background: var(--comp-card);
   border: 1px solid var(--comp-border);
@@ -3219,6 +3198,14 @@ body.trip-active .toast-container {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .comp-home-next-visit-name {
@@ -3391,12 +3378,6 @@ body.trip-active .toast-container {
 }
 
 /* D. NEEDS YOUR ATTENTION */
-.comp-home-section-count {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--comp-text);
-}
-
 .comp-home-attention-list {
   display: flex;
   flex-direction: column;
@@ -3411,6 +3392,11 @@ body.trip-active .toast-container {
   display: flex;
   align-items: flex-start;
   gap: 10px;
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .comp-home-attention-item:active {
@@ -3443,9 +3429,20 @@ body.trip-active .toast-container {
   color: var(--comp-muted);
 }
 
-.comp-home-attention-item .btn {
+.comp-home-attention-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--comp-bee);
   flex-shrink: 0;
   margin-top: 4px;
+  white-space: nowrap;
+}
+
+.comp-home-attention-cta .material-symbols-rounded {
+  font-size: 14px;
 }
 
 /* E. ASK BEELO — SUGGESTION CHIPS */
@@ -3477,159 +3474,10 @@ body.trip-active .toast-container {
   transform: scale(0.98);
 }
 
-.comp-home-section {
-  margin-bottom: 4px;
-}
+/* ---------- composer spacer ---------- */
 
-.comp-home-section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 4px;
-}
-
-.comp-home-section-label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--comp-muted);
-}
-
-.comp-home-section-time {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--comp-text);
-}
-
-.comp-home-section-count {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--comp-text);
-}
-
-/* Spacer for composer */
 .comp-home-composer-spacer {
   height: 80px;
   flex-shrink: 0;
 }
 
-/* Empty state */
-.comp-home-empty {
-  text-align: center;
-  padding: 24px 16px;
-  color: var(--comp-muted);
-  font-size: 13px;
-}
-
-.comp-home-see-all {
-  width: 100%;
-  margin-top: 8px;
-}
-
-/* Section spacing */
-.comp-home-section {
-  margin-bottom: 4px;
-}
-
-.comp-home-section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 4px;
-}
-
-.comp-home-section-label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--comp-muted);
-}
-
-.comp-home-section-count {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--comp-text);
-}
-
-/* Attention items */
-.comp-home-attention-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.comp-home-attention-item {
-  background: var(--comp-card);
-  border: 1px solid var(--comp-border);
-  border-radius: 12px;
-  padding: 12px 14px;
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.comp-home-attention-item:active {
-  background: var(--comp-border);
-}
-
-.comp-home-attention-icon {
-  font-size: 20px;
-  color: var(--comp-bee);
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.comp-home-attention-content {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.comp-home-attention-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--comp-text);
-}
-
-.comp-home-attention-value {
-  font-size: 12px;
-  color: var(--comp-muted);
-}
-
-.comp-home-attention-item .btn {
-  flex-shrink: 0;
-  margin-top: 4px;
-}
-
-/* Suggestion chips */
-.comp-home-suggestions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.comp-suggestion-chip {
-  background: var(--comp-card);
-  border: 1px solid var(--comp-border);
-  border-radius: 100px;
-  padding: 8px 14px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--comp-text);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.comp-suggestion-chip:hover,
-.comp-suggestion-chip:focus {
-  border-color: var(--comp-bee);
-  background: rgba(253, 185, 19, 0.1);
-}
-
-.comp-suggestion-chip:active {
-  transform: scale(0.98);
-}
