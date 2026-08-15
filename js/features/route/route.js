@@ -98,10 +98,17 @@ const RouteFeature = {
     // undercounted total needs to say so, not just look confident.
     const missingCount = appointments.filter(a => !Array.isArray(a.latLng) || a.latLng.length !== 2).length;
 
+    // Find next incomplete appointment (active leg)
+    const activeLeg = plan.activeLeg;
+    const nextVisit = activeLeg && !activeLeg.isReturn ? activeLeg.to.appointment : null;
+    const nextLegDistance = activeLeg ? activeLeg.distanceKm : 0;
+    const nextLegEta = activeLeg ? activeLeg.etaMin : 0;
+    const nextLegFrom = activeLeg ? activeLeg.from.label : (base?.address || 'Base');
+
     return `
       <div class="fade-in route-screen">
         ${App.renderTopHeader({ 
-          title: "Today's Route", 
+          title: "Route", 
           actions: `
             <button class="btn btn-sm btn-ghost" onclick="RouteFeature.openTodayRoute()" aria-label="Open full day route">
               <span class="material-symbols-rounded">navigation</span>
@@ -111,7 +118,45 @@ const RouteFeature = {
             </button>
           ` 
         })}
-        <!-- Route Stats -->
+
+        <!-- NEXT VISIT (primary focus) -->
+        ${nextVisit ? `
+        <div class="card card-page-mb" style="border-left: 3px solid var(--accent);">
+          <div class="fs-12 text-tertiary mb-xs">NEXT VISIT</div>
+          <div class="flex items-start gap-md">
+            <div class="avatar-56 shrink-0" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);">
+              ${Utils.escapeHtml((nextVisit.clientName || '?').charAt(0).toUpperCase())}
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="fs-22 fw-700">${Utils.escapeHtml(nextVisit.clientName || 'Unknown')}</div>
+              <div class="fs-13 text-secondary mt-1">${Utils.formatTime(nextVisit.date)} · ${Utils.escapeHtml(this.getAreaLabel(nextVisit))}</div>
+              <div class="fs-12 text-tertiary mt-1">${Utils.escapeHtml(Utils.truncate(nextVisit.address || '', 40))}</div>
+              <div class="flex items-center gap-md mt-2">
+                <span class="material-symbols-rounded text-tertiary fs-16">directions_car</span>
+                <span class="fw-600">${nextLegDistance > 0 ? Utils.formatDistance(nextLegDistance) : '—'} · ${nextLegEta > 0 ? nextLegEta + ' min' : '—'}</span>
+                <span class="material-symbols-rounded text-tertiary fs-16">arrow_forward</span>
+                <span class="text-tertiary fs-12">${Utils.escapeHtml(Utils.truncate(nextLegFrom, 18))}</span>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-sm shrink-0" onclick="RouteFeature.openLegRoute(${activeLeg.index})" style="min-height: 40px;">
+              <span class="material-symbols-rounded fs-18">navigation</span>
+              <span class="fs-12">Start</span>
+            </button>
+          </div>
+        </div>
+        ` : appointments.length > 0 ? `
+        <div class="card card-page-mb">
+          <div class="fs-12 text-tertiary mb-xs">TODAY'S VISITS</div>
+          <div class="fs-15 text-secondary">${appointments.length} visit${appointments.length === 1 ? '' : 's'} booked · Tap one to navigate</div>
+        </div>
+        ` : `
+        <div class="card card-page-mb">
+          <div class="fs-12 text-tertiary mb-xs">TODAY</div>
+          <div class="fs-15 text-secondary">No visits booked</div>
+        </div>
+        `}
+
+        <!-- Route Summary Stats -->
         <div class="route-stats">
           <div class="route-stats-grid">
             <div class="route-stat">
@@ -143,17 +188,18 @@ const RouteFeature = {
           ` : '<div id="route-partial-note"></div>'}
         </div>
 
-        ${this.renderRoutePlan(plan)}
-
         <!-- Map Container -->
-        <div id="route-map" class="route-map">
+        <div id="route-map" class="route-map" style="min-height: 280px;">
           <div class="flex items-center justify-center h-full text-tertiary" id="route-map-loading" >
             <span class="material-symbols-rounded fs-48 mb-sm" >map</span>
             <div>Loading map...</div>
           </div>
         </div>
 
-        <!-- Appointment List — always rendered from local data -->
+        <!-- Route Friend (progressive disclosure) -->
+        ${this.renderRoutePlan(plan)}
+
+        <!-- Today's Stops List -->
         <div class="route-list">
           ${appointments.length === 0 ? `
             <div class="empty-state p-lg" >
