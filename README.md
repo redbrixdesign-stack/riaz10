@@ -102,7 +102,15 @@ Open `http://localhost:8000`. No install, no environment variables, no build.
 
 Any static host works (GitHub Pages, S3 + CloudFront, etc.) — push
 the folder as-is. HTTPS is required for the service worker and geolocation
-to work.
+to work. The service worker precaches exactly what `index.html` loads
+(the build verifies the `?v=` tokens match), so the installed PWA and
+the deployed fix stay in sync.
+
+**AI drafting:** the Anthropic key can never live in the client. Deploy
+the hardened proxy — as a Vercel function (already wired:
+`api/claude.mjs`) or the standalone `server/` — and point
+`CONFIG.ai.proxyUrl` at it. See `README-AI.md` for env vars and the
+fail-closed production settings.
 
 ## First use
 
