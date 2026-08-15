@@ -330,8 +330,8 @@ const CompanionFeature = {
       }
     }
 
-    // Next visit (most urgent upcoming)
-    const next = upcoming.find(a => a.status !== 'cancelled' && (a.phone || a.customerId)) || upcoming.find(a => a.status !== 'cancelled') || null;
+    // Next visit (most urgent upcoming that hasn't already happened)
+    const next = upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && (a.phone || a.customerId)) || upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome) || null;
     
     // Next visit data
     let nextVisit = null;
@@ -771,7 +771,7 @@ const CompanionFeature = {
     } catch (e) { /* no visits */ }
     const total = appts.length;
     const done = appts.filter(a => a.status === 'completed' || a.outcome).length;
-    const next = appts.find(a => a.status !== 'completed') || null;
+    const next = appts.find(a => a.status !== 'completed' && !a.outcome) || null;
     const eta = next ? await this.etaFor(next) : null;
 
     let weather = null;
@@ -927,7 +927,7 @@ const CompanionFeature = {
   async answerNextVisit() {
     let upcoming = [];
     try { upcoming = await DB.getUpcomingAppointments(14); } catch (e) {}
-    const next = upcoming.find(a => a.status !== 'cancelled' && (a.phone || a.customerId)) || upcoming.find(a => a.status !== 'cancelled') || null;
+    const next = upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && (a.phone || a.customerId)) || upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome) || null;
 
     if (!next) {
       return { text: 'No upcoming visits booked. Add one and I\'ll keep an eye on it.', facts: [], actions: [{ label: 'Add Visit', onclick: "App.navigate('appointments', {action: 'add'})" }], suggestions: ['today', 'week'] };

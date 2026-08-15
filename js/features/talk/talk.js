@@ -199,7 +199,7 @@ const TalkFeature = {
     let nextVisit = null;
     try {
       const upcoming = await DB.getUpcomingAppointments(3);
-      nextVisit = upcoming.find(a => a.status !== 'cancelled' && (a.phone || a.customerId)) || upcoming.find(a => a.status !== 'cancelled') || null;
+      nextVisit = upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && (a.phone || a.customerId)) || upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome) || null;
     } catch (e) {}
 
     const now = new Date();

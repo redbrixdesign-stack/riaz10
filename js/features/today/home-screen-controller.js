@@ -141,7 +141,7 @@ const HomeScreenController = {
 
     let upNextCardHtml = '';
     if (isToday) {
-      const active = dayAppts.find(a => a.status !== 'completed');
+      const active = dayAppts.find(a => a.status !== 'completed' && !a.outcome);
       if (active) {
         let bannerPhotos = [];
         if (active.customerId) {

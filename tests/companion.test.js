@@ -125,7 +125,9 @@ global.DB = {
   getAppointmentsForRange: async () => RANGE_APPTS.appts.filter(a => a.status !== 'cancelled'),
   getExpensesForPeriod: async () => [{ amount: 80.2, category: 'fuel' }, { amount: 65, category: 'fuel' }],
   getTripsForPeriod: async () => [{ distanceKm: 120 }, { distanceKm: 98 }],
-  getUpcomingAppointments: async () => APPOINTMENTS.filter(a => a.status !== 'cancelled')
+  getUpcomingAppointments: async () => APPOINTMENTS.filter(a => a.status !== 'cancelled'),
+  getCustomer: async id => CUSTOMERS.find(c => c.id === id) || null,
+  getCustomersByIds: async ids => CUSTOMERS.filter(c => ids.includes(c.id))
 };
 
 global.Search = {
@@ -293,7 +295,7 @@ assert(norm('') === 'default', 'empty routes to default');
   assert(byNum.facts.some(f => f.label === 'Balance due' && f.value === '£300.00'), 'Order-number lookup shows balance due', byNum.facts);
 
   // Money periods: earnings from real-range appointments, whole-day bounds.
-  RANGE_APPTS.appts = [{ id: 99, customerId: 1, clientName: 'Sarah Jones', type: 'consultation', date: iso(5).slice(0, 10) + 'T09:00:00.000Z', status: 'completed', outcome: 'ordered', value: 500, commission: 250 }];
+  RANGE_APPTS.appts = [{ id: 99, customerId: 1, clientName: 'Sarah Jones', type: 'consultation', date: (() => { const d = new Date(iso(5)); d.setHours(9, 0, 0, 0); return d.toISOString(); })(), status: 'completed', outcome: 'ordered', value: 500, commission: 250 }];
   global.DB.getWeekStats = async (start, end) => {
     // Faithful to DB.getWeekStats: ordered, non-cancelled, within [start, end].
     const s = new Date(start).getTime();
