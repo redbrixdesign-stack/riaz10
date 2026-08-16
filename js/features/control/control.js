@@ -11,102 +11,84 @@ const ControlFeature = {
   async render() {
     const demoSeeded = await DB.getSetting('pitchDemoSeeded', false);
 
+    // One .card per category — the same dark-canvas/cream-card pattern as
+    // every other screen (Settings, Money, Orders…). No full-screen surface.
+    const card = (title, tiles) => `
+      <div class="card mb-md">
+        <div class="fw-600 fs-16 mb-sm" >${title}</div>
+        <div class="control-grid">${tiles}</div>
+      </div>`;
+
     return `
-      <div class="fade-in notebook-page control-center">
+      <div class="fade-in">
         ${App.renderTopHeader({ title: 'Tools' })}
 
         <div class="p-md" >
+          ${card('Today', `
+            <button class="control-tile" type="button" onclick="App.navigate('appointments', {action: 'add'})">
+              <span class="material-symbols-rounded">add</span>
+              <span>Add Visit</span>
+            </button>
+            <button class="control-tile" type="button" onclick="MoneyFeature.openMileageModal()">
+              <span class="material-symbols-rounded">route</span>
+              <span>Log Mileage</span>
+            </button>
+            <button class="control-tile" type="button" onclick="MoneyFeature.openExpenseModal()">
+              <span class="material-symbols-rounded">receipt_long</span>
+              <span>Log Expense</span>
+            </button>
+            <button class="control-tile" type="button" onclick="TodayFeature.openEODModal()">
+              <span class="material-symbols-rounded">fact_check</span>
+              <span>End of Day</span>
+            </button>
+          `)}
 
-          <!-- TODAY (most frequent) -->
-          <section class="notebook-section control-section">
-            <div class="notebook-title">
-              <h2>Today</h2>
-            </div>
-            <div class="control-grid">
-              <button class="control-tile" type="button" onclick="App.navigate('appointments', {action: 'add'})">
-                <span class="material-symbols-rounded">add</span>
-                <span>Add Visit</span>
-              </button>
-              <button class="control-tile" type="button" onclick="MoneyFeature.openMileageModal()">
-                <span class="material-symbols-rounded">route</span>
-                <span>Log Mileage</span>
-              </button>
-              <button class="control-tile" type="button" onclick="MoneyFeature.openExpenseModal()">
-                <span class="material-symbols-rounded">receipt_long</span>
-                <span>Log Expense</span>
-              </button>
-              <button class="control-tile" type="button" onclick="TodayFeature.openEODModal()">
-                <span class="material-symbols-rounded">fact_check</span>
-                <span>End of Day</span>
-              </button>
-            </div>
-          </section>
+          ${card('Customer', `
+            <button class="control-tile" type="button" onclick="App.navigate('appointments')">
+              <span class="material-symbols-rounded">person_search</span>
+              <span>Find Customer</span>
+            </button>
+            <button class="control-tile" type="button" onclick="App.navigate('orders')">
+              <span class="material-symbols-rounded">view_kanban</span>
+              <span>Orders Board</span>
+            </button>
+            <button class="control-tile" type="button" onclick="App.navigate('followups')">
+              <span class="material-symbols-rounded">campaign</span>
+              <span>Follow-ups</span>
+            </button>
+          `)}
 
-          <!-- CUSTOMER -->
-          <section class="notebook-section control-section">
-            <div class="notebook-title">
-              <h2>Customer</h2>
-            </div>
-            <div class="control-grid">
-              <button class="control-tile" type="button" onclick="App.navigate('appointments')">
-                <span class="material-symbols-rounded">person_search</span>
-                <span>Find Customer</span>
-              </button>
-              <button class="control-tile" type="button" onclick="App.navigate('orders')">
-                <span class="material-symbols-rounded">view_kanban</span>
-                <span>Orders Board</span>
-              </button>
-              <button class="control-tile" type="button" onclick="App.navigate('followups')">
-                <span class="material-symbols-rounded">campaign</span>
-                <span>Follow-ups</span>
-              </button>
-            </div>
-          </section>
+          ${card('Money & Route', `
+            <button class="control-tile" type="button" onclick="App.navigate('route')">
+              <span class="material-symbols-rounded">map</span>
+              <span>Route Planner</span>
+            </button>
+            <button class="control-tile" type="button" onclick="ControlFeature.openMeasurePicker()">
+              <span class="material-symbols-rounded">straighten</span>
+              <span>Measure</span>
+            </button>
+            <button class="control-tile" type="button" onclick="App.navigate('ocr')">
+              <span class="material-symbols-rounded">document_scanner</span>
+              <span>Scan Document</span>
+            </button>
+          `)}
 
-          <!-- MONEY & ROUTE -->
-          <section class="notebook-section control-section">
-            <div class="notebook-title">
-              <h2>Money & Route</h2>
-            </div>
-            <div class="control-grid">
-              <button class="control-tile" type="button" onclick="App.navigate('route')">
-                <span class="material-symbols-rounded">map</span>
-                <span>Route Planner</span>
-              </button>
-              <button class="control-tile" type="button" onclick="ControlFeature.openMeasurePicker()">
-                <span class="material-symbols-rounded">straighten</span>
-                <span>Measure</span>
-              </button>
-              <button class="control-tile" type="button" onclick="App.navigate('ocr')">
-                <span class="material-symbols-rounded">document_scanner</span>
-                <span>Scan Document</span>
-              </button>
-            </div>
-          </section>
-
-          <!-- DATA & SETTINGS -->
-          <section class="notebook-section control-section">
-            <div class="notebook-title">
-              <h2>Data & Settings</h2>
-            </div>
-            <div class="control-grid">
-              <button class="control-tile" type="button" onclick="App.navigate('settings')">
-                <span class="material-symbols-rounded">settings</span>
-                <span>Settings</span>
-              </button>
-              <button class="control-tile" type="button" onclick="ExportService.exportBackup()">
-                <span class="material-symbols-rounded">backup</span>
-                <span>Export Backup</span>
-              </button>
-              ${demoSeeded ? `
-              <button class="control-tile" type="button" onclick="ControlFeature.confirmClearPitchDemo()">
-                <span class="material-symbols-rounded text-danger">delete_sweep</span>
-                <span>Remove Demo Data</span>
-              </button>
-              ` : ''}
-            </div>
-          </section>
-
+          ${card('Data & Settings', `
+            <button class="control-tile" type="button" onclick="App.navigate('settings')">
+              <span class="material-symbols-rounded">settings</span>
+              <span>Settings</span>
+            </button>
+            <button class="control-tile" type="button" onclick="ExportService.exportBackup()">
+              <span class="material-symbols-rounded">backup</span>
+              <span>Export Backup</span>
+            </button>
+            ${demoSeeded ? `
+            <button class="control-tile" type="button" onclick="ControlFeature.confirmClearPitchDemo()">
+              <span class="material-symbols-rounded text-danger">delete_sweep</span>
+              <span>Remove Demo Data</span>
+            </button>
+            ` : ''}
+          `)}
         </div>
       </div>
     `;
