@@ -606,15 +606,11 @@ button:not(:disabled):active,
   50% { transform: scale(1.02); }
 }
 
-.beelo-avatar,
 .comp-avatar-lg {
   animation: beelo-idle 3.5s ease-in-out infinite;
 }
 
 /* Pause avatar animation on interaction */
-.beelo-avatar:hover,
-.beelo-avatar:focus,
-.beelo-avatar:active,
 .comp-avatar-lg:hover,
 .comp-avatar-lg:focus,
 .comp-avatar-lg:active {
@@ -634,7 +630,6 @@ button:not(:disabled):active,
   .slide-up,
   .nav-item .material-symbols-rounded,
   .nav-item.active::before,
-  .beelo-avatar,
   .comp-avatar-lg,
   .skeleton {
     animation: none !important;
@@ -653,7 +648,6 @@ button:not(:disabled):active,
     opacity: 1;
     width: 26px;
   }
-  .beelo-avatar,
   .comp-avatar-lg {
     transform: none;
   }

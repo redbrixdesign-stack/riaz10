@@ -19,7 +19,6 @@ const App = {
       <div class="fade-in skeleton-screen" aria-busy="true" aria-label="Loading ${Utils.escapeHtml(featureName || 'screen')}">
         <div class="top-header">
           <span class="skeleton" style="width:110px;height:22px;border-radius:6px;"></span>
-          <span class="skeleton" style="width:36px;height:36px;border-radius:50%;"></span>
         </div>
         <div style="padding:16px;display:flex;flex-direction:column;gap:12px;">
           ${Array.from({ length: 3 }, () => `
@@ -351,13 +350,9 @@ const App = {
     document.title = name ? `${name} · Beelo` : 'Beelo';
   },
 
-  // Generate a standard top-header with optional back button, title, and Beelo avatar
+  // Generate a standard top-header with optional back button and title
   renderTopHeader(options = {}) {
     const { title = '', showBack = false, backHref = '#today', actions = '' } = options;
-    const avatarHtml = `
-      <button class="beelo-avatar" type="button" aria-label="Open Beelo companion" onclick="App.navigate('today')">
-        B
-      </button>`;
     let leftHtml = '';
     if (showBack && title) {
       leftHtml = `<button class="btn btn-ghost btn-sm" onclick="App.navigate('${Utils.escapeJsString(backHref)}')"><span class="material-symbols-rounded">arrow_back</span></button><h1 class="page-heading">${Utils.escapeHtml(title)}</h1>`;
@@ -369,7 +364,7 @@ const App = {
     return `
       <div class="top-header">
         <div class="flex items-center gap-md" style="flex:1;">${leftHtml}</div>
-        <div class="header-actions flex items-center gap-sm">${actions}${avatarHtml}</div>
+        <div class="header-actions flex items-center gap-sm">${actions}</div>
       </div>`;
   },
 

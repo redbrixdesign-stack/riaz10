@@ -30,7 +30,6 @@ global.App = {
   closeModal() {},
   openModal() {},
   renderTopHeader({ title = '', showBack = false, backHref = '#today', actions = '' } = {}) {
-    const avatarHtml = `<button class="beelo-avatar" type="button" aria-label="Open Beelo companion" onclick="App.navigate('today')">B</button>`;
     let leftHtml = '';
     if (showBack && title) {
       leftHtml = `<button class="btn btn-ghost btn-sm" onclick="App.navigate('${backHref}')"><span class="material-symbols-rounded">arrow_back</span></button><h1 class="page-heading">${title}</h1>`;
@@ -42,7 +41,7 @@ global.App = {
     return `
       <div class="top-header">
         <div class="flex items-center gap-md" style="flex:1;">${leftHtml}</div>
-        <div class="header-actions flex items-center gap-sm">${actions}${avatarHtml}</div>
+        <div class="header-actions flex items-center gap-sm">${actions}</div>
       </div>`;
   }
 };
