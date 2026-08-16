@@ -956,6 +956,32 @@ const AppointmentsFeature = {
     `;
   },
 
+  // Compact money card for the visit sheet: the order behind this visit, its
+  // stage and what's still owed. Taps through to the Orders sheet (via the
+  // orders route, which auto-opens it for an id - no direct cross-feature
+  // dependency at render time).
+  renderLinkedOrderCard(order) {
+    const stageNames = { ordered: 'Ordered', delivered: 'Delivered', fitted: 'Fitted', paid: 'Paid' };
+    const paid = (order.balanceDue || 0) <= 0;
+    const stageName = stageNames[order.stage] || 'Ordered';
+    return `
+      <div class="card card-page" >
+        <div class="flex items-center justify-between mb-sm" >
+          <div class="fs-13 fw-600 text-secondary" >Order</div>
+          ${paid ? `<span class="badge badge-success fs-10" >Paid</span>` : `<span class="badge badge-warning fs-10" >Owes ${Utils.formatCurrency(order.balanceDue || 0)}</span>`}
+        </div>
+        <button class="area-customer-row" onclick="App.navigate('orders', {id: ${order.id}})">
+          <span class="material-symbols-rounded">receipt_long</span>
+          <span>
+            <strong>${Utils.escapeHtml(order.orderNumber || 'Order')}</strong>
+            <small>${Utils.formatCurrency(order.total || 0)} · ${stageName}${(order.depositPaid || 0) > 0 ? ` · ${Utils.formatCurrency(order.depositPaid)} paid` : ''}</small>
+          </span>
+          <span class="material-symbols-rounded">chevron_right</span>
+        </button>
+      </div>
+    `;
+  },
+
   renderPipeline(pipeline) {
     // Categorize by temperature
     const now = new Date();
@@ -1490,6 +1516,24 @@ const AppointmentsFeature = {
       measurements = await DB.db.measurements.where('appointmentId').equals(appt.id).toArray();
     } catch (e) {}
 
+    // The linked order (EXACTLY ONE per sale - see saveOutcome): puts money
+    // status in front of the advisor on the visit itself instead of
+    // requiring a detour through the Orders board to see what's owed. A
+    // fitting/measure visit has no order of its own (the order is created on
+    // the sale visit), so fall back to the customer's most recent open order
+    // - the job this visit belongs to.
+    let linkedOrder = null;
+    try { linkedOrder = await DB.db.orders.where('appointmentId').equals(appt.id).first(); } catch (e) {}
+    let orderCardOrder = linkedOrder;
+    if (!orderCardOrder && appt.customerId) {
+      try {
+        const openOrders = (await DB.db.orders.where('customerId').equals(appt.customerId).toArray())
+          .filter(o => (o.balanceDue || 0) > 0)
+          .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+        orderCardOrder = openOrders[0] || null;
+      } catch (e) {}
+    }
+
     let photos = [];
     if (appt.customerId) {
       try {
@@ -1579,6 +1623,8 @@ const AppointmentsFeature = {
             ` : ''}
           </div>
         </div>
+
+        ${orderCardOrder ? this.renderLinkedOrderCard(orderCardOrder) : ''}
 
         ${measurements.length ? `
           <div class="card card-page" >
@@ -2765,6 +2811,29 @@ const AppointmentsFeature = {
     const saleOutcome = outcomeId === 'ordered';
     const valueLabel = saleOutcome ? 'Sale Amount (&pound;)' : 'Quote Amount (&pound;)';
     const commissionHint = this.getCommissionHint();
+
+    // The door-money hooks: a deposit when the sale is logged, the final
+    // payment when the fitting completes. Both read REAL order records, never
+    // a guess. A fitting visit has no order of its own (orders are created on
+    // the sale visit), so the fitting balance is found by customer - the most
+    // recent open order is the job being fitted today.
+    let linkedOrder = null;
+    try { linkedOrder = await DB.db.orders.where('appointmentId').equals(id).first(); } catch (e) {}
+    let fittingOrder = null;
+    if (outcomeId === 'completed' && appt.customerId) {
+      try {
+        const openOrders = (await DB.db.orders.where('customerId').equals(appt.customerId).toArray())
+          .filter(o => (o.balanceDue || 0) > 0)
+          .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+        fittingOrder = openOrders[0] || null;
+      } catch (e) {}
+    }
+    const depositPrefill = (saleOutcome && linkedOrder && !(linkedOrder.depositPaid > 0))
+      ? (linkedOrder.depositRequired || 0)
+      : '';
+    const fittingBalance = (outcomeId === 'completed' && fittingOrder)
+      ? (fittingOrder.balanceDue || 0)
+      : null;
     // Stashed for updateOutcomeCommission's live preview - same data the old
     // standalone Discount Impact tool needed, now fetched once right where
     // it's actually relevant (recording a real sale) instead of a separate
@@ -2805,6 +2874,11 @@ const AppointmentsFeature = {
               <div class="hint">${Utils.escapeHtml(commissionHint)} Change this in Settings if your rate changes.</div>
             </div>
             <div id="outcome-discount-breakdown"></div>
+            <div class="form-group">
+              <label>Deposit taken today (&pound;) <span class="fw-400 text-tertiary" >- optional</span></label>
+              <input type="number" class="input" inputmode="decimal" id="outcome-payment" data-deposit="1" value="${depositPrefill}" placeholder="0.00" step="0.01" min="0" oninput="AppointmentsFeature.updateOutcomeCommission()">
+              <div class="hint" id="outcome-payment-hint">${linkedOrder && (linkedOrder.depositPaid || 0) > 0 ? 'Deposit already recorded on this order.' : 'Leave empty to record the deposit later.'}</div>
+            </div>
           ` : `
             <div class="hint mt-neg-8 mb-14" >Quote value is kept on the table, but no commission is counted until it becomes an order.</div>
           `}
@@ -2854,6 +2928,14 @@ const AppointmentsFeature = {
           <textarea class="textarea" id="outcome-notes" placeholder="Any additional notes..."></textarea>
         </div>
 
+        ${fittingBalance !== null ? `
+          <div class="form-group">
+            <label>Payment received today (&pound;)</label>
+            <input type="number" class="input" inputmode="decimal" id="outcome-payment" value="${fittingBalance}" step="0.01" min="0">
+            <div class="hint">${Utils.formatCurrency(fittingBalance)} balance on ${Utils.escapeHtml(fittingOrder.orderNumber || 'the open order')} — recorded against it right here.</div>
+          </div>
+        ` : ''}
+
         <button class="btn btn-primary btn-block" onclick="AppointmentsFeature.saveOutcome(${id}, '${outcomeId}')">
           Save Outcome
         </button>
@@ -2875,6 +2957,26 @@ const AppointmentsFeature = {
     const netValue = grossValue * (1 - discountPct / 100);
     const commission = netValue > 0 ? TaxCalculator.estimateCommission(netValue) : 0;
     commissionEl.value = Utils.formatCurrency(commission);
+
+    // Live deposit suggestion: the deposit input prefills itself with the
+    // rule-based deposit for the current (discounted) sale value, so the
+    // advisor sees "what should I take today?" without any extra calculator.
+    // Runs before the discount-breakdown early return - it must also work
+    // when no discount has been typed yet (the common fresh-sale case).
+    const paymentEl = document.getElementById('outcome-payment');
+    const paymentHint = document.getElementById('outcome-payment-hint');
+    if (paymentEl && paymentEl.dataset.deposit === '1') {
+      const prefillLocked = parseFloat(paymentEl.value) > 0;
+      if (!prefillLocked) {
+        const deposit = netValue > 0 ? App.calculateDeposit(netValue).amount : 0;
+        paymentEl.placeholder = deposit > 0 ? Utils.formatCurrency(deposit) : '0.00';
+        if (paymentHint) {
+          paymentHint.textContent = deposit > 0
+            ? `Suggested: ${Utils.formatCurrency(deposit)} · balance after: ${Utils.formatCurrency(Math.max(0, netValue - deposit))}`
+            : 'Leave empty to record the deposit later.';
+        }
+      }
+    }
 
     if (!breakdownEl) return;
     if (discountPct <= 0 || grossValue <= 0) { breakdownEl.innerHTML = ''; return; }
@@ -2995,12 +3097,42 @@ const AppointmentsFeature = {
             });
           }
         }
-      } else if (linkedOrder) {
+      } else if (linkedOrder && appt.outcome === 'ordered') {
+        // Reversal: this visit WAS a sale; moving away from 'ordered' deletes
+        // the linked order so a reversed sale stops counting toward customer
+        // totals and the pipeline. Any OTHER outcome on an appointment that
+        // happens to have a linked order (e.g. 'completed' on a fitting) must
+        // keep the order - finishing the job does not cancel the sale.
         await DB.removeOrder(linkedOrder.id);
       }
 
+      // Door-money: a deposit recorded when the sale was logged, or the final
+      // payment when the fitting completed. Paid against the customer's most
+      // recent open order (a fitting visit's order lives on the sale visit,
+      // so the balance to collect is found by customer, not appointment).
+      // Never exceeds what's actually owed.
+      const paymentAmount = parseFloat(document.getElementById('outcome-payment')?.value || 0);
+      let paymentNote = '';
+      if (paymentAmount > 0 && appt.customerId) {
+        const openOrders = (await DB.db.orders.where('customerId').equals(appt.customerId).toArray())
+          .filter(o => (o.balanceDue || 0) > 0)
+          .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+        const target = openOrders[0];
+        if (target) {
+          const add = Math.min(paymentAmount, target.balanceDue || 0);
+          const depositPaid = Math.min((target.depositPaid || 0) + add, target.total || 0);
+          const balanceDue = Math.max(0, (target.balanceDue || 0) - add);
+          await DB.db.orders.update(target.id, {
+            depositPaid,
+            balanceDue,
+            stage: balanceDue <= 0 ? 'paid' : (target.stage || 'ordered')
+          });
+          paymentNote = ` · ${Utils.formatCurrency(add)} payment recorded`;
+        }
+      }
+
       App.closeModal();
-      Toast.show('Outcome saved', 'success');
+      Toast.show('Outcome saved' + paymentNote, 'success');
 
       if (outcomeId === 'needs_service_call') {
         this.offerServiceCallBooking(appt);
