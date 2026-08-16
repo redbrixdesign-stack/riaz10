@@ -426,31 +426,46 @@ const OCRFeature = {
     // the appointment, and break ties by closeness to today.
     const monthNames = 'Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec';
     const dateRe = new RegExp(`\\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*,?\\s+(\\d{1,2})(?:st|nd|rd|th)?\\s+(${monthNames})[a-z]*\\b`, 'i');
+    // Weekday-less dates ("13 July 2026", "July 13, 2026") are only trusted
+    // with an explicit year — real order screens print them without the
+    // weekday, and the printed year makes the match unambiguous, which is
+    // the exact ambiguity the weekday requirement exists to resolve.
+    const datedRe = new RegExp(`\\b(?:(${monthNames})[a-z]*\\s+(\\d{1,2})(?:st|nd|rd|th)?,?\\s+(\\d{4})|(\\d{1,2})(?:st|nd|rd|th)?\\s+(${monthNames})[a-z]*\\s+(\\d{4}))\\b`, 'i');
     const weekdayIndex = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
     let bestDate = null;
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       if (timeOfDayRe.test(line)) continue; // status bar clock, e.g. "15:35 Sun 12 Jul" - not the appointment date
       const m = line.match(dateRe);
-      if (!m) continue;
-      const day = parseInt(m[2], 10);
-      if (day < 1 || day > 31) continue;
-      const monthIndex = monthNames.split('|').findIndex(mo => mo.toLowerCase() === m[3].slice(0, 3).toLowerCase());
-      if (monthIndex < 0) continue;
-      let year = now.getFullYear();
-      const thisYear = new Date(year, monthIndex, day);
-      // If that date is more than ~2 months in the past, it's probably next year's occurrence
-      let candidate = thisYear;
-      if (candidate < now && (now - candidate) / 86400000 > 60) candidate = new Date(year + 1, monthIndex, day);
-      // The printed weekday must be the date's actual weekday — but a stale
-      // document can refer to next year's occurrence of that date, so check
-      // both years before rejecting the line (a mismatch means a stale or
-      // typo'd entry, not the appointment).
-      const printedWeekday = weekdayIndex[m[1].slice(0, 3).toLowerCase()];
-      if (printedWeekday !== thisYear.getDay() && printedWeekday !== new Date(year + 1, monthIndex, day).getDay()) continue;
-      const lower = line.toLowerCase();
+      let candidate = null;
+      if (m) {
+        const day = parseInt(m[2], 10);
+        if (day < 1 || day > 31) continue;
+        const monthIndex = monthNames.split('|').findIndex(mo => mo.toLowerCase() === m[3].slice(0, 3).toLowerCase());
+        if (monthIndex < 0) continue;
+        let year = now.getFullYear();
+        const thisYear = new Date(year, monthIndex, day);
+        // If that date is more than ~2 months in the past, it's probably next year's occurrence
+        candidate = thisYear;
+        if (candidate < now && (now - candidate) / 86400000 > 60) candidate = new Date(year + 1, monthIndex, day);
+        // The printed weekday must be the date's actual weekday — but a stale
+        // document can refer to next year's occurrence of that date, so check
+        // both years before rejecting the line (a mismatch means a stale or
+        // typo'd entry, not the appointment).
+        const printedWeekday = weekdayIndex[m[1].slice(0, 3).toLowerCase()];
+        if (printedWeekday !== thisYear.getDay() && printedWeekday !== new Date(year + 1, monthIndex, day).getDay()) continue;
+      } else {
+        const dm = line.match(datedRe);
+        if (!dm) continue;
+        const day = parseInt(dm[2] || dm[4], 10);
+        const monthIndex = monthNames.split('|').findIndex(mo => mo.toLowerCase() === (dm[1] || dm[5]).slice(0, 3).toLowerCase());
+        const year = parseInt(dm[3] || dm[6], 10);
+        if (day < 1 || day > 31 || monthIndex < 0 || year < 2000 || year > 2100) continue;
+        candidate = new Date(year, monthIndex, day);
+      }
       // History lines ("Previous appointment:", "Last visit:") must never win —
       // the "appoint/visit" keyword bonus would otherwise cancel the penalty.
+      const lower = line.toLowerCase();
       const isHistory = /previous|last|original|cancell|old|past/.test(lower);
       let score = 0;
       if (!isHistory && /appoint|arriv|visit|book|deliver|when|slot/.test(lower)) score += 4;

@@ -119,6 +119,36 @@ console.log('date selection');
   ok('appointment-labelled line preferred', data.appointmentDate === '2026-08-11', data.appointmentDate);
 }
 {
+  // Real screens print weekday-less dates with an explicit year — these must
+  // not silently vanish (which used to book the visit "today" instead).
+  const data = extract(['Mr James Wilson', '13 August 2026'], '', AT);
+  ok('year-anchored "13 August 2026" -> 2026-08-13', data.appointmentDate === '2026-08-13', data.appointmentDate);
+}
+{
+  const data = extract(['Mr James Wilson', 'Order date: 12 Aug 2026'], '', AT);
+  ok('year-anchored "12 Aug 2026" with label -> 2026-08-12', data.appointmentDate === '2026-08-12', data.appointmentDate);
+}
+{
+  // US-style order screens print month-first.
+  const data = extract(['Mr James Wilson', 'August 13, 2026'], '', AT);
+  ok('US-style "August 13, 2026" -> 2026-08-13', data.appointmentDate === '2026-08-13', data.appointmentDate);
+}
+{
+  // Status-bar clock lines stay excluded even with a year printed nearby.
+  const data = extract(['15:35 Sun 10 Aug', 'Mr James Wilson', '13 August 2026'], '', AT);
+  ok('status-bar clock ignored; year-anchored date picked', data.appointmentDate === '2026-08-13', data.appointmentDate);
+}
+{
+  // History penalty applies to year-anchored dates too.
+  const data = extract(['Previous appointment: 5 June 2026', 'Mr James Wilson', '13 August 2026'], '', AT);
+  ok('history year-anchored date ignored', data.appointmentDate === '2026-08-13', data.appointmentDate);
+}
+{
+  // A weekday-anchored appointment line still outranks a year-anchored decoy.
+  const data = extract(['Mr James Wilson', '13 August 2026', 'Appointment date: Tuesday 11 August'], '', AT);
+  ok('appointment-labelled weekday line beats year-anchored decoy', data.appointmentDate === '2026-08-11', data.appointmentDate);
+}
+{
   // Same logic must hold on a different calendar: Wed 11 Aug 2027. This is
   // the case the literal fixtures above would have broken on in the wild.
   const later = new Date(2027, 7, 11);
