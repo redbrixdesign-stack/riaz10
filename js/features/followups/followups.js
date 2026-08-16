@@ -180,7 +180,9 @@ const FollowupsFeature = {
       tasks.push({
         kind: 'intro',
         due: true,
-        daysLabel: `${Utils.formatDate(appt.date, 'short')} · ${TalkFeature.apptTimeText(appt)}`,
+        // Time only: the card's meta line already prefixes the date, so a
+        // date here too would render "16 Aug · 16 Aug · 04:02".
+        daysLabel: TalkFeature.apptTimeText(appt),
         appointment: appt,
         customer: appt.customerId ? customerMap.get(appt.customerId) : null,
         template: 'pre_intro',
@@ -300,15 +302,24 @@ const FollowupsFeature = {
       'Unknown'
     );
 
+    // When a task isn't due yet, say when it becomes due - the muted list
+    // previously showed only "Xd ago", which hid the actual trigger date
+    // (e.g. "chase in 2d" for a quote gated by Talk's timing rules).
+    const dueIn = (muted && task.inDays > 0) ? ` · due in ${task.inDays}d` : '';
     const meta = task.appointment
-      ? `${Utils.formatDate(task.appointment.date, 'short')} · ${task.daysLabel}`
-      : (task.order ? `${Utils.escapeHtml(task.order.orderNumber || 'Order')} · ${task.daysLabel}` : task.daysLabel);
+      ? `${Utils.formatDate(task.appointment.date, 'short')} · ${task.daysLabel}${dueIn}`
+      : (task.order ? `${Utils.escapeHtml(task.order.orderNumber || 'Order')} · ${task.daysLabel}${dueIn}` : task.daysLabel);
 
     const icons = { quote: 'receipt_long', payment: 'payments', visit_today: 'event_available', visit_tomorrow: 'event', intro: 'waving_hand', post_fit: 'handyman', service: 'build', };
+    // Border colour = what the task needs from you. Payment and service issues
+    // are urgent (warning/danger); today's visits and intros are primary
+    // actions; everything else (quote chases, post-fit thank-yous,
+    // tomorrow's reminders) is routine and renders neutral - previously the
+    // final ternary collapsed to danger, so routine tasks screamed "urgent".
     const accent = task.kind === 'payment' ? 'var(--warning)'
       : (task.kind === 'visit_today' || task.kind === 'intro') ? 'var(--primary)'
       : task.kind === 'service' ? 'var(--danger)'
-      : 'var(--danger)';
+      : 'var(--text-secondary)';
 
     return `
       <div class="fup-card" style="border-left:3px solid ${accent};opacity:${muted ? '0.65' : '1'};">
