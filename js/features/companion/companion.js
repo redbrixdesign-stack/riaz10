@@ -182,15 +182,6 @@ const CompanionFeature = {
   welcomeHtml(homeData) {
     const firstName = Utils.firstNameFrom(CONFIG.advisorName || '');
 
-    // A0. BEELO BRAND MARK — slim in-flow masthead (gold dot + wordmark).
-    // In-flow inside the scroll container, not a fixed topbar, so the
-    // safe-area top padding still applies on standalone PWA installs.
-    const brandHtml = `
-      <div class="comp-home-brand">
-        <span class="comp-home-brand-dot" aria-hidden="true"></span>
-        <span class="comp-home-brand-word">Beelo</span>
-      </div>`;
-
     // A. NAME — the advisor's first name with the golden full stop
     // (the brand's punctuation mark, same as the reference header).
     const nameHtml = firstName === 'there'
@@ -418,7 +409,6 @@ const CompanionFeature = {
 
     return `
       <div class="comp-home">
-        ${brandHtml}
         ${greetingHtml}
         ${weekStripHtml}
         ${nextVisitHtml}

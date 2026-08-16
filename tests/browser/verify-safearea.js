@@ -5,9 +5,8 @@
    removed from the Home render (not hidden) and the
    scroll container pads the top with
    env(safe-area-inset-top, 0px) so the first feed
-   element (the in-flow Beelo brand mark, then the
-   greeting) sits below the OS status bar on standalone
-   PWA installs.
+   element (the advisor-name heading) sits below the
+   OS status bar on standalone PWA installs.
    Headless env() resolves to 0 (no notch), so we also
    assert the rule text and that the pattern matches
    the shared .top-header safe-area treatment already
@@ -44,15 +43,15 @@ const ok = (label, cond, extra) => {
     topbar: !!document.querySelector('.comp-topbar'),
     brand: !!document.querySelector('.comp-brand'),
     clock: !!document.querySelector('#comp-clock'),
-    // The brand mark is back as an IN-FLOW masthead (scroll content),
-    // never as a fixed topbar — that's the point of this regression test.
-    inFlowBrand: !!document.querySelector('.comp-home-brand'),
-    brandText: (document.getElementById('main')?.textContent || '').includes('Beelo') ? 'Beelo brand present (in-flow)' : ''
+    homeBrand: !!document.querySelector('.comp-home-brand'),
+    homeAvatar: !!document.querySelector('.comp-home-avatar'),
+    greeting: !!document.querySelector('.comp-home-greeting')
   }));
   ok('comp-topbar element absent from DOM', !gone.topbar, gone);
   ok('comp-brand element absent from DOM', !gone.brand, gone);
   ok('comp-clock element absent from DOM', !gone.clock, gone);
-  ok('Beelo brand present as in-flow masthead (.comp-home-brand)', gone.inFlowBrand && gone.brandText, gone);
+  ok('no Beelo brand mark or avatar on Home', !gone.homeBrand && !gone.homeAvatar, gone);
+  ok('advisor-name greeting is the first feed element', gone.greeting, gone);
 
   console.log('\n=== Safe-area padding wired (env) ===');
   const rules = await page.evaluate(() => {
@@ -74,20 +73,16 @@ const ok = (label, cond, extra) => {
   console.log('\n=== Layout with env() = 0 (desktop/no-notch) ===');
   const zero = await page.evaluate(() => {
     const scroll = document.getElementById('comp-scroll');
-    const brand = document.querySelector('.comp-home-brand');
     const greeting = document.querySelector('.comp-home-greeting');
     return {
       scrollPaddingTop: getComputedStyle(scroll).paddingTop,
-      brandTop: Math.round(brand.getBoundingClientRect().top),
-      brandVisible: brand.getBoundingClientRect().top >= 0,
       greetingTop: Math.round(greeting.getBoundingClientRect().top),
       greetingVisible: greeting.getBoundingClientRect().top >= 0,
-      order: brand.compareDocumentPosition(greeting) & Node.DOCUMENT_POSITION_FOLLOWING ? 'brand before greeting' : 'WRONG ORDER'
+      isFirst: !!document.querySelector('.comp-home') && document.querySelector('.comp-home').firstElementChild?.classList.contains('comp-home-greeting')
     };
   });
   ok('padding-top computes to 14px when inset = 0', zero.scrollPaddingTop === '14px', zero);
-  ok('brand mark is the first visible element, fully on screen', zero.brandVisible && zero.brandTop < 40, zero);
-  ok('greeting follows the brand mark, fully on screen', zero.greetingVisible && zero.greetingTop > zero.brandTop && zero.order === 'brand before greeting', zero);
+  ok('advisor-name greeting is the first visible element, fully on screen', zero.isFirst && zero.greetingVisible && zero.greetingTop < 40, zero);
 
   // Cross-check: same env() behaviour on the shared header screens (unchanged).
   await page.evaluate(() => App.navigate('settings'));
