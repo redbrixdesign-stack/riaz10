@@ -28,10 +28,10 @@
 
 /* CSS Variables */
 :root {
-  /* Colors — Manchester Ink foundation, Beelo Gold identity.
+  /* Colors — near-black foundation, Beelo Gold identity.
      --secondary/--warning/--danger/--info keep semantic roles only. */
-  --primary: #1B1B18;
-  --primary-dark: #11110F;
+  --primary: #0A0A0A;
+  --primary-dark: #060606;
   --primary-light: #E8E0D0;
   --secondary: #4f6a2f;
   --secondary-light: #e6f0d8;
@@ -44,17 +44,17 @@
   /* Beelo Gold — from Beelo avatar (comp-bee: #FDB913). Brand, primary CTA,
      active nav, important progress, selected states. */
   --accent: #FDB913;
-  --accent-contrast: #1B1B18;
+  --accent-contrast: #0A0A0A;
 
-  /* Neutrals — Manchester Ink canvas; elevated dark surfaces. Cards, nav,
+  /* Neutrals — near-black canvas; dark elevated surfaces. Cards, nav,
      sheets, inputs and toasts all sit on this one dark scale. */
-  --bg: #1B1B18;
-  --bg-elevated: #22221E;
-  --surface: #22221E;
-  --surface-elevated: #2A2A24;
-  --surface-muted: #3A362E;
-  --border: #5C574D;
-  --border-light: rgba(92, 87, 77, 0.4);
+  --bg: #0A0A0A;
+  --bg-elevated: #101010;
+  --surface: #121212;
+  --surface-elevated: #171717;
+  --surface-muted: #202020;
+  --border: #4A4A44;
+  --border-light: rgba(74, 74, 68, 0.5);
 
   /* Text tokens — warm cream, light on every dark surface. No re-scoping. */
   --text-primary: #F5F0E8;
