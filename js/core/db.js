@@ -901,6 +901,15 @@ const DB = {
     for (const table of tables) {
       data[table] = await this.db[table].toArray();
     }
+    // Customer rows carry field-level ciphertext in the store. The backup
+    // must carry the readable record instead: a restore re-encrypts on the
+    // way in (importAll), so exporting ciphertext would lock every row
+    // under the OLD key — unreadable after a reinstall or on a new device,
+    // which is the entire point of a backup. Importing a backup is the
+    // only write path that adds records without going through addCustomer.
+    if (data.customers && data.customers.length) {
+      data.customers = await Promise.all(data.customers.map(c => decryptCustomer(c)));
+    }
     const RUNTIME_SETTING_KEYS = ['__v6_legacy_migrated__', '__storage_probe__', 'pitchDemoSeeded'];
     data.settings = (await this.db.settings.toArray()).filter(s => !RUNTIME_SETTING_KEYS.includes(s.key));
     data.sequences = await this.db.sequences.toArray();

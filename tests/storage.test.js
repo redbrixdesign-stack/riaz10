@@ -834,6 +834,53 @@ async function runBackupEnvelope() {
   ok('envelope: injected secret cannot override device secret', CONFIG.ai.secret === 'device-secret', CONFIG.ai.secret);
 }
 
+// Cross-install restore: a backup made under one passphrase must restore
+// readable customers on a fresh install with a DIFFERENT passphrase. The
+// store's customer rows carry ciphertext, so exportAll() must emit the
+// decrypted record — importing ciphertext would re-lock it under the old
+// key (importAll skips already-encrypted fields) and the restored customer
+// list would be permanently unreadable.
+async function runCrossInstallRestore(engine, tag) {
+  const makeDb = name => {
+    const sandbox = baseSandbox();
+    if (engine === 'dexie') {
+      const Dexie = require('dexie');
+      Dexie.dependencies.indexedDB = indexedDB;
+      Dexie.dependencies.IDBKeyRange = IDBKeyRange;
+      sandbox.Dexie = Dexie;
+    } else {
+      sandbox.Dexie = loadShim(sandbox);
+    }
+    return { DB: loadDbJs(sandbox, name), sandbox };
+  };
+
+  const isEnc = v => v && typeof v === 'object' && 'iv' in v && 'ct' in v;
+
+  // Device A: real key A.
+  const { DB: dbA, sandbox: sbA } = makeDb('advisoros_v6_crossA_' + Date.now());
+  await dbA.init();
+  await sbA.initEncryption('device-a-passphrase');
+  const a = await dbA.addCustomer({ firstName: 'Vera', lastName: 'Cross', phone: '07700 900777', email: 'vera@cross.test', address: { line1: '9 Backup Lane', town: 'Bolton', postcode: 'BL1 1AA', postcodeNormalized: 'BL11AA' } });
+  await dbA.addAppointment({ customerId: a.id, date: new Date().toISOString(), type: 'consultation', clientName: 'Vera Cross' });
+
+  const exported = await dbA.exportAll();
+  const exportedCustomer = exported.customers.find(c => c.firstName === 'Vera');
+  ok(engine + ': backup carries plaintext customer PII', !!exportedCustomer && !isEnc(exportedCustomer.firstName) && !isEnc(exportedCustomer.phone) && !isEnc(exportedCustomer.address.line1) && exportedCustomer.firstName === 'Vera', exportedCustomer && exportedCustomer.firstName);
+
+  // Device B: fresh install, brand-new salt, different passphrase.
+  const { DB: dbB, sandbox: sbB } = makeDb('advisoros_v6_crossB_' + Date.now());
+  await dbB.init();
+  await sbB.initEncryption('device-b-passphrase');
+  await dbB.importAll(JSON.parse(JSON.stringify(exported)));
+
+  const restored = await dbB.getCustomer(a.id);
+  ok(engine + ': restore under different key decrypts', restored && restored.firstName === 'Vera' && restored.lastName === 'Cross' && restored.phone === '07700 900777' && restored.address.line1 === '9 Backup Lane', restored && restored.firstName);
+  const raw = await dbB.db.customers.get(a.id);
+  ok(engine + ': restored row re-encrypted at rest', isEnc(raw.firstName) && isEnc(raw.phone) && isEnc(raw.address.line1));
+  const search = await dbB.searchCustomers('vera');
+  ok(engine + ': restored customer searchable', search.length === 1 && search[0].firstName === 'Vera', search.length);
+}
+
 // ---------- runner ----------
 
 (async () => {
@@ -867,6 +914,12 @@ async function runBackupEnvelope() {
 
   console.log('\nTest 8: backup envelope (ExportService)');
   await runBackupEnvelope();
+
+  console.log('\nTest 9: cross-install restore — real Dexie');
+  await runCrossInstallRestore('dexie', 'dexie');
+
+  console.log('\nTest 10: cross-install restore — bundled shim');
+  await runCrossInstallRestore('shim', 'shim');
   console.log('\n' + (failures === 0 ? 'ALL TESTS PASSED' : failures + ' TEST(S) FAILED'));
   process.exit(failures === 0 ? 0 : 1);
 })().catch(e => { console.error('UNEXPECTED ERROR:', e); process.exit(1); });
