@@ -196,8 +196,19 @@
 }
 
 /* Centred page title used by screens that keep a single h1 in the header */
+/* Centred page title: absolutely centred within the header (a sticky,
+   positioned ancestor) so it lines up with the true viewport centre even
+   when a back button sits on the left — previously it centred only in the
+   leftover flex space beside the back button, landing ~18px off-centre.
+   Long titles ellipsize so they never collide with back/actions. */
 .top-header .page-heading {
-  flex: 1;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 58%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: center;
   font-size: 18px;
 }
