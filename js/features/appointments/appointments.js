@@ -103,7 +103,7 @@ const AppointmentsFeature = {
         <!-- Upcoming View -->
         <div id="appt-upcoming" style="display: none;">
           ${sortedDates.length === 0 ? `
-            <div class="empty-state">
+            <div class="empty-state empty-state-lg">
               <span class="material-symbols-rounded">event</span>
               <div class="fw-600 mb-xs" >No upcoming visits</div>
               <div class="fs-13" >Add your first visit to get started</div>
@@ -138,7 +138,7 @@ const AppointmentsFeature = {
 
         <!-- Past View (hidden by default) -->
         <div id="appt-past" style="display: none; padding: 0 16px;">
-          <div class="empty-state">
+          <div class="empty-state empty-state-lg">
             <span class="material-symbols-rounded">history</span>
             <div>No past visits yet</div>
           </div>
@@ -485,7 +485,7 @@ const AppointmentsFeature = {
 
     if (report.visits === 0 && report.customers.length === 0) {
       return `
-        <div class="empty-state">
+        <div class="empty-state empty-state-lg">
           <span class="material-symbols-rounded">travel_explore</span>
           <div>No local history yet</div>
           <div class="fs-13" >First visit in ${Utils.escapeHtml(report.area)} will start building the picture.</div>
@@ -1021,7 +1021,7 @@ const AppointmentsFeature = {
       ` : ''}
 
       ${pipeline.length === 0 ? `
-        <div class="empty-state">
+        <div class="empty-state empty-state-lg">
           <span class="material-symbols-rounded">trending_up</span>
           <div>No follow-ups waiting</div>
           <div class="fs-13" >Complete visits to build your follow-up list</div>

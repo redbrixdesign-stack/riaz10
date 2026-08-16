@@ -2,6 +2,29 @@
    ADVISOROS v5.0 — CORE STYLES
    ============================================ */
 
+/* ============================================
+   BEELO DESIGN SYSTEM — see docs/DESIGN_SYSTEM.md
+   ONE theme, everywhere: dark Manchester Ink canvas
+   (--bg) + warm Paper cards (--surface) + Beelo Gold
+   accent (--accent). No screen paints its page
+   background cream/white; a light area is always a
+   card. The companion chat is the one intentional
+   exception (dark elevated cards on the ink canvas).
+
+   Colour meanings (one meaning per colour):
+     --accent   gold   = brand + primary action +
+                         current/important state (avatar,
+                         send, NEXT tag, progress, fact
+                         highlight). NEVER warnings.
+     --warning  amber  = overdue / urgent (Overdue tag,
+                         payments). Deliberately ≠ gold.
+     --secondary green = success / done.
+     --danger   red    = destructive / needs action now.
+     --info     slate  = neutral info / delivered.
+   Money figures are neutral ink on cards; gold highlight
+   only inside companion answers as brand emphasis.
+   ============================================ */
+
 /* CSS Variables */
 :root {
   /* Colors — Manchester Ink foundation, Beelo Gold identity, Paper surface.

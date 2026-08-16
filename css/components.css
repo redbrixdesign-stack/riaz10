@@ -2635,7 +2635,14 @@ body.trip-active .toast-container {
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   color: white;
 }
-.empty-state-lg { padding: 48px 24px; }
+/* Page-level empty state: fills the space above the bottom nav so an
+   empty screen reads as "intentionally empty" (icon + message centred in
+   the visible area), never as a small box with a dead void below it.
+   The base .empty-state (160px) remains for inline/embedded empties. */
+.empty-state-lg {
+  padding: 48px 24px;
+  min-height: calc(100vh - var(--nav-height) - var(--safe-bottom) - 180px);
+}
 .center-box { text-align: center; padding: 32px 24px; }
 .center-box-tertiary { text-align: center; padding: 32px 0; color: var(--text-tertiary); }
 .accent-left { border-left: 3px solid var(--primary); }
