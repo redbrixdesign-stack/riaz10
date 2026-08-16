@@ -2721,10 +2721,12 @@ body.trip-active .toast-container {
 }
 
 /* ============================================
-   BEELO COMPANION — DeepSeek-style dark chat
-   (Home screen, js/features/companion).
-   Palette: canvas #0E1116, cards #161B25, borders
-   #232A38, text #E8EAF0, bee gold #FDB913 (Manchester).
+   BEELO COMPANION — dark chat (Home screen,
+   js/features/companion). Uses the established
+   Beelo tokens: Manchester Ink canvas, warm
+   elevated cards, Beelo Gold accent. No second
+   colour system — the dark chat is the app's
+   own dark canvas, not a separate palette.
    ============================================ */
 .comp-page {
   height: calc(100vh - var(--nav-height) - var(--safe-bottom) - var(--space-md));
@@ -2732,14 +2734,14 @@ body.trip-active .toast-container {
   flex-direction: column;
 }
 .comp-root {
-  --comp-bg: #0E1116;
-  --comp-card: #161B25;
-  --comp-border: #232A38;
-  --comp-text: #E8EAF0;
-  --comp-muted: #9AA3B2;
-  --comp-bee: #FDB913;
-  --comp-bee-deep: #D9A400;
-  --comp-user: #262C3A;
+  --comp-bg: var(--bg);
+  --comp-card: var(--bg-elevated);
+  --comp-border: color-mix(in srgb, var(--border) 55%, var(--bg));
+  --comp-text: var(--text-primary);
+  --comp-muted: var(--text-secondary);
+  --comp-bee: var(--accent);
+  --comp-bee-deep: color-mix(in srgb, var(--accent) 80%, #000);
+  --comp-user: color-mix(in srgb, var(--surface-muted) 26%, var(--bg));
   display: flex;
   flex-direction: column;
   flex: 1 1 0;
@@ -2799,7 +2801,7 @@ body.trip-active .toast-container {
 }
 .comp-avatar {
   background: linear-gradient(135deg, var(--comp-bee) 0%, var(--comp-bee-deep) 100%);
-  color: #0E1116;
+  color: var(--accent-contrast);
   font-weight: 800;
   display: flex;
   align-items: center;
@@ -3033,7 +3035,7 @@ body.trip-active .toast-container {
 }
 .comp-toggle-label input:checked + .comp-toggle-track .comp-toggle-thumb {
   transform: translateX(16px);
-  background: #0E1116;
+  background: var(--accent-contrast);
 }
 .comp-inputbar {
   display: flex;
@@ -3061,7 +3063,7 @@ body.trip-active .toast-container {
   border-radius: 50%;
   border: none;
   background: linear-gradient(135deg, var(--comp-bee) 0%, var(--comp-bee-deep) 100%);
-  color: #0E1116;
+  color: var(--accent-contrast);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3136,7 +3138,7 @@ body.trip-active .toast-container {
   height: 48px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--comp-bee) 0%, var(--comp-bee-deep) 100%);
-  color: #0E1116;
+  color: var(--accent-contrast);
   font-weight: 800;
   font-size: 22px;
   display: flex;
@@ -3293,6 +3295,14 @@ body.trip-active .toast-container {
   box-shadow: 0 0 0 2px rgba(253, 185, 19, 0.2);
 }
 
+/* Overdue = time passed, outcome not logged — the day-strip's "attention
+   required" state. Warning tone, not red: nothing is broken, it just needs
+   a tap (and the label carries the meaning, not colour alone). */
+.comp-home-visit.overdue {
+  border-color: var(--warning);
+  box-shadow: 0 0 0 2px rgba(141, 93, 15, 0.18);
+}
+
 .comp-home-visit.upcoming {
   border-color: var(--comp-border);
 }
@@ -3315,12 +3325,12 @@ body.trip-active .toast-container {
 
 .comp-home-visit.current .comp-home-visit-state {
   background: var(--comp-bee);
-  color: #0E1116;
+  color: var(--accent-contrast);
 }
 
-.comp-home-visit.upcoming .comp-home-visit-state {
-  background: var(--comp-border);
-  color: var(--comp-muted);
+.comp-home-visit.overdue .comp-home-visit-state {
+  background: var(--warning-light);
+  color: var(--warning);
 }
 
 .comp-home-visit-main {

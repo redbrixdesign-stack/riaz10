@@ -30,15 +30,15 @@ const CompanionFeature = {
   ALLOWED_SUGGESTIONS: ['today', 'my day', 'week', 'money', 'follow-ups', 'next visit', 'log expense', 'messages', 'orders', 'weather', 'help'],
 
   CHIP_LABELS: {
-    today: "▸ Today's overview",
+    today: "▸ What's my day look like?",
     'my day': '▸ My day',
-    week: '▸ Weekly overview',
+    week: '▸ How am I doing this week?',
     money: '▸ Money & tax',
-    'follow-ups': '▸ Follow-ups due',
-    'next visit': '▸ Next visit',
+    'follow-ups': '▸ Who should I chase?',
+    'next visit': "▸ What's next?",
     'log expense': '▸ Log an expense',
-    messages: '▸ What messages are due?',
-    orders: '▸ Who hasn\'t paid?',
+    messages: "▸ Who haven't I messaged?",
+    orders: "▸ Who hasn't paid?",
     weather: '▸ Weather',
     help: '▸ What can you ask?',
     'after visit': '▸ What should I do now?',
@@ -129,7 +129,7 @@ const CompanionFeature = {
             </label>
           </div>
           <div class="comp-inputbar">
-            <input type="text" id="comp-input" class="comp-input" placeholder="Ask me about your day, money, customers, follow-ups…" autocomplete="off">
+            <input type="text" id="comp-input" class="comp-input" placeholder="Ask Beelo — visits, money, follow-ups…" autocomplete="off">
             <button class="comp-send" id="comp-send" aria-label="Send" onclick="CompanionFeature.doSend()">
               <span class="material-symbols-rounded">arrow_upward</span>
             </button>
@@ -195,9 +195,9 @@ const CompanionFeature = {
     // A. BELO GREETING
     const greetingHtml = `
       <div class="comp-home-greeting">
-        <div class="comp-home-avatar">B</div>
+        <div class="comp-home-avatar" aria-hidden="true">B</div>
         <div class="comp-home-greeting-text">
-          <div class="comp-home-greeting-main">${greeting}${firstName === 'there' ? '.' : `, ${Utils.escapeHtml(firstName)}.`}</div>
+          <div class="comp-home-greeting-main" role="heading" aria-level="1">${greeting}${firstName === 'there' ? '.' : `, ${Utils.escapeHtml(firstName)}.`}</div>
           <div class="comp-home-greeting-sub">${homeData.greetingSub}</div>
         </div>
       </div>`;
@@ -206,6 +206,11 @@ const CompanionFeature = {
     let nextVisitHtml = '';
     if (homeData.nextVisit) {
       const nv = homeData.nextVisit;
+      const etaLine = (nv.travel || nv.eta) ? `
+            <div class="comp-home-next-visit-eta">
+              <span class="material-symbols-rounded" aria-hidden="true">${nv.travel === 'On site now' ? 'location_on' : 'directions_car'}</span>
+              <span>${Utils.escapeHtml(nv.travel || nv.eta)}</span>
+            </div>` : '';
       nextVisitHtml = `
         <div class="comp-home-section">
           <div class="comp-home-section-header">
@@ -219,10 +224,7 @@ const CompanionFeature = {
               <div class="comp-home-next-visit-address">${Utils.escapeHtml(nv.address)}</div>
               ${nv.briefing ? `<div class="comp-home-next-visit-brief">${Utils.escapeHtml(nv.briefing)}</div>` : ''}
             </button>
-            <div class="comp-home-next-visit-eta">
-              <span class="material-symbols-rounded" aria-hidden="true">${nv.travel === 'On site now' ? 'location_on' : 'directions_car'}</span>
-              <span>${Utils.escapeHtml(nv.travel || nv.eta || '—')}</span>
-            </div>
+            ${etaLine}
           </div>
           <div class="comp-home-next-visit-actions">
             <button class="btn btn-primary btn-sm" onclick="AppointmentsFeature.navigateToVisit('${Utils.escapeJsString(nv.address || '')}', ${nv.id})">
@@ -239,18 +241,21 @@ const CompanionFeature = {
     // C. TODAY - Lightweight day awareness
     let todayHtml = '';
     if (homeData.todayVisits && homeData.todayVisits.length > 0) {
+      // One row claims "Next": the first visit that hasn't happened yet and
+      // isn't overdue. Overdue rows carry their own warning state instead.
+      const firstUpcoming = homeData.todayVisits.findIndex(v => v.state === 'upcoming');
       const visitsHtml = homeData.todayVisits.map((v, i) => {
-        let stateClass = '';
+        let stateClass = 'upcoming';
         let stateLabel = '';
         if (v.completed) { stateClass = 'completed'; stateLabel = 'Done'; }
-        else if (i === 0 && !v.completed) { stateClass = 'current'; stateLabel = 'Next'; }
-        else { stateClass = 'upcoming'; stateLabel = 'Upcoming'; }
-        
+        else if (v.state === 'overdue') { stateClass = 'overdue'; stateLabel = 'Overdue'; }
+        else if (i === firstUpcoming) { stateClass = 'current'; stateLabel = 'Next'; }
+
         return `
           <button type="button" class="comp-home-visit ${stateClass}" onclick="App.navigate('appointments', {id: ${v.id}})">
-            <span class="comp-home-visit-state">${stateLabel}</span>
+            ${stateLabel ? `<span class="comp-home-visit-state">${stateLabel}</span>` : ''}
             <div class="comp-home-visit-main">
-              <span class="comp-home-visit-time">${Utils.formatTimeUK(v.date)}</span>
+              <span class="comp-home-visit-time">${Utils.escapeHtml(v.time)}</span>
               <span class="comp-home-visit-name">${Utils.escapeHtml(v.name)}</span>
               <span class="comp-home-visit-area">${Utils.escapeHtml(v.area)}</span>
             </div>
@@ -346,8 +351,8 @@ const CompanionFeature = {
         ${greetingHtml}
         ${nextVisitHtml}
         ${todayHtml}
-        ${weekHtml}
         ${attentionHtml}
+        ${weekHtml}
         ${suggestionsHtml}
         <div class="comp-home-composer-spacer"></div>
       </div>`;
@@ -409,31 +414,10 @@ const CompanionFeature = {
       };
     }
 
-    // Today's visits with state
-    const todayVisits = [...todayAppts].sort((a, b) => new Date(a.date) - new Date(b.date)).map((v, i) => ({
-      id: v.id,
-      name: v.clientName || 'Customer',
-      time: Utils.formatTimeUK(v.date),
-      area: this.getAreaLabel(v),
-      type: v.type ? (CONFIG.appointmentTypes.find(t => t.id === v.type)?.name || v.type) : 'Visit',
-      completed: v.outcome || v.status === 'completed'
-    }));
-
-    // Attention items
+    // Attention items — ordered by what's at risk first: today's visits
+    // needing an outcome (data loss), follow-ups due today (a customer
+    // waiting), messages owed (a visit at risk), then money.
     const attention = [];
-    
-    // Unpaid orders
-    const unpaidOrders = orders.filter(o => (o.balanceDue || 0) > 0);
-    if (unpaidOrders.length > 0) {
-      const totalDue = unpaidOrders.reduce((s, o) => s + (o.balanceDue || 0), 0);
-      attention.push({
-        icon: 'payments',
-        label: 'Payments outstanding',
-        value: `${Utils.formatCurrency(totalDue)} over ${unpaidOrders.length} order${unpaidOrders.length === 1 ? '' : 's'}`,
-        action: "App.navigate('orders')",
-        actionLabel: 'View Orders'
-      });
-    }
 
     // Unlogged outcomes today
     const unloggedToday = todayAppts.filter(a => !a.outcome && a.status !== 'completed');
@@ -444,6 +428,23 @@ const CompanionFeature = {
         value: `${unloggedToday.length} visit${unloggedToday.length === 1 ? '' : 's'} today`,
         action: "App.navigate('appointments', {tab: 'upcoming'})",
         actionLabel: 'Log outcomes'
+      });
+    }
+
+    // Follow-ups due — name who's first so the advisor knows who to call
+    // without opening the inbox.
+    const followUpsDue = (await FollowupsFeature.loadTasks()).filter(t => t.due);
+    if (followUpsDue.length > 0) {
+      const firstTask = followUpsDue[0];
+      const firstName = (firstTask.customer && (firstTask.customer.firstName || firstTask.customer.fullName)) ||
+        (firstTask.appointment && firstTask.appointment.clientName) ||
+        (firstTask.order && firstTask.order.orderNumber) || null;
+      attention.push({
+        icon: 'campaign',
+        label: 'Follow-ups due',
+        value: `${followUpsDue.length} task${followUpsDue.length === 1 ? '' : 's'} due${firstName ? ` — ${String(firstName).split(' ')[0]} first` : ''}`,
+        action: "App.navigate('followups')",
+        actionLabel: 'Open Follow-ups'
       });
     }
 
@@ -476,15 +477,16 @@ const CompanionFeature = {
       });
     }
 
-    // Follow-ups due
-    const followUpsDue = (await FollowupsFeature.loadTasks()).filter(t => t.due);
-    if (followUpsDue.length > 0) {
+    // Unpaid orders
+    const unpaidOrders = orders.filter(o => (o.balanceDue || 0) > 0);
+    if (unpaidOrders.length > 0) {
+      const totalDue = unpaidOrders.reduce((s, o) => s + (o.balanceDue || 0), 0);
       attention.push({
-        icon: 'campaign',
-        label: 'Follow-ups due',
-        value: `${followUpsDue.length} task${followUpsDue.length === 1 ? '' : 's'} due`,
-        action: "App.navigate('followups')",
-        actionLabel: 'Open Follow-ups'
+        icon: 'payments',
+        label: 'Payments outstanding',
+        value: `${Utils.formatCurrency(totalDue)} over ${unpaidOrders.length} order${unpaidOrders.length === 1 ? '' : 's'}`,
+        action: "App.navigate('orders')",
+        actionLabel: 'View Orders'
       });
     }
 
@@ -502,20 +504,31 @@ const CompanionFeature = {
       pct: target > 0 ? Math.min(100, Math.round(((weekStats.earnings || 0) / target) * 100)) : 0
     };
 
-    // Suggestions
-    const suggestions = ['today', 'next visit', 'week', 'money', 'follow-ups', 'messages'];
+    // Suggestions — a small contextual set, all whitelisted commands (the
+    // AI never invents actions; every chip routes to an existing handler).
+    const suggestions = ['today', 'next visit', 'follow-ups', 'week', 'messages'];
 
     return {
       greetingSub,
       nextVisit,
-      todayVisits: todayAppts.map((v, i) => ({
-        id: v.id,
-        name: v.clientName || 'Customer',
-        time: Utils.formatTimeUK(v.date),
-        area: this.getAreaLabel(v),
-        type: v.type ? (CONFIG.appointmentTypes.find(t => t.id === v.type)?.name || v.type) : 'Visit',
-        completed: v.outcome || v.status === 'completed'
-      })),
+      // Day-strip states: 'done' (outcome logged), 'overdue' (time passed,
+      // no outcome — needs attention), otherwise 'upcoming'. The renderer
+      // marks the first upcoming one as 'next' so only one row ever claims
+      // the gold "Next" state.
+      todayVisits: [...todayAppts]
+        .sort((a, b) => new Date(a.date) - new Date(b.date))
+        .map(v => {
+          const completed = !!(v.outcome || v.status === 'completed');
+          return {
+            id: v.id,
+            name: v.clientName || 'Customer',
+            time: Utils.formatTimeUK(v.date),
+            area: this.getAreaLabel(v),
+            type: v.type ? (CONFIG.appointmentTypes.find(t => t.id === v.type)?.name || v.type) : 'Visit',
+            completed,
+            state: completed ? 'done' : (new Date(v.date).getTime() < Date.now() - 15 * 60 * 1000 ? 'overdue' : 'upcoming')
+          };
+        }),
       week,
       attention,
       suggestions
