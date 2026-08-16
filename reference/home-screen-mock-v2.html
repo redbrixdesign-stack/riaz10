@@ -92,6 +92,7 @@
   .calendar-controls{display:flex;gap:4px;}
   .arrow-btn{width:44px;height:44px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--text-muted);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:all 0.15s;font-family:inherit;line-height:1;}
   .arrow-btn:hover{background:var(--surface-raised);color:var(--text-primary);border-color:var(--border-strong);}
+  .arrow-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
 
   .calendar-strip{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;}
   .calendar-strip::-webkit-scrollbar{display:none;}
@@ -116,6 +117,8 @@
   .day-item.has-visits .day-number{color:var(--text-secondary);}
   .day-item.has-visits .day-count{background:var(--surface-raised);color:var(--text-muted);}
   .day-item.has-visits.active .day-count{color:var(--accent);}
+  /* Subtle weekend tint — visual only, no contrast impact on text */
+  .day-item.weekend{background:color-mix(in srgb, var(--surface) 45%, transparent);}
   /* Past days recede — via colour, not heavy opacity (opacity multiplies
      into the background and destroys contrast; 0.45 made day numbers
      ~1.6:1). Recolour to the muted/disabled tiers and only ease opacity
@@ -283,6 +286,7 @@
   .quick-action-strip{display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
   .qa-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;background:transparent;border:1px solid var(--border);border-radius:var(--radius-pill);padding:0 12px;min-height:44px;font-size:12px;font-weight:500;color:var(--text-secondary);cursor:pointer;font-family:inherit;transition:all 0.15s;}
   .qa-btn:hover{background:var(--surface-raised);border-color:var(--border-strong);color:var(--text-primary);}
+  .qa-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
   .qa-btn .ic{font-size:13px;}
 
   /* --- 6. Bottom Navigation --- */
@@ -298,6 +302,7 @@
     width:48px;height:48px;border-radius:14px;color:var(--text-muted);font-family:inherit;transition:all 0.15s;
   }
   .nav-item:hover{color:var(--text-secondary);}
+  .nav-item:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
   .nav-item.active{background:var(--surface);color:var(--text-primary);}
   .nav-label{font-size:9px;font-weight:500;color:var(--text-disabled);letter-spacing:0.02em;text-transform:uppercase;transition:color 0.15s;}
   .nav-item.active .nav-label{color:var(--text-secondary);}
@@ -345,13 +350,13 @@
     <!-- 1. Weekly Calendar -->
     <div class="calendar-section">
       <div class="calendar-header">
-        <span class="calendar-title">This week</span>
+        <span class="calendar-title" id="weekTitle">This week</span>
         <div class="calendar-controls">
           <button class="arrow-btn" type="button" data-action="shiftWeek" data-direction="-1" aria-label="Previous week">‹</button>
           <button class="arrow-btn" type="button" data-action="shiftWeek" data-direction="1" aria-label="Next week">›</button>
         </div>
       </div>
-      <div class="calendar-strip" id="calendarStrip"></div>
+      <div class="calendar-strip" id="calendarStrip" aria-live="polite" aria-atomic="true"></div>
     </div>
 
     <!-- 2. Appointment Schedule Block -->
@@ -365,7 +370,7 @@
       </div>
       
       <!-- 3. Appointment Feed -->
-      <div class="appointment-feed" id="appointmentFeed">
+      <div class="appointment-feed" id="appointmentFeed" aria-live="polite" aria-atomic="true">
         <!-- JS renders appointments here -->
       </div>
     </div>
@@ -473,7 +478,7 @@
           <div class="appt-name-row">
             <span class="appt-name">${item.customer}</span>
           </div>
-          ${item.type ? `<div class="appt-context">${item.type}</div>` : ''}
+          ${item.type ? `<div class="appt-context">${item.type}</div>` : '<div class="appt-context">Visit</div>'}
           <div class="appt-location">${item.loc}</div>
           ${journey ? `<div class="appt-journey">${journey}</div>` : ''}
 
@@ -509,16 +514,25 @@
 
   function renderCalendar(activeId) {
     const strip = document.getElementById('calendarStrip');
-    strip.innerHTML = weekDays.map(day => {
+    // Week indicator: derived from the data, e.g. "This week · 12–18 Aug".
+    const weekTitle = document.getElementById('weekTitle');
+    if (weekTitle && weekDays.length >= 2) {
+      const fmt = d => new Date(d.id).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+      const start = fmt(weekDays[0]);
+      const end = fmt(weekDays[weekDays.length - 1]);
+      weekTitle.textContent = `This week · ${start}–${end}`;
+    }
+    strip.innerHTML = weekDays.map((day, i) => {
       const isActive = day.id === activeId;
       const isPast = day.id < activeId;
       const hasVisits = day.visits > 0;
+      const isWeekend = i >= 5; // Sat/Sun — visual tint only
       const countDisplay = day.visits > 0 ? day.visits : '—';
       const visitText = day.visits === 0 ? 'no visits' : (day.visits === 1 ? '1 visit' : day.visits + ' visits');
       const stateText = isActive ? ', selected' : isPast ? ', past' : '';
       const ariaLabel = `${day.label} ${day.num}, ${visitText}${stateText}`;
       return `
-        <button class="day-item ${isActive ? 'active' : ''} ${isPast ? 'past' : ''} ${hasVisits ? 'has-visits' : ''}" type="button" data-action="day" data-date="${day.id}" aria-label="${ariaLabel}" aria-selected="${isActive}" ${isActive ? 'aria-current="date"' : ''}>
+        <button class="day-item ${isActive ? 'active' : ''} ${isPast ? 'past' : ''} ${hasVisits ? 'has-visits' : ''} ${isWeekend ? 'weekend' : ''}" type="button" data-action="day" data-date="${day.id}" aria-label="${ariaLabel}" aria-selected="${isActive}" ${isActive ? 'aria-current="date"' : ''}>
           <span class="day-label">${day.label}</span>
           <span class="day-number">${day.num}</span>
           <span class="day-count" aria-hidden="true">${countDisplay}</span>

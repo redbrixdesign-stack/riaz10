@@ -77,6 +77,10 @@ const ok = (label, cond, extra) => {
   ok('--text-secondary ≥ 4.5:1 on canvas', r.textSecondary >= 4.5, r.textSecondary.toFixed(2));
   ok('--text-muted ≥ 4.5:1 on canvas', r.textMuted >= 4.5, r.textMuted.toFixed(2));
   ok('--text-disabled ≥ 3:1 on canvas (de-emphasised tier)', r.textDisabled >= 3, r.textDisabled.toFixed(2));
+  ok('week indicator rendered from data ("This week · …–…")', /This week · .+–.+/.test(await page.evaluate(() => document.getElementById('weekTitle').textContent)));
+  ok('aria-live on feed + calendar strip', (await page.evaluate(() => !!document.getElementById('appointmentFeed').getAttribute('aria-live') && !!document.getElementById('calendarStrip').getAttribute('aria-live'))));
+  ok('featured card context falls back to "Visit"', (await page.evaluate(() => document.querySelector('.appointment--featured .appt-context')?.textContent)) === 'Visit');
+  ok('weekend tint applied to Sat/Sun', (await page.evaluate(() => document.querySelectorAll('.day-item.weekend').length)) === 2);
 
   console.log('\n=== Behaviour preservation ===');
   // Navigate alert (preserved)
