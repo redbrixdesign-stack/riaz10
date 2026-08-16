@@ -23,6 +23,9 @@ const CompanionFeature = {
   _turns: [],
   _busy: false,
   _rootId: null,
+  // Which week the Home strip displays (0 = current week, ±1 per arrow tap).
+  // Session-persisted like HomeScreenController._selectedDate; resets on reload.
+  _weekOffset: 0,
 
   // A tiny whitelist shared with the proxy prompt — the AI may only ever
   // suggest commands the router actually understands.
@@ -212,12 +215,23 @@ const CompanionFeature = {
         <div class="comp-home-section">
           <div class="comp-home-section-header">
             <span class="comp-home-section-label">THIS WEEK</span>
+            <div class="comp-home-week-nav">
+              <button type="button" class="comp-home-week-arrow" aria-label="Previous week" onclick="CompanionFeature.shiftHomeWeek(-1)">
+                <span class="material-symbols-rounded" aria-hidden="true">chevron_left</span>
+              </button>
+              <button type="button" class="comp-home-week-arrow" aria-label="Next week" onclick="CompanionFeature.shiftHomeWeek(1)">
+                <span class="material-symbols-rounded" aria-hidden="true">chevron_right</span>
+              </button>
+            </div>
+          </div>
+          <div class="comp-home-week-strip">${daysHtml}</div>
+          <div class="comp-home-week-progress">
+            <div class="progress-bar comp-home-week-bar"><div class="fill accent" style="width:${week.pct}%"></div></div>
             <button type="button" class="comp-home-week-target" onclick="App.navigate('money')">
               ${week.gap > 0 ? `${Utils.formatCurrency(week.gap)} to target` : 'Target reached — nice work'}
             </button>
           </div>
-          <div class="comp-home-week-strip">${daysHtml}</div>
-          <div class="progress-bar comp-home-week-bar"><div class="fill accent" style="width:${week.pct}%"></div></div>
+          ${homeData.weekRange ? `<div class="comp-home-week-range">${Utils.escapeHtml(homeData.weekRange)} · tap a day for the diary</div>` : ''}
         </div>`;
     }
 
@@ -580,12 +594,14 @@ const CompanionFeature = {
       pct: target > 0 ? Math.min(100, Math.round(((weekStats.earnings || 0) / target) * 100)) : 0
     };
 
-    // 7-day strip (Mon–Sun of the current UK week) with real per-day visit
-    // counts — the same day window the rest of the app uses.
+    // 7-day strip (Mon–Sun of the displayed week — current week by default,
+    // shifted ±1 week per tap on the ‹ › arrows) with real per-day visit
+    // counts, from the same day window the rest of the app uses.
     let weekDays = [];
+    let weekRange = '';
     try {
-      const weekStart = Utils.getStartOfWeek();
-      const weekEnd = Utils.getEndOfWeek();
+      const weekStart = Utils.addDays(Utils.getStartOfWeek(), (this._weekOffset || 0) * 7);
+      const weekEnd = Utils.addDays(weekStart, 7);
       const weekAppts = await DB.getAppointmentsForRange(weekStart.toISOString(), weekEnd.toISOString());
       const counts = {};
       for (const a of weekAppts) {
@@ -598,6 +614,9 @@ const CompanionFeature = {
         const iso = Utils.formatDate(d, 'iso');
         return { iso, label: Utils.formatDate(d, 'weekday-short'), num: d.getDate(), count: counts[iso] || 0 };
       });
+      const first = weekDays[0];
+      const last = weekDays[6];
+      weekRange = `${first.label} ${first.num} – ${last.label} ${last.num}`;
     } catch (e) { /* strip is optional */ }
 
     // Suggestions — a small contextual set, all whitelisted commands (the
@@ -608,6 +627,7 @@ const CompanionFeature = {
       greetingSub,
       nextVisit,
       weekDays,
+      weekRange,
       // Day-strip states: 'done' (outcome logged), 'overdue' (time passed,
       // no outcome — needs attention), otherwise 'upcoming'. The renderer
       // marks the first upcoming one as 'next' so only one row ever claims
@@ -1688,6 +1708,13 @@ const CompanionFeature = {
   },
 
   /* ---------- actions ---------- */
+
+  // Move the Home week strip ±1 week and re-render the feed (the strip is
+  // the only week-aware part; NEXT/TODAY stay anchored to "now").
+  shiftHomeWeek(delta) {
+    this._weekOffset = (this._weekOffset || 0) + delta;
+    this.renderScroll();
+  },
 
   openMyDay(isoDate) {
     // Optional initial day: the Home week strip lets a day tap open the

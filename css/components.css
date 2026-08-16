@@ -2870,6 +2870,35 @@ body.trip-active .toast-container {
 /* Past days recede — a navigational strip, not a primary feature. */
 .comp-home-week-day.past { opacity: 0.45; }
 
+/* Week navigation arrows (‹ ›) — 44px touch targets, icon-only with
+   aria-labels. */
+.comp-home-week-nav { display: flex; align-items: center; gap: 4px; }
+.comp-home-week-arrow {
+  appearance: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--comp-border);
+  background: var(--comp-card);
+  color: var(--comp-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.comp-home-week-arrow:hover { color: var(--comp-text); background: var(--comp-border); }
+.comp-home-week-arrow:focus-visible { outline: 2px solid var(--comp-bee); outline-offset: 2px; }
+.comp-home-week-arrow .material-symbols-rounded { font-size: 20px; }
+
+/* Progress row: thin bar + "to target" text side by side. */
+.comp-home-week-progress { display: flex; align-items: center; gap: 10px; }
+.comp-home-week-progress .comp-home-week-bar { flex: 1; }
+
+/* Displayed-week range + hint under the strip. */
+.comp-home-week-range { font-size: 11px; color: var(--comp-muted); margin-top: 2px; }
+
 .comp-home-week-target {
   appearance: none;
   background: transparent;
@@ -2881,6 +2910,8 @@ body.trip-active .toast-container {
   color: var(--comp-muted);
   min-height: 44px;
   padding: 0 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: color 0.15s ease;
 }
 .comp-home-week-target:hover { color: var(--comp-text); }

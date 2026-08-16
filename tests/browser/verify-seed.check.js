@@ -49,8 +49,16 @@ async function evaluate(ws, expression) {
 
 (async () => {
   if (!fs.existsSync(CHROME)) { console.error('Chrome not found'); process.exit(1); }
-  try { const res = await fetch(BASE + '/index.html'); if (!res.ok) throw new Error(res.status); }
-  catch (e) { console.error(`Can't reach ${BASE} — start the dev server first.`); process.exit(1); }
+  // Hard timeout on the sanity check: in sandboxed environments a hanging
+  // Node fetch would otherwise leave the promise unresolved and node would
+  // exit 0 silently with zero output — failing loudly beats faking a pass.
+  try {
+    const res = await fetch(BASE + '/index.html', { signal: AbortSignal.timeout(6000) });
+    if (!res.ok) throw new Error(res.status);
+  } catch (e) {
+    console.error(`Can't reach ${BASE} — start the dev server first. (${e.message || e})`);
+    process.exit(1);
+  }
 
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'advisoros-seedcheck-'));
   const chromeProc = spawn(CHROME, [
