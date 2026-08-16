@@ -2389,40 +2389,14 @@ body.trip-active .toast-container {
   border-radius: 14px;
 }
 
-.comp-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--comp-border);
-  flex-shrink: 0;
-}
-.comp-brand {
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  font-size: 15px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.comp-brand::before {
-  content: '';
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--comp-bee);
-  box-shadow: 0 0 6px rgba(253, 185, 19, 0.6);
-}
-.comp-clock {
-  font-size: 12px;
-  color: var(--comp-muted);
-}
-
-/* Scrollback */
+/* Scrollback. Top padding includes the device safe-area inset so the
+   first feed element (the greeting) sits cleanly below the OS status
+   bar / notch on standalone PWA installs — the old custom topbar was
+   removed and the phone's own status bar already shows the time. */
 .comp-scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 14px 14px 4px;
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 14px 4px;
   -webkit-overflow-scrolling: touch;
 }
 .comp-scroll::-webkit-scrollbar { width: 4px; }

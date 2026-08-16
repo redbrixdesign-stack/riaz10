@@ -23,7 +23,6 @@ const CompanionFeature = {
   _turns: [],
   _busy: false,
   _rootId: null,
-  _clockTimer: null,
 
   // A tiny whitelist shared with the proxy prompt — the AI may only ever
   // suggest commands the router actually understands.
@@ -106,7 +105,6 @@ const CompanionFeature = {
   },
 
   unmount() {
-    if (this._clockTimer) { clearInterval(this._clockTimer); this._clockTimer = null; }
     try { HomeScreenController.stopDynamicHomeScreen(); } catch (e) { /* safe */ }
   },
 
@@ -115,10 +113,6 @@ const CompanionFeature = {
     if (!root) return;
     root.innerHTML = `
       <div class="comp-root">
-        <div class="comp-topbar">
-          <span class="comp-brand">Beelo</span>
-          <span class="comp-clock" id="comp-clock">${Utils.escapeHtml(Utils.formatTimeUK())}</span>
-        </div>
         <div class="comp-scroll" id="comp-scroll"></div>
         <div class="comp-composer">
           <div class="comp-toolbar">
@@ -136,11 +130,6 @@ const CompanionFeature = {
           </div>
         </div>
       </div>`;
-
-    this._clockTimer = setInterval(() => {
-      const el = document.getElementById('comp-clock');
-      if (el) el.textContent = Utils.formatTimeUK();
-    }, 60000);
 
     const toggle = document.getElementById('comp-ai-toggle');
     if (toggle) {
