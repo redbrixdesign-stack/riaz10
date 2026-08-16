@@ -20,8 +20,16 @@ const MoneyFeature = {
 
     const now = new Date();
     const monthStart = Utils.getStartOfMonth(now);
+    // The Week segment must show WEEK figures and the Month segment month
+    // figures - both previously read the month window, so "This Week" showed
+    // this month's expenses and mileage claim (misleading at month start and
+    // at every 5-second glance in between).
+    const weekStart = Utils.getStartOfWeek();
+    const weekEnd = Utils.getEndOfWeek();
     let expenses = [];
     let trips = [];
+    let weekExpenses = [];
+    let weekTrips = [];
 
     try {
       expenses = await DB.getExpensesForPeriod(monthStart.toISOString(), now.toISOString());
@@ -31,9 +39,20 @@ const MoneyFeature = {
       trips = await DB.getTripsForPeriod(monthStart.toISOString(), now.toISOString());
     } catch (e) {}
 
+    try {
+      weekExpenses = await DB.getExpensesForPeriod(weekStart.toISOString(), weekEnd.toISOString());
+    } catch (e) {}
+
+    try {
+      weekTrips = await DB.getTripsForPeriod(weekStart.toISOString(), weekEnd.toISOString());
+    } catch (e) {}
+
     const monthTotal = expenses.reduce((s, e) => s + (e.amount || 0), 0);
     const monthMiles = trips.reduce((s, t) => s + (t.distanceKm || 0), 0);
-    const mileageClaim = TaxCalculator.calculateMileageClaim(monthMiles);
+    const weekTotal = weekExpenses.reduce((s, e) => s + (e.amount || 0), 0);
+    const weekMiles = weekTrips.reduce((s, t) => s + (t.distanceKm || 0), 0);
+    const mileageClaim = TaxCalculator.calculateMileageClaim(weekMiles);
+    const weekRecordCount = weekExpenses.length + weekTrips.length;
     const weekEarnings = await this.getWeekEarnings();
     const target = CONFIG.weeklyTarget || 600;
     const targetGap = Math.max(0, target - weekEarnings);
@@ -139,8 +158,8 @@ const MoneyFeature = {
         <div id="money-week" class="mt-md">
           <div class="stats-grid">
             <div class="stat-card" onclick="MoneyFeature.openRecordsModal()"><div class="value">${Utils.formatCurrency(mileageClaim)}</div><div class="label">Mileage claim</div></div>
-            <div class="stat-card" onclick="MoneyFeature.openRecordsModal()"><div class="value">${Utils.formatCurrency(monthTotal)}</div><div class="label">Expenses</div></div>
-            <div class="stat-card" onclick="MoneyFeature.openRecordsModal()"><div class="value">${recordCount || '—'}</div><div class="label">Records</div></div>
+            <div class="stat-card" onclick="MoneyFeature.openRecordsModal()"><div class="value">${Utils.formatCurrency(weekTotal)}</div><div class="label">Expenses</div></div>
+            <div class="stat-card" onclick="MoneyFeature.openRecordsModal()"><div class="value">${weekRecordCount || '—'}</div><div class="label">Records</div></div>
           </div>
         </div>
 
