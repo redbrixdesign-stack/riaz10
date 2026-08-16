@@ -40,6 +40,7 @@ const ok = (label, cond, extra) => {
         overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
         labels,
         hasGreetingHeading: !!document.querySelector('.comp-home-greeting-main[role="heading"]'),
+        hasGoldenDot: !!document.querySelector('.comp-home-greeting-dot'),
         hasAvatar: !!document.querySelector('.comp-home-avatar'),
         visitCount: document.querySelectorAll('.comp-home-visit').length,
         anyTimeIsNow: times.some(t => t === nowT),
@@ -48,7 +49,7 @@ const ok = (label, cond, extra) => {
     });
     const p = w + 'px';
     ok(`${p}: no horizontal overflow`, r.overflowX <= 0, r.overflowX);
-    ok(`${p}: greeting heading + avatar render`, r.hasGreetingHeading && r.hasAvatar);
+    ok(`${p}: name heading + golden dot render, no B avatar`, r.hasGreetingHeading && r.hasGoldenDot && !r.hasAvatar);
     // THIS WEEK → NEXT → TODAY → TOMORROW → ATTENTION → ASK BEELO
     const iWeek = r.labels.indexOf('THIS WEEK');
     const iNext = r.labels.indexOf('NEXT');

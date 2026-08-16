@@ -181,9 +181,7 @@ const CompanionFeature = {
 
   welcomeHtml(homeData) {
     const firstName = Utils.firstNameFrom(CONFIG.advisorName || '');
-    const hour = Utils.hourUK();
-    const greeting = hour < 5 ? 'Working late' : hour < 12 ? 'Morning' : hour < 17 ? 'Afternoon' : hour < 22 ? 'Evening' : 'Late shift';
-    
+
     // A0. BEELO BRAND MARK — slim in-flow masthead (gold dot + wordmark).
     // In-flow inside the scroll container, not a fixed topbar, so the
     // safe-area top padding still applies on standalone PWA installs.
@@ -193,15 +191,18 @@ const CompanionFeature = {
         <span class="comp-home-brand-word">Beelo</span>
       </div>`;
 
-    // A. BELO GREETING
-    const greetingHtml = `
+    // A. NAME — the advisor's first name with the golden full stop
+    // (the brand's punctuation mark, same as the reference header).
+    const nameHtml = firstName === 'there'
+      ? ''
+      : `${Utils.escapeHtml(firstName)}<span class="comp-home-greeting-dot" aria-hidden="true">.</span>`;
+    const greetingHtml = nameHtml ? `
       <div class="comp-home-greeting">
-        <div class="comp-home-avatar" aria-hidden="true">B</div>
         <div class="comp-home-greeting-text">
-          <div class="comp-home-greeting-main" role="heading" aria-level="1">${greeting}${firstName === 'there' ? '.' : `, ${Utils.escapeHtml(firstName)}.`}</div>
+          <div class="comp-home-greeting-main" role="heading" aria-level="1">${nameHtml}</div>
           <div class="comp-home-greeting-sub">${homeData.greetingSub}</div>
         </div>
-      </div>`;
+      </div>` : '';
 
     // B. THIS WEEK — navigational 7-day strip (tap a day → My Day calendar)
     // with a thin target progress line. The target figure lives here, not

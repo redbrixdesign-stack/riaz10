@@ -2751,47 +2751,25 @@ body.trip-active .toast-container {
   box-shadow: 0 0 6px rgba(253, 185, 19, 0.6);
 }
 
-/* A. BELO GREETING */
+/* A. NAME — advisor's first name with the golden full stop */
 .comp-home-greeting {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
   padding: 8px 0 4px;
 }
 
-.comp-home-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--comp-bee) 0%, var(--comp-bee-deep) 100%);
-  color: var(--accent-contrast);
-  font-weight: 800;
-  font-size: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  letter-spacing: 0.01em;
-  flex-shrink: 0;
-  box-shadow: 0 4px 18px rgba(253, 185, 19, 0.35);
-  animation: beelo-idle 3.5s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .comp-home-avatar {
-    animation: none;
-  }
-}
-
 .comp-home-greeting-text {
-  flex: 1;
   min-width: 0;
 }
 
 .comp-home-greeting-main {
-  font-size: 18px;
+  font-size: 24px;
   font-weight: 600;
   color: var(--comp-text);
-  line-height: 1.3;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.comp-home-greeting-dot {
+  color: var(--comp-bee);
 }
 
 .comp-home-greeting-sub {

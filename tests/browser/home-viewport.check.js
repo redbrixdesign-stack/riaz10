@@ -113,6 +113,7 @@ async function evaluate(ws, expression) {
           labels,
           times,
           hasAvatar: !!document.querySelector('.comp-home-avatar'),
+          hasGoldenDot: !!document.querySelector('.comp-home-greeting-dot'),
           hasGreetingHeading: !!document.querySelector('.comp-home-greeting-main[role="heading"]'),
           hasStatePills: Array.from(document.querySelectorAll('.comp-home-visit-state')).map(e => e.textContent.trim()),
           visitCount: document.querySelectorAll('.comp-home-visit').length,
@@ -122,7 +123,7 @@ async function evaluate(ws, expression) {
 
       const p = w + 'px';
       ok(`${p}: no horizontal overflow`, report.overflowX <= 0 && (report.mainOverflowX === null || report.mainOverflowX <= 0), { overflowX: report.overflowX, main: report.mainOverflowX });
-      ok(`${p}: greeting heading + avatar render`, report.hasGreetingHeading && report.hasAvatar);
+      ok(`${p}: name heading + golden dot render, no B avatar`, report.hasGreetingHeading && report.hasGoldenDot && !report.hasAvatar);
       // Section order: Greeting has no label, so the labelled order is
       // THIS WEEK (week strip) → NEXT → TODAY → TOMORROW → ATTENTION → ASK BEELO.
       const labelled = report.labels;
