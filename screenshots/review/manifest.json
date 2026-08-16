@@ -164,7 +164,19 @@
     "description": "Visits — empty diary"
   },
   {
-    "file": "01-home-scrolled.png",
-    "description": "Home feed scrolled to bottom (Attention + Week + Ask Beelo chips)"
+    "file": "bug-before-01-home.png",
+    "description": "PRE-FIX capture of 01-home (icon font regression) — kept for before/after comparison"
+  },
+  {
+    "file": "bug-before-32-offline-banner.png",
+    "description": "PRE-FIX capture of 32-offline-banner (icon font regression) — kept for before/after comparison"
+  },
+  {
+    "file": "bug-before-34-home-430px.png",
+    "description": "PRE-FIX capture of 34-home-430px (icon font regression) — kept for before/after comparison"
+  },
+  {
+    "file": "bug-before-36-loading-skeleton.png",
+    "description": "PRE-FIX capture of 36-loading-skeleton (icon font regression) — kept for before/after comparison"
   }
 ]

@@ -3085,7 +3085,12 @@ body.trip-active .toast-container {
   flex-direction: column;
   gap: 16px;
   padding: 16px;
-  padding-bottom: calc(16px + var(--safe-bottom, 0px) + 80px); /* space for composer */
+  /* Bottom clearance for the fixed composer (input bar + "Phrase with AI"
+     toggle ≈ 127px at default text size). Kept generous (140px + the 80px
+     spacer below) so the last card/chip still fully clears the composer
+     when scrolled to the bottom even at large accessibility text sizes —
+     previously the padding sat at 80px and relied on the spacer alone. */
+  padding-bottom: calc(16px + var(--safe-bottom, 0px) + 140px);
   overflow-y: auto;
   flex: 1;
   min-height: 0;
