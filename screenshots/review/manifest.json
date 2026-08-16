@@ -162,9 +162,5 @@
   {
     "file": "31-visits-empty.png",
     "description": "Visits — empty diary"
-  },
-  {
-    "file": "01-home-next-tomorrow.png",
-    "description": "Home NEXT card with a non-today visit — shows weekday + date + time (\"Mon 17 Aug, 09:30\")"
   }
 ]

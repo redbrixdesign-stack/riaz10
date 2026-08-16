@@ -258,11 +258,13 @@ const CompanionFeature = {
             <span class="comp-home-section-label">NEXT</span>
           </div>
           <div class="comp-home-next-visit">
-            <div class="comp-home-next-visit-time">${Utils.escapeHtml(whenText)}</div>
-            <div class="comp-home-next-visit-name">${Utils.escapeHtml(nv.name)}</div>
-            ${context ? `<div class="comp-home-next-visit-context">${Utils.escapeHtml(context)}</div>` : ''}
-            <div class="comp-home-next-visit-address">${Utils.escapeHtml(nv.address)}</div>
-            ${journey ? `<div class="comp-home-next-visit-journey">${Utils.escapeHtml(journey)}</div>` : ''}
+            <button type="button" class="comp-home-next-visit-main" onclick="App.navigate('appointments', {id: ${nv.id}})">
+              <div class="comp-home-next-visit-time">${Utils.escapeHtml(whenText)}</div>
+              <div class="comp-home-next-visit-name">${Utils.escapeHtml(nv.name)}</div>
+              ${context ? `<div class="comp-home-next-visit-context">${Utils.escapeHtml(context)}</div>` : ''}
+              <div class="comp-home-next-visit-address">${Utils.escapeHtml(nv.address)}</div>
+              ${journey ? `<div class="comp-home-next-visit-journey">${Utils.escapeHtml(journey)}</div>` : ''}
+            </button>
             <div class="comp-home-next-visit-actions">
               <button class="comp-home-cta comp-home-cta--primary" type="button" onclick="AppointmentsFeature.navigateToVisit('${Utils.escapeJsString(nv.address || '')}', ${nv.id})">
                 <span class="material-symbols-rounded" aria-hidden="true">navigation</span>

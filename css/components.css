@@ -2887,6 +2887,28 @@ body.trip-active .toast-container {
   gap: 5px;
 }
 
+/* Tappable info area — opens the visit-detail/outcome screen. Button reset:
+   looks identical to the previous plain divs, but is focusable/activatable.
+   The action buttons and the details/summary below are siblings, so their
+   taps never trigger this navigation. */
+.comp-home-next-visit-main {
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  border-radius: 8px;
+}
+.comp-home-next-visit-main:focus-visible { outline: 2px solid var(--comp-bee); outline-offset: 2px; }
+.comp-home-next-visit-main:active { opacity: 0.7; }
+
 .comp-home-next-visit-time {
   display: flex;
   align-items: center;
