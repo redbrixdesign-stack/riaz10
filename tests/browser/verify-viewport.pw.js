@@ -43,21 +43,20 @@ const ok = (label, cond, extra) => {
         hasGoldenDot: !!document.querySelector('.comp-home-greeting-dot'),
         hasAvatar: !!document.querySelector('.comp-home-avatar'),
         visitCount: document.querySelectorAll('.comp-home-visit').length,
-        anyTimeIsNow: times.some(t => t === nowT),
-        states: Array.from(document.querySelectorAll('.comp-home-visit-state')).map(e => e.textContent.trim())
+        nextName: document.querySelector('.comp-home-next-visit-name')?.textContent.trim() || null,
+        anyTimeIsNow: times.some(t => t === nowT)
       };
     });
     const p = w + 'px';
     ok(`${p}: no horizontal overflow`, r.overflowX <= 0, r.overflowX);
     ok(`${p}: name heading + golden dot render, no B avatar`, r.hasGreetingHeading && r.hasGoldenDot && !r.hasAvatar);
-    // THIS WEEK → NEXT → TODAY → TOMORROW → ATTENTION → ASK BEELO
+    // THIS WEEK → NEXT (featured card + upcoming rows) → ATTENTION → ASK BEELO
     const iWeek = r.labels.indexOf('THIS WEEK');
     const iNext = r.labels.indexOf('NEXT');
-    const iToday = r.labels.indexOf('TODAY');
+    const iAtt = r.labels.indexOf('NEEDS YOUR ATTENTION');
     const iAsk = r.labels.indexOf('ASK BEELO');
-    ok(`${p}: labelled sections present in order`, iWeek >= 0 && iNext > iWeek && iToday > iNext && iAsk > iToday, r.labels);
-    ok(`${p}: visit rows show real times (not the live clock)`, r.visitCount > 0 && !r.anyTimeIsNow, { times: r.times });
-    ok(`${p}: state labels are textual (not colour alone)`, r.states.every(s => ['Done', 'Next', 'Overdue'].includes(s)), r.states);
+    ok(`${p}: labelled sections present in order`, iWeek >= 0 && iNext > iWeek && iAtt > iNext && iAsk > iAtt, r.labels);
+    ok(`${p}: featured card + visit rows show real times (not the live clock)`, !!r.nextName && r.visitCount > 0 && !r.anyTimeIsNow, { times: r.times });
   }
 
   // Empty state: fresh profile, no records.
@@ -80,10 +79,10 @@ const ok = (label, cond, extra) => {
   await e.waitForTimeout(2200);
   const empty = await e.evaluate(() => ({
     labels: Array.from(document.querySelectorAll('.comp-home-section-label')).map(x => x.textContent.trim()),
-    hasNoVisits: /No visits booked today/.test(document.getElementById('comp-scroll').textContent),
+    hasNoVisits: /No (upcoming )?visits (booked|today)/.test(document.getElementById('comp-scroll').textContent),
     overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth
   }));
-  ok('empty state: calm "No visits" + Ask Beelo chips', empty.labels.includes('TODAY') && empty.labels.includes('ASK BEELO') && empty.hasNoVisits, empty.labels);
+  ok('empty state: calm "No visits" + Ask Beelo chips', empty.labels.includes('NEXT') && empty.labels.includes('ASK BEELO') && empty.hasNoVisits, empty.labels);
   ok('empty state: no horizontal overflow', empty.overflowX <= 0, empty.overflowX);
 
   await browser.close();

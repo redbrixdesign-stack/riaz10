@@ -163,7 +163,7 @@ const CompanionFeature = {
     if (!scroll) return;
     if (this._turns.length === 0) {
       // First paint: welcome shell immediately, live home data when they land.
-      scroll.innerHTML = this.welcomeHtml({ greetingSub: 'Loading…', nextVisit: null, todayVisits: [], attention: [], suggestions: [] });
+      scroll.innerHTML = this.welcomeHtml({ greetingSub: 'Loading…', nextVisit: null, upcomingVisits: [], attention: [], suggestions: [] });
       this.buildHomeData().then(homeData => {
         const again = document.getElementById('comp-scroll');
         if (again && this._turns.length === 0 && again.innerHTML) {
@@ -236,42 +236,43 @@ const CompanionFeature = {
         </div>`;
     }
 
-    // C. NEXT VISIT — the featured card, the visual anchor. Strict
-    // hierarchy: time → customer → context (type · briefing) → address →
-    // journey (ETA · travel · parking) → actions (Navigate primary, Call
-    // secondary) → "More about this visit" (access/notes rows only when
-    // the data exists).
+    // C. NEXT / UPCOMING — the appointment feed. The first upcoming visit
+    // renders as the featured card (active, full detail + actions +
+    // "More about this visit"); the remaining upcoming visits render as
+    // compact rows (customer name, time, ETA). ONE feed — no separate
+    // TODAY/TOMORROW sections, so no appointment is ever shown twice.
+    const upcomingVisits = homeData.upcomingVisits || [];
     let nextVisitHtml = '';
-    if (homeData.nextVisit) {
-      const nv = homeData.nextVisit;
-      // A bare time ("11:15") only reads correctly when the visit is today.
-      // On any other day the card shows the UK weekday + date.
-      const visitToday = Utils.isSameDay(new Date(nv.date), Utils.getToday());
-      const whenText = visitToday
-        ? nv.time
-        : `${Utils.formatDateUK(nv.date, 'weekday-short')} ${Utils.formatDateUK(nv.date, 'short')}, ${nv.time}`;
-      const context = [nv.type, nv.briefing].filter(Boolean).join(' · ');
-      const journey = [nv.eta !== '—' ? nv.eta : null, nv.travel, nv.parkingNotes].filter(Boolean).join(' · ');
-      // Parking already lives on the journey line, so it isn't repeated
-      // inside the expandable — only Access + Notes (present fields only).
-      const moreRows = [
-        { label: 'Access', value: nv.accessNotes },
-        { label: 'Notes', value: nv.notes }
-      ].filter(r => r.value).map(r => `
-        <div class="comp-home-more-row">
-          <span class="comp-home-more-label">${Utils.escapeHtml(r.label)}</span>
-          <span class="comp-home-more-value">${Utils.escapeHtml(r.value)}</span>
-        </div>`).join('');
-      const callBtn = nv.phone ? `
-            <button class="comp-home-cta comp-home-cta--ghost" type="button" onclick="ContactFeature.open({name: '${Utils.escapeJsString(nv.name)}', phone: '${Utils.escapeJsString(nv.phone)}'})">
-              <span class="material-symbols-rounded" aria-hidden="true">call</span>
-              <span>Call</span>
-            </button>` : '';
-      nextVisitHtml = `
-        <div class="comp-home-section">
-          <div class="comp-home-section-header">
-            <span class="comp-home-section-label">NEXT</span>
-          </div>
+    if (homeData.nextVisit || upcomingVisits.length > 0) {
+      const count = (homeData.nextVisit ? 1 : 0) + upcomingVisits.length;
+      // Featured card (only when a next visit exists).
+      let featuredHtml = '';
+      if (homeData.nextVisit) {
+        const nv = homeData.nextVisit;
+        // A bare time ("11:15") only reads correctly when the visit is today.
+        // On any other day the card shows the UK weekday + date.
+        const visitToday = Utils.isSameDay(new Date(nv.date), Utils.getToday());
+        const whenText = visitToday
+          ? nv.time
+          : `${Utils.formatDateUK(nv.date, 'weekday-short')} ${Utils.formatDateUK(nv.date, 'short')}, ${nv.time}`;
+        const context = [nv.type, nv.briefing].filter(Boolean).join(' · ');
+        const journey = [nv.eta !== '—' ? nv.eta : null, nv.travel, nv.parkingNotes].filter(Boolean).join(' · ');
+        // Parking already lives on the journey line, so it isn't repeated
+        // inside the expandable — only Access + Notes (present fields only).
+        const moreRows = [
+          { label: 'Access', value: nv.accessNotes },
+          { label: 'Notes', value: nv.notes }
+        ].filter(r => r.value).map(r => `
+          <div class="comp-home-more-row">
+            <span class="comp-home-more-label">${Utils.escapeHtml(r.label)}</span>
+            <span class="comp-home-more-value">${Utils.escapeHtml(r.value)}</span>
+          </div>`).join('');
+        const callBtn = nv.phone ? `
+              <button class="comp-home-cta comp-home-cta--ghost" type="button" onclick="ContactFeature.open({name: '${Utils.escapeJsString(nv.name)}', phone: '${Utils.escapeJsString(nv.phone)}'})">
+                <span class="material-symbols-rounded" aria-hidden="true">call</span>
+                <span>Call</span>
+              </button>` : '';
+        featuredHtml = `
           <div class="comp-home-next-visit">
             <button type="button" class="comp-home-next-visit-main" onclick="App.navigate('appointments', {id: ${nv.id}})">
               <div class="comp-home-next-visit-time">${Utils.escapeHtml(whenText)}</div>
@@ -292,76 +293,44 @@ const CompanionFeature = {
               <summary>More about this visit</summary>
               ${moreRows}
             </details>` : ''}
-          </div>
-        </div>`;
-    }
-
-    // C. TODAY - Lightweight day awareness
-    let todayHtml = '';
-    if (homeData.todayVisits && homeData.todayVisits.length > 0) {
-      // One row claims "Next": the first visit that hasn't happened yet and
-      // isn't overdue. Overdue rows carry their own warning state instead.
-      const firstUpcoming = homeData.todayVisits.findIndex(v => v.state === 'upcoming');
-      const visitsHtml = homeData.todayVisits.map((v, i) => {
-        let stateClass = 'upcoming';
-        let stateLabel = '';
-        if (v.completed) { stateClass = 'completed'; stateLabel = 'Done'; }
-        else if (v.state === 'overdue') { stateClass = 'overdue'; stateLabel = 'Overdue'; }
-        else if (i === firstUpcoming) { stateClass = 'current'; stateLabel = 'Next'; }
-
+          </div>`;
+      }
+      // Compact rows for the remaining upcoming visits (name, time, ETA).
+      const rowsHtml = upcomingVisits.slice(0, 5).map(v => {
+        const visitToday = Utils.isSameDay(new Date(v.date), Utils.getToday());
+        const whenText = visitToday
+          ? v.time
+          : `${Utils.formatDateUK(v.date, 'weekday-short')} ${Utils.formatDateUK(v.date, 'short')}, ${v.time}`;
+        const meta = [v.area, v.eta ? `ETA ${v.eta}` : null].filter(Boolean).join(' · ');
         return `
-          <button type="button" class="comp-home-visit ${stateClass}" onclick="App.navigate('appointments', {id: ${v.id}})">
-            ${stateLabel ? `<span class="comp-home-visit-state">${stateLabel}</span>` : ''}
+          <button type="button" class="comp-home-visit upcoming" onclick="App.navigate('appointments', {id: ${v.id}})">
             <div class="comp-home-visit-main">
-              <span class="comp-home-visit-time">${Utils.escapeHtml(v.time)}</span>
+              <span class="comp-home-visit-time">${Utils.escapeHtml(whenText)}</span>
               <span class="comp-home-visit-name">${Utils.escapeHtml(v.name)}</span>
-              <span class="comp-home-visit-area">${Utils.escapeHtml(v.area)}</span>
+              <span class="comp-home-visit-area">${Utils.escapeHtml(meta)}</span>
             </div>
             <span class="comp-home-visit-type">${Utils.escapeHtml(v.type)}</span>
             <span class="material-symbols-rounded comp-home-visit-chevron" aria-hidden="true">chevron_right</span>
           </button>`;
       }).join('');
-      
-      todayHtml = `
+      nextVisitHtml = `
         <div class="comp-home-section">
           <div class="comp-home-section-header">
-            <span class="comp-home-section-label">TODAY</span>
-            <span class="comp-home-section-count">${homeData.todayVisits.length} visit${homeData.todayVisits.length === 1 ? '' : 's'}</span>
+            <span class="comp-home-section-label">NEXT</span>
+            <span class="comp-home-section-count">${count} visit${count === 1 ? '' : 's'}</span>
           </div>
-          <div class="comp-home-visits">${visitsHtml}</div>
-          ${homeData.todayVisits.length > 3 ? `<button class="btn btn-ghost btn-sm comp-home-see-all" onclick="App.navigate('appointments', {tab: 'upcoming'})">See all ${homeData.todayVisits.length} visits</button>` : ''}`;
+          ${featuredHtml}
+          ${rowsHtml ? `<div class="comp-home-visits">${rowsHtml}</div>` : ''}
+          ${upcomingVisits.length > 5 ? `<button class="btn btn-ghost btn-sm comp-home-see-all" onclick="App.navigate('appointments', {tab: 'upcoming'})">See all ${count} visits</button>` : ''}
+        </div>`;
     } else {
-      todayHtml = `
+      nextVisitHtml = `
         <div class="comp-home-section">
           <div class="comp-home-section-header">
-            <span class="comp-home-section-label">TODAY</span>
+            <span class="comp-home-section-label">NEXT</span>
             <span class="comp-home-section-count">No visits</span>
           </div>
-          <div class="comp-home-empty">No visits booked today. A good day for follow-ups.</div>
-        </div>`;
-    }
-
-    // D. TOMORROW — compact preview so the next day isn't a blind spot
-    // (the NEXT card only ever shows a single visit).
-    let tomorrowHtml = '';
-    if (homeData.tomorrowVisits && homeData.tomorrowVisits.length > 0) {
-      const visitsHtml = homeData.tomorrowVisits.map(v => `
-        <button type="button" class="comp-home-visit upcoming" onclick="App.navigate('appointments', {id: ${v.id}})">
-          <div class="comp-home-visit-main">
-            <span class="comp-home-visit-time">${Utils.escapeHtml(v.time)}</span>
-            <span class="comp-home-visit-name">${Utils.escapeHtml(v.name)}</span>
-            <span class="comp-home-visit-area">${Utils.escapeHtml(v.area)}</span>
-          </div>
-          <span class="comp-home-visit-type">${Utils.escapeHtml(v.type)}</span>
-          <span class="material-symbols-rounded comp-home-visit-chevron" aria-hidden="true">chevron_right</span>
-        </button>`).join('');
-      tomorrowHtml = `
-        <div class="comp-home-section">
-          <div class="comp-home-section-header">
-            <span class="comp-home-section-label">TOMORROW</span>
-            <span class="comp-home-section-count">${homeData.tomorrowVisits.length} visit${homeData.tomorrowVisits.length === 1 ? '' : 's'}</span>
-          </div>
-          <div class="comp-home-visits">${visitsHtml}</div>
+          <div class="comp-home-empty">No upcoming visits booked. A good day for follow-ups.</div>
         </div>`;
     }
 
@@ -412,8 +381,6 @@ const CompanionFeature = {
         ${greetingHtml}
         ${weekStripHtml}
         ${nextVisitHtml}
-        ${todayHtml}
-        ${tomorrowHtml}
         ${attentionHtml}
         ${suggestionsHtml}
         <div class="comp-home-composer-spacer"></div>
@@ -427,15 +394,11 @@ const CompanionFeature = {
     // Gather all data needed
     const today = Utils.getToday();
     let todayAppts = [];
-    let tomorrowAppts = [];
     let upcoming = [];
     let orders = [];
 
     try {
       todayAppts = (await DB.getAppointmentsForDate(today.toISOString())).filter(a => a.status !== 'cancelled');
-      // Tomorrow's visits — surfaced on Home so a multi-visit tomorrow is
-      // visible at a glance, not hidden behind the single NEXT card.
-      tomorrowAppts = (await DB.getAppointmentsForDate(Utils.getTomorrow().toISOString())).filter(a => a.status !== 'cancelled');
       upcoming = await DB.getUpcomingAppointments(14);
       orders = await DB.db.orders.toArray();
     } catch (e) {}
@@ -629,34 +592,23 @@ const CompanionFeature = {
       nextVisit,
       weekDays,
       weekRange,
-      // Day-strip states: 'done' (outcome logged), 'overdue' (time passed,
-      // no outcome — needs attention), otherwise 'upcoming'. The renderer
-      // marks the first upcoming one as 'next' so only one row ever claims
-      // the gold "Next" state.
-      todayVisits: [...todayAppts]
-        .sort((a, b) => new Date(a.date) - new Date(b.date))
-        .map(v => {
-          const completed = !!(v.outcome || v.status === 'completed');
-          return {
+      // The appointment feed — remaining upcoming visits (14-day window,
+      // after the featured NEXT card), chronological, each with a real
+      // ETA when it can be computed. The renderer shows the first as the
+      // featured card and the rest as compact rows (name, time, ETA).
+      upcomingVisits: await Promise.all(
+        upcoming
+          .filter(a => a.status !== 'completed' && !a.outcome && (!next || a.id !== next.id))
+          .map(async v => ({
             id: v.id,
             name: v.clientName || 'Customer',
             time: Utils.formatTimeUK(v.date),
             area: this.getAreaLabel(v),
             type: v.type ? (CONFIG.appointmentTypes.find(t => t.id === v.type)?.name || v.type) : 'Visit',
-            completed,
-            state: completed ? 'done' : (new Date(v.date).getTime() < Date.now() - 15 * 60 * 1000 ? 'overdue' : 'upcoming')
-          };
-        }),
-      // Tomorrow's visits — compact rows so a multi-visit tomorrow is visible.
-      tomorrowVisits: [...tomorrowAppts]
-        .sort((a, b) => new Date(a.date) - new Date(b.date))
-        .map(v => ({
-          id: v.id,
-          name: v.clientName || 'Customer',
-          time: Utils.formatTimeUK(v.date),
-          area: this.getAreaLabel(v),
-          type: v.type ? (CONFIG.appointmentTypes.find(t => t.id === v.type)?.name || v.type) : 'Visit'
-        })),
+            date: v.date,
+            eta: await this.etaFor(v) || null
+          }))
+      ),
       week,
       attention,
       suggestions

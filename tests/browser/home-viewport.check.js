@@ -117,6 +117,7 @@ async function evaluate(ws, expression) {
           hasGreetingHeading: !!document.querySelector('.comp-home-greeting-main[role="heading"]'),
           hasStatePills: Array.from(document.querySelectorAll('.comp-home-visit-state')).map(e => e.textContent.trim()),
           visitCount: document.querySelectorAll('.comp-home-visit').length,
+          nextName: document.querySelector('.comp-home-next-visit-name')?.textContent.trim() || null,
           anyTimeIsNow: times.some(t => t === nowT)
         };
       })()`);
@@ -125,20 +126,16 @@ async function evaluate(ws, expression) {
       ok(`${p}: no horizontal overflow`, report.overflowX <= 0 && (report.mainOverflowX === null || report.mainOverflowX <= 0), { overflowX: report.overflowX, main: report.mainOverflowX });
       ok(`${p}: name heading + golden dot render, no B avatar`, report.hasGreetingHeading && report.hasGoldenDot && !report.hasAvatar);
       // Section order: Greeting has no label, so the labelled order is
-      // THIS WEEK (week strip) → NEXT → TODAY → TOMORROW → ATTENTION → ASK BEELO.
+      // THIS WEEK (week strip) → NEXT (featured card + upcoming rows) → ATTENTION → ASK BEELO.
       const labelled = report.labels;
       const iWeek = labelled.indexOf('THIS WEEK');
-      const iRight = labelled.indexOf('NEXT');
-      const iToday = labelled.indexOf('TODAY');
-      const iTomorrow = labelled.indexOf('TOMORROW');
+      const iNext = labelled.indexOf('NEXT');
       const iAtt = labelled.indexOf('NEEDS YOUR ATTENTION');
       const iAsk = labelled.indexOf('ASK BEELO');
-      ok(`${p}: labelled sections present`, iWeek >= 0 && iRight > iWeek && iToday > iRight && iAsk > iToday, labelled);
-      ok(`${p}: tomorrow sits between today and attention`, iTomorrow < 0 || (iTomorrow > iToday && (iAtt < 0 || iTomorrow < iAtt)), { iToday, iTomorrow, iAtt });
+      ok(`${p}: labelled sections present`, iWeek >= 0 && iNext > iWeek && iAtt > iNext && iAsk > iAtt, labelled);
       ok(`${p}: this-week strip sits above attention`, iAtt < 0 || iWeek < iAtt, { iWeek, iAtt });
-      ok(`${p}: visit rows show real times (not the live clock)`, report.visitCount > 0 && !report.anyTimeIsNow, { times: report.times });
-      ok(`${p}: state labels are textual (not colour alone)`, report.hasStatePills.every(s => ['Done', 'Next', 'Overdue'].includes(s)), report.hasStatePills);
-      console.log(`  ${p} feed:`, JSON.stringify({ labels: labelled, states: report.hasStatePills, times: report.times }));
+      ok(`${p}: featured card + visit rows show real times (not the live clock)`, !!report.nextName && report.visitCount > 0 && !report.anyTimeIsNow, { times: report.times });
+      console.log(`  ${p} feed:`, JSON.stringify({ labels: labelled, times: report.times }));
     }
 
     // Sanity: fresh boot with NO data — the calm empty state.
@@ -161,7 +158,7 @@ async function evaluate(ws, expression) {
       text: document.getElementById('comp-scroll') ? document.getElementById('comp-scroll').textContent.slice(0, 200) : '',
       overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth
     }))()`);
-    ok('empty state: no visits → calm "No visits" + Ask Beelo chips', empty.labels.includes('TODAY') && empty.labels.includes('ASK BEELO') && /No visits booked today/.test(empty.text), { labels: empty.labels, text: empty.text.slice(0, 120) });
+    ok('empty state: no visits → calm "No visits" + Ask Beelo chips', empty.labels.includes('NEXT') && empty.labels.includes('ASK BEELO') && /No (upcoming )?visits (booked|today)/.test(empty.text), { labels: empty.labels, text: empty.text.slice(0, 120) });
     ok('empty state: no horizontal overflow', empty.overflowX <= 0, empty.overflowX);
   } catch (e) {
     failures++;

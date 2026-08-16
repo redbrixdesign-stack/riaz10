@@ -42,7 +42,7 @@ const ok = (label, cond, extra) => {
         labels,
         nextText: nextHeader ? nextHeader.textContent.trim() : null,
         hasCard: !!document.querySelector('.comp-home-next-visit'),
-        todayEmpty: labels.includes('TODAY')
+        nextEmpty: labels.includes('NEXT') && !!document.querySelector('.comp-home-empty')
       };
     });
     console.log(`\n=== ${label} ===\n` + JSON.stringify({ ...r, dateIso }));
@@ -101,8 +101,7 @@ const ok = (label, cond, extra) => {
     App.navigate('today');
     return null;
   });
-  ok('S4: no NEXT card when the window is empty', !s4.hasCard && !s4.labels.includes('NEXT'), s4.labels);
-  ok('S4: TODAY empty state still renders', s4.todayEmpty, s4.labels);
+  ok('S4: no NEXT card when the window is empty, calm empty state shows', !s4.hasCard && s4.nextEmpty, s4.labels);
 
   // S5 — dated label fits at 320px without wrapping/overflow
   await page.setViewportSize({ width: 320, height: 568 });

@@ -116,14 +116,12 @@ async function evaluate(ws, expression) {
     const home = await evaluate(ws, `(() => {
       const t = document.getElementById('comp-scroll') ? document.getElementById('comp-scroll').textContent : '';
       const labels = Array.from(document.querySelectorAll('.comp-home-section-label')).map(e => e.textContent.trim());
-      const states = Array.from(document.querySelectorAll('.comp-home-visit-state')).map(e => e.textContent.trim());
       const times = Array.from(document.querySelectorAll('.comp-home-visit-time')).map(e => e.textContent.trim());
       const names = Array.from(document.querySelectorAll('.comp-home-visit-name')).map(e => e.textContent.trim());
-      return { labels, states, times, names, hasSmith: /John Smith/.test(t), hasTargetGap: /to target/.test(t), hasAttention: /NEEDS YOUR ATTENTION/.test(t), hasOverdueWord: /Overdue/.test(t) };
+      return { labels, times, names, nextName: document.querySelector('.comp-home-next-visit-name') ? document.querySelector('.comp-home-next-visit-name').textContent.trim() : null, hasSmith: /John Smith/.test(t), hasTargetGap: /to target/.test(t), hasAttention: /NEEDS YOUR ATTENTION/.test(t), hasOverdueWord: /Overdue/.test(t) };
     })()`);
-    ok('Home feed: THIS WEEK → NEXT → TODAY → TOMORROW → ATTENTION → ASK BEELO order', JSON.stringify(home.labels) === JSON.stringify(['THIS WEEK', 'NEXT', 'TODAY', 'TOMORROW', 'NEEDS YOUR ATTENTION', 'ASK BEELO']), home.labels);
-    ok('Home day strip: Done + Overdue + Next states present', ['Done', 'Overdue', 'Next'].every(s => home.states.includes(s)), home.states);
-    ok('Home day strip: real visit names + times', home.names.includes('John Smith') && home.times.length >= 5, { names: home.names, times: home.times });
+    ok('Home feed: THIS WEEK → NEXT → ATTENTION → ASK BEELO order', JSON.stringify(home.labels) === JSON.stringify(['THIS WEEK', 'NEXT', 'NEEDS YOUR ATTENTION', 'ASK BEELO']), home.labels);
+    ok('Home feed: featured card + upcoming rows render real names + times', !!home.nextName && home.names.includes('Amelia Green') && home.times.length >= 3, { nextName: home.nextName, names: home.names.slice(0, 5), times: home.times });
     ok('Home greeting/attention: John Smith is next; target gap visible', home.hasSmith && home.hasTargetGap && home.hasAttention, { hasSmith: home.hasSmith, hasTargetGap: home.hasTargetGap });
 
     // 3. Follow-ups inbox
