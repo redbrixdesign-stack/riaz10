@@ -1642,15 +1642,14 @@ body.trip-active .toast-container {
 
 .kanban-scroll {
   display: flex;
-  gap: 10px;
-  overflow-x: auto;
+  flex-direction: column;
+  gap: 14px;
   padding: 0 16px 24px;
-  -webkit-overflow-scrolling: touch;
 }
 
 .kanban-col {
-  flex: 1 0 264px;
-  max-width: 300px;
+  flex: none;
+  width: 100%;
   display: flex;
   flex-direction: column;
 }
