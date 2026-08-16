@@ -599,13 +599,27 @@ const App = {
       }
     });
 
-    // Online/offline
+    // Online/offline. A fresh offline launch never fires the 'offline' event
+    // (it happens before the app boots), so the toast alone would leave the
+    // advisor with no signal at all on the exact worst case. The persistent
+    // strip answers from navigator.onLine at boot and stays until the
+    // connection returns.
+    const offlineBanner = document.createElement('div');
+    offlineBanner.id = 'offline-banner';
+    offlineBanner.innerHTML = '<span class="material-symbols-rounded fs-15" >wifi_off</span><span>Offline — changes are saved on this phone</span>';
+    document.getElementById('app').appendChild(offlineBanner);
+    const applyOfflineState = () => {
+      offlineBanner.style.display = (typeof navigator !== 'undefined' && navigator.onLine === false) ? 'flex' : 'none';
+    };
     window.addEventListener('online', () => {
+      applyOfflineState();
       Toast.show('Back online', 'success');
     });
     window.addEventListener('offline', () => {
+      applyOfflineState();
       Toast.show('Working offline', 'warning');
     });
+    applyOfflineState();
 
     // Safety net for errors that escape the feature render/activate try-catch
     // in navigate() - e.g. an inline onclick handler in rendered HTML throwing,
