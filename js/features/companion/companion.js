@@ -202,48 +202,92 @@ const CompanionFeature = {
         </div>
       </div>`;
 
-    // B. NEXT VISIT (the next scheduled visit — see buildHomeData)
+    // B. THIS WEEK — navigational 7-day strip (tap a day → My Day calendar)
+    // with a thin target progress line. The target figure lives here, not
+    // in a separate dashboard card.
+    let weekStripHtml = '';
+    const week = homeData.week;
+    if (week && week.target > 0) {
+      const todayIso = Utils.formatDate(Utils.getToday(), 'iso');
+      const daysHtml = (homeData.weekDays || []).map(d => {
+        const isToday = d.iso === todayIso;
+        const isPast = d.iso < todayIso;
+        return `
+          <button type="button" class="comp-home-week-day ${isToday ? 'today' : ''} ${isPast ? 'past' : ''}" onclick="CompanionFeature.openMyDay('${d.iso}')" ${isToday ? 'aria-current="date"' : ''}>
+            <span class="comp-home-week-day-label">${d.label}</span>
+            <span class="comp-home-week-day-num">${d.num}</span>
+            <span class="comp-home-week-day-count">${d.count > 0 ? d.count : '—'}</span>
+          </button>`;
+      }).join('');
+      weekStripHtml = `
+        <div class="comp-home-section">
+          <div class="comp-home-section-header">
+            <span class="comp-home-section-label">THIS WEEK</span>
+            <button type="button" class="comp-home-week-target" onclick="App.navigate('money')">
+              ${week.gap > 0 ? `${Utils.formatCurrency(week.gap)} to target` : 'Target reached — nice work'}
+            </button>
+          </div>
+          <div class="comp-home-week-strip">${daysHtml}</div>
+          <div class="progress-bar comp-home-week-bar"><div class="fill accent" style="width:${week.pct}%"></div></div>
+        </div>`;
+    }
+
+    // C. NEXT VISIT — the featured card, the visual anchor. Strict
+    // hierarchy: time → customer → context (type · briefing) → address →
+    // journey (ETA · travel · parking) → actions (Navigate primary, Call
+    // secondary) → "More about this visit" (access/notes rows only when
+    // the data exists).
     let nextVisitHtml = '';
     if (homeData.nextVisit) {
       const nv = homeData.nextVisit;
       // A bare time ("11:15") only reads correctly when the visit is today.
-      // On any other day the card shows the UK weekday + date so "NEXT" can't
-      // be mistaken for today's schedule — same abbreviated format as the
-      // Diary calendar header ("Thu 20 Aug, 11:15"), not the full long form.
+      // On any other day the card shows the UK weekday + date.
       const visitToday = Utils.isSameDay(new Date(nv.date), Utils.getToday());
       const whenText = visitToday
         ? nv.time
         : `${Utils.formatDateUK(nv.date, 'weekday-short')} ${Utils.formatDateUK(nv.date, 'short')}, ${nv.time}`;
-      const etaLine = (nv.travel || nv.eta) ? `
-            <div class="comp-home-next-visit-eta">
-              <span class="material-symbols-rounded" aria-hidden="true">${nv.travel === 'On site now' ? 'location_on' : 'directions_car'}</span>
-              <span>${Utils.escapeHtml(nv.travel || nv.eta)}</span>
-            </div>` : '';
+      const context = [nv.type, nv.briefing].filter(Boolean).join(' · ');
+      const journey = [nv.eta !== '—' ? nv.eta : null, nv.travel, nv.parkingNotes].filter(Boolean).join(' · ');
+      // Parking already lives on the journey line, so it isn't repeated
+      // inside the expandable — only Access + Notes (present fields only).
+      const moreRows = [
+        { label: 'Access', value: nv.accessNotes },
+        { label: 'Notes', value: nv.notes }
+      ].filter(r => r.value).map(r => `
+        <div class="comp-home-more-row">
+          <span class="comp-home-more-label">${Utils.escapeHtml(r.label)}</span>
+          <span class="comp-home-more-value">${Utils.escapeHtml(r.value)}</span>
+        </div>`).join('');
+      const callBtn = nv.phone ? `
+            <button class="comp-home-cta comp-home-cta--ghost" type="button" onclick="ContactFeature.open({name: '${Utils.escapeJsString(nv.name)}', phone: '${Utils.escapeJsString(nv.phone)}'})">
+              <span class="material-symbols-rounded" aria-hidden="true">call</span>
+              <span>Call</span>
+            </button>` : '';
       nextVisitHtml = `
         <div class="comp-home-section">
           <div class="comp-home-section-header">
             <span class="comp-home-section-label">NEXT</span>
-            <span class="comp-home-section-time">${Utils.escapeHtml(whenText)}</span>
           </div>
           <div class="comp-home-next-visit">
-            <button type="button" class="comp-home-next-visit-main" onclick="App.navigate('appointments', {id: ${nv.id}})">
-              <div class="comp-home-next-visit-name">${Utils.escapeHtml(nv.name)}</div>
-              <div class="comp-home-next-visit-meta">${Utils.escapeHtml(nv.area)} · ${Utils.escapeHtml(nv.type)}</div>
-              <div class="comp-home-next-visit-address">${Utils.escapeHtml(nv.address)}</div>
-              ${nv.briefing ? `<div class="comp-home-next-visit-brief">${Utils.escapeHtml(nv.briefing)}</div>` : ''}
-            </button>
-            ${etaLine}
+            <div class="comp-home-next-visit-time">${Utils.escapeHtml(whenText)}</div>
+            <div class="comp-home-next-visit-name">${Utils.escapeHtml(nv.name)}</div>
+            ${context ? `<div class="comp-home-next-visit-context">${Utils.escapeHtml(context)}</div>` : ''}
+            <div class="comp-home-next-visit-address">${Utils.escapeHtml(nv.address)}</div>
+            ${journey ? `<div class="comp-home-next-visit-journey">${Utils.escapeHtml(journey)}</div>` : ''}
+            <div class="comp-home-next-visit-actions">
+              <button class="comp-home-cta comp-home-cta--primary" type="button" onclick="AppointmentsFeature.navigateToVisit('${Utils.escapeJsString(nv.address || '')}', ${nv.id})">
+                <span class="material-symbols-rounded" aria-hidden="true">navigation</span>
+                <span>Navigate</span>
+              </button>
+              ${callBtn}
+            </div>
+            ${moreRows ? `
+            <details class="comp-home-more">
+              <summary>More about this visit</summary>
+              ${moreRows}
+            </details>` : ''}
           </div>
-          <div class="comp-home-next-visit-actions">
-            <button class="btn btn-primary btn-sm" onclick="AppointmentsFeature.navigateToVisit('${Utils.escapeJsString(nv.address || '')}', ${nv.id})">
-              <span class="material-symbols-rounded">navigation</span>
-              <span>Navigate</span>
-            </button>
-            <button class="btn btn-outline btn-sm" onclick="TalkFeature.sendMessage(${nv.id}, 'on_my_way')">
-              <span class="material-symbols-rounded">directions_car</span>
-              <span>On my way</span>
-            </button>
-          </div>`;
+        </div>`;
     }
 
     // C. TODAY - Lightweight day awareness
@@ -288,27 +332,6 @@ const CompanionFeature = {
             <span class="comp-home-section-count">No visits</span>
           </div>
           <div class="comp-home-empty">No visits booked today. A good day for follow-ups.</div>
-        </div>`;
-    }
-
-    // D. THIS WEEK - compact earnings/target progress
-    let weekHtml = '';
-    const week = homeData.week;
-    if (week && week.target > 0) {
-      const gap = Math.max(0, week.target - week.earnings);
-      weekHtml = `
-        <div class="comp-home-section">
-          <div class="comp-home-section-header">
-            <span class="comp-home-section-label">THIS WEEK</span>
-            <span class="comp-home-section-count">${Utils.formatCurrency(week.earnings)} of ${Utils.formatCurrency(week.target)}</span>
-          </div>
-          <button type="button" class="comp-home-week" onclick="App.navigate('money')">
-            <div class="progress-bar comp-home-week-bar"><div class="fill accent" style="width:${week.pct}%"></div></div>
-            <span class="comp-home-week-hint">
-              <span>${gap > 0 ? `${Utils.formatCurrency(gap)} to target` : 'Target reached — nice work'}</span>
-              <span>Open Money <span class="material-symbols-rounded" aria-hidden="true">chevron_right</span></span>
-            </span>
-          </button>
         </div>`;
     }
 
@@ -357,10 +380,10 @@ const CompanionFeature = {
     return `
       <div class="comp-home">
         ${greetingHtml}
+        ${weekStripHtml}
         ${nextVisitHtml}
         ${todayHtml}
         ${attentionHtml}
-        ${weekHtml}
         ${suggestionsHtml}
         <div class="comp-home-composer-spacer"></div>
       </div>`;
@@ -409,6 +432,25 @@ const CompanionFeature = {
       const travel = next.travelStatus === 'on_site' ? 'On site now'
         : next.travelStatus === 'in_transit' ? 'On the way'
         : null;
+      // Real contact + access data for the card's actions and the
+      // "More about this visit" rows. Access/Parking follow the app's
+      // notes convention ("Access: …" / "Parking: …" lines) — same parser
+      // the Talk drafts use; rows are hidden when the field is absent.
+      let phone = next.phone || '';
+      if (!phone && next.customerId) {
+        try { const c = await DB.getCustomer(next.customerId); phone = (c && c.phone) || ''; } catch (e) { /* no customer data */ }
+      }
+      const noteField = (prefix) => {
+        if (!next.notes) return '';
+        try {
+          if (typeof TalkFeature !== 'undefined' && typeof TalkFeature._parseNoteField === 'function') {
+            return TalkFeature._parseNoteField(next.notes, prefix);
+          }
+          const re = new RegExp(`^\\s*${prefix}\\s*[:\\-]\\s*(.+?)\\s*$`, 'im');
+          const m = String(next.notes).match(re);
+          return m ? m[1].trim() : '';
+        } catch (e) { return ''; }
+      };
       nextVisit = {
         id: next.id,
         name: next.clientName || 'Customer',
@@ -419,7 +461,11 @@ const CompanionFeature = {
         date: next.date, // raw instant — lets the renderer show a date when the visit isn't today
         eta: eta || '—',
         travel,
-        briefing: await this.briefingFor(next)
+        briefing: await this.briefingFor(next),
+        phone,
+        accessNotes: noteField('access'),
+        parkingNotes: noteField('parking'),
+        notes: next.notes || ''
       };
     }
 
@@ -510,8 +556,29 @@ const CompanionFeature = {
     const week = {
       earnings: weekStats.earnings || 0,
       target,
+      gap: Math.max(0, target - (weekStats.earnings || 0)),
       pct: target > 0 ? Math.min(100, Math.round(((weekStats.earnings || 0) / target) * 100)) : 0
     };
+
+    // 7-day strip (Mon–Sun of the current UK week) with real per-day visit
+    // counts — the same day window the rest of the app uses.
+    let weekDays = [];
+    try {
+      const weekStart = Utils.getStartOfWeek();
+      const weekEnd = Utils.getEndOfWeek();
+      const weekAppts = await DB.getAppointmentsForRange(weekStart.toISOString(), weekEnd.toISOString());
+      const counts = {};
+      for (const a of weekAppts) {
+        if (a.status === 'cancelled') continue;
+        const key = Utils.formatDate(a.date, 'iso');
+        counts[key] = (counts[key] || 0) + 1;
+      }
+      weekDays = Array.from({ length: 7 }, (_, i) => {
+        const d = Utils.addDays(weekStart, i);
+        const iso = Utils.formatDate(d, 'iso');
+        return { iso, label: Utils.formatDate(d, 'weekday-short'), num: d.getDate(), count: counts[iso] || 0 };
+      });
+    } catch (e) { /* strip is optional */ }
 
     // Suggestions — a small contextual set, all whitelisted commands (the
     // AI never invents actions; every chip routes to an existing handler).
@@ -520,6 +587,7 @@ const CompanionFeature = {
     return {
       greetingSub,
       nextVisit,
+      weekDays,
       // Day-strip states: 'done' (outcome logged), 'overdue' (time passed,
       // no outcome — needs attention), otherwise 'upcoming'. The renderer
       // marks the first upcoming one as 'next' so only one row ever claims
@@ -1591,7 +1659,13 @@ const CompanionFeature = {
 
   /* ---------- actions ---------- */
 
-  openMyDay() {
+  openMyDay(isoDate) {
+    // Optional initial day: the Home week strip lets a day tap open the
+    // calendar already on that day (existing HomeScreenController logic,
+    // just seeded before the panel renders).
+    if (isoDate && typeof HomeScreenController !== 'undefined') {
+      HomeScreenController._selectedDate = new Date(isoDate);
+    }
     const content = `
       <div class="sheet-handle"></div>
       <div class="sheet-header"><h3>My Day</h3><button class="btn btn-ghost btn-sm" onclick="HomeScreenController.stopDynamicHomeScreen(); App.closeModal()"><span class="material-symbols-rounded">close</span></button></div>

@@ -54,11 +54,12 @@ const settle = (page, ms = 2200) => page.waitForTimeout(ms);
   await A.evaluate(() => document.fonts.ready);
 
   // 01 Home — companion feed
-  await shot(A, '01-home.png', 'Home: companion feed — greeting, NEXT card, Today (Done/Overdue/Next), Attention, Week, Ask Beelo');
+  await shot(A, '01-home.png', 'Home: companion feed — greeting, THIS WEEK strip, NEXT card (time/name/context/address/journey + Navigate/Call + More), Today, Attention, Ask Beelo');
   await full(A, '01-home-full.png', 'Home full page');
 
-  // 27 Chat answer (rule-built, AI off)
-  await A.click('.comp-suggestion-chip:has-text("chase")');
+  // 27 Chat answer (rule-built, AI off) — drive the same handler the chip
+  // onclick uses, without pointer-event fragility inside the nested scroller.
+  await A.evaluate(() => CompanionFeature.send('follow-ups'));
   await A.waitForSelector('.comp-msg-ai', { timeout: 15000 });
   await settle(A, 1200);
   await shot(A, '27-chat-answer.png', 'Home chat after “Who should I chase?” — facts + actions + chips');
@@ -68,13 +69,13 @@ const settle = (page, ms = 2200) => page.waitForTimeout(ms);
   await A.waitForSelector('.bottom-sheet .hsc-root', { timeout: 15000 });
   await settle(A, 1500);
   await shot(A, '19-modal-my-day.png', 'My Day weekly calendar panel (bottom sheet)');
-  await A.evaluate(() => { HomeScreenController.stopDynamicHomeScreen(); App.closeModal(); });
+  await A.evaluate(() => { HomeScreenController.stopDynamicHomeScreen(); App.closeModal({ all: true }); });
 
   // 18 End of Day
   await A.evaluate(() => TodayFeature.openEODModal());
   await settle(A, 600);
   await shot(A, '18-modal-end-of-day.png', 'End of Day sheet');
-  await A.evaluate(() => App.closeModal());
+  await A.evaluate(() => App.closeModal({ all: true }));
 
   // 02 Follow-ups
   await app(A, 'followups');
@@ -93,19 +94,24 @@ const settle = (page, ms = 2200) => page.waitForTimeout(ms);
   await A.waitForSelector('.modal-overlay.active', { timeout: 15000 });
   await settle(A, 1000);
   await shot(A, '22-modal-message-preview.png', 'Message preview sheet (composed draft + send)');
-  await A.evaluate(() => App.closeModal());
+  await A.evaluate(() => App.closeModal({ all: true }));
 
   // 03 Orders kanban
   await app(A, 'orders');
   await settle(A, 1800);
   await shot(A, '03-orders.png', 'Orders kanban — Quoted/Ordered/Delivered/Fitted/Paid');
 
-  // 20 Order sheet (order cards only — quoted cards navigate to the visit)
-  await A.click('.kanban-card[onclick*="openOrderSheet"]');
+  // 20 Order sheet (order cards only — quoted cards navigate to the visit).
+  // Drive the first order card's own onclick via the DOM so a lingering
+  // modal overlay can never intercept the pointer.
+  await A.evaluate(() => {
+    const card = document.querySelector('.kanban-card[onclick*="openOrderSheet"]');
+    if (card) card.click();
+  });
   await A.waitForSelector('.modal-overlay.active', { timeout: 15000 });
   await settle(A, 800);
   await shot(A, '20-modal-order-sheet.png', 'Order detail sheet (stage tracker + payment)');
-  await A.evaluate(() => App.closeModal());
+  await A.evaluate(() => App.closeModal({ all: true }));
 
   // 04 Money
   await app(A, 'money');
@@ -116,7 +122,7 @@ const settle = (page, ms = 2200) => page.waitForTimeout(ms);
   await A.evaluate(() => MoneyFeature.openExpenseModal());
   await settle(A, 800);
   await shot(A, '21-modal-expense.png', 'Log expense sheet');
-  await A.evaluate(() => App.closeModal());
+  await A.evaluate(() => App.closeModal({ all: true }));
 
   // 05 Tools
   await app(A, 'control');
@@ -207,7 +213,7 @@ const settle = (page, ms = 2200) => page.waitForTimeout(ms);
   await A.waitForSelector('.modal-overlay.active', { timeout: 10000 }).catch(() => {});
   await settle(A, 800);
   await shot(A, '25-modal-customer-edit.png', 'Edit customer sheet');
-  await A.evaluate(() => App.closeModal());
+  await A.evaluate(() => App.closeModal({ all: true }));
 
   // 26 Photo viewer
   const photo = A.locator('[onclick*="openPhotoViewer"], .photo-tile').first();
@@ -216,7 +222,7 @@ const settle = (page, ms = 2200) => page.waitForTimeout(ms);
     await A.waitForSelector('.modal-overlay.active', { timeout: 10000 }).catch(() => {});
     await settle(A, 800);
     await shot(A, '26-modal-photo-viewer.png', 'Photo viewer (bottom sheet)');
-    await A.evaluate(() => App.closeModal());
+    await A.evaluate(() => App.closeModal({ all: true }));
   } else {
     console.log('  ! photo not found, skipping 26');
   }

@@ -37,7 +37,7 @@ const ok = (label, cond, extra) => {
     await page.waitForTimeout(1200);
     const r = await page.evaluate(() => {
       const labels = Array.from(document.querySelectorAll('.comp-home-section-label')).map(e => e.textContent.trim());
-      const nextHeader = document.querySelector('.comp-home-section-time');
+      const nextHeader = document.querySelector('.comp-home-next-visit-time');
       return {
         labels,
         nextText: nextHeader ? nextHeader.textContent.trim() : null,
@@ -116,7 +116,7 @@ const ok = (label, cond, extra) => {
   });
   const s5m = await page.evaluate(() => {
     const header = document.querySelector('.comp-home-section-header');
-    const time = document.querySelector('.comp-home-section-time');
+    const time = document.querySelector('.comp-home-next-visit-time');
     return {
       docOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       headerOverflow: header ? header.scrollWidth - header.clientWidth : null,

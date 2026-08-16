@@ -46,7 +46,7 @@ const ukTime = iso => new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Londo
     const dateIso = await page.evaluate(seedFn);
     await page.waitForSelector('.comp-home-section-label', { timeout: 15000 });
     await page.waitForTimeout(1200);
-    const nextText = await page.evaluate(() => document.querySelector('.comp-home-section-time')?.textContent.trim() || null);
+    const nextText = await page.evaluate(() => document.querySelector('.comp-home-next-visit-time')?.textContent.trim() || null);
     console.log(`\n=== ${label} ===\n  rendered: "${nextText}" (visit ${dateIso})`);
     return { dateIso, nextText };
   };

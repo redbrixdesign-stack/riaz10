@@ -61,7 +61,7 @@ const OUT = path.join(__dirname, '..', '..', 'screenshots', 'review');
   });
   await page.waitForSelector('.comp-home-section-label', { timeout: 15000 });
   await page.waitForTimeout(2000);
-  const datedText = await page.evaluate(() => document.querySelector('.comp-home-section-time')?.textContent.trim() || null);
+  const datedText = await page.evaluate(() => document.querySelector('.comp-home-next-visit-time')?.textContent.trim() || null);
   await page.screenshot({ path: path.join(OUT, '01-home-next-tomorrow.png') });
   console.log('  ✓ 01-home-next-tomorrow.png — NEXT card with dated label: "' + datedText + '"');
 

@@ -76,11 +76,11 @@ const ok = (label, cond, extra) => {
     navLabels: Array.from(document.querySelectorAll('#bottom-nav .nav-item span:last-child')).map(s => s.textContent),
     navIconWidths: Array.from(document.querySelectorAll('#bottom-nav .material-symbols-rounded')).map(s => Math.round(s.getBoundingClientRect().width)),
     wideIcons: Array.from(document.querySelectorAll('.material-symbols-rounded')).filter(s => s.getBoundingClientRect().width > 48).length,
-    etaWidth: (() => { const el = document.querySelector('.comp-home-next-visit-eta .material-symbols-rounded'); return el ? Math.round(el.getBoundingClientRect().width) : null; })(),
-    navBtnWidth: (() => { const el = Array.from(document.querySelectorAll('.comp-home-next-visit-actions .btn span')).find(s => s.textContent === 'Navigate'); return el ? Math.round(el.getBoundingClientRect().width) : null; })()
+    etaWidth: (() => { const el = document.querySelector('.comp-home-next-visit-time'); return el ? Math.round(el.getBoundingClientRect().width) : null; })(),
+    ctaWidth: (() => { const el = document.querySelector('.comp-home-cta--primary .material-symbols-rounded'); return el ? Math.round(el.getBoundingClientRect().width) : null; })()
   }));
   console.log('\n=== 2. True offline (service-worker precache) ===');
-  ok('offline: icon font still renders as glyphs', s2.navIconWidths.every(w => w <= 40) && s2.wideIcons === 0 && s2.etaWidth !== null && s2.etaWidth <= 48, s2);
+  ok('offline: icon font still renders as glyphs', s2.navIconWidths.every(w => w <= 40) && s2.wideIcons === 0 && s2.etaWidth !== null && s2.ctaWidth !== null && s2.ctaWidth <= 48, s2);
   ok('offline: nav labels intact', JSON.stringify(s2.navLabels) === JSON.stringify(['Home', 'Follow-ups', 'Orders', 'Money', 'Tools']), s2.navLabels);
   await ctx2.setOffline(false);
 

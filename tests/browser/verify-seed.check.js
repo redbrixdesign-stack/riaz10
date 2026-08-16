@@ -111,12 +111,12 @@ async function evaluate(ws, expression) {
       const states = Array.from(document.querySelectorAll('.comp-home-visit-state')).map(e => e.textContent.trim());
       const times = Array.from(document.querySelectorAll('.comp-home-visit-time')).map(e => e.textContent.trim());
       const names = Array.from(document.querySelectorAll('.comp-home-visit-name')).map(e => e.textContent.trim());
-      return { labels, states, times, names, hasSmith: /John Smith/.test(t), hasTarget: /£1,800/.test(t), hasAttention: /NEEDS YOUR ATTENTION/.test(t), hasOverdueWord: /Overdue/.test(t) };
+      return { labels, states, times, names, hasSmith: /John Smith/.test(t), hasTargetGap: /to target/.test(t), hasAttention: /NEEDS YOUR ATTENTION/.test(t), hasOverdueWord: /Overdue/.test(t) };
     })()`);
-    ok('Home feed: NEXT → TODAY → ATTENTION → WEEK → ASK BEELO order', JSON.stringify(home.labels) === JSON.stringify(['NEXT', 'TODAY', 'NEEDS YOUR ATTENTION', 'THIS WEEK', 'ASK BEELO']), home.labels);
+    ok('Home feed: THIS WEEK → NEXT → TODAY → ATTENTION → ASK BEELO order', JSON.stringify(home.labels) === JSON.stringify(['THIS WEEK', 'NEXT', 'TODAY', 'NEEDS YOUR ATTENTION', 'ASK BEELO']), home.labels);
     ok('Home day strip: Done + Overdue + Next states present', ['Done', 'Overdue', 'Next'].every(s => home.states.includes(s)), home.states);
     ok('Home day strip: real visit names + times', home.names.includes('John Smith') && home.times.length >= 5, { names: home.names, times: home.times });
-    ok('Home greeting/attention: John Smith is next; target £1,800 visible', home.hasSmith && home.hasTarget && home.hasAttention, { hasSmith: home.hasSmith, hasTarget: home.hasTarget });
+    ok('Home greeting/attention: John Smith is next; target gap visible', home.hasSmith && home.hasTargetGap && home.hasAttention, { hasSmith: home.hasSmith, hasTargetGap: home.hasTargetGap });
 
     // 3. Follow-ups inbox
     const dueCount = await evaluate(ws, `(async () => await App.features.get('followups').getDueCount())()`);
