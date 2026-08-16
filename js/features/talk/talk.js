@@ -210,13 +210,19 @@ const TalkFeature = {
     // queue below since these aren't about following up on an outcome.
     let dayBeforeQueue = [];
     try {
-      const tomorrow = new Date(now);
-      tomorrow.setDate(tomorrow.getDate() + 1);
+      // UK wall-clock "tomorrow", matching Follow-ups / the message scheduler
+      // (Utils.ukParts) — a device in another timezone must see the same
+      // reminders, or the queue disagrees with what the scheduler drafted.
+      const dayKey = (d) => {
+        const p = Utils.ukParts(d ? new Date(d) : undefined);
+        return p.year * 10000 + p.month * 100 + p.day;
+      };
+      const tomorrowKey = dayKey(Utils.getTomorrow());
       const upcoming2 = await DB.getUpcomingAppointments(5);
       dayBeforeQueue = upcoming2.filter(a =>
         a.status === 'confirmed' &&
         !a.dayBeforeSent &&
-        new Date(a.date).toDateString() === tomorrow.toDateString() &&
+        dayKey(a.date) === tomorrowKey &&
         (a.phone || a.customerId)
       );
     } catch (e) {}
@@ -270,7 +276,7 @@ const TalkFeature = {
 	        </div>` : `
 	        <div class="section-label" >Worth a nudge (${queue.length})</div>
         ${queue.map(item => `
-        <div class="card" style="margin-bottom:8px;border-left:3px solid ${item.priority === 'high' ? 'var(--danger)' : 'var(--warning)'};">
+        <div class="card" style="margin-bottom:8px;border-left:3px solid ${item.priority === 'high' ? 'var(--danger)' : 'var(--text-secondary)'};">
           <div class="flex items-center gap-12" >
             <div class="flex-1 min-w-0" >
               <div class="flex items-center gap-sm" >
