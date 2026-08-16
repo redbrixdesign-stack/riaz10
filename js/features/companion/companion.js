@@ -184,6 +184,15 @@ const CompanionFeature = {
     const hour = Utils.hourUK();
     const greeting = hour < 5 ? 'Working late' : hour < 12 ? 'Morning' : hour < 17 ? 'Afternoon' : hour < 22 ? 'Evening' : 'Late shift';
     
+    // A0. BEELO BRAND MARK — slim in-flow masthead (gold dot + wordmark).
+    // In-flow inside the scroll container, not a fixed topbar, so the
+    // safe-area top padding still applies on standalone PWA installs.
+    const brandHtml = `
+      <div class="comp-home-brand">
+        <span class="comp-home-brand-dot" aria-hidden="true"></span>
+        <span class="comp-home-brand-word">Beelo</span>
+      </div>`;
+
     // A. BELO GREETING
     const greetingHtml = `
       <div class="comp-home-greeting">
@@ -408,6 +417,7 @@ const CompanionFeature = {
 
     return `
       <div class="comp-home">
+        ${brandHtml}
         ${greetingHtml}
         ${weekStripHtml}
         ${nextVisitHtml}

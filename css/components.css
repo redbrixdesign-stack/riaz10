@@ -2752,6 +2752,29 @@ body.trip-active .toast-container {
   color: var(--comp-text);
 }
 
+/* A0. BEELO BRAND MARK — slim in-flow masthead above the greeting.
+   Gold dot + wordmark, the app's brand mark (same convention as the
+   retired .comp-brand topbar, but in-flow inside the scroll so the
+   safe-area top padding still applies on standalone installs). */
+.comp-home-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  font-size: 15px;
+  color: var(--comp-text);
+  padding: 2px 0 10px;
+}
+.comp-home-brand::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--comp-bee);
+  box-shadow: 0 0 6px rgba(253, 185, 19, 0.6);
+}
+
 /* A. BELO GREETING */
 .comp-home-greeting {
   display: flex;
