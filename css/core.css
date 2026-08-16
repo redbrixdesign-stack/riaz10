@@ -319,6 +319,15 @@ h4 { font-size: 15px; }
   box-shadow: var(--shadow-sm);
 }
 
+/* Buttons default to inline-block, so a <button class="card"> (the settings
+   menu rows) would lay out like text — wrapping at content-dependent widths
+   and ending up misaligned with every other card. A button-as-card must be
+   a full-width block. */
+button.card {
+  display: block;
+  width: 100%;
+}
+
 /* ============================================
    TOUCH PRESSED-STATE
    Every tappable control should visibly "give"
