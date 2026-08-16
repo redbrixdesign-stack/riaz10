@@ -1,7 +1,7 @@
 [
   {
     "file": "01-home.png",
-    "description": "Home: companion feed — greeting, Right Now, Today (Done/Overdue/Next), Attention, Week, Ask Beelo"
+    "description": "Home: companion feed — greeting, NEXT card, Today (Done/Overdue/Next), Attention, Week, Ask Beelo"
   },
   {
     "file": "01-home-full.png",
@@ -162,21 +162,5 @@
   {
     "file": "31-visits-empty.png",
     "description": "Visits — empty diary"
-  },
-  {
-    "file": "bug-before-01-home.png",
-    "description": "PRE-FIX capture of 01-home (icon font regression) — kept for before/after comparison"
-  },
-  {
-    "file": "bug-before-32-offline-banner.png",
-    "description": "PRE-FIX capture of 32-offline-banner (icon font regression) — kept for before/after comparison"
-  },
-  {
-    "file": "bug-before-34-home-430px.png",
-    "description": "PRE-FIX capture of 34-home-430px (icon font regression) — kept for before/after comparison"
-  },
-  {
-    "file": "bug-before-36-loading-skeleton.png",
-    "description": "PRE-FIX capture of 36-loading-skeleton (icon font regression) — kept for before/after comparison"
   }
 ]

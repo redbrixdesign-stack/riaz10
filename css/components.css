@@ -3180,7 +3180,7 @@ body.trip-active .toast-container {
   line-height: 1.4;
 }
 
-/* B. RIGHT NOW — NEXT VISIT */
+/* B. NEXT VISIT */
 .comp-home-next-visit {
   background: var(--comp-card);
   border: 1px solid var(--comp-border);

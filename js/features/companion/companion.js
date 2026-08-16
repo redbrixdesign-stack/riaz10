@@ -202,7 +202,7 @@ const CompanionFeature = {
         </div>
       </div>`;
 
-    // B. NEXT VISIT (Right Now)
+    // B. NEXT VISIT (the next scheduled visit — see buildHomeData)
     let nextVisitHtml = '';
     if (homeData.nextVisit) {
       const nv = homeData.nextVisit;
@@ -214,7 +214,7 @@ const CompanionFeature = {
       nextVisitHtml = `
         <div class="comp-home-section">
           <div class="comp-home-section-header">
-            <span class="comp-home-section-label">RIGHT NOW</span>
+            <span class="comp-home-section-label">NEXT</span>
             <span class="comp-home-section-time">${nv.time}</span>
           </div>
           <div class="comp-home-next-visit">

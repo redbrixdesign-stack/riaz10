@@ -3,7 +3,7 @@
    ADVISOROS — HOME SCREEN VIEWPORT CHECK
    Boots the real app in headless Chrome at 320/375/390/430px widths and
    asserts the Home (companion feed) has no horizontal overflow, renders
-   its sections in the right order (Greeting → Right Now → Today →
+   its sections in the right order (Greeting → Next → Today →
    Attention → This Week → Ask Beelo), and shows real visit times.
    Run: node tests/browser/home-viewport.check.js   (needs :8000 + Chrome)
    ============================================ */
@@ -124,9 +124,9 @@ async function evaluate(ws, expression) {
       ok(`${p}: no horizontal overflow`, report.overflowX <= 0 && (report.mainOverflowX === null || report.mainOverflowX <= 0), { overflowX: report.overflowX, main: report.mainOverflowX });
       ok(`${p}: greeting heading + avatar render`, report.hasGreetingHeading && report.hasAvatar);
       // Section order: Greeting has no label, so the labelled order must start
-      // RIGHT NOW, then TODAY, then ATTENTION (if any), then THIS WEEK, then ASK BEELO.
+      // NEXT, then TODAY, then ATTENTION (if any), then THIS WEEK, then ASK BEELO.
       const labelled = report.labels;
-      const iRight = labelled.indexOf('RIGHT NOW');
+      const iRight = labelled.indexOf('NEXT');
       const iToday = labelled.indexOf('TODAY');
       const iAtt = labelled.indexOf('NEEDS YOUR ATTENTION');
       const iWeek = labelled.indexOf('THIS WEEK');
