@@ -31,6 +31,11 @@ const HomeScreenController = {
   POLL_MS: 60 * 1000,
 
   _timer: null,
+  // The container the weekly calendar is currently rendered into. My Day
+  // renders into #companion-myday-root; shift/select re-render into THIS
+  // container (they used to hardcode #hsc-today-root, which no longer
+  // exists, so the panel's arrows and day taps silently did nothing).
+  _rootId: null,
 
   async renderDynamicHomeScreen(containerId) {
     const container = document.getElementById(containerId);
@@ -38,6 +43,7 @@ const HomeScreenController = {
       console.warn(`[HomeScreenController] container #${containerId} not found`);
       return;
     }
+    this._rootId = containerId;
 
     // First paint only: shell out the weekly layout so the screen never sits
     // blank while appointments/geocoding load. Later 60s poll re-renders keep
@@ -76,17 +82,17 @@ const HomeScreenController = {
 
   shiftSelectedDay(days) {
     this._selectedDate = Utils.addDays(this.getSelectedDate(), days);
-    this.renderDynamicHomeScreen('hsc-today-root');
+    this.renderDynamicHomeScreen(this._rootId || 'hsc-today-root');
   },
 
   selectDay(isoDate) {
     this._selectedDate = new Date(isoDate);
-    this.renderDynamicHomeScreen('hsc-today-root');
+    this.renderDynamicHomeScreen(this._rootId || 'hsc-today-root');
   },
 
   jumpToToday() {
     this._selectedDate = Utils.getToday();
-    this.renderDynamicHomeScreen('hsc-today-root');
+    this.renderDynamicHomeScreen(this._rootId || 'hsc-today-root');
   },
 
   async renderWeeklyHomeScreen(containerId) {
