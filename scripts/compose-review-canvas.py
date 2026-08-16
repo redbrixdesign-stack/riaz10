@@ -36,7 +36,8 @@ FONT_REG = ImageFont.truetype(FONT_PATHS['regular'], 19)
 # ---- group the 42 shots into logical canvases ----
 CANVASES = [
     ('review-canvas-01-home.png', 'Home & Companion', [
-        '01-home.png', '01-home-scrolled.png', '27-chat-answer.png',
+        '01-home.png', '01-home-scrolled.png', '01-home-next-tomorrow.png',
+        '27-chat-answer.png',
         '19-modal-my-day.png', '18-modal-end-of-day.png', '28-home-empty.png',
         '32-offline-banner.png', '36-loading-skeleton.png',
         '33-home-320px.png', '34-home-430px.png', '17-onboarding.png',

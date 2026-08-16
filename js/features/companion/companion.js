@@ -206,6 +206,14 @@ const CompanionFeature = {
     let nextVisitHtml = '';
     if (homeData.nextVisit) {
       const nv = homeData.nextVisit;
+      // A bare time ("11:15") only reads correctly when the visit is today.
+      // On any other day the card shows the UK weekday + date so "NEXT" can't
+      // be mistaken for today's schedule — same abbreviated format as the
+      // Diary calendar header ("Thu 20 Aug, 11:15"), not the full long form.
+      const visitToday = Utils.isSameDay(new Date(nv.date), Utils.getToday());
+      const whenText = visitToday
+        ? nv.time
+        : `${Utils.formatDateUK(nv.date, 'weekday-short')} ${Utils.formatDateUK(nv.date, 'short')}, ${nv.time}`;
       const etaLine = (nv.travel || nv.eta) ? `
             <div class="comp-home-next-visit-eta">
               <span class="material-symbols-rounded" aria-hidden="true">${nv.travel === 'On site now' ? 'location_on' : 'directions_car'}</span>
@@ -215,7 +223,7 @@ const CompanionFeature = {
         <div class="comp-home-section">
           <div class="comp-home-section-header">
             <span class="comp-home-section-label">NEXT</span>
-            <span class="comp-home-section-time">${nv.time}</span>
+            <span class="comp-home-section-time">${Utils.escapeHtml(whenText)}</span>
           </div>
           <div class="comp-home-next-visit">
             <button type="button" class="comp-home-next-visit-main" onclick="App.navigate('appointments', {id: ${nv.id}})">
@@ -408,6 +416,7 @@ const CompanionFeature = {
         area: this.getAreaLabel(next),
         type: next.type ? (CONFIG.appointmentTypes.find(t => t.id === next.type)?.name || next.type) : 'Visit',
         address: next.address || 'No address set',
+        date: next.date, // raw instant — lets the renderer show a date when the visit isn't today
         eta: eta || '—',
         travel,
         briefing: await this.briefingFor(next)
