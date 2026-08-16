@@ -4,12 +4,12 @@
 
 /* ============================================
    BEELO DESIGN SYSTEM — see docs/DESIGN_SYSTEM.md
-   ONE theme, everywhere: dark Manchester Ink canvas
-   (--bg) + warm Paper cards (--surface) + Beelo Gold
-   accent (--accent). No screen paints its page
-   background cream/white; a light area is always a
-   card. The companion chat is the one intentional
-   exception (dark elevated cards on the ink canvas).
+   ONE dark theme, everywhere: Manchester Ink canvas
+   (--bg) + elevated dark surfaces (--surface /
+   --surface-elevated) + Beelo Gold accent (--accent).
+   There are NO light/cream surfaces in the app — cards,
+   headers, nav, sheets and inputs are all dark elevated
+   layers on the ink canvas, with light text throughout.
 
    Colour meanings (one meaning per colour):
      --accent   gold   = brand + primary action +
@@ -21,41 +21,42 @@
      --secondary green = success / done.
      --danger   red    = destructive / needs action now.
      --info     slate  = neutral info / delivered.
-   Money figures are neutral ink on cards; gold highlight
-   only inside companion answers as brand emphasis.
+   Money figures are neutral light text on dark surfaces;
+   gold highlight only inside companion answers as brand
+   emphasis.
    ============================================ */
 
 /* CSS Variables */
 :root {
-  /* Colors — Manchester Ink foundation, Beelo Gold identity, Paper surface.
+  /* Colors — Manchester Ink foundation, Beelo Gold identity.
      --secondary/--warning/--danger/--info keep semantic roles only. */
   --primary: #1B1B18;
   --primary-dark: #11110F;
   --primary-light: #E8E0D0;
   --secondary: #4f6a2f;
   --secondary-light: #e6f0d8;
-  --warning: #8d5d0f;
+  --warning: #C08A2D;
   --warning-light: #f5ead8;
-  --danger: #9a3d32;
+  --danger: #C0563F;
   --danger-light: #f3dfdc;
-  --info: #4a5d68;
+  --info: #5A7180;
 
   /* Beelo Gold — from Beelo avatar (comp-bee: #FDB913). Brand, primary CTA,
      active nav, important progress, selected states. */
   --accent: #FDB913;
   --accent-contrast: #1B1B18;
 
-  /* Neutrals — Manchester Ink canvas; warm Paper cards. */
+  /* Neutrals — Manchester Ink canvas; elevated dark surfaces. Cards, nav,
+     sheets, inputs and toasts all sit on this one dark scale. */
   --bg: #1B1B18;
   --bg-elevated: #22221E;
-  --surface: #F3EEDF;
-  --surface-elevated: #FFFDF7;
-  --surface-muted: #B8B2A3;
+  --surface: #22221E;
+  --surface-elevated: #2A2A24;
+  --surface-muted: #3A362E;
   --border: #5C574D;
-  --border-light: rgba(92, 87, 77, 0.22);
+  --border-light: rgba(92, 87, 77, 0.4);
 
-  /* Default text tokens — warm white on dark canvas. Inside cards/surfaces
-     get re-scoped to dark ink via surface text scoping rule below. */
+  /* Text tokens — warm cream, light on every dark surface. No re-scoping. */
   --text-primary: #F5F0E8;
   --text-secondary: #C7C1B0;
   --text-tertiary: #8E8878;
@@ -89,19 +90,8 @@
   --max-width: 480px;
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #1B1B18;
-    --surface: #F3EEDF;
-    --surface-elevated: #FFFDF7;
-    --border: #5C574D;
-    --border-light: rgba(92, 87, 77, 0.22);
-    --text-primary: #F5F0E8;
-    --text-secondary: #C7C1B0;
-    --text-tertiary: #8E8878;
-  }
-}
+/* The app is dark-only by design (field use); there is no light theme and
+   no prefers-color-scheme override — the dark tokens above apply always. */
 
 /* ============================================
    ICON FONT — Material Symbols Rounded, SELF-HOSTED.
@@ -139,87 +129,11 @@
 }
 
 /* ============================================
-   SURFACE TEXT SCOPING
-   Every element that renders as a light "card" surface (cards, headers, nav,
-   modals, sheets, inputs, toasts, list items, calendar cells, stat tiles)
-   re-declares the text tokens to their dark, on-cream values. Anything NOT
-   inside one of these keeps the root (light, on-dark-canvas) values above.
-   This one rule is what lets the whole app flip from a light-on-light theme
-   to a dark-canvas/cream-card theme without editing every screen by hand.
+   SURFACE TEXT SCOPING — REMOVED (dark theme).
+   Cards, headers, nav, sheets, inputs and toasts are
+   all dark elevated surfaces now, so the root light
+   text tokens apply everywhere; no re-scoping needed.
    ============================================ */
-.card,
-.top-header,
-#bottom-nav,
-.bottom-sheet,
-.modal-full .modal-header,
-.modal-full .modal-body,
-.modal-full .modal-footer,
-.toast,
-.list-item,
-.input,
-.select,
-.textarea,
-.stat-card,
-.search-bar,
-.tab.active,
-.segment.active,
-.route-plan,
-.route-stats,
-.route-list,
-.route-leg-index,
-.fab-secondary,
-.notebook-page,
-.dropdown-menu,
-.empty-state,
-.calendar-card,
-.kanban-summary-item,
-.kanban-col-header,
-.kanban-col-count,
-.kanban-card,
-.kanban-sheet-customer,
-.kanban-sheet-cell,
-.kanban-stage-step,
-.hsc-week-icon-btn,
-.hsc-week-nav,
-.hsc-upnext-banner,
-.hsc-week-row,
-.hsc-stat,
-.hsc-empty,
-.hsc-appt-row {
-  --text-primary: #1B1B18;
-  --text-secondary: #5C574D;
-  --text-tertiary: #6E6756;
-  /* Elements below that don't set their own `color` inherit the RESOLVED
-     value of `color`, not a live re-evaluation of --text-primary. Setting
-     `color` explicitly here (not just the custom property) is what makes
-     the override actually reach unstyled child text (plain headings,
-     labels, etc.) instead of only affecting descendants that happen to
-     write `color: var(--text-primary)` themselves. */
-  color: var(--text-primary);
-}
-
-/* modal-full body sits on the dark canvas by design (full-screen forms) —
-   its content is made of .card / .form-group blocks, so give it the light
-   (on-dark) text tokens back rather than the generic override above. */
-.modal-full .modal-body {
-  --text-primary: #F5F0E8;
-  --text-secondary: #C7C1B0;
-  --text-tertiary: #8E8878;
-  color: var(--text-primary);
-}
-
-/* Utility for the handful of "dark inset note/bubble" boxes that
-   deliberately keep background: var(--bg) even inside a cream card (e.g.
-   message previews, highlighted detail panels). Add this class alongside
-   the inline background so descendants using var(--text-secondary) etc.
-   correctly resolve to the light-on-dark tokens instead of inheriting the
-   card's dark-on-cream tokens. */
-.inset-dark {
-  --text-primary: #F5F0E8;
-  --text-secondary: #C7C1B0;
-  --text-tertiary: #8E8878;
-  color: var(--text-primary);
-}
 
 /* Reset & Base */
 *, *::before, *::after {
@@ -446,12 +360,13 @@ button:not(:disabled):active,
 }
 
 .btn-primary {
-  background: var(--primary);
-  color: var(--text-inverse);
+  background: var(--surface-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--accent);
 }
 
 .btn-primary:active {
-  background: var(--primary-dark);
+  background: var(--surface-muted);
 }
 
 .btn-secondary {
@@ -461,8 +376,8 @@ button:not(:disabled):active,
 
 .btn-outline {
   background: transparent;
-  color: var(--text-primary);
-  border: 1px solid var(--text-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
 }
 
 .btn-ghost {
@@ -510,7 +425,7 @@ button:not(:disabled):active,
 
 .input:focus, .select:focus, .textarea:focus {
   outline: none;
-  border-color: var(--primary);
+  border-color: var(--accent);
   box-shadow: none;
 }
 
@@ -548,12 +463,14 @@ button:not(:disabled):active,
   white-space: nowrap;
 }
 
-.badge-primary { background: var(--primary-light); color: var(--primary); }
-.badge-success { background: var(--secondary-light); color: var(--secondary); }
-.badge-warning { background: var(--warning-light); color: var(--warning); }
-.badge-danger { background: var(--danger-light); color: var(--danger); }
-.badge-info { background: color-mix(in srgb, var(--info) 15%, white); color: var(--info); }
-.badge-accent { background: color-mix(in srgb, var(--accent) 25%, white); color: var(--accent-contrast); }
+/* Badges — restrained dark chips: tinted surface, coloured text, hairline
+   border. The colour carries the meaning; the chip itself stays dark. */
+.badge-primary { background: color-mix(in srgb, var(--primary-light) 14%, var(--surface)); color: var(--primary-light); border: 1px solid color-mix(in srgb, var(--primary-light) 30%, transparent); }
+.badge-success { background: color-mix(in srgb, var(--secondary) 18%, var(--surface)); color: var(--secondary-light); border: 1px solid color-mix(in srgb, var(--secondary) 45%, transparent); }
+.badge-warning { background: color-mix(in srgb, var(--warning) 18%, var(--surface)); color: var(--warning); border: 1px solid color-mix(in srgb, var(--warning) 45%, transparent); }
+.badge-danger { background: color-mix(in srgb, var(--danger) 18%, var(--surface)); color: var(--danger); border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent); }
+.badge-info { background: color-mix(in srgb, var(--info) 18%, var(--surface)); color: var(--info); border: 1px solid color-mix(in srgb, var(--info) 45%, transparent); }
+.badge-accent { background: color-mix(in srgb, var(--accent) 14%, var(--surface)); color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); }
 
 /* ============================================
    LISTS
@@ -770,7 +687,7 @@ button:not(:disabled):active,
 
 /* Focus visible for keyboard navigation */
 :focus-visible {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 

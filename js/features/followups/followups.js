@@ -317,7 +317,7 @@ const FollowupsFeature = {
     // tomorrow's reminders) is routine and renders neutral - previously the
     // final ternary collapsed to danger, so routine tasks screamed "urgent".
     const accent = task.kind === 'payment' ? 'var(--warning)'
-      : (task.kind === 'visit_today' || task.kind === 'intro') ? 'var(--primary)'
+      : (task.kind === 'visit_today' || task.kind === 'intro') ? 'var(--accent)'
       : task.kind === 'service' ? 'var(--danger)'
       : 'var(--text-secondary)';
 

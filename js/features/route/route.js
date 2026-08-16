@@ -736,7 +736,7 @@ const RouteFeature = {
       success: 'var(--secondary)',
       warning: 'var(--warning)',
       danger: 'var(--danger)'
-    }[plan.efficiency.tone] || 'var(--primary)';
+    }[plan.efficiency.tone] || 'var(--text-secondary)';
     const areaNames = Object.keys(plan.areas);
     const orderChanged = plan.optimized.map(a => a.id).join('|') !== plan.appointments.map(a => a.id).join('|');
 

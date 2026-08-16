@@ -24,7 +24,7 @@ claims hold**, so they were dropped rather than carried forward:
 | Icon font rendering as literal text | **Fixed** | Self-hosted Material Symbols font + `font-display: block` (previous change) |
 | Home footer clipping | **Fixed/verified** | Clearance measured positive at all breakpoints (99px+, hardened to 140px padding) |
 | "RIGHT NOW" clock conflict | **Fixed** | Renamed to "NEXT"; date-aware for non-today visits (month/year boundaries tested) |
-| Light-theme screens | Not observed | All 16 screens are the dark ink canvas + cream cards (audit: 58–94% dark canvas) |
+| Light-theme screens | Fixed | Converted the whole app to dark-on-dark: all 16 screens now measure 90–100% dark canvas, 0–4% light (gold accents only) |
 | Unexplained empty black space | Partially resolved | Page-level empty states now fill the visible area (e.g. Visits Past void 66% → 14%); short boards/forms end tidily on the canvas by design |
 
 ## Screen inventory — current findings (verified, screen-specific)
@@ -51,8 +51,10 @@ claims hold**, so they were dropped rather than carried forward:
 
 ## Cross-cutting status
 
-- **Theme:** one dark theme everywhere (ink canvas + paper cards + gold
-  accent) — see `docs/DESIGN_SYSTEM.md`.
+- **Theme:** one dark theme everywhere (ink canvas + elevated dark surfaces
+  + gold accent) — see `docs/DESIGN_SYSTEM.md`. The cream-paper card system
+  was removed; every surface is a dark layer on the ink canvas (audit:
+  90–100% dark, 0–4% light = gold accents only).
 - **Icons:** self-hosted, offline-safe, no raw ligature text.
 - **Errors/overflow:** zero JS errors and zero horizontal overflow across
   all 16 screens at 390px (probe run).

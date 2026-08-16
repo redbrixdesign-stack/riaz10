@@ -1,4 +1,4 @@
-# Beelo Design System
+| Chat card | `.comp-*` | Home companion — same dark elevated surface as every other card |# Beelo Design System
 
 Single source of truth for the visual language. **Every screen uses these
 tokens and components** — if a screen looks different, that's a bug, not a
@@ -7,22 +7,24 @@ document explains *how* to use them.
 
 ## 1. The theme rule (one theme, everywhere)
 
-Beelo has **one** theme, not a light/dark pair:
+Beelo has **one** dark theme — there is no light theme and no
+`prefers-color-scheme` override:
 
-> **Dark Manchester Ink canvas + warm Paper cards + Beelo Gold accent.**
+> **Dark Manchester Ink canvas + elevated dark surfaces + Beelo Gold accent.**
 
-- The page background is ALWAYS the ink canvas (`--bg: #1B1B18`). No screen
-  paints its page background cream or white. A cream/light area on screen is
-  always a *card* (`--surface`), never a page background.
-- Cards are warm paper (`--surface: #F3EEDF`) with ink text. Dark text on a
-  dark canvas never happens — text inside cards resolves to ink via the
-  surface-text-scoping rule in `css/core.css`.
-- The companion chat (Home) is the one intentional exception: it renders
-  dark elevated cards (`--bg-elevated`) on the ink canvas, because it is a
-  dark chat surface. Everything else is paper cards on ink.
+- The page background is ALWAYS the ink canvas (`--bg: #1B1B18`).
+- Cards, headers, the bottom nav, sheets, inputs, toasts and list rows are
+  ALL **dark elevated surfaces** (`--surface: #22221E`,
+  `--surface-elevated: #2A2A24`, `--surface-muted: #3A362E`) separated by
+  thin warm hairlines (`--border-light`).
+- Text is light cream throughout — there is **no cream/white surface** and
+  no dark-on-light text re-scoping. A screen with a cream background is a
+  regression.
+- Gold (`--accent`) is the only saturated brand colour and appears
+  sparingly, only where it carries meaning.
 
-If you're tempted to add a screen with a light page background: **don't**.
-Field advisors use this in vehicles and outdoors; the dark canvas is the
+If you're tempted to add a cream/white surface: **don't**. Field advisors
+use this in vehicles and outdoors; the dark layered system is the
 deliberate readability choice.
 
 ## 2. Core tokens (from `css/core.css`)
@@ -30,12 +32,11 @@ deliberate readability choice.
 | Token | Value | Meaning |
 |---|---|---|
 | `--bg` | `#1B1B18` | Page canvas (Manchester Ink) |
-| `--bg-elevated` | `#22221E` | Elevated dark surface (chat cards) |
-| `--surface` | `#F3EEDF` | Card surface (warm Paper) |
-| `--surface-elevated` | `#FFFDF7` | Inputs, kanban cards, toasts |
-| `--surface-muted` | `#B8B2A3` | Muted secondary surface |
-| `--border` / `--border-light` | `#5C574D` / 22% | Card/UI borders |
-| `--text-primary` | `#F5F0E8` (on ink) / `#1B1B18` (on paper) | Primary text |
+| `--bg-elevated` / `--surface` | `#22221E` | Elevated dark surface (cards, nav, sheets) |
+| `--surface-elevated` | `#2A2A24` | Inputs, kanban cards, toasts, primary button |
+| `--surface-muted` | `#3A362E` | Hover/pressed, muted chips |
+| `--border` / `--border-light` | `#5C574D` / 40% | Hairline borders on dark |
+| `--text-primary` | `#F5F0E8` | Primary text (light everywhere) |
 | `--text-secondary` / `--text-tertiary` | warm greys | Secondary / faint text |
 | `--accent` | `#FDB913` | Beelo Gold — see colour meanings |
 
@@ -51,18 +52,18 @@ deliberate readability choice.
 
 Rules that follow from this:
 - Warnings and brand accents are never the same colour (gold ≠ amber).
-- Money figures render in **neutral ink** on cards (or cream on the dark
-  canvas). Gold emphasis inside a companion answer is the *one* place a
-  figure may be highlighted, as a brand emphasis — never as "this is
-  money" styling.
+- Money figures render in neutral light text on dark surfaces. Gold
+  emphasis inside a companion answer is the one place a figure may be
+  highlighted, as a brand emphasis — never as "this is money" styling.
 - Decorative brand elements (avatar, brand dot) may use gold freely; that's
   the brand mark, separate from the semantic system above.
 
 ## 4. Card system (one card, limited variants)
 
-Every card is a paper surface on the ink canvas: `background: var(--surface)`
-(or `--surface-elevated`), `border: 1px solid var(--border-light)`,
-`border-radius: var(--radius-md/lg)`. Do not invent new card backgrounds.
+Every card is a dark elevated surface on the ink canvas: `background:
+var(--surface)` (or `--surface-elevated`), `border: 1px solid
+var(--border-light)`, `border-radius: var(--radius-md/lg)`. Do not
+invent new card backgrounds — and never a cream one.
 
 Variants:
 

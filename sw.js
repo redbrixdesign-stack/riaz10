@@ -1,7 +1,7 @@
 const CACHE_NAME = 'advisoros-v6-31';
 const FONT_CACHE_NAME = 'advisoros-fonts-1';
 const STATIC_ASSETS = [
-  './','index.html','css/core.css?v=20','css/components.css?v=19','assets/fonts/material-symbols-rounded.woff2',
+  './','index.html','css/core.css?v=21','css/components.css?v=20','assets/fonts/material-symbols-rounded.woff2',
   'js/vendor/dexie.min.js?v=1','js/vendor/minidexie.min.js?v=12',
   'js/core/config.min.js?v=10','js/core/utils.min.js?v=6','js/core/db.min.js?v=15','js/core/geoprovider.min.js?v=1','js/core/geo.min.js?v=6','js/core/search.min.js?v=2','js/core/tax.min.js?v=2','js/core/app.min.js?v=8','js/core/contact.min.js?v=3',
   'js/services/ai.min.js?v=7','js/services/notification.min.js?v=5','js/services/message-scheduler.min.js?v=3','js/services/export.min.js?v=3','js/services/weather.min.js?v=3',

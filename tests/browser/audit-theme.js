@@ -34,12 +34,12 @@ const BASE = 'http://localhost:8000';
       const light = (c) => {
         const m = c.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
         if (!m) return false;
-        return (0.2126 * +m[1] + 0.7152 * +m[2] + 0.0722 * +m[3]) > 0.65;
+        return (0.2126 * +m[1] + 0.7152 * +m[2] + 0.0722 * +m[3]) / 255 > 0.65;
       };
       const dark = (c) => {
         const m = c.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
         if (!m) return false;
-        return (0.2126 * +m[1] + 0.7152 * +m[2] + 0.0722 * +m[3]) < 0.22;
+        return (0.2126 * +m[1] + 0.7152 * +m[2] + 0.0722 * +m[3]) / 255 < 0.22;
       };
       // sample grid: light/cream/dark shares
       let lightN = 0, darkN = 0, total = 0;
