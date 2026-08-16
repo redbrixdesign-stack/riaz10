@@ -434,10 +434,9 @@
 </div>
 
 <script>
-  // --- MOCK DATA — one seeded demo week; the calendar navigates by
-  // generating the Monday-first week containing the focused date. Visit
-  // data is looked up by exact date, so weeks outside the seeded demo
-  // simply show the honest empty state (nothing fabricated).
+  // --- MOCK DATA — 6 appointments across the week: single-visit days
+  // (Mon, Tue, Sun), an empty day (Wed/Thu/Sat) and a 3-visit day (Fri,
+  // "today", with the featured NEXT card).
   const MOCK_TODAY = '2026-08-16';
   const SEED_MONDAY = '2026-08-12';
 
@@ -445,13 +444,14 @@
     { id: '2026-08-12', data: [{time:'09:00', customer:'@Mr James.', type:'General Maintenance', loc:'Altrincham', meta:'15 min away', isNext:false}] },
     { id: '2026-08-13', data: [{time:'14:30', customer:'@Mrs Davis.', type:'Follow-up', loc:'Sale', meta:'10 min away', isNext:false}] },
     { id: '2026-08-14', data: [] },
-    { id: '2026-08-15', data: [{time:'09:00', customer:'@Client D.', type:'Meeting', loc:'Cheadle', meta:'', isNext:false},{time:'13:00', customer:'@Client E.', type:'Consultation', loc:'Didsbury', meta:'', isNext:false},{time:'15:00', customer:'@Client F.', type:'Check-in', loc:'Chorlton', meta:'', isNext:false},{time:'17:00', customer:'@Client G.', type:'Review', loc:'Trafford', meta:'', isNext:false}] },
-    { id: '2026-08-16', data: [{time:'09:30', customer:'@Mrs Smith', loc:'14 Beechwood Avenue, Sale M33 FAQ', meta:'18 min via A5029', parking:'Parking available', note:'Customer considering timber-look frames', isNext:true, featured:true},
-                              {time:'11:15', customer:'@Mr Khan.', type:'Follow-up visit', loc:'Altrincham', meta:'25 min away', isNext:false},
-                              {time:'14:00', customer:'@Mrs Jones.', type:'Initial consultation', loc:'Wilmslow', meta:'', isNext:false},
-                              {time:'16:30', customer:'@Mr Patel.', type:'Review meeting', loc:'Stockport', meta:'', isNext:false}] },
+    { id: '2026-08-15', data: [] },
+    { id: '2026-08-16', data: [
+      {time:'09:30', customer:'@Mrs Smith', loc:'14 Beechwood Avenue, Sale M33 FAQ', meta:'18 min via A5029', parking:'Parking available', note:'Customer considering timber-look frames', isNext:true, featured:true},
+      {time:'11:15', customer:'@Mr Khan.', type:'Follow-up visit', loc:'Altrincham', meta:'25 min away', isNext:false},
+      {time:'14:30', customer:'@Mrs Jones.', type:'Initial consultation', loc:'Wilmslow', meta:'', isNext:false}
+    ] },
     { id: '2026-08-17', data: [] },
-    { id: '2026-08-18', data: [] }
+    { id: '2026-08-18', data: [{time:'10:30', customer:'@Mr Patel.', type:'Review meeting', loc:'Stockport', meta:'', isNext:false}] }
   ];
 
   // date -> visits lookup, built from the seeded demo week
