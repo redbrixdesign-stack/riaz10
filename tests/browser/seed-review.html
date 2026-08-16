@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>seed-review</title></head>
+<body>
+<script src="../../js/vendor/dexie.min.js"></script>
+<script>
+/* ============================================================
+   ADVISOROS — VISUAL REVIEW SEED
+   Seeds the CURRENT 'advisoros_v6' database with a rich, realistic
+   demo dataset for the full visual review (screenshots). Repeatable:
+   it clears every table first, then reseeds from scratch. Safe for
+   local/dev only — it wipes whatever is in the browser's IndexedDB
+   for this origin.
+
+   Scenario: "Riaz Ahmed", window-coverings advisor based in
+   Stockport/Manchester, weekly earnings target £1,800. A busy week
+   with every Home day-strip state (Done / Overdue / Next / Upcoming),
+   a follow-up inbox with every task kind, a kanban with every order
+   column populated, money/travel history, edge cases (long text,
+   missing optional fields, special characters, cancelled visits,
+   incomplete measurements).
+
+   Usage: serve the repo (npm run serve), open this page once, then
+   open index.html in the SAME browser profile. It writes
+   localStorage 'advisoros_config' too, so the app boots straight
+   into the seeded world (no onboarding).
+   ============================================================ */
+(async () => {
+  const db = new Dexie('advisoros_v6');
+  db.version(1).stores({
+    customers: '++id, customerNumber, firstName, lastName, phone, email, postcodeNormalized, source, status, createdAt',
+    appointments: '++id, customerId, date, type, status, outcome, source, createdAt',
+    orders: '++id, customerId, appointmentId, orderNumber, supplierOrderNumber, status, createdAt',
+    expenses: '++id, date, category, amount, tripId, createdAt',
+    trips: '++id, date, appointmentId, purpose, confirmed, createdAt',
+    measurements: '++id, appointmentId, windowName, createdAt',
+    communications: '++id, customerId, type, template, sentAt',
+    settings: 'key',
+    sequences: 'name'
+  });
+  db.version(2).stores({ photos: '++id, customerId, createdAt' });
+  await db.open();
+
+  // ---- wipe ----
+  await Promise.all(['customers','appointments','orders','expenses','trips','measurements','communications','photos','settings','sequences'].map(t => db[t].clear()));
+
+  // ---- UK wall-clock helpers (mirror the app's day contract) ----
+  const ukFmt = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+  const ukParts = d => { const p = {}; for (const x of ukFmt.formatToParts(d)) if (x.type !== 'literal') p[x.type] = parseInt(x.value, 10); return p; };
+  const ukMidnight = (y, m, day) => { const guess = new Date(Date.UTC(y, m - 1, day)); const p = ukParts(guess); return new Date(guess.getTime() - (p.hour * 3600 + p.minute * 60 + p.second) * 1000); };
+  const ukNow = () => { const p = ukParts(new Date()); const base = ukMidnight(p.year, p.month, p.day); return new Date(base.getTime() + (p.hour * 3600 + p.minute * 60 + p.second) * 1000); };
+  // ISO instant at (today + offsetDays) at UK wall-clock hh:mm
+  const ukDay = (offsetDays, hour, minute = 0) => {
+    const p = ukParts(new Date());
+    const base = ukMidnight(p.year, p.month, p.day);
+    base.setDate(base.getDate() + offsetDays);
+    base.setTime(base.getTime() + (hour * 3600 + minute * 60) * 1000);
+    return base.toISOString();
+  };
+  const nowIso = () => new Date().toISOString();
+  const daysAgo = n => new Date(Date.now() - n * 86400000).toISOString();
+  // Monday of the current UK week (12:00) — for "this week" earnings.
+  const ukMonday = () => {
+    const p = ukParts(new Date());
+    const dow = new Date(Date.UTC(p.year, p.month - 1, p.day)).getUTCDay();
+    const mondayDay = p.day - ((dow + 6) % 7);
+    const base = ukMidnight(p.year, p.month, mondayDay);
+    base.setTime(base.getTime() + 12 * 3600000);
+    return base.toISOString();
+  };
+  // Guaranteed-past "today" visit (overdue state) — never earlier than
+  // today 00:05 UK, never later than 10:00 UK.
+  const overdueToday = () => {
+    const clamp = new Date(Math.min(new Date(Date.now() - 45 * 60000).getTime(), new Date(ukDay(0, 10)).getTime()));
+    const floor = new Date(ukDay(0, 0, 5)).getTime();
+    return new Date(Math.max(clamp.getTime(), floor)).toISOString();
+  };
+  // Guaranteed-future "today" visit (Next state) — at least 45 min out.
+  const nextToday = () => new Date(Math.max(new Date(ukDay(0, 11, 15)).getTime(), Date.now() + 45 * 60000)).toISOString();
+
+  const YEAR = new Date().getFullYear();
+  const C = n => 'CUS-' + YEAR + '-' + String(n).padStart(4, '0');
+  const O = n => 'ORD-' + YEAR + '-' + String(n).padStart(4, '0');
+
+  // ---- config (localStorage + settings table) ----
+  const config = {
+    onboardingComplete: true,
+    advisorName: 'Riaz Ahmed',
+    companyName: 'Riaz Ahmed · Window Coverings',
+    businessAddress: '12 Willow Works, Stockport Road, Manchester M16 0AA',
+    businessLatLng: [53.415, -2.149],
+    weeklyTarget: 1800,
+    advisorMode: 'company',
+    country: 'GB', currency: 'GBP', distanceUnit: 'miles', measurementUnit: 'cm',
+    autoMessages: { enabled: true, eveningHour: 18, morningHour: 8 },
+    commission: { mode: 'simple', simpleRate: 15, saleReductionRate: 20, netCommissionRate: 15.25, tiers: null },
+    depositRules: { minimum: 750, fullPaymentThreshold: 1500, percentageAboveThreshold: 50 },
+    followups: { paymentReminderDays: 3 },
+    mileageRate: 0.45, mileageRateOver: 0.25
+  };
+  localStorage.setItem('advisoros_config', JSON.stringify(config));
+  await db.settings.put({ key: 'config', value: config });
+
+  // ---- customers (8) ----
+  const customers = [
+    { firstName: 'Sarah', lastName: 'Johnson', phone: '07700 900123', email: 'sarah.johnson@example.com', postcodeNormalized: 'SK14AA', source: 'Referral', address: { line1: '14 Beechwood Avenue', city: 'Stockport', postcode: 'SK1 4AA' }, notes: 'Ordered the Lounge Bay in February. Likes natural linen tones, not a fan of grey. Two children, prefers afternoon visits.' },
+    { firstName: 'John', lastName: 'Smith', phone: '07700 900456', email: 'john.smith@example.com', postcodeNormalized: 'M334AA', source: 'Google', address: { line1: '27 Oakfield Road', city: 'Sale', postcode: 'M33 4AA' } },
+    { firstName: 'Amina', lastName: 'Patel', phone: '07900 111222', email: 'amina.patel@example.com', postcodeNormalized: 'M334BB', source: 'Instagram', address: { line1: '5 Ash Grove', city: 'Sale', postcode: 'M33 4BB' }, notes: 'New build. Wants blackout for the nursery.' },
+    { firstName: "David", lastName: "O'Leary", phone: '07900 333444', email: 'david.oleary@example.com', postcodeNormalized: 'M222AA', source: 'Walk-in', address: { line1: "St Mary's Court, Flat 12", city: 'Altrincham', postcode: 'M22 2AA' }, notes: 'Conversation with the residents’ association led to two neighbours asking for the same brochure. Property is a conversion — check partition wall depth before quoting. Parking: visitors bay only. Access: key safe on the right of the main door.' },
+    { firstName: 'Amelia', lastName: 'Green', phone: '', email: '', postcodeNormalized: 'SK95AA', source: 'Website', address: { line1: '9 Birch Lane', city: 'Wilmslow', postcode: 'SK9 5AA' } },
+    { firstName: 'Tom', lastName: 'Hardcastle', phone: '07900 555666', email: 'tom@example.com', postcodeNormalized: 'SK75AA', source: 'Show Home', address: { line1: '3 Cypress Close', city: 'Stockport', postcode: 'SK7 5AA' }, notes: 'Ordered for the whole ground floor. Wants everything finished before the school summer fair in July.' },
+    { firstName: 'Hannah', lastName: 'Whitfield', phone: '07890 777888', email: 'hannah.w@example.com', postcodeNormalized: 'M162AA', source: 'Facebook', address: { line1: '18 Dale Road', city: 'Manchester', postcode: 'M16 2AA' } },
+    { firstName: 'Mr & Mrs', lastName: 'Khan', phone: '', email: '', postcodeNormalized: 'M225AA', source: 'Leaflet', address: null }
+  ];
+  const customerIds = [];
+  for (let i = 0; i < customers.length; i++) {
+    const c = customers[i];
+    customerIds.push(await db.customers.add({ ...c, customerNumber: C(i + 1), status: 'active', createdAt: daysAgo(90 - i * 8) }));
+  }
+  const [SARAH, JOHN, AMINA, DAVID, AMELIA, TOM, HANNAH, KHAN] = customerIds;
+
+  // ---- appointments ----
+  const appt = async (a) => (await db.appointments.add({ status: 'confirmed', outcome: null, value: 0, commission: 0, source: 'manual', ...a }));
+  const aDone    = await appt({ customerId: SARAH,  clientName: 'Sarah Johnson',  date: ukDay(0, 9),  type: 'consultation', outcome: 'ordered',  value: 1850, commission: 277.5,  status: 'completed', latLng: [53.410, -2.157], address: '14 Beechwood Avenue, Stockport SK1 4AA', createdAt: daysAgo(6) });
+  const aOverdue = await appt({ customerId: KHAN,   clientName: 'Mr & Mrs Khan',   date: overdueToday(), type: 'consultation', latLng: [53.418, -2.231], address: null, createdAt: daysAgo(2) });
+  const aNext    = await appt({ customerId: JOHN,   clientName: 'John Smith',      date: nextToday(),    type: 'consultation', latLng: [53.424, -2.322], address: '27 Oakfield Road, Sale M33 4AA', createdAt: daysAgo(4) });
+  const aUp1     = await appt({ customerId: AMELIA, clientName: 'Amelia Green',    date: ukDay(0, 14),   type: 'fitting',      latLng: [53.326, -2.233], address: '9 Birch Lane, Wilmslow SK9 5AA', notes: 'Bay window faces east — morning sun.' });
+  const aUp2     = await appt({ customerId: DAVID,  clientName: "David O'Leary",   date: ukDay(0, 16, 30), type: 'consultation', latLng: [53.400, -2.350], address: "St Mary's Court, Altrincham M22 2AA", notes: 'Parking: visitors bay only\nAccess: key safe on the right of the main door' });
+
+  const aTom1     = await appt({ customerId: TOM,    clientName: 'Tom Hardcastle',  date: ukDay(1, 9, 30), type: 'fitting', latLng: [53.360, -2.170], address: '3 Cypress Close, Stockport SK7 5AA' });
+  const aSarah2   = await appt({ customerId: SARAH,  clientName: 'Sarah Johnson',   date: ukDay(1, 12),   type: 'consultation', latLng: [53.410, -2.157], address: '14 Beechwood Avenue, Stockport SK1 4AA' });
+  const aHannah1  = await appt({ customerId: HANNAH, clientName: 'Hannah Whitfield', date: ukDay(1, 15),  type: 'consultation', latLng: [53.453, -2.257], address: '18 Dale Road, Manchester M16 2AA' });
+
+  const aMon     = await appt({ customerId: AMELIA, clientName: 'Amelia Green',    date: ukMonday(),     type: 'consultation', outcome: 'ordered', value: 1260, commission: 189, status: 'completed', latLng: [53.326, -2.233], address: '9 Birch Lane, Wilmslow SK9 5AA' });
+  const aWed     = await appt({ customerId: AMINA,  clientName: 'Amina Patel',     date: ukDay(2, 11),   type: 'measure', latLng: [53.430, -2.330], address: '5 Ash Grove, Sale M33 4BB' });
+  const aFri     = await appt({ customerId: DAVID,  clientName: "David O'Leary",   date: ukDay(4, 10),   type: 'measure', latLng: [53.400, -2.350], address: "St Mary's Court, Altrincham M22 2AA" });
+  const aNextWk1 = await appt({ customerId: AMELIA, clientName: 'Amelia Green',    date: ukDay(8, 10),   type: 'consultation', latLng: [53.326, -2.233], address: '9 Birch Lane, Wilmslow SK9 5AA' });
+  const aNextWk2 = await appt({ customerId: JOHN,   clientName: 'John Smith',      date: ukDay(10, 14),  type: 'measure', latLng: [53.424, -2.322], address: '27 Oakfield Road, Sale M33 4AA' });
+
+  const aTom2     = await appt({ customerId: TOM,    clientName: 'Tom Hardcastle',  date: ukDay(-1, 16),  type: 'fitting', outcome: 'completed', status: 'completed', latLng: [53.360, -2.170], address: '3 Cypress Close, Stockport SK7 5AA' });
+  const aSarah3   = await appt({ customerId: SARAH,  clientName: 'Sarah Johnson',   date: daysAgo(2),     type: 'consultation', outcome: 'thinking',  status: 'completed', latLng: [53.410, -2.157], address: '14 Beechwood Avenue, Stockport SK1 4AA' });
+  const aDavid1   = await appt({ customerId: DAVID,  clientName: "David O'Leary",   date: daysAgo(3),     type: 'service_call', outcome: 'parts_needed', status: 'completed', latLng: [53.400, -2.350], address: "St Mary's Court, Altrincham M22 2AA", notes: 'Blind jammed after install — bracket bolt sheared. Ordered replacement bracket.' });
+  const aKhan1    = await appt({ customerId: KHAN,   clientName: 'Mr & Mrs Khan',   date: daysAgo(5),     type: 'consultation', outcome: 'quoted', value: 980, status: 'completed', latLng: [53.418, -2.231], address: '31 Larkspur Road, Manchester M22 5AA' });
+  const aDavid2   = await appt({ customerId: DAVID,  clientName: "David O'Leary",   date: daysAgo(8),     type: 'consultation', outcome: 'quoted', value: 1250, status: 'completed', latLng: [53.400, -2.350], address: "St Mary's Court, Altrincham M22 2AA" });
+  const aSarah4   = await appt({ customerId: SARAH,  clientName: 'Sarah Johnson',   date: daysAgo(12),    type: 'consultation', outcome: 'ordered', value: 1850, commission: 277.5, status: 'completed', latLng: [53.410, -2.157], address: '14 Beechwood Avenue, Stockport SK1 4AA' });
+  const aTom3     = await appt({ customerId: TOM,    clientName: 'Tom Hardcastle',  date: daysAgo(15),    type: 'fitting', outcome: 'completed', status: 'completed', postFitSent: true, latLng: [53.360, -2.170], address: '3 Cypress Close, Stockport SK7 5AA' });
+  const aAmelia1  = await appt({ customerId: AMELIA, clientName: 'Amelia Green',    date: daysAgo(20),    type: 'consultation', outcome: 'quoted', value: 1150, status: 'completed', latLng: [53.326, -2.233], address: '9 Birch Lane, Wilmslow SK9 5AA' });
+  const aSarah5   = await appt({ customerId: SARAH,  clientName: 'Sarah Johnson',   date: daysAgo(25),    type: 'consultation', outcome: 'ordered', value: 2100, commission: 315, status: 'completed', latLng: [53.410, -2.157], address: '14 Beechwood Avenue, Stockport SK1 4AA' });
+  await appt({ customerId: HANNAH, clientName: 'Hannah Whitfield', date: daysAgo(30), type: 'consultation', status: 'cancelled', latLng: [53.453, -2.257], address: '18 Dale Road, Manchester M16 2AA' });
+
+  // ---- orders (7) — every kanban column ----
+  const order = async (o) => { await db.orders.add({ supplierOrderNumber: '', status: 'active', reviewRequested: false, referralRequested: false, ...o }); };
+  await order({ customerId: SARAH,  appointmentId: aSarah4, orderNumber: O(1), total: 1850, depositRequired: 925, depositPaid: 925, balanceDue: 925, stage: 'ordered',   createdAt: daysAgo(12) });
+  await order({ customerId: TOM,    appointmentId: aTom3,   orderNumber: O(2), total: 2400, depositRequired: 1200, depositPaid: 2400, balanceDue: 0,   stage: 'fitted',   createdAt: daysAgo(15) });
+  await order({ customerId: DAVID,  appointmentId: aDavid2, orderNumber: O(3), total: 1250, depositRequired: 625,  depositPaid: 625,  balanceDue: 625, stage: 'delivered', createdAt: daysAgo(8) });
+  await order({ customerId: AMELIA, appointmentId: aMon,    orderNumber: O(4), total: 1260, depositRequired: 630,  depositPaid: 630,  balanceDue: 630, stage: 'ordered',   createdAt: ukMonday() });
+  await order({ customerId: AMINA,  appointmentId: aDone,   orderNumber: O(5), total: 1850, depositRequired: 925,  depositPaid: 0,    balanceDue: 1850, stage: 'ordered', createdAt: nowIso() });
+  await order({ customerId: KHAN,   appointmentId: null,    orderNumber: O(6), total: 3100, depositRequired: 1550, depositPaid: 3100, balanceDue: 0,   stage: 'paid',     createdAt: daysAgo(45), supplierOrderNumber: 'SUP-8821' });
+  await order({ customerId: SARAH,  appointmentId: aSarah5, orderNumber: O(7), total: 2100, depositRequired: 1050, depositPaid: 1800, balanceDue: 300, stage: 'fitted',   createdAt: daysAgo(25) });
+
+  // ---- expenses ----
+  const exp = async (e) => db.expenses.add({ description: '', ...e });
+  await exp({ date: daysAgo(1),  category: 'fuel',      amount: 58.40, description: 'Shell — Princess Road' });
+  await exp({ date: daysAgo(6),  category: 'fuel',      amount: 62.10, description: 'BP — Wilmslow Road' });
+  await exp({ date: daysAgo(8),  category: 'samples',   amount: 34.99, description: 'Blind sample swatches ×3 (linen, blackout, vertical)' });
+  await exp({ date: daysAgo(12), category: 'tools',     amount: 129.00, description: 'Cordless drill replacement batteries — the old pair stopped holding charge mid-fitting and the supplier stopped stocking the original part number' });
+  await exp({ date: daysAgo(3),  category: 'phone',     amount: 25.00, description: 'Monthly business SIM top-up' });
+  await exp({ date: daysAgo(15), category: 'marketing', amount: 45.00, description: 'Google ads top-up — Sale & Altrincham' });
+  await exp({ date: daysAgo(2),  category: 'other',     amount: 12.50, description: 'Parking — Wilmslow town centre' });
+  await exp({ date: daysAgo(40), category: 'vehicle',   amount: 180.00, description: 'MOT + service' });
+
+  // ---- trips ----
+  const trip = async (t) => db.trips.add({ purpose: 'business', confirmed: false, ...t });
+  await trip({ date: daysAgo(3),  appointmentId: aDavid1, distanceKm: 12.4, confirmed: true });
+  await trip({ date: daysAgo(1),  appointmentId: aTom2,   distanceKm: 18.7, confirmed: true });
+  await trip({ date: daysAgo(6),  appointmentId: null,    distanceKm: 9.3,  confirmed: false });
+  await trip({ date: daysAgo(10), appointmentId: null,    distanceKm: 22.1, confirmed: true });
+
+  // ---- measurements ----
+  await db.measurements.add({ appointmentId: aSarah4, windowName: 'Lounge Bay', widthTop: 2110, widthMiddle: 2100, widthBottom: 2095, dropLeft: 1795, dropCentre: 1800, dropRight: 1805, diagonalTlBr: 2165, diagonalTrBl: 2160, tolerance: 10, fittingType: 'recess' });
+  await db.measurements.add({ appointmentId: aTom3,   windowName: 'Bay Window — North Facing', widthTop: 2410, widthMiddle: 2400, widthBottom: 2390, dropLeft: 1495, dropCentre: 1500, dropRight: 1505, diagonalTlBr: 2145, diagonalTrBl: 2140, tolerance: 10, fittingType: 'recess' });
+  await db.measurements.add({ appointmentId: aAmelia1, windowName: 'Kitchen Window (back)', widthTop: 1200 }); // incomplete — edge case
+  await db.measurements.add({ appointmentId: aDone,    windowName: 'Lounge Bay', widthTop: 2110, widthMiddle: 2100, widthBottom: 2095, dropLeft: 1795, dropCentre: 1800, dropRight: 1805, diagonalTlBr: 2165, diagonalTrBl: 2160, tolerance: 10, fittingType: 'recess' });
+  await db.measurements.add({ appointmentId: aDone,    windowName: 'Kitchen Window (back)', widthTop: 1210, widthMiddle: 1200, widthBottom: 1195, dropLeft: 895, dropCentre: 900, dropRight: 905, diagonalTlBr: 1265, diagonalTrBl: 1260, tolerance: 10, fittingType: 'recess' });
+
+  // ---- communications (sent history) ----
+  const comm = async (c) => db.communications.add(c);
+  await comm({ customerId: SARAH, type: 'message',  template: 'outcome_ordered', content: 'Hi Sarah, thanks again for ordering today. Your window coverings are now in hand — I will keep you posted on fitting dates.', sentAt: daysAgo(11) });
+  await comm({ customerId: TOM,   type: 'message',  template: 'post_fit_followup', content: 'Hi Tom, hope you are pleased with how the fitting looks. If anything does not feel right, just reply and I will come back and put it right.', sentAt: daysAgo(14) });
+  await comm({ customerId: AMELIA, type: 'message', template: 'follow_up.quote', content: 'Hi Amelia, just checking in on the quote for your windows. Any questions I can answer?', sentAt: daysAgo(19) });
+  await comm({ customerId: DAVID, type: 'message',  template: 'payment_reminder', content: 'Hi David, a quick one about your order — the balance of £625.00 is ready whenever you are. Just reply here to arrange it.', sentAt: daysAgo(7) });
+  await comm({ customerId: SARAH, type: 'whatsapp_attempted', content: 'Hi', sentAt: daysAgo(2) });
+  await comm({ customerId: KHAN, type: 'message',   template: 'follow_up.quote', content: 'Hi, just checking in on the quote for your windows. Any questions I can answer?', sentAt: daysAgo(4) });
+  await comm({ customerId: null, type: 'note',      content: 'EOD note: Tom’s fitting done, order complete. Mrs Patel booked for measure next week.', sentAt: daysAgo(1) });
+
+  // ---- photos (tiny generated placeholders so galleries/banners have rows) ----
+  const makePhoto = (color, label) => {
+    const c = document.createElement('canvas'); c.width = 160; c.height = 100;
+    const x = c.getContext('2d');
+    x.fillStyle = color; x.fillRect(0, 0, 160, 100);
+    x.fillStyle = '#ffffff'; x.font = '11px sans-serif'; x.fillText(label, 8, 18);
+    return c.toDataURL('image/jpeg', 0.8).split(',')[1];
+  };
+  await db.photos.add({ customerId: SARAH, data: makePhoto('#5b7a8c', 'Lounge bay — daylight'), mimeType: 'image/jpeg', caption: 'Lounge bay — daylight', createdAt: daysAgo(11) });
+  await db.photos.add({ customerId: JOHN,  data: makePhoto('#6e8c5b', '27 Oakfield Rd'), mimeType: 'image/jpeg', caption: 'Property exterior', createdAt: daysAgo(4) });
+
+  // ---- sequences ----
+  await db.sequences.bulkPut([
+    { name: 'customer', value: 20 },
+    { name: 'order', value: 20 }
+  ]);
+
+  document.body.textContent = 'SEEDED_OK';
+})().catch(e => { document.body.textContent = 'SEED_FAILED:' + String(e && e.message || e); });
+</script>
+</body></html>
