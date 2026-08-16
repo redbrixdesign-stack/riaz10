@@ -130,7 +130,7 @@
 .hsc-appt-row {
   --text-primary: #1B1B18;
   --text-secondary: #5C574D;
-  --text-tertiary: #7D7665;
+  --text-tertiary: #6E6756;
   /* Elements below that don't set their own `color` inherit the RESOLVED
      value of `color`, not a live re-evaluation of --text-primary. Setting
      `color` explicitly here (not just the custom property) is what makes
@@ -411,7 +411,7 @@ button:not(:disabled):active,
 .btn-sm {
   padding: 8px 14px;
   font-size: 13px;
-  min-height: 40px;
+  min-height: 44px;
 }
 
 .btn-lg {
@@ -483,7 +483,7 @@ button:not(:disabled):active,
 
 .badge-primary { background: var(--primary-light); color: var(--primary); }
 .badge-success { background: var(--secondary-light); color: var(--secondary); }
-.badge-warning { background: var(--warning-light); color: #8f5410; }
+.badge-warning { background: var(--warning-light); color: var(--warning); }
 .badge-danger { background: var(--danger-light); color: var(--danger); }
 .badge-info { background: color-mix(in srgb, var(--info) 15%, white); color: var(--info); }
 .badge-accent { background: color-mix(in srgb, var(--accent) 25%, white); color: var(--accent-contrast); }
@@ -752,8 +752,8 @@ button:not(:disabled):active,
 }
 
 .appt-actions .btn {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   padding: 0;
-  min-height: 40px;
+  min-height: 44px;
 }

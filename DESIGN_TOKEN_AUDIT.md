@@ -128,20 +128,32 @@
 
 ## 3. Contrast Notes
 
+> **Correction (Phase 1, 2026-08-16):** The ratios below were recomputed with a
+> scripted WCAG relative-luminance calculation. The original audit numbers for
+> `--warning`/`--danger` were wrong — both already pass AA on paper, and the
+> previously suggested retunes (`#B87A1A` / `#B03A2E`) would have made `--warning`
+> *worse* (3.10:1, FAIL). No semantic retune was applied. The only genuine
+> failure found and fixed is `--text-tertiary` on paper (darkened to `#6E6756`).
+
 | Combination | Current | WCAG AA (4.5:1) | WCAG AAA (7:1) | Notes |
 |-------------|---------|-----------------|----------------|-------|
-| `--accent` (#FDB913) on `--accent-contrast` (#1B1B18) | ~11:1 | ✅ | ✅ | Good — gold on ink |
+| `--accent` (#FDB913) on `--accent-contrast` (#1B1B18) | ~10.0:1 | ✅ | ✅ | Good — gold on ink |
 | `--primary` (#1B1B18) on `--surface` (#F3EEDF) | ~14:1 | ✅ | ✅ | Good |
-| `--secondary` (#4f6a2f) on `--surface` | 5.8:1 | ✅ | ❌ | AA only |
-| `--warning` (#8d5d0f) on `--surface` | 3.9:1 | ❌ | ❌ | **FAIL** — amber on paper |
-| `--danger` (#9a3d32) on `--surface` | 3.4:1 | ❌ | ❌ | **FAIL** — red on paper |
-| `--text-secondary` (#5C574D) on `--surface` | ~5.4:1 | ✅ | ❌ | AA only |
-| `--text-tertiary` (#7D7665) on `--surface` | ~4.2:1 | ❌ | ❌ | tertiary text too dim |
+| `--secondary` (#4f6a2f) on `--surface` | 5.3:1 | ✅ | ❌ | AA only |
+| `--warning` (#8d5d0f) on `--surface` | 4.9:1 | ✅ | ❌ | AA — text on paper is safe |
+| `--danger` (#9a3d32) on `--surface` | 5.9:1 | ✅ | ❌ | AA — text on paper is safe |
+| `--warning` (#8d5d0f) on `--warning-light` (#f5ead8) | 4.8:1 | ✅ | ❌ | AA — badge/fill combos |
+| `--danger` (#9a3d32) on `--danger-light` (#f3dfdc) | 5.8:1 | ✅ | ❌ | AA — badge/fill combos |
+| `--info` (#4a5d68) on `--surface` | 5.9:1 | ✅ | ❌ | AA only |
+| `--text-secondary` (#5C574D) on `--surface` | 6.2:1 | ✅ | ❌ | AA only |
+| `--text-tertiary` (#6E6756) on `--surface` | 4.9:1 | ✅ | ❌ | **FIXED** — was #7D7665 @ 3.9:1 (FAIL) |
+| `--warning`/`--danger` on `--bg` (#1B1B18) | 3.1:1 / 2.5:1 | ❌ | ❌ | Dark-canvas text — **icons only** (3:1 UI contrast OK); never use as body text on the dark canvas |
 
-**Key finding:** `--warning`/`--danger` used as text fill on paper fail AA. They are safe as
-backgrounds/badges (light tints) but should not carry critical text on `--surface` alone.
-Retuning to the Phase 2 values in section 5 (e.g. `--danger: #B03A2E`) would bring them to AA
-and remains an option if text-on-paper contrast matters.
+**Usage rule:** `--warning`/`--danger` as text fill is safe on paper surfaces and
+their light tints. On the dark canvas (`--bg`/`.inset-dark`/route dark boxes)
+they are only used for icons and decorative markers, which meet the 3:1 UI
+contrast requirement. Do not introduce warning/danger body text on the dark
+canvas without retuning the tokens.
 
 ---
 
@@ -190,13 +202,13 @@ contrast on paper. Do not put dark-on-gold text outside `--accent-contrast` surf
 **Semantic tokens (roles retained):**
 | Token | Merged | Contrast on `--surface` (#F3EEDF) |
 |-------|--------|-----------------------------------|
-| `--secondary` (success) | `#4f6a2f` | 5.8:1 ✅ AA |
+| `--secondary` (success) | `#4f6a2f` | 5.3:1 ✅ AA |
 | `--secondary-light` | `#e6f0d8` | — |
-| `--warning` | `#8d5d0f` | 3.9:1 ❌ (bg-safe) |
+| `--warning` | `#8d5d0f` | 4.9:1 ✅ AA |
 | `--warning-light` | `#f5ead8` | — |
-| `--danger` | `#9a3d32` | 3.4:1 ❌ (bg-safe) |
+| `--danger` | `#9a3d32` | 5.9:1 ✅ AA |
 | `--danger-light` | `#f3dfdc` | — |
-| `--info` | `#4a5d68` | 5.8:1 ✅ AA |
+| `--info` | `#4a5d68` | 5.9:1 ✅ AA |
 
 **Selection/Highlight split (implemented via fallbacks):**
 - **Selection** = `--primary` (warm ink) — calendar selected day, high-contrast on paper
@@ -204,28 +216,23 @@ contrast on paper. Do not put dark-on-gold text outside `--accent-contrast` surf
 
 ---
 
-## 6. Hardcoded Colour Duplicates (to Replace with Tokens)
+## 6. Hardcoded Colour Duplicates (Resolved)
 
 ### `css/core.css`
-| Line | Hardcoded | Should Use |
-|------|-----------|------------|
-| — | desktop body bg (dark) | `var(--bg)` or desktop token |
-| — | print card border (`#ccc`) | `var(--border-light)` (print scope, low priority) |
+| Line | Hardcoded | Status |
+|------|-----------|--------|
+| 689 | desktop body bg `#0F0F0A` | **Keep** — intentional desktop bezel outside the app shell |
+| 725 | print card border `#ccc` | **Keep** — print scope only |
 
 ### `css/components.css`
-| Line | Hardcoded | Context | Should Use |
-|------|-----------|---------|------------|
-| — | `#fff` | Trip banner icon/text | `var(--text-inverse)` |
-| — | `#fff` | Trip banner pulse | `var(--text-inverse)` |
-| — | `#fff` | Trip banner `.btn-primary` bg | `var(--surface-elevated)` |
-| — | `#fff` | Trip banner `.btn-ghost` text | `var(--text-inverse)` |
-| — | `#8f5410` | `.badge-warning` dark mode | `var(--warning)` |
-| — | `#e5e5e5` | `.route-map` placeholder | `var(--surface-muted)` or `var(--bg-elevated)` |
-| — | `#fff` | Kanban sheet header gradient text | `var(--text-inverse)` |
-| — | `#0E1116` + gold variants | Companion theme (separate palette) | **Keep** — isolated companion scope |
-| — | `#0E1116` | Companion send button / input / focus | **Keep** — companion scope |
-
-**Companion palette** is intentionally isolated with `--comp-*` tokens — do not touch.
+| Hardcoded | Context | Status |
+|-----------|---------|--------|
+| `#fff` | Trip banner icon/text/pulse/ghost text | Already `var(--text-inverse)` — audit was stale |
+| `#fff` | Trip banner `.btn-primary` bg | Already `var(--surface-elevated)` — audit was stale |
+| `#8f5410` | `.badge-warning` | **FIXED** → `var(--warning)` in `css/core.css`; redundant override block in `components.css` removed |
+| `#e5e5e5` | `.route-map` placeholder | Already `var(--bg-elevated)` — audit was stale |
+| `#fff` | Kanban sheet header gradient text | Already `var(--text-inverse)` — audit was stale |
+| `#0E1116` + gold variants | Companion theme (separate palette) | **Keep** — isolated companion scope |
 
 ---
 
@@ -241,23 +248,33 @@ surfaces, borders, text tokens, `--primary` family, and semantic colors.
 - `.progress-bar .fill.accent` → `var(--accent)` (brand highlight)
 - `.badge-accent` → `var(--accent)` (brand badge)
 
-### Phase 3 (OPTIONAL): Replace Hardcoded Duplicates
-Swap the non-companion hardcoded colors above for token references.
+### Phase 3 (DONE): Replace Hardcoded Duplicates
+- `#8f5410` in `.badge-warning` (`css/core.css`) → `var(--warning)`
+- Removed the redundant `.badge-warning` override block in `css/components.css`
+  (it existed only to patch the hardcoded value)
+- Non-token colours remaining are intentional: companion `--comp-*` palette,
+  desktop page bezel `#0F0F0A`, print `#ccc`
 
-### Phase 4 (OPTIONAL): Text Contrast Retune
-If text-on-paper contrast for `--warning`/`--danger` matters, retune to
-`#B87A1A` / `#B03A2E` (AA on paper).
+### Phase 4 (CANCELLED): Text Contrast Retune
+Original plan: retune `--warning`/`--danger` to `#B87A1A` / `#B03A2E` for AA on
+paper. Recalculation (Phase 1, 2026-08-16) showed the current tokens already
+pass AA on paper (4.9:1 / 5.9:1) and the suggested `#B87A1A` would fail
+(3.10:1). **No retune applied.** The one real failure — surface `--text-tertiary`
+(3.9:1) — was fixed in `css/core.css` by darkening the surface-scoped value to
+`#6E6756` (4.9:1 AA).
 
 ---
 
-## 8. Files to Modify (if proceeding with Phases 3-4)
+## 8. Files Modified (Phase 1 — Design Foundation)
 
-1. `css/core.css` — `:root` token values (lines 6-67), dark mode block (70-79), surface-scoping blocks
-2. `css/components.css` — hardcoded color replacements
+1. `css/core.css` — `.badge-warning` tokenised, surface `--text-tertiary` darkened to `#6E6756` (AA), touch targets ≥44px (`.btn-sm`, `.appt-actions .btn`)
+2. `css/components.css` — removed redundant `.badge-warning` patch; touch targets ≥44px (`.tab`, `.segment`, `.hsc-week-nav`, `.hsc-week-icon-btn`, `.comp-suggestion-chip`, `.comp-chip`, `.comp-send`, `.comp-toggle-label`, `.advisor-alert .btn`, `.trip-banner-inner .btn`)
+3. `DESIGN_TOKEN_AUDIT.md` — corrected contrast data (this file)
 
 **Do NOT modify:**
 - Companion palette (`--comp-*` tokens)
 - Print styles (can stay `#ccc` for print)
+- Desktop bezel `#0F0F0A`
 
 ---
 
@@ -267,9 +284,11 @@ After changes:
 - [x] `npm test` passes
 - [x] `npm run build` passes
 - [x] Visual regression: screenshots captured, compared to baseline
-- [x] No hardcoded colors remain (except companion + print)
+- [x] No hardcoded colors remain (except companion + print + desktop bezel)
 - [x] Calendar selected day readable (uses `--primary` fallback)
 - [x] Bottom nav active indicator shows Beelo Gold
 - [x] Progress bars: success=green, warning=amber, danger=red, accent=gold
 - [x] Badges: all readable on paper
-- [ ] Text-on-paper AA for warning/danger (Phase 4, optional)
+- [x] Text-on-paper AA for warning/danger (verified 4.9:1 / 5.9:1 — already passing; no retune needed)
+- [x] Surface `--text-tertiary` AA on paper (fixed: #6E6756 @ 4.9:1)
+- [x] Interactive touch targets ≥44px (buttons, tabs, segments, chips, week nav, companion controls)
