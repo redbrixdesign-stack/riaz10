@@ -53,6 +53,39 @@ const CompanionFeature = {
     return parts[0] || 'Area unknown';
   },
 
+  ORDER_STAGES: { ordered: 'Ordered', delivered: 'Delivered', fitted: 'Fitted', paid: 'Paid' },
+
+  // Map an outcome id to its human label for the current appointment type.
+  outcomeName(type, outcomeId) {
+    const list = CONFIG.outcomes[type] || [];
+    const found = list.find(o => o.id === outcomeId);
+    return found ? found.name : String(outcomeId || '');
+  },
+
+  // One truthful, data-driven line about why this customer matters right now.
+  // Reads only the customer's own records: an outstanding order outweighs
+  // history, otherwise the most recent past visit outcome. Never invents.
+  async briefingFor(appt) {
+    if (!appt || !appt.customerId) return '';
+    try {
+      const activeOrders = (await DB.db.orders.toArray())
+        .filter(o => o.customerId === appt.customerId && (o.balanceDue || 0) > 0);
+      if (activeOrders.length) {
+        return `Order in progress — ${this.ORDER_STAGES[activeOrders[0].stage] || 'Ordered'}`;
+      }
+    } catch (e) { /* no order data */ }
+    try {
+      const visits = await DB.db.appointments.where('customerId').equals(appt.customerId).toArray();
+      const past = visits
+        .filter(v => v.id !== appt.id && v.outcome && new Date(v.date) < new Date())
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+      if (past.length) {
+        return `Last visit: ${this.outcomeName(past[0].type, past[0].outcome)} · ${Utils.formatDateUK(past[0].date, 'short')}`;
+      }
+    } catch (e) { /* no visit history */ }
+    return '';
+  },
+
   get aiPrefKey() {
     return (CONFIG.companion && CONFIG.companion.aiPreferenceKey) || 'advisoros_companion_ai';
   },
@@ -164,7 +197,7 @@ const CompanionFeature = {
       <div class="comp-home-greeting">
         <div class="comp-home-avatar">B</div>
         <div class="comp-home-greeting-text">
-          <div class="comp-home-greeting-main">${greeting}, ${firstName !== 'there' ? Utils.escapeHtml(firstName) : ''}.</div>
+          <div class="comp-home-greeting-main">${greeting}${firstName === 'there' ? '.' : `, ${Utils.escapeHtml(firstName)}.`}</div>
           <div class="comp-home-greeting-sub">${homeData.greetingSub}</div>
         </div>
       </div>`;
@@ -184,10 +217,11 @@ const CompanionFeature = {
               <div class="comp-home-next-visit-name">${Utils.escapeHtml(nv.name)}</div>
               <div class="comp-home-next-visit-meta">${Utils.escapeHtml(nv.area)} · ${Utils.escapeHtml(nv.type)}</div>
               <div class="comp-home-next-visit-address">${Utils.escapeHtml(nv.address)}</div>
+              ${nv.briefing ? `<div class="comp-home-next-visit-brief">${Utils.escapeHtml(nv.briefing)}</div>` : ''}
             </button>
             <div class="comp-home-next-visit-eta">
-              <span class="material-symbols-rounded" aria-hidden="true">directions_car</span>
-              <span>${nv.eta}</span>
+              <span class="material-symbols-rounded" aria-hidden="true">${nv.travel === 'On site now' ? 'location_on' : 'directions_car'}</span>
+              <span>${Utils.escapeHtml(nv.travel || nv.eta || '—')}</span>
             </div>
           </div>
           <div class="comp-home-next-visit-actions">
@@ -244,7 +278,28 @@ const CompanionFeature = {
         </div>`;
     }
 
-    // D. NEEDS YOUR ATTENTION
+    // D. THIS WEEK - compact earnings/target progress
+    let weekHtml = '';
+    const week = homeData.week;
+    if (week && week.target > 0) {
+      const gap = Math.max(0, week.target - week.earnings);
+      weekHtml = `
+        <div class="comp-home-section">
+          <div class="comp-home-section-header">
+            <span class="comp-home-section-label">THIS WEEK</span>
+            <span class="comp-home-section-count">${Utils.formatCurrency(week.earnings)} of ${Utils.formatCurrency(week.target)}</span>
+          </div>
+          <button type="button" class="comp-home-week" onclick="App.navigate('money')">
+            <div class="progress-bar comp-home-week-bar"><div class="fill accent" style="width:${week.pct}%"></div></div>
+            <span class="comp-home-week-hint">
+              <span>${gap > 0 ? `${Utils.formatCurrency(gap)} to target` : 'Target reached — nice work'}</span>
+              <span>Open Money <span class="material-symbols-rounded" aria-hidden="true">chevron_right</span></span>
+            </span>
+          </button>
+        </div>`;
+    }
+
+    // E. NEEDS YOUR ATTENTION
     let attentionHtml = '';
     if (homeData.attention && homeData.attention.length > 0) {
       const itemsHtml = homeData.attention.map(item => item.action ? `
@@ -291,6 +346,7 @@ const CompanionFeature = {
         ${greetingHtml}
         ${nextVisitHtml}
         ${todayHtml}
+        ${weekHtml}
         ${attentionHtml}
         ${suggestionsHtml}
         <div class="comp-home-composer-spacer"></div>
@@ -337,6 +393,9 @@ const CompanionFeature = {
     let nextVisit = null;
     if (next) {
       const eta = await this.etaFor(next);
+      const travel = next.travelStatus === 'on_site' ? 'On site now'
+        : next.travelStatus === 'in_transit' ? 'On the way'
+        : null;
       nextVisit = {
         id: next.id,
         name: next.clientName || 'Customer',
@@ -344,7 +403,9 @@ const CompanionFeature = {
         area: this.getAreaLabel(next),
         type: next.type ? (CONFIG.appointmentTypes.find(t => t.id === next.type)?.name || next.type) : 'Visit',
         address: next.address || 'No address set',
-        eta: eta || '—'
+        eta: eta || '—',
+        travel,
+        briefing: await this.briefingFor(next)
       };
     }
 
@@ -427,6 +488,20 @@ const CompanionFeature = {
       });
     }
 
+    // Week progress — compact earnings vs target for the home strip
+    let weekStats = { sales: 0, earnings: 0, orderedCount: 0 };
+    try {
+      const ws = Utils.getStartOfWeek();
+      const we = Utils.getEndOfWeek();
+      weekStats = await DB.getWeekStats(ws.toISOString(), we.toISOString());
+    } catch (e) { /* week stats optional */ }
+    const target = Number(CONFIG.weeklyTarget) || 0;
+    const week = {
+      earnings: weekStats.earnings || 0,
+      target,
+      pct: target > 0 ? Math.min(100, Math.round(((weekStats.earnings || 0) / target) * 100)) : 0
+    };
+
     // Suggestions
     const suggestions = ['today', 'next visit', 'week', 'money', 'follow-ups', 'messages'];
 
@@ -441,6 +516,7 @@ const CompanionFeature = {
         type: v.type ? (CONFIG.appointmentTypes.find(t => t.id === v.type)?.name || v.type) : 'Visit',
         completed: v.outcome || v.status === 'completed'
       })),
+      week,
       attention,
       suggestions
     };

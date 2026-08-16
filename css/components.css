@@ -3218,6 +3218,16 @@ body.trip-active .toast-container {
   white-space: nowrap;
 }
 
+/* Why this customer matters now — one gold briefing line from real records */
+.comp-home-next-visit-brief {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--comp-bee);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .comp-home-next-visit-eta {
   display: flex;
   align-items: center;
@@ -3463,6 +3473,43 @@ body.trip-active .toast-container {
 
 .comp-suggestion-chip:active {
   transform: scale(0.98);
+}
+
+/* F. THIS WEEK — compact earnings/target strip (taps through to Money) */
+.comp-home-week {
+  background: var(--comp-card);
+  border: 1px solid var(--comp-border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.comp-home-week:active {
+  background: var(--comp-border);
+}
+.comp-home-week-bar {
+  height: 6px;
+  background: var(--comp-border);
+}
+.comp-home-week-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--comp-muted);
+}
+.comp-home-week-hint .material-symbols-rounded {
+  font-size: 14px;
+  vertical-align: text-bottom;
 }
 
 /* ---------- composer spacer ---------- */
