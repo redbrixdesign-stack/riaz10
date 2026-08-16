@@ -434,22 +434,51 @@
 </div>
 
 <script>
-  // --- MOCK DATA FOR THE WEEK (unchanged — no fields fabricated) ---
-  const weekDays = [
-    { id: '2026-08-12', label: 'Mon', num: 12, visits: 2, data: [{time:'09:00', customer:'@Mr James.', type:'General Maintenance', loc:'Altrincham', meta:'15 min away', isNext:false}] },
-    { id: '2026-08-13', label: 'Tue', num: 13, visits: 1, data: [{time:'14:30', customer:'@Mrs Davis.', type:'Follow-up', loc:'Sale', meta:'10 min away', isNext:false}] },
-    { id: '2026-08-14', label: 'Wed', num: 14, visits: 0, data: [] },
-    { id: '2026-08-15', label: 'Thu', num: 15, visits: 4, data: [{time:'09:00', customer:'@Client D.', type:'Meeting', loc:'Cheadle', meta:'', isNext:false},{time:'13:00', customer:'@Client E.', type:'Consultation', loc:'Didsbury', meta:'', isNext:false},{time:'15:00', customer:'@Client F.', type:'Check-in', loc:'Chorlton', meta:'', isNext:false},{time:'17:00', customer:'@Client G.', type:'Review', loc:'Trafford', meta:'', isNext:false}] },
-    { id: '2026-08-16', label: 'Fri', num: 16, visits: 4, 
-      data: [{time:'09:30', customer:'@Mrs Smith', loc:'14 Beechwood Avenue, Sale M33 FAQ', meta:'18 min via A5029', parking:'Parking available', note:'Customer considering timber-look frames', isNext:true, featured:true},
-             {time:'11:15', customer:'@Mr Khan.', type:'Follow-up visit', loc:'Altrincham', meta:'25 min away', isNext:false},
-             {time:'14:00', customer:'@Mrs Jones.', type:'Initial consultation', loc:'Wilmslow', meta:'', isNext:false},
-             {time:'16:30', customer:'@Mr Patel.', type:'Review meeting', loc:'Stockport', meta:'', isNext:false}] },
-    { id: '2026-08-17', label: 'Sat', num: 17, visits: 0, data: [] },
-    { id: '2026-08-18', label: 'Sun', num: 18, visits: 0, data: [] }
+  // --- MOCK DATA — one seeded demo week; the calendar navigates by
+  // generating the Monday-first week containing the focused date. Visit
+  // data is looked up by exact date, so weeks outside the seeded demo
+  // simply show the honest empty state (nothing fabricated).
+  const MOCK_TODAY = '2026-08-16';
+  const SEED_MONDAY = '2026-08-12';
+
+  const SEED_WEEK = [
+    { id: '2026-08-12', data: [{time:'09:00', customer:'@Mr James.', type:'General Maintenance', loc:'Altrincham', meta:'15 min away', isNext:false}] },
+    { id: '2026-08-13', data: [{time:'14:30', customer:'@Mrs Davis.', type:'Follow-up', loc:'Sale', meta:'10 min away', isNext:false}] },
+    { id: '2026-08-14', data: [] },
+    { id: '2026-08-15', data: [{time:'09:00', customer:'@Client D.', type:'Meeting', loc:'Cheadle', meta:'', isNext:false},{time:'13:00', customer:'@Client E.', type:'Consultation', loc:'Didsbury', meta:'', isNext:false},{time:'15:00', customer:'@Client F.', type:'Check-in', loc:'Chorlton', meta:'', isNext:false},{time:'17:00', customer:'@Client G.', type:'Review', loc:'Trafford', meta:'', isNext:false}] },
+    { id: '2026-08-16', data: [{time:'09:30', customer:'@Mrs Smith', loc:'14 Beechwood Avenue, Sale M33 FAQ', meta:'18 min via A5029', parking:'Parking available', note:'Customer considering timber-look frames', isNext:true, featured:true},
+                              {time:'11:15', customer:'@Mr Khan.', type:'Follow-up visit', loc:'Altrincham', meta:'25 min away', isNext:false},
+                              {time:'14:00', customer:'@Mrs Jones.', type:'Initial consultation', loc:'Wilmslow', meta:'', isNext:false},
+                              {time:'16:30', customer:'@Mr Patel.', type:'Review meeting', loc:'Stockport', meta:'', isNext:false}] },
+    { id: '2026-08-17', data: [] },
+    { id: '2026-08-18', data: [] }
   ];
 
-  let currentActiveId = '2026-08-16';
+  // date -> visits lookup, built from the seeded demo week
+  const VISITS_BY_DATE = {};
+  SEED_WEEK.forEach(day => { VISITS_BY_DATE[day.id] = day.data; });
+
+  let currentActiveId = MOCK_TODAY;
+
+  // --- UTC-safe date helpers (no local-timezone off-by-one) ---
+  const parseISO = iso => { const [y, m, d] = iso.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)); };
+  const toISO = d => d.toISOString().slice(0, 10);
+  const addDaysUTC = (d, days) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + days));
+
+  // Monday-first week containing the anchor date, aligned to the seeded
+  // week's fictional Mon-Sun scheme (the demo treats 12 Aug as Monday).
+  function weekOf(anchorIso) {
+    const anchor = parseISO(anchorIso);
+    const monday = parseISO(SEED_MONDAY);
+    const dayDiff = Math.round((anchor - monday) / 86400000);
+    const weekStart = addDaysUTC(monday, Math.floor(dayDiff / 7) * 7);
+    const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = addDaysUTC(weekStart, i);
+      const id = toISO(d);
+      return { id, label: WEEKDAYS[i], num: d.getUTCDate(), data: VISITS_BY_DATE[id] || [] };
+    });
+  }
 
   // "More about this visit" rows are rendered ONLY for fields that exist in
   // the data and aren't already shown on the card (parking lives on line 5,
@@ -514,21 +543,29 @@
 
   function renderCalendar(activeId) {
     const strip = document.getElementById('calendarStrip');
-    // Week indicator: derived from the data, e.g. "This week · 12–18 Aug".
+    const weekDays = weekOf(activeId);
+    // Week indicator, e.g. "This week · 12–18 Aug" (or 5–11 Aug when
+    // shifted); a week crossing a month boundary shows "30 Aug–5 Sep".
     const weekTitle = document.getElementById('weekTitle');
-    if (weekTitle && weekDays.length >= 2) {
-      const fmt = d => new Date(d.id).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-      const start = fmt(weekDays[0]);
-      const end = fmt(weekDays[weekDays.length - 1]);
-      weekTitle.textContent = `This week · ${start}–${end}`;
+    if (weekTitle) {
+      const fmt = d => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+      const start = parseISO(weekDays[0].id);
+      const end = parseISO(weekDays[6].id);
+      const startStr = fmt(start);
+      const endStr = fmt(end);
+      const label = start.getUTCMonth() === end.getUTCMonth()
+        ? `${start.getUTCDate()}–${endStr}`
+        : `${startStr}–${endStr}`;
+      weekTitle.textContent = `This week · ${label}`;
     }
     strip.innerHTML = weekDays.map((day, i) => {
       const isActive = day.id === activeId;
       const isPast = day.id < activeId;
-      const hasVisits = day.visits > 0;
+      const count = day.data.length;
+      const hasVisits = count > 0;
       const isWeekend = i >= 5; // Sat/Sun — visual tint only
-      const countDisplay = day.visits > 0 ? day.visits : '—';
-      const visitText = day.visits === 0 ? 'no visits' : (day.visits === 1 ? '1 visit' : day.visits + ' visits');
+      const countDisplay = count > 0 ? count : '—';
+      const visitText = count === 0 ? 'no visits' : (count === 1 ? '1 visit' : count + ' visits');
       const stateText = isActive ? ', selected' : isPast ? ', past' : '';
       const ariaLabel = `${day.label} ${day.num}, ${visitText}${stateText}`;
       return `
@@ -542,13 +579,13 @@
   }
 
   function renderFeed(activeId) {
-    const dayData = weekDays.find(d => d.id === activeId);
+    const visits = VISITS_BY_DATE[activeId] || [];
     const feed = document.getElementById('appointmentFeed');
     const summaryTitle = document.getElementById('daySummaryTitle');
     const summaryDate = document.getElementById('daySummaryDate');
     const summaryCount = document.getElementById('daySummaryCount');
 
-    if (!dayData || dayData.visits === 0) {
+    if (visits.length === 0) {
       summaryTitle.innerText = 'No visits';
       summaryDate.innerText = '';
       summaryCount.innerText = '0 visits';
@@ -562,21 +599,29 @@
       return;
     }
 
-    const dateObj = new Date(activeId);
-    const options = { weekday: 'long', day: 'numeric', month: 'long' };
-    const dateStr = dateObj.toLocaleDateString('en-GB', options);
+    const dateStr = parseISO(activeId).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
 
-    if(activeId === '2026-08-16') summaryTitle.innerText = 'Today';
-    else if(activeId < '2026-08-16') summaryTitle.innerText = 'Completed';
+    if (activeId === MOCK_TODAY) summaryTitle.innerText = 'Today';
+    else if (activeId < MOCK_TODAY) summaryTitle.innerText = 'Completed';
     else summaryTitle.innerText = 'Scheduled';
 
     summaryDate.innerText = dateStr;
-    summaryCount.innerText = `${dayData.visits} visit${dayData.visits > 1 ? 's' : ''}`;
+    summaryCount.innerText = `${visits.length} visit${visits.length > 1 ? 's' : ''}`;
 
-    feed.innerHTML = dayData.data.map(item => createAppointmentHTML(item)).join('');
+    feed.innerHTML = visits.map(item => createAppointmentHTML(item)).join('');
   }
 
   function selectDay(dayId) {
+    transitionTo(dayId);
+  }
+
+  // Shifts the focused date by a whole week (previous/next week), keeping
+  // the same weekday — the calendar genuinely moves backward/forward now.
+  function shiftWeek(direction) {
+    transitionTo(toISO(addDaysUTC(parseISO(currentActiveId), 7 * direction)));
+  }
+
+  function transitionTo(dayId) {
     currentActiveId = dayId;
     renderCalendar(currentActiveId);
     const feed = document.getElementById('appointmentFeed');
@@ -585,14 +630,6 @@
       renderFeed(currentActiveId);
       feed.classList.remove('updating');
     }, 180);
-  }
-
-  function shiftWeek(direction) {
-    const currentIndex = weekDays.findIndex(d => d.id === currentActiveId);
-    let newIndex = currentIndex + direction;
-    if (newIndex < 0) newIndex = 0;
-    if (newIndex >= weekDays.length) newIndex = weekDays.length - 1;
-    selectDay(weekDays[newIndex].id);
   }
 
   // --- Action routing: single delegated listener replaces all inline

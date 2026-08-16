@@ -110,6 +110,45 @@ const ok = (label, cond, extra) => {
   const open = await page.evaluate(() => document.querySelector('.appt-more summary').getAttribute('aria-expanded'));
   ok('details summary aria-expanded syncs to open', open === 'true', open);
 
+  console.log('\n=== Week navigation (was static, now moves ±7 days) ===');
+  // Previous week from Fri 16 → Fri 9, week 5–11 Aug, honest empty state.
+  await page.click('[data-action="shiftWeek"][data-direction="-1"]');
+  await page.waitForTimeout(400);
+  const prevWeek = await page.evaluate(() => ({
+    title: document.getElementById('weekTitle').textContent,
+    nums: Array.from(document.querySelectorAll('.day-item .day-number')).map(e => e.textContent),
+    active: document.querySelector('.day-item[aria-current="date"] .day-number').textContent,
+    empty: !!document.querySelector('.feed-empty')
+  }));
+  ok('previous week renders 5–11 Aug', /5–11 Aug/.test(prevWeek.title) && prevWeek.nums[0] === '5' && prevWeek.nums[6] === '11', prevWeek);
+  ok('previous week keeps the same weekday selected (Fri 9)', prevWeek.active === '9', prevWeek);
+  ok('previous week shows the honest empty state (no fabricated visits)', prevWeek.empty, prevWeek);
+
+  // Back to the seed week → featured card returns.
+  await page.click('[data-action="shiftWeek"][data-direction="1"]');
+  await page.waitForTimeout(400);
+  const seedWeek = await page.evaluate(() => ({
+    title: document.getElementById('weekTitle').textContent,
+    nums: Array.from(document.querySelectorAll('.day-item .day-number')).map(e => e.textContent),
+    featured: !!document.querySelector('.appointment--featured')
+  }));
+  ok('back to seed week restores 12–18 Aug + featured card', /12–18 Aug/.test(seedWeek.title) && seedWeek.nums[0] === '12' && seedWeek.featured, seedWeek);
+
+  // Next week from Fri 16 → Fri 23, week 19–25 Aug.
+  await page.click('[data-action="shiftWeek"][data-direction="1"]');
+  await page.waitForTimeout(400);
+  const nextWeek = await page.evaluate(() => ({
+    title: document.getElementById('weekTitle').textContent,
+    nums: Array.from(document.querySelectorAll('.day-item .day-number')).map(e => e.textContent),
+    active: document.querySelector('.day-item[aria-current="date"] .day-number').textContent
+  }));
+  ok('next week renders 19–25 Aug', /19–25 Aug/.test(nextWeek.title) && nextWeek.nums[0] === '19' && nextWeek.nums[6] === '25', nextWeek);
+  ok('next week keeps the same weekday selected (Fri 23)', nextWeek.active === '23', nextWeek);
+
+  // Back to the seed week for a clean exit.
+  await page.click('[data-action="shiftWeek"][data-direction="-1"]');
+  await page.waitForTimeout(400);
+
   ok('zero page errors', errors.length === 0, errors);
   await browser.close();
   console.log(failures === 0 ? '\nALL MOCK A11Y CHECKS PASSED' : `\n${failures} MOCK A11Y CHECK(S) FAILED`);
