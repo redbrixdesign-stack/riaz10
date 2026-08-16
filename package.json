@@ -9,7 +9,7 @@
     "watch": "node build/minify.js --watch",
     "serve": "python3 -m http.server 8000",
     "clean": "node build/minify.js --clean",
-    "test": "node tests/datetime.test.js && node tests/storage.test.js && node tests/ai.test.js && node tests/proxy-server.test.js && node tests/companion.test.js && node tests/followups.test.js && node tests/scheduler.test.js && node tests/ocr.test.js && node tests/measure.test.js && node tests/money.test.js && node tests/geoprovider.test.js && node tests/weather.test.js && node tests/features.test.js",
+    "test": "node tests/datetime.test.js && node tests/storage.test.js && node tests/ai.test.js && node tests/proxy-server.test.js && node tests/companion.test.js && node tests/followups.test.js && node tests/scheduler.test.js && node tests/ocr.test.js && node tests/measure.test.js && node tests/money.test.js && node tests/route.test.js && node tests/geoprovider.test.js && node tests/weather.test.js && node tests/features.test.js",
     "test:ai": "node tests/ai.test.js",
     "test:browser": "node tests/browser/run.js",
     "test:browser:ocr": "node tests/browser/ocr-save.e2e.js",

@@ -234,7 +234,10 @@ const RouteFeature = {
   },
 
   getDayMode(dateInput) {
-    const day = new Date(dateInput).getDay();
+    // UK wall-clock weekday (Utils.ukParts), the same calendar the rest of
+    // the app anchors "today" to — a device in another timezone must not
+    // read yesterday's day-of-week and mislabel a sales day as a fitting one.
+    const day = Utils.ukParts(dateInput ? new Date(dateInput) : undefined).weekday;
     if ((CONFIG.workingWeek?.salesDays || [1, 2, 4]).includes(day)) return 'sales';
     if ((CONFIG.workingWeek?.fittingDays || [3, 5]).includes(day)) return 'fitting';
     return 'mixed';
@@ -521,7 +524,13 @@ const RouteFeature = {
       const appt = leg.to.appointment;
       return appt.status !== 'completed' && !appt.outcome;
     });
-    return nextVisitLeg || legs.find(leg => leg.isReturn) || legs[legs.length - 1];
+    if (nextVisitLeg) return nextVisitLeg;
+    const returnLeg = legs.find(leg => leg.isReturn);
+    if (returnLeg) return returnLeg;
+    // No base configured and every stop is already done: the day is over, so
+    // present nothing as "next" rather than re-labelling a finished visit as
+    // the next one (the old fallback to the last leg did exactly that).
+    return null;
   },
 
   calculateRawLoopDistance(stops, base = null) {
