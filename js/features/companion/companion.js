@@ -335,6 +335,30 @@ const CompanionFeature = {
         </div>`;
     }
 
+    // D. TOMORROW — compact preview so the next day isn't a blind spot
+    // (the NEXT card only ever shows a single visit).
+    let tomorrowHtml = '';
+    if (homeData.tomorrowVisits && homeData.tomorrowVisits.length > 0) {
+      const visitsHtml = homeData.tomorrowVisits.map(v => `
+        <button type="button" class="comp-home-visit upcoming" onclick="App.navigate('appointments', {id: ${v.id}})">
+          <div class="comp-home-visit-main">
+            <span class="comp-home-visit-time">${Utils.escapeHtml(v.time)}</span>
+            <span class="comp-home-visit-name">${Utils.escapeHtml(v.name)}</span>
+            <span class="comp-home-visit-area">${Utils.escapeHtml(v.area)}</span>
+          </div>
+          <span class="comp-home-visit-type">${Utils.escapeHtml(v.type)}</span>
+          <span class="material-symbols-rounded comp-home-visit-chevron" aria-hidden="true">chevron_right</span>
+        </button>`).join('');
+      tomorrowHtml = `
+        <div class="comp-home-section">
+          <div class="comp-home-section-header">
+            <span class="comp-home-section-label">TOMORROW</span>
+            <span class="comp-home-section-count">${homeData.tomorrowVisits.length} visit${homeData.tomorrowVisits.length === 1 ? '' : 's'}</span>
+          </div>
+          <div class="comp-home-visits">${visitsHtml}</div>
+        </div>`;
+    }
+
     // E. NEEDS YOUR ATTENTION
     let attentionHtml = '';
     if (homeData.attention && homeData.attention.length > 0) {
@@ -383,6 +407,7 @@ const CompanionFeature = {
         ${weekStripHtml}
         ${nextVisitHtml}
         ${todayHtml}
+        ${tomorrowHtml}
         ${attentionHtml}
         ${suggestionsHtml}
         <div class="comp-home-composer-spacer"></div>
@@ -396,11 +421,15 @@ const CompanionFeature = {
     // Gather all data needed
     const today = Utils.getToday();
     let todayAppts = [];
+    let tomorrowAppts = [];
     let upcoming = [];
     let orders = [];
 
     try {
       todayAppts = (await DB.getAppointmentsForDate(today.toISOString())).filter(a => a.status !== 'cancelled');
+      // Tomorrow's visits — surfaced on Home so a multi-visit tomorrow is
+      // visible at a glance, not hidden behind the single NEXT card.
+      tomorrowAppts = (await DB.getAppointmentsForDate(Utils.getTomorrow().toISOString())).filter(a => a.status !== 'cancelled');
       upcoming = await DB.getUpcomingAppointments(14);
       orders = await DB.db.orders.toArray();
     } catch (e) {}
@@ -606,6 +635,16 @@ const CompanionFeature = {
             state: completed ? 'done' : (new Date(v.date).getTime() < Date.now() - 15 * 60 * 1000 ? 'overdue' : 'upcoming')
           };
         }),
+      // Tomorrow's visits — compact rows so a multi-visit tomorrow is visible.
+      tomorrowVisits: [...tomorrowAppts]
+        .sort((a, b) => new Date(a.date) - new Date(b.date))
+        .map(v => ({
+          id: v.id,
+          name: v.clientName || 'Customer',
+          time: Utils.formatTimeUK(v.date),
+          area: this.getAreaLabel(v),
+          type: v.type ? (CONFIG.appointmentTypes.find(t => t.id === v.type)?.name || v.type) : 'Visit'
+        })),
       week,
       attention,
       suggestions

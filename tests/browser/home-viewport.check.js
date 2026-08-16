@@ -124,14 +124,16 @@ async function evaluate(ws, expression) {
       ok(`${p}: no horizontal overflow`, report.overflowX <= 0 && (report.mainOverflowX === null || report.mainOverflowX <= 0), { overflowX: report.overflowX, main: report.mainOverflowX });
       ok(`${p}: greeting heading + avatar render`, report.hasGreetingHeading && report.hasAvatar);
       // Section order: Greeting has no label, so the labelled order is
-      // THIS WEEK (week strip) → NEXT → TODAY → ATTENTION → ASK BEELO.
+      // THIS WEEK (week strip) → NEXT → TODAY → TOMORROW → ATTENTION → ASK BEELO.
       const labelled = report.labels;
       const iWeek = labelled.indexOf('THIS WEEK');
       const iRight = labelled.indexOf('NEXT');
       const iToday = labelled.indexOf('TODAY');
+      const iTomorrow = labelled.indexOf('TOMORROW');
       const iAtt = labelled.indexOf('NEEDS YOUR ATTENTION');
       const iAsk = labelled.indexOf('ASK BEELO');
       ok(`${p}: labelled sections present`, iWeek >= 0 && iRight > iWeek && iToday > iRight && iAsk > iToday, labelled);
+      ok(`${p}: tomorrow sits between today and attention`, iTomorrow < 0 || (iTomorrow > iToday && (iAtt < 0 || iTomorrow < iAtt)), { iToday, iTomorrow, iAtt });
       ok(`${p}: this-week strip sits above attention`, iAtt < 0 || iWeek < iAtt, { iWeek, iAtt });
       ok(`${p}: visit rows show real times (not the live clock)`, report.visitCount > 0 && !report.anyTimeIsNow, { times: report.times });
       ok(`${p}: state labels are textual (not colour alone)`, report.hasStatePills.every(s => ['Done', 'Next', 'Overdue'].includes(s)), report.hasStatePills);
