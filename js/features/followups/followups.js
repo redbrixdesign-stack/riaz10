@@ -66,9 +66,12 @@ const FollowupsFeature = {
       return p.year * 10000 + p.month * 100 + p.day;
     };
     const todayKey = ukDayKey();
-    const ukNow = Utils.ukParts();
-    const tomorrowUK = new Date(ukNow.year, ukNow.month - 1, ukNow.day + 1);
-    const tomorrowKey = ukDayKey(tomorrowUK);
+    // UK-anchored tomorrow: building a Date from the UK wall-clock fields
+    // with new Date(y, m-1, d+1) uses the DEVICE's local midnight, so on an
+    // east-of-UTC device (e.g. UTC+14) that instant still lands on today's
+    // UK day and every visit_tomorrow task silently vanishes. getTomorrow()
+    // returns tomorrow's UK midnight instant regardless of the device TZ.
+    const tomorrowKey = ukDayKey(Utils.getTomorrow());
 
     const tasks = [];
 

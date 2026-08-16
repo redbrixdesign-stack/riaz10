@@ -178,10 +178,10 @@ function appt(id, dateISO, phone = '07700123456') {
     const timers = s.sandbox.timers;
     ok('three timers scheduled', timers.length === 3, timers.map(t => t.ms));
     const evening = timers.find(t => t.ms === 6 * 3600 * 1000);
-    const morningTomorrow = timers.find(t => t.ms === 20 * 3600 * 1000);
+    const morningTomorrow = timers.find(t => t.ms === 21 * 3600 * 1000);
     const morningToday = timers.find(t => t.ms === 0);
     ok('evening-before fires today at 18:00', !!evening);
-    ok('morning-of fires tomorrow at 08:00', !!morningTomorrow);
+    ok('morning-of fires tomorrow at 09:00 (11:00 visit - 2h buffer)', !!morningTomorrow);
     ok('morning-of for today fires now (past 08:00 catch-up)', !!morningToday);
   }
 

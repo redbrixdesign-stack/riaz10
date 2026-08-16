@@ -73,15 +73,17 @@ const MessageScheduler = {
 
   // Morning-of should fire relative to visit time, not fixed 08:00.
   // Schedule for max(08:00, visitTime - 2h) to give ~2h buffer.
+  // The visit time is read through the UK timezone (Utils.ukParts) and the
+  // day distance added explicitly, so the timer lands on the visit's own UK
+  // day regardless of the device timezone or the wall-clock time of boot.
   _msUntilMorningOf(appt) {
     if (!appt.date) return 0;
     const p = Utils.ukParts();
     const secondsNow = p.hour * 3600 + p.minute * 60 + p.second;
-    const apptTime = new Date(appt.date);
-    const apptHour = apptTime.getHours();
-    const apptMin = apptTime.getMinutes();
-    const targetSec = Math.max(8 * 3600, apptHour * 3600 + apptMin * 60 - 2 * 3600);
-    let sec = targetSec - secondsNow;
+    const v = Utils.ukParts(new Date(appt.date));
+    const targetSec = Math.max(8 * 3600, v.hour * 3600 + v.minute * 60 - 2 * 3600);
+    const dayOffset = this._daysFromNowUK(appt.date);
+    let sec = targetSec - secondsNow + dayOffset * 86400;
     if (sec < 0) sec = 0;
     return sec * 1000;
   },

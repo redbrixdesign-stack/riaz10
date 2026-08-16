@@ -78,14 +78,24 @@ global.DB = {
   ),
   // Mirrors the real DB: starts at NOW (a 10:00 visit invisible after 10:00).
   getUpcomingAppointments: async () => TABLES.appointments.filter(a => a.status !== 'cancelled' && new Date(a.date) >= new Date()),
-  // Mirrors the real DB: full day — this is what followups relies on to find
-  // this morning's unlogged visit.
+  // Mirrors the real DB: the day window is the appointment's UK calendar
+  // day [UK midnight, +24h) — the app's date contract everywhere — not the
+  // device-local day, or a UTC+X device seeds/reads a different "today".
   getAppointmentsForDate: async () => {
-    const start = new Date(); start.setHours(0, 0, 0, 0);
-    const end = new Date(); end.setHours(23, 59, 59, 999);
-    return TABLES.appointments.filter(a => a.status !== 'cancelled' && new Date(a.date) >= start && new Date(a.date) <= end);
+    const fmt = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+    const parts = {};
+    for (const x of fmt.formatToParts(new Date())) if (x.type !== 'literal') parts[x.type] = parseInt(x.value, 10);
+    const guess = new Date(Date.UTC(parts.year, parts.month - 1, parts.day));
+    const g = {};
+    for (const x of fmt.formatToParts(guess)) if (x.type !== 'literal') g[x.type] = parseInt(x.value, 10);
+    const start = new Date(guess.getTime() - (g.hour * 3600 + g.minute * 60 + g.second) * 1000);
+    const end = new Date(start.getTime() + 86400000);
+    return TABLES.appointments.filter(a => a.status !== 'cancelled' && new Date(a.date) >= start && new Date(a.date) < end);
   },
-  getPhotosForCustomer: async () => []
+  getPhotosForCustomer: async () => [],
+  getCustomer: async id => TABLES.customers.find(c => c.id === id) || null,
+  getCustomersByIds: async ids => TABLES.customers.filter(c => ids.includes(c.id)),
+  findCustomerByPhone: async phone => TABLES.customers.find(c => c.phone === phone) || null
 };
 global.ContactFeature = { open() {} };
 global.OCRFeature = {};
@@ -95,21 +105,45 @@ global.Geo = {};
 
 const now = new Date();
 const iso = days => new Date(now.getTime() + days * 86400000).toISOString();
-const isoAt = (days, h) => {
-  const d = new Date(now.getTime() + days * 86400000);
-  d.setHours(h, 0, 0, 0);
-  return d.toISOString();
+
+// UK calendar-day seeding (followups/talk match days via Utils.ukParts, the
+// UK wall clock — not the device's local day). Near UK midnight on a non-UK
+// device, "today" in device time is a different UK day, so seeding appts
+// with device-local setHours made visit_today/visit_tomorrow vanish under
+// TZ=UTC (the UK day was a day ahead). These helpers build an instant at
+// `hour` UK wall-clock on the UK calendar day (today + offset), so the UK
+// day always lines up with followups' todayKey/tomorrowKey.
+const ukFmt = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+const ukPartsOf = d => { const p = {}; for (const x of ukFmt.formatToParts(d)) if (x.type !== 'literal') p[x.type] = parseInt(x.value, 10); return p; };
+const ukMidnight = (year, month, day) => {
+  const guess = new Date(Date.UTC(year, month - 1, day));
+  const p = ukPartsOf(guess);
+  return new Date(guess.getTime() - (p.hour * 3600 + p.minute * 60 + p.second) * 1000);
+};
+const ukDay = (offsetDays, hour) => {
+  const p = ukPartsOf(new Date());
+  const base = ukMidnight(p.year, p.month, p.day);
+  base.setDate(base.getDate() + offsetDays);
+  base.setTime(base.getTime() + hour * 3600000);
+  return base.toISOString();
 };
 
 // Seed: 1 customer, quoted 5d ago, order placed 10d ago (balance due), visit today unlogged, visit tomorrow confirmed
 TABLES.customers.push({ id: 1, firstName: 'Sarah', lastName: 'Johnson', phone: '07700 900123', fullName: 'Sarah Johnson', customerNumber: 'CUS-2026-0001' });
 TABLES.appointments.push(
   { id: 11, customerId: 1, clientName: 'Sarah Johnson', type: 'consultation', outcome: 'quoted', value: 1250, status: 'completed', date: iso(-5) },
-  { id: 12, customerId: 1, clientName: 'Sarah Johnson', type: 'fitting', outcome: null, status: 'confirmed', date: isoAt(0, 10) },
-  { id: 13, customerId: 1, clientName: 'Sarah Johnson', type: 'consultation', outcome: null, status: 'confirmed', date: isoAt(1, 14) }
+  // Today's unlogged visit at 00:00 UK: still "today" for the follow-ups
+  // visit_today task (UK day matches), but always a past visit from the
+  // message-context's point of view — a midday time would make
+  // customer_visit_count flip as the day goes on.
+  { id: 12, customerId: 1, clientName: 'Sarah Johnson', type: 'fitting', outcome: null, status: 'confirmed', date: ukDay(0, 0) },
+  { id: 13, customerId: 1, clientName: 'Sarah Johnson', type: 'consultation', outcome: null, status: 'confirmed', date: ukDay(1, 14) }
 );
 TABLES.orders.push({ id: 21, customerId: 1, appointmentId: 11, orderNumber: 'ORD-2026-0001', total: 1250, depositRequired: 625, depositPaid: 0, balanceDue: 1250, stage: 'ordered', createdAt: iso(-10) });
 TABLES.measurements.push({ id: 31, appointmentId: 11, windowName: 'Lounge Bay', widthUsed: 2100, dropUsed: 1800, fittingType: 'recess' });
+// The message context counts windows from PRIOR visits (the current one is
+// excluded), so today's visit carries its own measurement.
+TABLES.measurements.push({ id: 32, appointmentId: 12, windowName: 'Lounge Bay', widthUsed: 2100, dropUsed: 1800, fittingType: 'recess' });
 TABLES.communications.push({ id: 41, customerId: 1, type: 'whatsapp_attempted', content: 'Hi', sentAt: iso(-2) });
 
 loadAll([
@@ -212,7 +246,7 @@ const assert = (cond, msg) => { if (!cond) { console.error('FAIL:', msg); proces
 
   // First-time customer: flag flips, stage follows the template.
   TABLES.customers.push({ id: 2, firstName: 'David', lastName: 'Lee', phone: '07700 900456', fullName: 'David Lee' });
-  TABLES.appointments.push({ id: 14, customerId: 2, clientName: 'David Lee', type: 'consultation', outcome: null, status: 'confirmed', date: isoAt(2, 9) });
+  TABLES.appointments.push({ id: 14, customerId: 2, clientName: 'David Lee', type: 'consultation', outcome: null, status: 'confirmed', date: ukDay(2, 9) });
   const mctxNew = await Talk.buildMessageContext({ customerId: 2, appointmentId: 14, templateKey: 'pre_intro' });
   assert(mctxNew.customer_is_first_visit_at_address === true && mctxNew.customer_visit_count === 0, 'First-time customer flagged');
   assert(mctxNew.stage === 'pre_intro', 'pre_intro template maps to pre_intro stage');

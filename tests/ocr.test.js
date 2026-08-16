@@ -255,7 +255,8 @@ console.log('duplicate prevention (findExistingVisit)');
       customers: { where: () => ({ equals: () => ({ first: async () => null }) }) },
       appointments: { where: () => ({ equals: () => ({ toArray: async () => appts }) }) }
     },
-    getAppointmentsForDate: async () => appts
+    getAppointmentsForDate: async () => appts,
+    findCustomerByPhone: async phone => (phone === '07700 900123' ? { id: 7, fullName: 'James Wilson' } : null)
   };
 
   const sameCustomer = await OCRFeature.findExistingVisit(7, day, '07700 900123', '1 High Street, Manchester');
@@ -280,7 +281,8 @@ console.log('duplicate prevention (saveToCustomer)');
       appointments: { where: () => ({ equals: () => ({ toArray: async () => appts }) }) }
     },
     getAppointmentsForDate: async () => appts,
-    addAppointment: async (data) => { addAppointmentCalls++; return { ...data, id: 100 }; }
+    addAppointment: async (data) => { addAppointmentCalls++; return { ...data, id: 100 }; },
+    findCustomerByPhone: async phone => (phone === '07700 900123' ? { id: 7, fullName: 'James Wilson' } : null)
   };
   sandbox.lastNavigate = null;
   sandbox.lastToast = null;
