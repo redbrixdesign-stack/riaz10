@@ -24,7 +24,12 @@ const SettingsFeature = {
 
   renderIndex() {
     const briefEnabled = NotificationService.isMorningBriefEnabled();
-    const aiEnabled = !!(CONFIG.ai && CONFIG.ai.enabled);
+    const ai = CONFIG.ai || {};
+    const aiEnabled = !!ai.enabled;
+    // "Connected" must mean configured AND enabled — enabling AI without a
+    // proxy URL silently means every AI feature falls back to offline OCR,
+    // so the index must not claim a connection that isn't there.
+    const aiSummary = aiEnabled ? (ai.proxyUrl ? 'Connected' : 'Needs setup') : 'Off';
     const autoMsgEnabled = !!(CONFIG.autoMessages && CONFIG.autoMessages.enabled);
     const commission = CONFIG.commission || {};
     const commissionMode = commission.mode || 'two_stage';
@@ -99,7 +104,7 @@ const SettingsFeature = {
         id: 'ai',
         title: 'Claude AI',
         icon: 'psychology',
-        summary: aiEnabled ? 'Connected' : 'Off',
+        summary: aiSummary,
         description: 'Document scanning & message drafting'
       },
       {
@@ -557,82 +562,6 @@ const SettingsFeature = {
     try { DB.setSetting('config', toSave); } catch (e) {}
   },
 
-  // ---- Commission ----
-  renderCommissionCard() {
-    const commission = CONFIG.commission || {};
-    const mode = commission.mode || 'two_stage';
-    const example = 1000;
-    const previewCommission = TaxCalculator.estimateCommission(example);
-    const previewRate = example > 0 ? ((previewCommission / example) * 100).toFixed(1) : '0.0';
-
-    return `
-      <div class="card mb-md" >
-        <div class="fw-600 mb-xs" >Commission Rate</div>
-        <div class="fs-12 text-secondary mb-12" >How commission is calculated from a sale's value.</div>
-
-        <div class="segmented mb-12" >
-          <button class="segment ${mode === 'two_stage' ? 'active' : ''}" onclick="SettingsFeature.setCommissionMode('two_stage')">Sale reduction + net %</button>
-          <button class="segment ${mode === 'simple' ? 'active' : ''}" onclick="SettingsFeature.setCommissionMode('simple')">Simple %</button>
-        </div>
-
-        ${mode === 'two_stage' ? `
-          <div class="form-group">
-            <label>Step 1: Reduce sale value by (%)</label>
-            <input type="number" class="input" inputmode="decimal" id="set-commission-reduction" value="${commission.saleReductionRate ?? 20}" step="0.1" min="0" max="100" onblur="SettingsFeature.setSaleReductionRate(this.value)">
-            <div class="hint">e.g. 20 means the net figure is 80% of the sale value.</div>
-          </div>
-          <div class="form-group mb-0" >
-            <label>Step 2: Commission on the net (%)</label>
-            <input type="number" class="input" inputmode="decimal" id="set-commission-net" value="${commission.netCommissionRate ?? 15.25}" step="0.01" min="0" max="100" onblur="SettingsFeature.setNetCommissionRate(this.value)">
-            <div class="hint">Applied to the net figure from Step 1.</div>
-          </div>
-        ` : `
-          <div class="form-group mb-0" >
-            <label>Commission Rate (%)</label>
-            <input type="number" class="input" inputmode="decimal" id="set-commission-simple" value="${commission.simpleRate ?? 10}" step="0.1" min="0" max="100" onblur="SettingsFeature.setSimpleCommissionRate(this.value)">
-            <div class="hint">Applied directly to the full sale value.</div>
-          </div>
-        `}
-
-        <div class="inset-dark mt-12 dark-note fs-12 text-secondary" >
-          Example: on a ${Utils.formatCurrency(example)} sale, commission is ${Utils.formatCurrency(previewCommission)} (${previewRate}% effective).
-        </div>
-      </div>
-    `;
-  },
-
-  // ---- Automated Messages ----
-  renderAutoMessagesCard() {
-    const am = CONFIG.autoMessages || {};
-    const enabled = !!am.enabled;
-    return `
-      <div class="card mb-md" >
-        <div class="flex items-center justify-between" >
-          <div>
-            <div class="fw-600" >Automated Messages</div>
-            <div class="fs-12 text-secondary mt-2" >Drafts a message the evening before and morning of each visit (and an "on my way" draft when you start driving). Every draft opens the preview sheet for your review — nothing is ever sent on its own.</div>
-          </div>
-          <button class="btn btn-sm ${enabled ? 'btn-primary' : 'btn-outline'}" onclick="SettingsFeature.toggleAutoMessages()">
-            ${enabled ? 'On' : 'Off'}
-          </button>
-        </div>
-
-        ${enabled ? `
-          <div class="fs-12 text-tertiary mt-10 lh-150" >Drafts wait in the preview sheet until you send them, so even a time you miss while the app is closed is waiting for you the next time you open it. These fire along the same lines as the Morning Brief — best treated as a prompt, not an alarm.</div>
-
-          <div class="form-group mt-10" >
-            <label>Evening-before draft (day before the visit)</label>
-            <input type="time" class="input" id="set-msg-evening" value="${String(am.eveningHour ?? 18).padStart(2, '0')}:00" onchange="SettingsFeature.setAutoMessageHour('eveningHour', this.value)">
-          </div>
-          <div class="form-group mb-0" >
-            <label>Morning-of draft (visit day)</label>
-            <input type="time" class="input" id="set-msg-morning" value="${String(am.morningHour ?? 8).padStart(2, '0')}:00" onchange="SettingsFeature.setAutoMessageHour('morningHour', this.value)">
-          </div>
-        ` : ''}
-      </div>
-    `;
-  },
-
   toggleAutoMessages() {
     CONFIG.autoMessages = { ...(CONFIG.autoMessages || {}), enabled: !CONFIG.autoMessages.enabled };
     this.persist();
@@ -646,59 +575,6 @@ const SettingsFeature = {
     CONFIG.autoMessages = { ...(CONFIG.autoMessages || {}), [key]: Number.isFinite(hour) ? hour : 18 };
     this.persist();
     this.refreshInPlace();
-  },
-
-  // ---- AI (Claude) ----
-  renderAICard() {
-    const ai = CONFIG.ai || {};
-    const usage = AIService.lastUsage;
-    const usageLine = usage
-      ? `Last call: ${usage.type === 'ocr' ? 'OCR' : 'draft'} · ${(usage.input_tokens || 0).toLocaleString()}/${(usage.output_tokens || 0).toLocaleString()} tokens · ${Utils.formatCurrency(usage.cost ?? 0)}`
-      : 'No AI calls yet.';
-
-    return `
-      <div class="card mb-md" >
-        <div class="flex items-center justify-between" >
-          <div>
-            <div class="fw-600" >Claude AI</div>
-            <div class="fs-12 text-secondary mt-2" >Reads scanned documents (Scan screen) and drafts customer messages (Talk screen).</div>
-          </div>
-          <button class="btn btn-sm ${ai.enabled ? 'btn-primary' : 'btn-outline'}" onclick="SettingsFeature.toggleAI()">
-            ${ai.enabled ? 'On' : 'Off'}
-          </button>
-        </div>
-
-        <div class="fs-12 text-tertiary mt-10 lh-150" >Works through your own serverless function (Vercel), which holds the API key — it never ships inside this app. Deploy <code class="fs-11" >api/claude.mjs</code> (Vercel) with your <code class="fs-11" >ANTHROPIC_API_KEY</code> environment variable, then paste the function URL below.</div>
-
-        <div class="form-group mt-10" >
-          <label>Proxy URL</label>
-          <input type="text" class="input" id="set-ai-url" value="${Utils.escapeHtml(ai.proxyUrl || '')}" placeholder="https://your-site.vercel.app/api/claude" onblur="SettingsFeature.setAIUrl(this.value)">
-        </div>
-        <div class="form-group">
-          <label>Shared Secret (optional)</label>
-          <input type="password" class="input" id="set-ai-secret" value="" placeholder="${ai.secret ? 'Saved — leave blank to keep it' : 'Only if your proxy requires X-AI-Key'}" onblur="SettingsFeature.setAISecret(this.value)">
-        </div>
-        <div class="form-group">
-          <label>OCR model (document reading)</label>
-          <select class="select" id="set-ai-ocr-model" onchange="SettingsFeature.setAIModel('ocrModel', this.value)">
-            <option value="claude-sonnet-4-5" ${ai.ocrModel === 'claude-sonnet-4-5' ? 'selected' : ''}>Claude Sonnet 4.5 — best accuracy</option>
-            <option value="claude-3-7-sonnet-latest" ${ai.ocrModel === 'claude-3-7-sonnet-latest' ? 'selected' : ''}>Claude Sonnet 3.7</option>
-            <option value="claude-haiku-4-5" ${ai.ocrModel === 'claude-haiku-4-5' ? 'selected' : ''}>Claude Haiku 4.5 — fastest/cheapest</option>
-          </select>
-        </div>
-        <div class="form-group mb-0" >
-          <label>Draft model (message writing)</label>
-          <select class="select" id="set-ai-draft-model" onchange="SettingsFeature.setAIModel('draftModel', this.value)">
-            <option value="claude-haiku-4-5" ${ai.draftModel === 'claude-haiku-4-5' ? 'selected' : ''}>Claude Haiku 4.5 — fast & cheap</option>
-            <option value="claude-sonnet-4-5" ${ai.draftModel === 'claude-sonnet-4-5' ? 'selected' : ''}>Claude Sonnet 4.5 — higher quality</option>
-            <option value="claude-3-5-haiku-latest" ${ai.draftModel === 'claude-3-5-haiku-latest' ? 'selected' : ''}>Claude Haiku 3.5</option>
-          </select>
-        </div>
-
-        <div class="inset-dark mt-12 dark-note fs-12 text-secondary" >${Utils.escapeHtml(usageLine)}</div>
-        <button class="btn btn-outline btn-sm btn-block mt-10"  onclick="SettingsFeature.testAI()"><span class="material-symbols-rounded fs-16" >bolt</span>Test connection</button>
-      </div>
-    `;
   },
 
   toggleAI() {
