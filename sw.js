@@ -1,4 +1,4 @@
-const CACHE_NAME = 'advisoros-v6-48';
+const CACHE_NAME = 'advisoros-v6-49';
 const STATIC_ASSETS = [
   './','index.html','css/core.css?v=28','css/components.css?v=31',
   'assets/fonts/material-symbols-rounded.woff2','assets/fonts/hankengrotesk-latin.woff2','assets/fonts/hankengrotesk-latinext.woff2','assets/fonts/jetbrainsmono-latin.woff2',
@@ -9,7 +9,7 @@ const STATIC_ASSETS = [
   'js/features/companion/companion.min.js?v=9','js/features/onboarding/onboarding.min.js?v=7','js/features/today/today.min.js?v=18','js/features/today/home-screen-controller.min.js?v=11','js/features/appointments/appointments.min.js?v=27','js/features/customer/customer.min.js?v=5','js/features/route/route.min.js?v=11',
   'js/features/followups/followups.min.js?v=9','js/features/orders/orders.min.js?v=8',
   'js/features/money/money.min.js?v=8','js/features/talk/talk.min.js?v=18','js/features/measure/measure.min.js?v=7',
-  'js/features/ocr/ocr.min.js?v=20','js/features/control/control.min.js?v=6','js/features/settings/settings.min.js?v=13'
+  'js/features/ocr/ocr.min.js?v=20','js/features/control/control.min.js?v=6','js/features/settings/settings.min.js?v=14'
 ];
 
 const FONT_ORIGINS = ['fonts.googleapis.com', 'fonts.gstatic.com'];

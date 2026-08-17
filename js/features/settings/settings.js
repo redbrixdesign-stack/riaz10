@@ -723,7 +723,11 @@ const SettingsFeature = {
     const main = document.getElementById('main');
     if (!main) return;
     const scrollTop = main.scrollTop;
-    main.innerHTML = this.render();
+    // Re-render the section the user is actually on: render() with no params
+    // always returns the settings INDEX, so toggling a control on a detail
+    // screen used to throw the user back to the list (and detach the very
+    // control they just tapped, which could trip an innerHTML race).
+    main.innerHTML = this._currentSection ? this.renderDetail(this._currentSection) : this.render();
     main.scrollTop = scrollTop;
   },
 
