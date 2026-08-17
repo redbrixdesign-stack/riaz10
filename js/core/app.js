@@ -110,8 +110,17 @@ const App = {
     // whatever tab was left in the hash last time (e.g. #money) - Today is
     // the one screen that already decides Morning/Mid-Day/Evening for you,
     // so opening anywhere else undermines the whole point of it.
+    // EXCEPT a cold launch with an explicit deep link (PWA manifest
+    // shortcuts, shared URLs): those must land on their target, not Today.
+    const bootHash = window.location.hash.slice(1) || '';
     const hash = onboardingDone ? 'today' : 'onboarding';
     this.navigate(hash);
+    if (onboardingDone && bootHash) {
+      const cleanBoot = bootHash.split('?')[0];
+      if (this.features.has(cleanBoot) && cleanBoot !== 'today') {
+        this.navigate(bootHash);
+      }
+    }
 
     // Setup service worker
     this.setupServiceWorker();
@@ -673,12 +682,34 @@ const App = {
     const root = objpath.split('.')[0];
     const KNOWN = ['App', 'AppointmentsFeature', 'SettingsFeature', 'MoneyFeature', 'TalkFeature', 'MeasureFeature', 'OnboardingFeature', 'RouteFeature', 'OrdersFeature', 'ContactFeature', 'HomeScreenController', 'CompanionFeature', 'ExportService', 'OCRFeature', 'ControlFeature', 'TodayFeature', 'Geo', 'CustomerFeature'];
     if (!KNOWN.includes(root)) return '';
-    // Rewrite JS string literals to JSON strings (single->double quotes).
-    let jsonArgs = arglist.replace(/'([^']*)'/g, '"$1"');
+    // Convert the JS-ish argument list into a JSON array string:
+    //   'appointments', {tab: 'upcoming'}  ->  ["appointments", {"tab": "upcoming"}]
+    // Object keys must be quoted and the whole list wrapped in [] or the
+    // router's JSON.parse rejects it (dead buttons + console errors).
+    const jsonArgs = arglist
+      // Stash escaped single quotes so the string-quoting pass below
+      // doesn't split on them ('O\'Leary' must stay one string).
+      .replace(/\\'/g, '\u0001')
+      // Single-quoted strings -> double-quoted (JSON).
+      .replace(/'([^']*)'/g, (mm, inner) => '"' + inner.replace(/"/g, '\\"') + '"')
+      // Apostrophes are fine inside JSON strings.
+      .replace(/\u0001/g, "'")
+      // Quote object-literal keys: {tab: ...} -> {"tab": ...}.
+      .replace(/([{,]\s*)([A-Za-z_$][\w$]*)(\s*:)/g, '$1"$2"$3')
+      .trim();
     if (jsonArgs === '') {
       return `data-action="${objpath}"`;
     }
-    return `data-action="${objpath}" data-args='${jsonArgs}'`;
+    const bracketed = '[' + jsonArgs + ']';
+    try {
+      JSON.parse(bracketed);
+    } catch (e) {
+      // Conversion failed (unusual literal) — keep the legacy emission so
+      // the router still surfaces the bad-args error instead of a silent
+      // wrong call.
+      return `data-action="${objpath}" data-args='${jsonArgs}'`;
+    }
+    return `data-action="${objpath}" data-args='${bracketed}'`;
   },
 
   // Event setup

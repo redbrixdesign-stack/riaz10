@@ -31,6 +31,14 @@ const AppointmentsFeature = {
       const id = parseInt(params.id) || params.id;
       return this.renderDetail(id);
     }
+    // Deep links / action cards can request a specific tab
+    // (e.g. {"tab":"upcoming"} from the Home attention card): render the
+    // list, then switch to that tab once it's in the DOM.
+    const TAB_IDS = ['diary', 'upcoming', 'pipeline', 'area', 'past'];
+    if (params.tab && TAB_IDS.includes(params.tab)) {
+      const requested = params.tab;
+      setTimeout(() => { try { this.switchTab(requested); } catch (e) {} }, 0);
+    }
     return this.renderList();
   },
 
