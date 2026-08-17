@@ -40,6 +40,14 @@
   --danger: #C0563F;
   --danger-light: #f3dfdc;
   --info: #5A7180;
+  /* Success TEXT on dark surfaces: --secondary (#4f6a2f) is a legacy
+     light-theme green that measures ~3:1 on the dark cards — unreadable.
+     This sage reads 9:1 on --surface / 8.6:1 on --surface-elevated. */
+  --success-text: #9DBF6E;
+  /* Danger TEXT on dark surfaces: --danger (#C0563F) reads 4.1:1 at the
+     18px bold figures on Money — just under the 4.5:1 AA bar. This coral
+     reads 7:1 on --surface. */
+  --danger-text: #E0876F;
 
   /* Beelo Gold — from Beelo avatar (comp-bee: #FDB913). Brand, primary CTA,
      active nav, important progress, selected states. */
@@ -260,9 +268,9 @@ h4 { font-size: 15px; }
 .text-primary { color: var(--text-primary); }
 .text-secondary { color: var(--text-secondary); }
 .text-tertiary { color: var(--text-tertiary); }
-.text-success { color: var(--secondary); }
+.text-success { color: var(--success-text); }
 .text-warning { color: var(--warning); }
-.text-danger { color: var(--danger); }
+.text-danger { color: var(--danger-text); }
 .text-info { color: var(--info); }
 
 /* ============================================
@@ -334,6 +342,13 @@ h4 { font-size: 15px; }
 button.card {
   display: block;
   width: 100%;
+  /* Plain <button class="card"> (settings menu rows) keeps the UA button
+     text colour (black) and font otherwise — black on the dark card is
+     invisible. Inherit the card's text styles instead. */
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: inherit;
+  text-align: inherit;
 }
 
 /* ============================================
@@ -512,7 +527,7 @@ button:not(:disabled):active,
 .badge-primary { background: color-mix(in srgb, var(--primary-light) 14%, var(--surface)); color: var(--primary-light); border: 1px solid color-mix(in srgb, var(--primary-light) 30%, transparent); }
 .badge-success { background: color-mix(in srgb, var(--secondary) 18%, var(--surface)); color: var(--secondary-light); border: 1px solid color-mix(in srgb, var(--secondary) 45%, transparent); }
 .badge-warning { background: color-mix(in srgb, var(--warning) 18%, var(--surface)); color: var(--warning); border: 1px solid color-mix(in srgb, var(--warning) 45%, transparent); }
-.badge-danger { background: color-mix(in srgb, var(--danger) 18%, var(--surface)); color: var(--danger); border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent); }
+.badge-danger { background: color-mix(in srgb, var(--danger) 18%, var(--surface)); color: var(--danger-light); border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent); }
 .badge-info { background: color-mix(in srgb, var(--info) 18%, var(--surface)); color: var(--info); border: 1px solid color-mix(in srgb, var(--info) 45%, transparent); }
 .badge-accent { background: color-mix(in srgb, var(--accent) 14%, var(--surface)); color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); }
 

@@ -120,18 +120,21 @@ const OrdersFeature = {
     const name = Utils.escapeHtml(appt.clientName || (appt.customerId && customerMap.get(appt.customerId))?.fullName || 'Unknown');
     const daysSince = Utils.daysBetween(now, new Date(appt.date));
     const tpl = (typeof TalkFeature !== 'undefined') ? TalkFeature.getTemplateForOutcome(appt.outcome) : null;
+    const navArgs = JSON.stringify(["appointments", { id: appt.id }]);
     return `
-      <button class="kanban-card" type="button" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: (appt.id)}])}'>
-        <div class="kanban-card-top">
-          <span class="kanban-card-name">${name}</span>
-          <span class="kanban-card-value">${Utils.formatCurrency(appt.value || 0)}</span>
-        </div>
-        <div class="kanban-card-sub">${Utils.escapeHtml(this.outcomeLabel(appt.outcome))} · ${daysSince <= 0 ? 'today' : daysSince + 'd ago'}</div>
+      <div class="kanban-card">
+        <button type="button" class="kanban-card-main" data-action="App.navigate" data-args='${navArgs}'>
+          <div class="kanban-card-top">
+            <span class="kanban-card-name">${name}</span>
+            <span class="kanban-card-value">${Utils.formatCurrency(appt.value || 0)}</span>
+          </div>
+          <div class="kanban-card-sub">${Utils.escapeHtml(this.outcomeLabel(appt.outcome))} · ${daysSince <= 0 ? 'today' : daysSince + 'd ago'}</div>
+        </button>
         <div class="kanban-card-actions">
-          ${tpl ? `<span class="kanban-card-action" role="button" tabindex="0" aria-label="Send follow-up" data-stop="1" data-action="TalkFeature.sendMessage" data-args='${JSON.stringify([(appt.id), Utils.escapeJsString(tpl.template)])}' data-key="Enter, space"><span class="material-symbols-rounded">send</span>Follow up</span>` : ''}
-          <span class="kanban-card-action" role="button" tabindex="0" aria-label="Open visit" data-stop="1" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: (appt.id)}])}'><span class="material-symbols-rounded">open_in_new</span>Visit</span>
+          ${tpl ? `<button type="button" class="kanban-card-action" data-action="TalkFeature.sendMessage" data-args='${JSON.stringify([appt.id, Utils.escapeJsString(tpl.template)])}'><span class="material-symbols-rounded">send</span>Follow up</button>` : ''}
+          <button type="button" class="kanban-card-action" data-action="App.navigate" data-args='${navArgs}'><span class="material-symbols-rounded">open_in_new</span>Visit</button>
         </div>
-      </button>
+      </div>
     `;
   },
 
@@ -185,13 +188,15 @@ const OrdersFeature = {
         <button class="btn btn-ghost btn-sm" data-action="App.closeModal"><span class="material-symbols-rounded">close</span></button>
       </div>
       <div class="sheet-body kanban-sheet-body">
-        <div class="kanban-sheet-customer" role="button" tabindex="0" data-action="App.navigate" data-args='${JSON.stringify(["customer", {id: (order.customerId)}])}' data-key="Enter, space">
-          <div class="kanban-avatar">${Utils.escapeHtml(name.charAt(0).toUpperCase())}</div>
-          <div class="kanban-sheet-customer-body">
-            <div class="kanban-sheet-customer-name">${Utils.escapeHtml(name)}</div>
-            <div class="kanban-sheet-customer-meta">${customer ? Utils.escapeHtml(customer.customerNumber || '') : ''} ${customer ? '· tap for full profile' : ''}</div>
-          </div>
-          ${phone ? `<button class="btn btn-outline btn-sm" data-stop="1" data-action="OrdersFeature.paymentMessage" data-args='${JSON.stringify([(order.id)])}'><span class="material-symbols-rounded">chat</span>Message</button>` : ''}
+        <div class="kanban-sheet-customer">
+          <button type="button" class="kanban-sheet-customer-main" data-action="App.navigate" data-args='${JSON.stringify(["customer", {id: (order.customerId)}])}'>
+            <div class="kanban-avatar">${Utils.escapeHtml(name.charAt(0).toUpperCase())}</div>
+            <div class="kanban-sheet-customer-body">
+              <div class="kanban-sheet-customer-name">${Utils.escapeHtml(name)}</div>
+              <div class="kanban-sheet-customer-meta">${customer ? Utils.escapeHtml(customer.customerNumber || '') : ''} ${customer ? '· tap for full profile' : ''}</div>
+            </div>
+          </button>
+          ${phone ? `<button class="btn btn-outline btn-sm" data-action="OrdersFeature.paymentMessage" data-args='${JSON.stringify([(order.id)])}'><span class="material-symbols-rounded">chat</span>Message</button>` : ''}
         </div>
 
         <div class="kanban-stage-tracker">

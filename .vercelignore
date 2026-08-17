@@ -1,0 +1,10 @@
+node_modules
+deepseek-harness
+tests
+screenshots
+docs
+*.md
+.git
+.github
+.env*
+screenshots-seeded

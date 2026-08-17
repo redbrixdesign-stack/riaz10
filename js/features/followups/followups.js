@@ -322,7 +322,7 @@ const FollowupsFeature = {
       : 'var(--text-secondary)';
 
     return `
-      <div class="fup-card" style="border-left:3px solid ${accent};opacity:${muted ? '0.65' : '1'};">
+      <div class="fup-card${muted ? ' fup-card--muted' : ''}" style="border-left:3px solid ${accent};">
         <div class="flex items-start gap-12" >
           <span class="material-symbols-rounded" style="color:${accent};margin-top:2px;">${icons[task.kind] || 'campaign'}</span>
           <div class="flex-1 min-w-0" >

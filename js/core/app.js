@@ -554,6 +554,8 @@ const App = {
     main.classList.add('fade-in');
     setTimeout(() => main.classList.remove('fade-in'), 300);
 
+    this._associateLabels(main);
+
     // Update URL hash
     this.currentHash = targetHash;
     if (window.location.hash.slice(1) !== targetHash) {
@@ -562,6 +564,29 @@ const App = {
 
     // Scroll to top
     main.scrollTop = 0;
+  },
+
+  // The app's forms use a loose "label next to control" pattern — 100+ labels
+  // with no `for` attribute and no wrapping, which is not an accessible name
+  // association (axe `label`/`select-name`, WCAG 1.3.1/4.1.2). Run after
+  // every render (navigate + modals) to link each label to the control that
+  // immediately follows it, so dynamically-built forms stay accessible.
+  _associateLabels(root) {
+    if (!root) return;
+    root.querySelectorAll('label:not([for])').forEach(label => {
+      // A wrapping label already associates its control.
+      if (label.querySelector('input, select, textarea')) return;
+      let control = label.nextElementSibling;
+      // Some labels precede a wrapper div that holds the control.
+      if (control && !control.matches('input, select, textarea')) {
+        const inner = control.querySelectorAll('input, select, textarea');
+        if (inner.length === 1) control = inner[0];
+        else return;
+      }
+      if (control && control.id && control.matches('input, select, textarea')) {
+        label.setAttribute('for', control.id);
+      }
+    });
   },
 
   // Build nav item
@@ -850,6 +875,7 @@ const App = {
 
     sheet.innerHTML = content;
     sheet.scrollTop = 0;
+    this._associateLabels(sheet);
     sheet.setAttribute('role', 'dialog');
     sheet.setAttribute('aria-modal', 'true');
     overlay.classList.add('active');
@@ -934,6 +960,7 @@ const App = {
     if (!modal) return;
 
     modal.innerHTML = content;
+    this._associateLabels(modal);
     modal.setAttribute('role', 'dialog');
     modal.setAttribute('aria-modal', 'true');
     modal.classList.add('active');

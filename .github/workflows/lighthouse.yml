@@ -1,0 +1,22 @@
+name: Lighthouse CI
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly launch-check against the live site (Mon 06:00 UTC)
+    - cron: '0 6 * * 1'
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - name: Run Lighthouse CI against beelo.beelestial.co.uk
+        run: npx lhci collect && npx lhci assert
+      - name: Upload reports (best-effort)
+        if: always()
+        run: npx lhci upload --target=temporary-public-storage || true

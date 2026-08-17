@@ -628,8 +628,8 @@ body.trip-active .toast-container {
   margin-top: 4px;
 }
 
-.stat-card .change.positive { color: var(--secondary); }
-.stat-card .change.negative { color: var(--danger); }
+.stat-card .change.positive { color: var(--success-text); }
+.stat-card .change.negative { color: var(--danger-text); }
 
 /* Clickable variant: used where a stat card / row is a shortcut into a more
    detailed screen (e.g. day's booked value -> Money, week's visits -> Visits). */
@@ -979,7 +979,7 @@ body.trip-active .toast-container {
 
 .visit-value {
   font-size: 13px;
-  color: var(--secondary);
+  color: var(--success-text);
   font-weight: 600;
   margin-top: 2px;
 }
@@ -1732,6 +1732,21 @@ body.trip-active .toast-container {
   font-family: var(--font-body);
   box-shadow: var(--shadow-sm);
 }
+/* Appointment kanban cards: the card is a container; its main area is a
+   real button (card navigation) and the actions row holds real buttons —
+   no nested interactive elements (axe nested-interactive, WCAG 4.1.2). */
+.kanban-card-main {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.kanban-card-main:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
 .kanban-card-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .kanban-card-name {
   font-size: 14px;
@@ -1755,11 +1770,21 @@ body.trip-active .toast-container {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  /* Real buttons since the 4.6 router: UA button styles (black text, UA
+     font) must be reset, and the touch target must be >= 24px (WCAG 2.5.8). */
+  min-height: 28px;
+  padding: 2px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  font-family: var(--font-body);
   font-size: 12px;
   font-weight: 600;
-  color: var(--secondary);
+  color: var(--success-text);
   cursor: pointer;
 }
+.kanban-card-action:hover { background: color-mix(in srgb, var(--success-text) 12%, transparent); }
+.kanban-card-action:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .kanban-card-action .material-symbols-rounded { font-size: 15px; }
 
 .kanban-sheet-customer {
@@ -1771,8 +1796,25 @@ body.trip-active .toast-container {
   border-radius: var(--radius-md);
   padding: 10px 12px;
   margin-bottom: 12px;
+}
+/* The customer row is a container: its main area is a real button (profile
+   navigation) and the Message button sits beside it — no nested interactive
+   elements (axe nested-interactive, WCAG 4.1.2). */
+.kanban-sheet-customer-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
   cursor: pointer;
 }
+.kanban-sheet-customer-main:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
 .kanban-avatar {
   width: 36px;
   height: 36px;
@@ -2040,7 +2082,12 @@ body.trip-active .toast-container {
   margin-bottom: 8px;
   overflow: hidden;
 }
-.hsc-week-row.done { opacity: 0.55; }
+.hsc-week-row.done {
+  /* Solid dim, not opacity — container opacity scales the text tokens down
+     and breaks WCAG 4.5:1 (axe color-contrast). A darker card keeps the
+     completed-day look while text stays fully legible. */
+  background: color-mix(in srgb, var(--surface) 72%, #000);
+}
 .hsc-week-row-main {
   display: block;
   width: 100%;
@@ -2069,6 +2116,11 @@ body.trip-active .toast-container {
   margin-top: 6px;
 }
 .hsc-week-row-travel .material-symbols-rounded { font-size: 14px; }
+
+/* Follow-up cards. Muted = solid dim, never container opacity (opacity
+   scales the text tokens down and fails WCAG 4.5:1 — axe color-contrast). */
+.fup-card { background: var(--surface); }
+.fup-card--muted { background: color-mix(in srgb, var(--surface) 82%, #000); }
 .hsc-week-row-actions {
   display: flex;
   gap: 8px;
