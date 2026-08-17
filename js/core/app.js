@@ -692,8 +692,45 @@ const App = {
     overlay.classList.add('active');
     document.body.style.overflow = 'hidden';
 
+    // Remember what had focus so it can be restored on close (WCAG 2.4.3).
+    this._lastFocused = document.activeElement;
+
     if (options.onOpen) options.onOpen();
     this.focusFirstControl(sheet);
+    this.trapFocus(sheet);
+  },
+
+  // Keep Tab/Shift+Tab inside the open dialog (WCAG 2.1.2). Registered on
+  // the overlay so the sheet's own scroll handling isn't disturbed; removed
+  // on close.
+  trapFocus(container) {
+    this._untrapFocus();
+    this._focusTrapEl = container;
+    this._onTrapKeydown = (e) => {
+      if (e.key !== 'Tab') return;
+      const focusables = container.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusables.length) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && (document.activeElement === first || document.activeElement === container)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', this._onTrapKeydown, true);
+  },
+
+  _untrapFocus() {
+    if (this._onTrapKeydown) {
+      document.removeEventListener('keydown', this._onTrapKeydown, true);
+      this._onTrapKeydown = null;
+      this._focusTrapEl = null;
+    }
   },
 
   closeModal(options = {}) {
@@ -706,10 +743,12 @@ const App = {
       sheet.innerHTML = previous.content;
       sheet.scrollTop = previous.scrollTop || 0;
       this.focusFirstControl(sheet);
+      this.trapFocus(sheet);
       return;
     }
 
     this.modalStack = [];
+    this._untrapFocus();
     if (overlay) {
       overlay.classList.remove('active');
     }
@@ -719,6 +758,12 @@ const App = {
       sheet.removeAttribute('aria-modal');
     }
     document.body.style.overflow = '';
+
+    // Restore focus to whatever opened the modal (WCAG 2.4.3).
+    if (this._lastFocused && typeof this._lastFocused.focus === 'function') {
+      try { this._lastFocused.focus({ preventScroll: true }); } catch (e) { /* element may be gone */ }
+    }
+    this._lastFocused = null;
   },
 
   openFullModal(content, options = {}) {
@@ -731,8 +776,11 @@ const App = {
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
 
+    this._lastFocused = document.activeElement;
+
     if (options.onOpen) options.onOpen();
     this.focusFirstControl(modal);
+    this.trapFocus(modal);
   },
 
   closeFullModal() {
@@ -742,7 +790,12 @@ const App = {
       modal.removeAttribute('role');
       modal.removeAttribute('aria-modal');
     }
+    this._untrapFocus();
     document.body.style.overflow = '';
+    if (this._lastFocused && typeof this._lastFocused.focus === 'function') {
+      try { this._lastFocused.focus({ preventScroll: true }); } catch (e) { /* element may be gone */ }
+    }
+    this._lastFocused = null;
   },
 
   focusFirstControl(container) {
@@ -775,6 +828,10 @@ const Toast = {
   init() {
     this.container = document.createElement('div');
     this.container.className = 'toast-container';
+    // WCAG 4.1.3: announce toast messages to screen readers without
+    // interrupting ongoing speech (polite status region).
+    this.container.setAttribute('role', 'status');
+    this.container.setAttribute('aria-live', 'polite');
     document.body.appendChild(this.container);
   },
 

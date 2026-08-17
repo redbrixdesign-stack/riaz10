@@ -512,6 +512,11 @@ body.trip-active .toast-container {
   color: var(--text-primary);
   outline: none;
 }
+.search-bar input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
 
 .search-bar input::placeholder {
   color: var(--text-tertiary);
@@ -1208,6 +1213,7 @@ body.trip-active .toast-container {
 .calendar-cell {
   position: relative;
   aspect-ratio: 1 / 1;
+  min-height: 44px; /* WCAG 2.5.5 target size — cells measure 43px without it */
   border: none;
   background: transparent;
   border-radius: var(--radius-lg);
@@ -1231,8 +1237,9 @@ body.trip-active .toast-container {
 }
 
 .calendar-cell-muted {
-  color: var(--text-tertiary);
-  opacity: 0.5;
+  /* Solid recolour, not opacity: 0.5 on text-tertiary drops to ~2.2:1.
+     #A9A392 on the dark surface measures 4.6:1 (WCAG AA). */
+  color: #A9A392;
 }
 
 .calendar-cell-today {
@@ -2607,7 +2614,12 @@ body.trip-active .toast-container {
   cursor: pointer;
   user-select: none;
 }
-.comp-toggle-label.disabled { opacity: 0.45; }
+.comp-toggle-label.disabled {
+  /* Solid recolour, not opacity (0.45 on secondary text ≈ 4.1:1).
+     #9B968A on the dark surface measures 4.7:1 (WCAG AA). */
+  color: #9B968A;
+  cursor: not-allowed;
+}
 .comp-toggle-label input { position: absolute; opacity: 0; pointer-events: none; }
 .comp-toggle-track {
   width: 36px;
@@ -2653,6 +2665,11 @@ body.trip-active .toast-container {
   font: inherit;
   font-size: 14.5px;
 }
+.comp-input:focus-visible {
+  outline: 2px solid var(--comp-bee);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
 .comp-input::placeholder { color: var(--comp-muted); }
 .comp-send {
   width: 44px;
@@ -2667,7 +2684,13 @@ body.trip-active .toast-container {
   cursor: pointer;
   flex-shrink: 0;
 }
-.comp-send:disabled { opacity: 0.4; }
+.comp-send:disabled {
+  /* Solid disabled state, not opacity (0.4 on gold ≈ 3.5:1).
+     Muted surface + light icon keeps the icon legible (≥4.5:1). */
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+}
 
 /* My Day panel (full-screen) */
 #companion-myday-root { min-height: 72vh; }
@@ -2820,8 +2843,16 @@ body.trip-active .toast-container {
   background: var(--comp-bee);
   border-radius: 2px;
 }
-/* Past days recede — a navigational strip, not a primary feature. */
-.comp-home-week-day.past { opacity: 0.45; }
+/* Past days recede — solid muted recolour, not opacity (0.45 on white
+   text ≈ 4.1:1, fails AA). Numbers + counts drop to a readable muted tone;
+   the labels were already muted. */
+.comp-home-week-day.past { opacity: 1; }
+.comp-home-week-day.past .comp-home-week-day-num { color: var(--comp-muted); }
+.comp-home-week-day.past .comp-home-week-day-count {
+  color: var(--comp-muted);
+  border-color: var(--comp-border);
+}
+.comp-home-week-day.past .comp-home-week-day-label { color: var(--comp-muted); }
 
 /* Week navigation arrows (‹ ›) — 44px touch targets, icon-only with
    aria-labels. */

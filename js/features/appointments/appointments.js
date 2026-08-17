@@ -86,12 +86,12 @@ const AppointmentsFeature = {
 
         <!-- Tabs -->
         <div class="px-md" >
-          <div class="tabs" id="appt-tabs">
-            <button class="tab active" data-tab="diary" onclick="AppointmentsFeature.switchTab('diary')">Diary</button>
-            <button class="tab" data-tab="upcoming" onclick="AppointmentsFeature.switchTab('upcoming')">Upcoming</button>
-            <button class="tab" data-tab="pipeline" onclick="AppointmentsFeature.switchTab('pipeline')">Follow-ups (${pipeline.length})</button>
-            <button class="tab" data-tab="area" onclick="AppointmentsFeature.switchTab('area')">Area</button>
-            <button class="tab" data-tab="past" onclick="AppointmentsFeature.switchTab('past')">Past</button>
+          <div class="tabs" id="appt-tabs" role="tablist" aria-label="Visits">
+            <button class="tab active" data-tab="diary" role="tab" aria-selected="true" aria-controls="appt-diary" onclick="AppointmentsFeature.switchTab('diary')">Diary</button>
+            <button class="tab" data-tab="upcoming" role="tab" aria-selected="false" aria-controls="appt-upcoming" onclick="AppointmentsFeature.switchTab('upcoming')">Upcoming</button>
+            <button class="tab" data-tab="pipeline" role="tab" aria-selected="false" aria-controls="appt-pipeline" onclick="AppointmentsFeature.switchTab('pipeline')">Follow-ups (${pipeline.length})</button>
+            <button class="tab" data-tab="area" role="tab" aria-selected="false" aria-controls="appt-area" onclick="AppointmentsFeature.switchTab('area')">Area</button>
+            <button class="tab" data-tab="past" role="tab" aria-selected="false" aria-controls="appt-past" onclick="AppointmentsFeature.switchTab('past')">Past</button>
           </div>
         </div>
 
@@ -3274,11 +3274,11 @@ const AppointmentsFeature = {
 
   switchTab(tab) {
     const tabs = document.querySelectorAll('#appt-tabs .tab');
-    tabs.forEach(t => t.classList.remove('active'));
-
-    // Find the clicked tab
-    const clickedTab = Array.from(tabs).find(t => t.dataset.tab === tab);
-    if (clickedTab) clickedTab.classList.add('active');
+    tabs.forEach(t => {
+      const active = t.dataset.tab === tab;
+      t.classList.toggle('active', active);
+      t.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
 
     const diaryEl = document.getElementById('appt-diary');
     const upcomingEl = document.getElementById('appt-upcoming');
@@ -3291,6 +3291,38 @@ const AppointmentsFeature = {
     if (pipelineEl) pipelineEl.style.display = tab === 'pipeline' ? 'block' : 'none';
     if (areaEl) areaEl.style.display = tab === 'area' ? 'block' : 'none';
     if (pastEl) pastEl.style.display = tab === 'past' ? 'block' : 'none';
+
+    // Move keyboard focus to the selected panel so screen-reader users land
+    // on the content they just asked for (WCAG 2.4.3 focus order).
+    const panel = document.getElementById('appt-' + tab);
+    if (panel && !panel.hasAttribute('tabindex')) {
+      panel.setAttribute('tabindex', '-1');
+    }
+    if (panel && document.activeElement && document.activeElement.classList.contains('tab')) {
+      try { panel.focus({ preventScroll: true }); } catch (e) { /* noop */ }
+    }
+  },
+
+  // WAI-ARIA tabs pattern: Left/Right move focus between tabs (Home/End jump
+  // to first/last). Registered once per render; the tablist is static for
+  // the Visits screen lifetime.
+  setupTabKeyboard() {
+    const tablist = document.getElementById('appt-tabs');
+    if (!tablist || tablist.dataset.keyboardBound) return;
+    tablist.dataset.keyboardBound = '1';
+    tablist.addEventListener('keydown', (e) => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+      const tabs = Array.from(tablist.querySelectorAll('.tab'));
+      if (!tabs.length) return;
+      const idx = tabs.indexOf(document.activeElement);
+      let next = idx;
+      if (e.key === 'ArrowLeft') next = idx <= 0 ? tabs.length - 1 : idx - 1;
+      else if (e.key === 'ArrowRight') next = (idx + 1) % tabs.length;
+      else if (e.key === 'Home') next = 0;
+      else if (e.key === 'End') next = tabs.length - 1;
+      e.preventDefault();
+      tabs[next].focus();
+    });
   },
 
   showAddModal() {
@@ -3299,6 +3331,7 @@ const AppointmentsFeature = {
 
   activate(params = {}) {
     // Auto-refresh when activated
+    this.setupTabKeyboard();
     if (params.tab) {
       this.switchTab(params.tab);
     }

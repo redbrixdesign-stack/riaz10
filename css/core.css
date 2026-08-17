@@ -428,6 +428,11 @@ button:not(:disabled):active,
   border-color: var(--accent);
   box-shadow: none;
 }
+.input:focus-visible, .select:focus-visible, .textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-color: var(--accent);
+}
 
 .input::placeholder {
   color: var(--text-tertiary);
@@ -683,6 +688,27 @@ button:not(:disabled):active,
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* Skip link — visually hidden until focused, then appears top-left so
+   keyboard users can jump straight to the main content (WCAG 2.4.1). */
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 300;
+  padding: 10px 16px;
+  background: var(--surface-elevated);
+  color: var(--text-primary);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(-200%);
+  transition: transform 0.15s ease;
+}
+.skip-link:focus-visible {
+  transform: translateY(0);
 }
 
 /* ============================================
