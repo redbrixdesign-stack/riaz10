@@ -37,7 +37,7 @@ const FollowupsFeature = {
     // getUpcomingAppointments starts at "now", so a visit earlier today would
     // never surface — pull the full day separately for the outcome tasks.
     try { todayAppts = await DB.getAppointmentsForDate(now.toISOString()); } catch (e) {}
-    try { allAppts = await DB.db.appointments.toArray(); } catch (e) {}
+    try { allAppts = await DB.getAllAppointments(); } catch (e) {}
     // Intro messages apply to ANY distance of booking, not just the next few
     // days — otherwise a visit booked 2-3 weeks out (common for renovations)
     // gets no intro task and its customer is never messaged.

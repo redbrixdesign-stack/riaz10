@@ -666,11 +666,39 @@ async function runBackupRoundtrip(engine, tag) {
     appointments: [{ id: 9991, customerId: 424242, date: now }]
   });
 
-  // Missing required relationship field (appointment without customerId).
-  await expectReject('appointment missing customerId', {
-    customers: [goodCustomer],
-    appointments: [{ id: 9992, date: now }]
-  });
+  // Appointments WITHOUT a customerId are valid — phone conversions can be
+  // typed straight onto the visit with no customer record yet, and the
+  // backup must round-trip them. The dangling-reference case above still
+  // rejects a customerId that points nowhere.
+  {
+    const pre = await DB.exportAll();
+    const orphanAppt = { id: 9992, date: now, clientName: 'Phone Conversion', status: 'confirmed' };
+    let threw = false;
+    try { await DB.importAll({ customers: [], appointments: [orphanAppt] }); } catch (e) { threw = true; }
+    ok(engine + ': appointment without customerId accepted', !threw);
+    const after = await DB.exportAll();
+    ok(engine + ': orphan appointment restored', after.appointments.some(a => a.id === 9992 && a.clientName === 'Phone Conversion'));
+    // Restore the pre-test state so later assertions count customers correctly.
+    await DB.importAll(JSON.parse(JSON.stringify(pre)));
+    ok(engine + ': state restored after orphan-appointment test', (await DB.db.customers.count()) === 3, await DB.db.customers.count());
+  }
+
+  // Same optional-reference contract for trips (standalone mileage logs) and
+  // communications (EOD notes written without a customer). Both are valid app
+  // records and must round-trip through a backup.
+  {
+    const pre = await DB.exportAll();
+    const orphanTrips = { customers: [], trips: [{ id: 9997, date: now, purpose: 'business', distanceKm: 12 }] };
+    let threw = false;
+    try { await DB.importAll(orphanTrips); } catch (e) { threw = true; }
+    ok(engine + ': trip without appointmentId accepted', !threw);
+    const orphanComms = { customers: [], communications: [{ id: 9998, type: 'note', content: 'EOD note', sentAt: now }] };
+    threw = false;
+    try { await DB.importAll(orphanComms); } catch (e) { threw = true; }
+    ok(engine + ': communication without customerId accepted', !threw);
+    await DB.importAll(JSON.parse(JSON.stringify(pre)));
+    ok(engine + ': state restored after orphan trip/comm test', (await DB.db.customers.count()) === 3, await DB.db.customers.count());
+  }
 
   // 6. Dangling appointment reference (measurement and trip).
   await expectReject('dangling measurement reference', {

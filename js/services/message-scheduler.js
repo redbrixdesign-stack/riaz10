@@ -173,7 +173,7 @@ const MessageScheduler = {
   // live ETA from the current position -> on-my-way draft.
   async onDeparture(appointmentId) {
     if (!this.isEnabled() || !appointmentId) return;
-    const appt = await DB.db.appointments.get(appointmentId);
+    const appt = await DB.getAppointment(appointmentId);
     if (!appt) return;
     if (localStorage.getItem(this._flag('on_my_way', appt.id)) === '1') return;
 
@@ -223,7 +223,7 @@ const MessageScheduler = {
   // live ETA from the current position -> on-my-way draft.
   async onDeparture(appointmentId) {
     if (!this.isEnabled() || !appointmentId) return;
-    const appt = await DB.db.appointments.get(appointmentId);
+    const appt = await DB.getAppointment(appointmentId);
     if (!appt) return;
     if (localStorage.getItem(this._flag('on_my_way', appt.id)) === '1') return;
 
@@ -252,7 +252,7 @@ const MessageScheduler = {
   async startDelayChecker(appointmentId) {
     if (!this.isEnabled()) return;
     const checkInterval = setInterval(async () => {
-      const appt = await DB.db.appointments.get(appointmentId);
+      const appt = await DB.getAppointment(appointmentId);
       if (!appt || appt.outcome || appt.status !== 'confirmed') {
         clearInterval(checkInterval);
         return;

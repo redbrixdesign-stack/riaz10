@@ -85,6 +85,7 @@ function loadScheduler({ uk, aiEnabled = false, autoMessages, appointments = [],
   // Stub collaborators.
   sandbox.DB = {
     getUpcomingAppointments: async () => appointments,
+    getAppointment: async id => apptById[id],
     db: { appointments: { get: async id => apptById[id] } }
   };
   sandbox.TalkFeature = {

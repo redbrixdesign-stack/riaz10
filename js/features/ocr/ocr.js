@@ -619,7 +619,7 @@ const OCRFeature = {
   // instead of reusing the existing one.
   async findExistingVisit(customerId, isoDate, phone, address) {
     const dayStart = new Date(isoDate + 'T00:00:00');
-    const byCustomer = await DB.db.appointments.where('customerId').equals(customerId).toArray();
+    const byCustomer = await DB.getAppointmentsByCustomer(customerId);
     const existing = byCustomer.find(a => a.status !== 'cancelled' && Utils.isSameDay(new Date(a.date), dayStart));
     if (existing) return existing;
     const phoneNorm = phone ? AppointmentsFeature.normalizePhone(phone) : '';

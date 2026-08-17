@@ -286,6 +286,7 @@ console.log('duplicate prevention (findExistingVisit)');
       appointments: { where: () => ({ equals: () => ({ toArray: async () => appts }) }) }
     },
     getAppointmentsForDate: async () => appts,
+    getAppointmentsByCustomer: async () => appts,
     findCustomerByPhone: async phone => (phone === '07700 900123' ? { id: 7, fullName: 'James Wilson' } : null)
   };
 
@@ -311,6 +312,7 @@ console.log('duplicate prevention (saveToCustomer)');
       appointments: { where: () => ({ equals: () => ({ toArray: async () => appts }) }) }
     },
     getAppointmentsForDate: async () => appts,
+    getAppointmentsByCustomer: async () => appts,
     addAppointment: async (data) => { addAppointmentCalls++; return { ...data, id: 100 }; },
     findCustomerByPhone: async phone => (phone === '07700 900123' ? { id: 7, fullName: 'James Wilson' } : null)
   };

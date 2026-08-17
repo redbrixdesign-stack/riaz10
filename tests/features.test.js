@@ -94,7 +94,10 @@ global.DB = {
   getPhotosForCustomer: async () => [],
   getCustomer: async id => TABLES.customers.find(c => c.id === id) || null,
   getCustomersByIds: async ids => TABLES.customers.filter(c => ids.includes(c.id)),
-  findCustomerByPhone: async phone => TABLES.customers.find(c => c.phone === phone) || null
+  findCustomerByPhone: async phone => TABLES.customers.find(c => c.phone === phone) || null,
+  getAppointment: async id => TABLES.appointments.find(a => a.id === id) || null,
+  getAllAppointments: async () => TABLES.appointments,
+  getAppointmentsByCustomer: async customerId => TABLES.appointments.filter(a => a.customerId === customerId)
 };
 global.ContactFeature = { open() {} };
 global.OCRFeature = {};

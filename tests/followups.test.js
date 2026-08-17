@@ -47,7 +47,8 @@ global.DB = {
     orders: { toArray: async () => [] },
     customers: { bulkGet: async ids => [] },
     appointments: { toArray: async () => ALL_APPTS }
-  }
+  },
+  getAllAppointments: async () => ALL_APPTS
 };
 
 loadAll([

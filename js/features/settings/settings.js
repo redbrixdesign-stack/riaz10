@@ -367,6 +367,8 @@ const SettingsFeature = {
 
   renderAIDetail() {
     const ai = CONFIG.ai || {};
+    const sessionSecret = (() => { try { return sessionStorage.getItem('advisoros_ai_secret'); } catch (e) { return null; } })();
+    const secretSaved = !!sessionSecret || !!ai.secret;
     const usage = AIService.lastUsage;
     const usageLine = usage
       ? `Last call: ${usage.type === 'ocr' ? 'OCR' : 'draft'} · ${(usage.input_tokens || 0).toLocaleString()}/${(usage.output_tokens || 0).toLocaleString()} tokens · ${Utils.formatCurrency(usage.cost ?? 0)}`
@@ -392,7 +394,7 @@ const SettingsFeature = {
         </div>
         <div class="form-group">
           <label>Shared Secret (optional)</label>
-          <input type="password" class="input" id="set-ai-secret" value="" placeholder="${ai.secret ? 'Saved — leave blank to keep it' : 'Only if your proxy requires X-AI-Key'}" onblur="SettingsFeature.setAISecret(this.value)">
+          <input type="password" class="input" id="set-ai-secret" value="" placeholder="${secretSaved ? 'Saved for this session — leave blank to keep it' : 'Only if your proxy requires X-AI-Key'}" onblur="SettingsFeature.setAISecret(this.value)">
         </div>
         <div class="form-group">
           <label>OCR model (document reading)</label>
@@ -537,6 +539,13 @@ const SettingsFeature = {
 
   // Central persist helper — keeps every setter in sync with one call
   persist() {
+    // The AI shared secret is deliberately NOT persisted (no localStorage,
+    // no DB, no backup): it lives only in sessionStorage for the lifetime of
+    // this browser session. persist() saves everything else about the AI
+    // config (enabled, proxyUrl, models) — the secret is restored to CONFIG
+    // on boot from sessionStorage (see AIService.readSecret) so this session
+    // keeps working, and any stored config never carries it.
+    const aiWithoutSecret = CONFIG.ai ? { ...CONFIG.ai, secret: undefined } : CONFIG.ai;
     const toSave = {
       advisorName: CONFIG.advisorName,
       companyName: CONFIG.companyName,
@@ -554,7 +563,7 @@ const SettingsFeature = {
       distanceUnit: CONFIG.distanceUnit,
       measurementUnit: CONFIG.measurementUnit,
       commission: CONFIG.commission,
-      ai: CONFIG.ai,
+      ai: aiWithoutSecret,
       autoMessages: CONFIG.autoMessages,
       onboardingComplete: true
     };
@@ -596,9 +605,13 @@ const SettingsFeature = {
     // tapping past the field would quietly wipe a working secret.
     const trimmed = (value || '').trim();
     if (!trimmed) return;
+    // Session-only: the secret lives in sessionStorage (cleared when the
+    // tab/browser closes) and in CONFIG.ai.secret for this session only —
+    // never in the persisted config or a backup.
+    try { sessionStorage.setItem('advisoros_ai_secret', trimmed); } catch (e) { /* private mode */ }
     CONFIG.ai = { ...(CONFIG.ai || {}), secret: trimmed };
-    this.persist();
-    Toast.show('AI secret saved', 'success');
+    this.persist(); // persists everything EXCEPT the secret
+    Toast.show('AI secret saved for this session', 'success');
   },
 
   setAIModel(key, value) {

@@ -12,10 +12,18 @@ const AIService = {
   // ---- config helpers ----
   config() {
     const ai = CONFIG.ai || {};
+    // The shared secret is session-only by design: it is never persisted to
+    // localStorage/DB/backup. On boot it is restored into CONFIG.ai.secret
+    // from sessionStorage; this fallback covers any caller that reads config
+    // before that restore runs (e.g. feature init hooks).
+    let secret = ai.secret || '';
+    if (!secret) {
+      try { secret = sessionStorage.getItem('advisoros_ai_secret') || ''; } catch (e) { /* private mode */ }
+    }
     return {
       enabled: !!ai.enabled,
       proxyUrl: ai.proxyUrl || '',
-      secret: ai.secret || '',
+      secret,
       ocrModel: ai.ocrModel || 'claude-sonnet-4-5',
       draftModel: ai.draftModel || 'claude-haiku-4-5'
     };

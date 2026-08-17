@@ -434,7 +434,7 @@ const AppointmentsFeature = {
     const area = this.getPostcodeArea(query);
     const normalizedQuery = this.normalizeBookingText(query);
     const customers = await DB.getAllCustomers();
-    const appointments = await DB.db.appointments.toArray();
+    const appointments = await DB.getAllAppointments();
     const orders = await DB.db.orders.toArray();
 
     const customerMatches = customers.filter(c => {
@@ -896,9 +896,9 @@ const AppointmentsFeature = {
       // display, but existing visit cards store their own copy of name/phone/
       // address at booking time - keep those in sync too so the fix is visible
       // everywhere, not just on the customer profile.
-      const appts = await DB.db.appointments.where('customerId').equals(customerId).toArray();
+      const appts = await DB.getAppointmentsByCustomer(customerId);
       for (const appt of appts) {
-        await DB.db.appointments.update(appt.id, { clientName: name, phone, address });
+        await DB.updateAppointment(appt.id, { clientName: name, phone, address });
       }
 
       App.closeModal();
@@ -1034,7 +1034,7 @@ const AppointmentsFeature = {
     let appt = null;
     let customer = null;
     try {
-      appt = await DB.db.appointments.get(id);
+      appt = await DB.getAppointment(id);
       customer = appt?.customerId ? await DB.getCustomer(appt.customerId) : null;
     } catch (e) {
       Toast.show('Could not load visit', 'error');
@@ -1497,7 +1497,7 @@ const AppointmentsFeature = {
   async renderDetail(id) {
     let appt = null;
     try {
-      appt = await DB.db.appointments.get(id);
+      appt = await DB.getAppointment(id);
     } catch (e) {
       console.error('Failed to load visit:', e);
     }
@@ -1997,7 +1997,7 @@ const AppointmentsFeature = {
   },
 
   async offerBookingConfirmation(appointmentId) {
-    const appt = await DB.db.appointments.get(appointmentId);
+    const appt = await DB.getAppointment(appointmentId);
     if (!appt) { App.navigate('appointments'); return; }
     const customer = appt.customerId ? await DB.getCustomer(appt.customerId) : null;
     const phone = customer?.phone || appt.phone;
@@ -2399,7 +2399,7 @@ const AppointmentsFeature = {
   },
 
   async openRescheduleModal(id) {
-    const appt = await DB.db.appointments.get(id);
+    const appt = await DB.getAppointment(id);
     if (!appt) {
       Toast.show('Visit not found', 'error');
       return;
@@ -2460,7 +2460,7 @@ const AppointmentsFeature = {
   },
 
   async saveReschedule(id, forceTravel = false, draft = null) {
-    const appt = await DB.db.appointments.get(id);
+    const appt = await DB.getAppointment(id);
     if (!appt) {
       Toast.show('Visit not found', 'error');
       return;
@@ -2499,7 +2499,7 @@ const AppointmentsFeature = {
     const previous = `${Utils.formatDate(appt.date, 'short')} ${Utils.formatTime(appt.date)}`;
     const existingNotes = appt.notes || '';
     const moveNote = `Moved from ${previous}${data.reason ? `: ${data.reason}` : ''}`;
-    await DB.db.appointments.update(id, {
+    await DB.updateAppointment(id, {
       date: newDate,
       durationSlots: data.durationSlots,
       arrivalStart: data.arrivalStart || null,
@@ -2513,7 +2513,7 @@ const AppointmentsFeature = {
   },
 
   async openEditDetailsModal(id) {
-    const appt = await DB.db.appointments.get(id);
+    const appt = await DB.getAppointment(id);
     if (!appt) {
       Toast.show('Visit not found', 'error');
       return;
@@ -2571,7 +2571,7 @@ const AppointmentsFeature = {
   },
 
   async saveEditDetails(id, forceTravel = false, draft = null) {
-    const appt = await DB.db.appointments.get(id);
+    const appt = await DB.getAppointment(id);
     if (!appt) {
       Toast.show('Visit not found', 'error');
       return;
@@ -2627,7 +2627,7 @@ const AppointmentsFeature = {
     }
 
     try {
-      await DB.db.appointments.update(id, {
+      await DB.updateAppointment(id, {
         clientName: data.name,
         phone: data.phone,
         address: data.address,
@@ -2664,7 +2664,7 @@ const AppointmentsFeature = {
   },
 
   async openCancelModal(id) {
-    const appt = await DB.db.appointments.get(id);
+    const appt = await DB.getAppointment(id);
     if (!appt) {
       Toast.show('Visit not found', 'error');
       return;
@@ -2706,14 +2706,14 @@ const AppointmentsFeature = {
   async cancelAppointment(id) {
     const reason = document.getElementById('cancel-reason')?.value || 'cancelled';
     const note = document.getElementById('cancel-note')?.value.trim() || '';
-    const appt = await DB.db.appointments.get(id);
+    const appt = await DB.getAppointment(id);
     if (!appt) {
       Toast.show('Visit not found', 'error');
       return;
     }
     const existingNotes = appt.notes || '';
     const cancelNote = `Cancelled: ${reason.replace(/_/g, ' ')}${note ? ` - ${note}` : ''}`;
-    await DB.db.appointments.update(id, {
+    await DB.updateAppointment(id, {
       status: 'cancelled',
       cancellationReason: reason,
       notes: [existingNotes, cancelNote].filter(Boolean).join('\n\n')
@@ -2736,7 +2736,7 @@ const AppointmentsFeature = {
   },
 
   async openEditNotesModal(id) {
-    const appt = await DB.db.appointments.get(id);
+    const appt = await DB.getAppointment(id);
     if (!appt) {
       Toast.show('Visit not found', 'error');
       return;
@@ -2764,7 +2764,7 @@ const AppointmentsFeature = {
   async saveNotes(id) {
     const notes = document.getElementById('edit-appt-notes')?.value.trim() || '';
     try {
-      await DB.db.appointments.update(id, { notes });
+      await DB.updateAppointment(id, { notes });
       App.closeModal();
       Toast.show('Notes saved', 'success');
       App.navigate('appointments', { id });
@@ -2775,7 +2775,7 @@ const AppointmentsFeature = {
   },
 
   async openChangeOutcomeModal(id) {
-    const appt = await DB.db.appointments.get(id);
+    const appt = await DB.getAppointment(id);
     if (!appt) {
       Toast.show('Visit not found', 'error');
       return;
@@ -2799,7 +2799,7 @@ const AppointmentsFeature = {
   async captureOutcome(id, outcomeId) {
     let appt = null;
     try {
-      appt = await DB.db.appointments.get(id);
+      appt = await DB.getAppointment(id);
     } catch (e) {
       Toast.show('Visit not found', 'error');
       return;
@@ -3037,13 +3037,13 @@ const AppointmentsFeature = {
     }
 
     try {
-      let appt = await DB.db.appointments.get(id);
+      let appt = await DB.getAppointment(id);
       const existingNotes = appt.notes || '';
       const reasonText = reason ? `Reason: ${reason.replace(/_/g, ' ')}` : '';
       const discountText = discountPct > 0 ? `Discount: ${discountPct}% off ${Utils.formatCurrency(grossValue)}` : '';
       const outcomeNote = [reasonText, discountText, notes ? `Outcome: ${notes}` : ''].filter(Boolean).join('\n');
 
-      await DB.db.appointments.update(id, {
+      await DB.updateAppointment(id, {
         status: 'completed',
         outcome: outcomeId,
         // Fields that are being "cleared" use `null`, NOT `undefined` - the
@@ -3163,7 +3163,7 @@ const AppointmentsFeature = {
 
   bookServiceCallNow(appointmentId) {
     App.closeModal();
-    DB.db.appointments.get(appointmentId).then(appt => {
+    DB.getAppointment(appointmentId).then(appt => {
       App.navigate('appointments', {
         action: 'add',
         type: 'service_call',
@@ -3192,7 +3192,7 @@ const AppointmentsFeature = {
   async openFloorCheckModal(id) {
     let appt;
     try {
-      appt = await DB.db.appointments.get(id);
+      appt = await DB.getAppointment(id);
     } catch (e) {
       Toast.show('Visit not found', 'error');
       return;

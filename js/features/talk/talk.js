@@ -400,7 +400,7 @@ const TalkFeature = {
     let customer = null;
 
     try {
-      appt = await DB.db.appointments.get(appointmentId);
+      appt = await DB.getAppointment(appointmentId);
     } catch (e) {
       Toast.show('Visit not found', 'error');
       return;
@@ -667,7 +667,7 @@ const TalkFeature = {
   async buildAiContext(pending) {
     const { customerId, appointmentId, templateKey } = pending;
     const customer = customerId ? await DB.getCustomer(customerId) : null;
-    const appt = appointmentId ? await DB.db.appointments.get(appointmentId) : null;
+    const appt = appointmentId ? await DB.getAppointment(appointmentId) : null;
 
     // Order history supports "your order is on its way" style draft contexts,
     // and the deposit/balance figures make a payment reminder (or a
@@ -787,7 +787,7 @@ const TalkFeature = {
   async buildMessageContext(pending) {
     const { customerId, appointmentId, templateKey } = pending;
     const customer = customerId ? await DB.getCustomer(customerId) : null;
-    const appt = appointmentId ? await DB.db.appointments.get(appointmentId) : null;
+    const appt = appointmentId ? await DB.getAppointment(appointmentId) : null;
 
     // First-visit at this address = no prior non-cancelled appointment
     // (cancel/reshuffle ≠ having actually visited). Date-compare with
@@ -797,7 +797,7 @@ const TalkFeature = {
     let measuresByAppt = {};
     try {
       if (customerId) {
-        const all = await DB.db.appointments.where('customerId').equals(customerId).toArray();
+        const all = await DB.getAppointmentsByCustomer(customerId);
         all.sort((a, b) => new Date(a.date) - new Date(b.date));
         pastVisits = all.filter(a => a.date && new Date(a.date) < new Date() && a.status !== 'cancelled' && a.id !== appointmentId);
         const seen = new Set();

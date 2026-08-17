@@ -126,6 +126,9 @@ global.DB = {
   getExpensesForPeriod: async () => [{ amount: 80.2, category: 'fuel' }, { amount: 65, category: 'fuel' }],
   getTripsForPeriod: async () => [{ distanceKm: 120 }, { distanceKm: 98 }],
   getUpcomingAppointments: async () => APPOINTMENTS.filter(a => a.status !== 'cancelled'),
+  getAppointment: async id => APPOINTMENTS.find(a => a.id === id) || null,
+  getAllAppointments: async () => APPOINTMENTS,
+  getAppointmentsByCustomer: async customerId => APPOINTMENTS.filter(a => a.customerId === customerId),
   getCustomer: async id => CUSTOMERS.find(c => c.id === id) || null,
   getCustomersByIds: async ids => CUSTOMERS.filter(c => ids.includes(c.id))
 };

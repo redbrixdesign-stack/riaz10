@@ -77,7 +77,7 @@ const CompanionFeature = {
       }
     } catch (e) { /* no order data */ }
     try {
-      const visits = await DB.db.appointments.where('customerId').equals(appt.customerId).toArray();
+      const visits = await DB.getAppointmentsByCustomer(appt.customerId);
       const past = visits
         .filter(v => v.id !== appt.id && v.outcome && new Date(v.date) < new Date())
         .sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -504,7 +504,7 @@ const CompanionFeature = {
     // Unsent messages (intro, day-before, morning-of)
     let messagesDue = 0;
     const pastFirstVisit = new Set();
-    for (const a of (await DB.db.appointments.toArray())) {
+    for (const a of (await DB.getAllAppointments())) {
       if (!a.customerId || a.status === 'cancelled') continue;
       if (new Date(a.date) >= new Date()) continue;
       pastFirstVisit.add(a.customerId);
@@ -1202,7 +1202,7 @@ const CompanionFeature = {
     const c = customers[0].data;
     let appts = [];
     let orders = [];
-    try { appts = await DB.db.appointments.where('customerId').equals(c.id).toArray(); } catch (e) {}
+    try { appts = await DB.getAppointmentsByCustomer(c.id); } catch (e) {}
     try { orders = await DB.db.orders.where('customerId').equals(c.id).toArray(); } catch (e) {}
 
     const now = new Date();
@@ -1397,7 +1397,7 @@ const CompanionFeature = {
     let upcoming = [];
     let allAppts = [];
     try { upcoming = await DB.getUpcomingAppointments(60); } catch (e) {}
-    try { allAppts = await DB.db.appointments.toArray(); } catch (e) {}
+    try { allAppts = await DB.getAllAppointments(); } catch (e) {}
 
     const now = new Date();
     const pastFirstVisit = new Set();
@@ -1472,7 +1472,7 @@ const CompanionFeature = {
     let allAppts = [];
     try {
       todayAppts = (await DB.getAppointmentsForDate(today.toISOString())).filter(a => a.status !== 'cancelled');
-      allAppts = await DB.db.appointments.toArray();
+      allAppts = await DB.getAllAppointments();
     } catch (e) {}
 
     // Find the most recent completed/outcome-logged visit today
@@ -1559,7 +1559,7 @@ const CompanionFeature = {
     let allAppts = [];
     try {
       todayAppts = (await DB.getAppointmentsForDate(today.toISOString())).filter(a => a.status !== 'cancelled');
-      allAppts = await DB.db.appointments.toArray();
+      allAppts = await DB.getAllAppointments();
     } catch (e) {}
 
     const facts = [];

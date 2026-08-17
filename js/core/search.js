@@ -96,11 +96,14 @@ const Search = {
           results.filter(r => r.type === 'customer').map(r => r.id)
         );
 
-        const appointments = await DB.db.appointments
+        // Notes are encrypted at rest, so the notes match must run against
+        // decrypted rows (DB.getAllAppointments decrypts PII) rather than a
+        // raw IndexedDB filter. The customer-id match alone could stay raw,
+        // but the notes OR-clause forces the decrypted read anyway.
+        const appointments = (await DB.getAllAppointments())
           .filter(a => matchedCustomerIds.has(a.customerId) ||
                        (a.notes && a.notes.toLowerCase().includes(normalized)))
-          .limit(10)
-          .toArray();
+          .slice(0, 10);
 
         // Batch fetch the customers these appointments belong to, instead
         // of an IndexedDB round-trip per appointment. The previous code

@@ -83,6 +83,19 @@ const App = {
       console.log('No DB config yet');
     }
 
+    // Restore the AI shared secret for this session: it is never persisted
+    // (config/DB/backup), so the only source is sessionStorage, which is
+    // cleared when the tab/browser closes. This is a deliberate trade-off —
+    // the secret is a shared gate against quota-burning, not true auth, so
+    // requiring a re-entry per session is acceptable and keeps it out of
+    // at-rest storage entirely.
+    try {
+      const sessionSecret = sessionStorage.getItem('advisoros_ai_secret');
+      if (sessionSecret) {
+        CONFIG.ai = { ...(CONFIG.ai || {}), secret: sessionSecret };
+      }
+    } catch (e) { /* private mode — no session storage */ }
+
     this.migrateConfig();
 
     // Setup navigation

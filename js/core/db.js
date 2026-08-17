@@ -13,6 +13,11 @@ const BACKUP_TABLES = ['customers', 'appointments', 'orders', 'expenses', 'trips
 // ============================================
 const PII_FIELDS = ['firstName', 'lastName', 'phone', 'email', 'address'];
 const ADDRESS_PII_FIELDS = ['line1', 'town', 'city', 'postcode', 'postcodeNormalized'];
+// Appointment rows carry their own copy of customer-identifying fields at
+// booking time (the visit card shows them without a customer lookup), plus
+// notes that routinely hold Access:/Parking: details. Encrypt them at rest
+// like customer PII, so a copied IndexedDB file doesn't leak who/where/when.
+const APPT_PII_FIELDS = ['clientName', 'phone', 'address', 'notes'];
 const PBKDF2_ITERATIONS = 100000;
 const KEY_LENGTH = 256;
 const IV_LENGTH = 12;
@@ -171,6 +176,52 @@ async function migratePlaintextCustomers() {
   }
 }
 
+// Appointment PII — encrypts clientName/phone/address/notes (string fields
+// only; non-string values such as latLng are left untouched).
+async function encryptAppointment(appointment) {
+  const encrypted = { ...appointment };
+  for (const field of APPT_PII_FIELDS) {
+    const value = encrypted[field];
+    if (typeof value === 'string' && value.length > 0 && !isEncrypted(value)) {
+      encrypted[field] = await encryptField(value);
+    }
+  }
+  return encrypted;
+}
+
+async function decryptAppointment(appointment) {
+  if (!appointment) return appointment;
+  const decrypted = { ...appointment };
+  for (const field of APPT_PII_FIELDS) {
+    if (isEncrypted(decrypted[field])) {
+      decrypted[field] = await decryptField(decrypted[field]);
+    }
+  }
+  return decrypted;
+}
+
+async function migratePlaintextAppointments() {
+  if (!encryptionKey) return;
+  const rows = await DB.db.appointments.toArray();
+  let migrated = 0;
+  for (const appt of rows) {
+    let needsUpdate = false;
+    for (const field of APPT_PII_FIELDS) {
+      if (typeof appt[field] === 'string' && appt[field].length > 0 && !isEncrypted(appt[field])) {
+        needsUpdate = true;
+        break;
+      }
+    }
+    if (needsUpdate) {
+      await DB.db.appointments.put(await encryptAppointment(appt));
+      migrated++;
+    }
+  }
+  if (migrated) {
+    console.log(`Encrypted ${migrated} appointment record(s)`);
+  }
+}
+
 const DB = {
   db: null,
 
@@ -246,6 +297,9 @@ const DB = {
 
     // One-time migration: encrypt any plaintext customer PII fields
     await migratePlaintextCustomers();
+
+    // One-time migration: encrypt any plaintext appointment PII fields
+    await migratePlaintextAppointments();
 
     console.log('Database initialized');
   },
@@ -612,8 +666,36 @@ const DB = {
       createdAt: new Date().toISOString()
     };
 
-    const id = await this.db.appointments.add(appointment);
+    const encrypted = await encryptAppointment(appointment);
+    const id = await this.db.appointments.add(encrypted);
     return { ...appointment, id };
+  },
+
+  // Update an appointment row, encrypting PII fields so updates never write
+  // plaintext into the encrypted columns (mirrors updateCustomer).
+  async updateAppointment(id, fields) {
+    const encrypted = await encryptAppointment(fields);
+    await this.db.appointments.update(id, encrypted);
+  },
+
+  // Single appointment with PII decrypted. All detail screens must use this
+  // rather than DB.db.appointments.get(id) directly.
+  async getAppointment(id) {
+    const row = await this.db.appointments.get(id);
+    return row ? decryptAppointment(row) : null;
+  },
+
+  // All appointments with PII decrypted (used by search, area analytics and
+  // features that scan the whole table for date/outcome logic).
+  async getAllAppointments() {
+    const rows = await this.db.appointments.toArray();
+    return Promise.all(rows.map(a => decryptAppointment(a)));
+  },
+
+  // Every appointment for a customer, decrypted (customer-360 timeline).
+  async getAppointmentsByCustomer(customerId) {
+    const rows = await this.db.appointments.where('customerId').equals(customerId).toArray();
+    return Promise.all(rows.map(a => decryptAppointment(a)));
   },
 
   // Appointment rows can hold `date` as a Date object (older storage
@@ -639,7 +721,8 @@ const DB = {
     const end = new Date(start.getTime() + 86400000);
 
     const rows = await this.db.appointments.toArray();
-    return rows.filter(a => a.status !== 'cancelled' && this._inDateWindow(a.date, start, end));
+    const matched = rows.filter(a => a.status !== 'cancelled' && this._inDateWindow(a.date, start, end));
+    return Promise.all(matched.map(a => decryptAppointment(a)));
   },
 
   // Generic date-range fetch — used by the standard month calendar view.
@@ -652,7 +735,8 @@ const DB = {
     const end = new Date(endDate);
 
     const rows = await this.db.appointments.toArray();
-    return rows.filter(a => a.status !== 'cancelled' && this._inDateWindow(a.date, start, end));
+    const matched = rows.filter(a => a.status !== 'cancelled' && this._inDateWindow(a.date, start, end));
+    return Promise.all(matched.map(a => decryptAppointment(a)));
   },
 
   async getUpcomingAppointments(days = 7) {
@@ -665,9 +749,10 @@ const DB = {
     // .find(), and insertion order (row id) is NOT booking date order, so an
     // appointment booked later for an earlier date would otherwise mask the
     // ones in between (e.g. a 24th created before two 17ths).
-    return rows
+    const matched = rows
       .filter(a => a.status !== 'cancelled' && this._inDateWindow(a.date, now, future))
       .sort((a, b) => new Date(a.date) - new Date(b.date));
+    return Promise.all(matched.map(a => decryptAppointment(a)));
   },
 
   // Canonical weekly stats: sales value, earnings (commission) and order
@@ -721,7 +806,8 @@ const DB = {
       .toArray();
 
     // Sort by date ascending (oldest first = most urgent)
-    return results.sort((a, b) => new Date(a.date) - new Date(b.date));
+    const sorted = results.sort((a, b) => new Date(a.date) - new Date(b.date));
+    return Promise.all(sorted.map(a => decryptAppointment(a)));
   },
 
   // Order operations
@@ -910,6 +996,11 @@ const DB = {
     if (data.customers && data.customers.length) {
       data.customers = await Promise.all(data.customers.map(c => decryptCustomer(c)));
     }
+    // Same for appointment PII (clientName/phone/address/notes): export the
+    // readable record, re-encrypt on import.
+    if (data.appointments && data.appointments.length) {
+      data.appointments = await Promise.all(data.appointments.map(a => decryptAppointment(a)));
+    }
     const RUNTIME_SETTING_KEYS = ['__v6_legacy_migrated__', '__storage_probe__', 'pitchDemoSeeded'];
     data.settings = (await this.db.settings.toArray()).filter(s => !RUNTIME_SETTING_KEYS.includes(s.key));
     data.sequences = await this.db.sequences.toArray();
@@ -923,13 +1014,17 @@ const DB = {
     // is rejected wholesale; partial imports are impossible by construction.
     await this._validateBackup(data);
 
-    // Prepare encrypted customer records before the transaction (encryption
-    // is async and would otherwise yield, causing the transaction to become
-    // inactive).
+    // Prepare encrypted customer/appointment records before the transaction
+    // (encryption is async and would otherwise yield, causing the transaction
+    // to become inactive).
     let importData = data;
     if (encryptionKey && data.customers) {
       importData = { ...data };
       importData.customers = await Promise.all(data.customers.map(c => encryptCustomer(c)));
+    }
+    if (encryptionKey && importData.appointments) {
+      importData = { ...importData };
+      importData.appointments = await Promise.all(importData.appointments.map(a => encryptAppointment(a)));
     }
 
     // On the real engine this is a single atomic readwrite transaction
@@ -1069,7 +1164,13 @@ const DB = {
     };
 
     for (const record of data.appointments || []) {
-      checkRef('appointments', record, 'customerId', customerIds);
+      // customerId is OPTIONAL on appointments: phone conversions can be
+      // typed straight onto the visit with no customer record yet (the
+      // follow-ups "first-time customer" path and the visit card both handle
+      // customerId-less rows). Validate only when a customerId is supplied.
+      if (record.customerId !== null && record.customerId !== undefined) {
+        checkRef('appointments', record, 'customerId', customerIds);
+      }
     }
     for (const record of data.orders || []) {
       checkRef('orders', record, 'customerId', customerIds);
@@ -1085,10 +1186,18 @@ const DB = {
       checkRef('measurements', record, 'appointmentId', appointmentIds);
     }
     for (const record of data.trips || []) {
-      checkRef('trips', record, 'appointmentId', appointmentIds);
+      // appointmentId is OPTIONAL on trips: standalone mileage logs (money
+      // screen "Log Mileage") have no linked visit. Validate only when set.
+      if (record.appointmentId !== null && record.appointmentId !== undefined) {
+        checkRef('trips', record, 'appointmentId', appointmentIds);
+      }
     }
     for (const record of data.communications || []) {
-      checkRef('communications', record, 'customerId', customerIds);
+      // customerId is OPTIONAL on communications: EOD notes (Today screen
+      // "Complete day") and app-level notes are written without a customer.
+      if (record.customerId !== null && record.customerId !== undefined) {
+        checkRef('communications', record, 'customerId', customerIds);
+      }
     }
     for (const record of data.photos || []) {
       checkRef('photos', record, 'customerId', customerIds);
@@ -1150,6 +1259,9 @@ if (typeof window !== 'undefined') {
   window.encryptCustomer = encryptCustomer;
   window.decryptCustomer = decryptCustomer;
   window.migratePlaintextCustomers = migratePlaintextCustomers;
+  window.encryptAppointment = encryptAppointment;
+  window.decryptAppointment = decryptAppointment;
+  window.migratePlaintextAppointments = migratePlaintextAppointments;
   window.isEncrypted = isEncrypted;
   window.encryptField = encryptField;
   window.decryptField = decryptField;
