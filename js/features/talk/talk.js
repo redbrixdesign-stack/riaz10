@@ -5,7 +5,7 @@
 
 const TalkFeature = {
   id: 'talk',
-  name: 'Talk',
+  name: 'Messages',
   icon: 'chat',
   // No longer a bottom-nav tab (see the Home screen redesign) - the
   // follow-up queue this screen builds is now surfaced as a badge on Home
@@ -249,7 +249,7 @@ const TalkFeature = {
     const nextName = nextVisit ? (nextVisit.clientName || 'next visit') : null;
 
     return `<div class="fade-in">
-      ${App.renderTopHeader({ title: 'Talk' })}
+      ${App.renderTopHeader({ title: 'Messages' })}
       <div class="px-md" >
         ${this.renderUrgentActions(nextId, nextName)}
 

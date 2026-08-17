@@ -285,7 +285,7 @@ const FollowupsFeature = {
             <div class="divider-text">Quick opens</div>
             <div class="grid-2 gap-sm" >
               <button class="btn btn-outline btn-sm" onclick="App.navigate('orders')"><span class="material-symbols-rounded">view_kanban</span>Orders board</button>
-              <button class="btn btn-outline btn-sm" onclick="App.navigate('talk')"><span class="material-symbols-rounded">chat</span>Talk</button>
+              <button class="btn btn-outline btn-sm" onclick="App.navigate('talk')"><span class="material-symbols-rounded">chat</span>Messages</button>
             </div>
           </div>
         </div>

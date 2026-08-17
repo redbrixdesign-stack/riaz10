@@ -275,7 +275,10 @@
 }
 
 .sheet-body {
-  padding: var(--space-md) var(--space-md) calc(var(--space-md) + var(--safe-bottom));
+  /* Extra bottom clearance so the last actionable element never sits behind
+     the bottom nav (the sheet overlays it). safe-bottom covers the iOS home
+     indicator; nav-height clears the fixed nav bar. */
+  padding: var(--space-md) var(--space-md) calc(var(--space-md) + var(--safe-bottom) + var(--nav-height));
 }
 
 .sheet-handle {

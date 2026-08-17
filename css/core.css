@@ -360,13 +360,16 @@ button:not(:disabled):active,
 }
 
 .btn-primary {
-  background: var(--surface-elevated);
-  color: var(--text-primary);
+  /* Gold fill = the app's primary-action colour (design system: gold is
+     brand + primary CTA). Black-on-gold measures 11.4:1, so the label
+     stays AA even at 15px. Distinct from .btn-outline/.btn-ghost at a glance. */
+  background: var(--accent);
+  color: var(--accent-contrast);
   border: 1px solid var(--accent);
 }
 
 .btn-primary:active {
-  background: var(--surface-muted);
+  background: color-mix(in srgb, var(--accent) 88%, #000);
 }
 
 .btn-secondary {
