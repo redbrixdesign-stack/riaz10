@@ -118,6 +118,13 @@ Original audit: **6.2/10 — "Conditionally ready – fix P0 first"**.
 | Legal (UK/EU) | 4.0 | 4.0 | **Phase 2 not done** — privacy policy, terms, consent, company details, data-deletion flow |
 | GTM         | 3.5   | 4.5 | install prompt ships; no marketing site/launch plan |
 
+**Update (Phase 2 shipped, commit a29b213):** the legal gate is cleared —
+privacy policy + terms pages, one-time consent notice, GDPR-framed
+erasure flow and operator block now ship (`docs/PHASE2-LEGAL.md`). Legal
+re-scores 4.0 → 7.5 (only the operator details placeholders and an
+optional practitioner review remain), lifting the weighted verdict to
+**≈ 8.0/10 — "Ready for launch; fill the operator details block first."**
+
 **New verdict: 7.1/10 — "Ready for controlled launch; public launch gated
 on Phase 2 (legal)".** Technical readiness is launch-grade (0 axe
 serious/critical, PWA verified live, security posture strong). The
