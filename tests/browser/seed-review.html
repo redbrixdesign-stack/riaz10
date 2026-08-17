@@ -136,6 +136,48 @@
   const aNextWk1 = await appt({ customerId: AMELIA, clientName: 'Amelia Green',    date: ukDay(8, 10),   type: 'consultation', latLng: [53.326, -2.233], address: '9 Birch Lane, Wilmslow SK9 5AA' });
   const aNextWk2 = await appt({ customerId: JOHN,   clientName: 'John Smith',      date: ukDay(10, 14),  type: 'measure', latLng: [53.424, -2.322], address: '27 Oakfield Road, Sale M33 4AA' });
 
+  // ---- demo appointments: a guaranteed spread across the current UK
+  // ---- week (Mon–Sun), a few next week, and one next month. Weekday-
+  // ---- anchored (not relative to today) so the Home week strip and My
+  // ---- Day always show a full week no matter which day the seed runs on.
+  // weekday: 0=Mon … 6=Sun of the current UK week; weekOffset adds weeks.
+  const ukWeekday = (weekday, hour, minute = 0, weekOffset = 0) => {
+    const p = ukParts(new Date());
+    const dow = new Date(Date.UTC(p.year, p.month - 1, p.day)).getUTCDay();
+    const day = p.day - ((dow + 6) % 7) + weekday + weekOffset * 7;
+    const base = ukMidnight(p.year, p.month, day);
+    base.setTime(base.getTime() + (hour * 3600 + minute * 60) * 1000);
+    return base.toISOString();
+  };
+  // Same day-of-month in the NEXT calendar month.
+  const ukNextMonth = (dayOfMonth, hour, minute = 0) => {
+    const p = ukParts(new Date());
+    const year = p.month === 12 ? p.year + 1 : p.year;
+    const month = p.month === 12 ? 1 : p.month + 1;
+    const base = ukMidnight(year, month, dayOfMonth);
+    base.setTime(base.getTime() + (hour * 3600 + minute * 60) * 1000);
+    return base.toISOString();
+  };
+
+  // This week — one visit on every weekday (all open, so the week strip
+  // and diary are full; weekdays already past show in the strip/My Day,
+  // future ones also appear in the Home feed).
+  await appt({ customerId: SARAH,  clientName: 'Sarah Johnson',     date: ukWeekday(0, 9, 30),  type: 'consultation', latLng: [53.410, -2.157], address: '14 Beechwood Avenue, Stockport SK1 4AA' });
+  await appt({ customerId: HANNAH, clientName: 'Hannah Whitfield',  date: ukWeekday(1, 10),     type: 'consultation', latLng: [53.453, -2.257], address: '18 Dale Road, Manchester M16 2AA' });
+  await appt({ customerId: AMINA,  clientName: 'Amina Patel',       date: ukWeekday(2, 14, 30), type: 'measure',      latLng: [53.430, -2.330], address: '5 Ash Grove, Sale M33 4BB' });
+  await appt({ customerId: KHAN,   clientName: 'Mr & Mrs Khan',     date: ukWeekday(3, 11),     type: 'measure',      latLng: [53.418, -2.231], address: '31 Larkspur Road, Manchester M22 5AA' });
+  await appt({ customerId: JOHN,   clientName: 'John Smith',        date: ukWeekday(4, 16),     type: 'fitting',      latLng: [53.424, -2.322], address: '27 Oakfield Road, Sale M33 4AA' });
+  await appt({ customerId: AMELIA, clientName: 'Amelia Green',      date: ukWeekday(5, 10, 30), type: 'fitting',      latLng: [53.326, -2.233], address: '9 Birch Lane, Wilmslow SK9 5AA' });
+  await appt({ customerId: DAVID,  clientName: "David O'Leary",     date: ukWeekday(6, 12),     type: 'consultation', latLng: [53.400, -2.350], address: "St Mary's Court, Altrincham M22 2AA" });
+
+  // Next week — a few spread across it.
+  await appt({ customerId: TOM,    clientName: 'Tom Hardcastle',    date: ukWeekday(0, 10, 0, 1), type: 'fitting',      latLng: [53.360, -2.170], address: '3 Cypress Close, Stockport SK7 5AA' });
+  await appt({ customerId: SARAH,  clientName: 'Sarah Johnson',     date: ukWeekday(2, 9, 30, 1), type: 'measure',      latLng: [53.410, -2.157], address: '14 Beechwood Avenue, Stockport SK1 4AA' });
+  await appt({ customerId: AMELIA, clientName: 'Amelia Green',      date: ukWeekday(4, 14, 0, 1), type: 'consultation', latLng: [53.326, -2.233], address: '9 Birch Lane, Wilmslow SK9 5AA' });
+
+  // Next month — one visit.
+  await appt({ customerId: TOM,    clientName: 'Tom Hardcastle',    date: ukNextMonth(10, 11),   type: 'measure',      latLng: [53.360, -2.170], address: '3 Cypress Close, Stockport SK7 5AA' });
+
   const aTom2     = await appt({ customerId: TOM,    clientName: 'Tom Hardcastle',  date: ukDay(-1, 16),  type: 'fitting', outcome: 'completed', status: 'completed', latLng: [53.360, -2.170], address: '3 Cypress Close, Stockport SK7 5AA' });
   const aSarah3   = await appt({ customerId: SARAH,  clientName: 'Sarah Johnson',   date: daysAgo(2),     type: 'consultation', outcome: 'thinking',  status: 'completed', latLng: [53.410, -2.157], address: '14 Beechwood Avenue, Stockport SK1 4AA' });
   const aDavid1   = await appt({ customerId: DAVID,  clientName: "David O'Leary",   date: daysAgo(3),     type: 'service_call', outcome: 'parts_needed', status: 'completed', latLng: [53.400, -2.350], address: "St Mary's Court, Altrincham M22 2AA", notes: 'Blind jammed after install — bracket bolt sheared. Ordered replacement bracket.' });
