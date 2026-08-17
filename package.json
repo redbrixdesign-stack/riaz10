@@ -28,8 +28,6 @@
     "terser": "^5.49.0"
   },
   "dependencies": {
-    "@upstash/redis": "^1.38.2",
-    "dotenv": "^17.4.2",
-    "express": "^5.2.1"
+    "@upstash/redis": "^1.38.2"
   }
 }

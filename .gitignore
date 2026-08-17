@@ -24,3 +24,10 @@ server/.env
 # e2e screenshots
 tests/browser/*.png
 .lighthouseci
+
+# Harness environment (never commit)
+deepseek-harness/
+
+# Generated screenshots (regenerable via tests/browser/capture-review.js)
+screenshots/
+screenshots-seeded/
