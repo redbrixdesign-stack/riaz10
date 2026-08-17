@@ -31,6 +31,9 @@ const SettingsFeature = {
     // so the index must not claim a connection that isn't there.
     const aiSummary = aiEnabled ? (ai.proxyUrl ? 'Connected' : 'Needs setup') : 'Off';
     const autoMsgEnabled = !!(CONFIG.autoMessages && CONFIG.autoMessages.enabled);
+    const consentSummary = (() => {
+      try { return localStorage.getItem('advisoros_consent') ? 'Acknowledged' : 'One-time notice pending'; } catch { return '—'; }
+    })();
     const commission = CONFIG.commission || {};
     const commissionMode = commission.mode || 'two_stage';
     const effectiveRate = TaxCalculator.getEffectiveCommissionRate();
@@ -113,6 +116,13 @@ const SettingsFeature = {
         icon: 'backup',
         summary: (App.state.storageStatus?.database && App.state.storageStatus?.localStorage) ? 'Persistent' : 'Check storage',
         description: 'Export, import, factory reset'
+      },
+      {
+        id: 'privacy',
+        title: 'Privacy & Legal',
+        icon: 'policy',
+        summary: consentSummary,
+        description: 'Privacy policy, terms, consent & erasure'
       }
     ];
 
@@ -156,7 +166,8 @@ const SettingsFeature = {
       'trade': this.renderTradeDetail(),
       'units': this.renderUnitsDetail(),
       'ai': this.renderAIDetail(),
-      'data': this.renderDataDetail()
+      'data': this.renderDataDetail(),
+      'privacy': this.renderPrivacyDetail()
     };
 
     const content = detailScreens[section] || this.renderIndex();
@@ -180,7 +191,8 @@ const SettingsFeature = {
       'trade': 'Trade',
       'units': 'Units',
       'ai': 'Claude AI',
-      'data': 'Data & Backup'
+      'data': 'Data & Backup',
+      'privacy': 'Privacy & Legal'
     };
     return titles[section] || 'Settings';
   },
@@ -537,6 +549,70 @@ const SettingsFeature = {
     `;
   },
 
+  renderPrivacyDetail() {
+    const consentAt = (() => {
+      try {
+        const raw = localStorage.getItem('advisoros_consent');
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return parsed.at ? new Date(parsed.at) : null;
+      } catch { return null; }
+    })();
+    const consentLine = consentAt
+      ? `Acknowledged ${consentAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
+      : 'Not yet acknowledged — the one-time notice shows when you first settle on Home.';
+    const c = typeof Legal !== 'undefined' ? Legal.COMPANY : null;
+
+    return `
+      <div class="card mb-md">
+        <div class="fw-700 mb-10" >Legal documents</div>
+        <div class="flex flex-col gap-sm">
+          <button class="btn btn-outline btn-sm btn-block" data-action="Legal.openPrivacy">
+            <span class="material-symbols-rounded mr-8">policy</span>Privacy Policy
+          </button>
+          <button class="btn btn-outline btn-sm btn-block" data-action="Legal.openTerms">
+            <span class="material-symbols-rounded mr-8">menu_book</span>Terms of Service
+          </button>
+        </div>
+        <div class="fs-11 text-tertiary mt-4" >Both pages are stored in the app, so they work offline.</div>
+      </div>
+
+      <div class="card mb-md">
+        <div class="fw-700 mb-10" >Consent</div>
+        <div class="fs-13 text-secondary mb-4" >${Utils.escapeHtml(consentLine)}</div>
+        <button class="btn btn-ghost btn-sm mt-2" data-action="ConsentPrompt.acknowledge">
+          <span class="material-symbols-rounded mr-8">check_circle</span>Acknowledge now
+        </button>
+      </div>
+
+      <div class="card mb-md">
+        <div class="fw-700 mb-10" >Your data, your control</div>
+        <div class="fs-13 text-secondary lh-150 mb-8" >
+          Beelo keeps everything on this device — there is nothing on our servers to
+          export or delete. You still have full control here:
+        </div>
+        <div class="flex flex-col gap-sm">
+          <button class="btn btn-outline btn-sm btn-block" data-action="ExportService.exportBackup">
+            <span class="material-symbols-rounded mr-8">download</span>Export my data (backup)
+          </button>
+          <button class="btn btn-outline btn-sm btn-block text-danger border-danger-soft" data-action="SettingsFeature.confirmWipe">
+            <span class="material-symbols-rounded mr-8">delete_forever</span>Delete all my data
+          </button>
+        </div>
+        <div class="fs-11 text-tertiary mt-4" >Deletion is permanent and can't be undone — see the Privacy Policy for how erasure works.</div>
+      </div>
+
+      <div class="card mb-md">
+        <div class="fw-700 mb-10" >Operator</div>
+        ${c ? `
+          <div class="fs-13 lh-150"><span class="text-tertiary">Name:</span> ${Utils.escapeHtml(c.name)}</div>
+          <div class="fs-13 lh-150"><span class="text-tertiary">Address:</span> ${Utils.escapeHtml(c.address)}</div>
+          <div class="fs-13 lh-150"><span class="text-tertiary">Email:</span> ${Utils.escapeHtml(c.email)}</div>
+          <div class="fs-13 lh-150"><span class="text-tertiary">Company no.:</span> ${Utils.escapeHtml(c.companyNumber)}</div>
+        ` : '<div class="fs-13 text-secondary" >Operator details pending.</div>'}
+      </div>`;
+  },
+
   // Central persist helper — keeps every setter in sync with one call
   persist() {
     // The AI shared secret is deliberately NOT persisted (no localStorage,
@@ -802,10 +878,14 @@ const SettingsFeature = {
         <div class="fs-14 text-secondary lh-150 mb-14" >
           This permanently deletes every customer, visit, order, photo, expense and message — plus all your settings and targets. There is <strong>no undo</strong>, so export a backup first if you might need this data again.
         </div>
+        <div class="fs-12 text-tertiary lh-150 mb-14" >
+          Under the Privacy Policy this is your right to erasure — the data lives only on this device, so deleting it here erases it permanently. No copy exists anywhere else unless you exported a backup yourself.
+        </div>
         <button class="btn btn-danger btn-block" data-action="SettingsFeature.confirmWipeFinal">
           <span class="material-symbols-rounded">warning</span> Yes — delete all my data
         </button>
         <button class="btn btn-outline btn-block mt-10"  data-action="App.closeModal">Cancel</button>
+        <button class="btn btn-ghost btn-block mt-10 fs-13" data-action="Legal.openPrivacy">Read the privacy policy</button>
       </div>
     `;
     App.openModal(content);

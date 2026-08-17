@@ -48,6 +48,9 @@ const hintVisible = page => page.evaluate(() => {
       sessionStorage.clear();
     }
     localStorage.setItem('advisoros_enc_test', '1');
+    // Pre-acknowledge the one-time consent notice — this suite tests the
+    // install hint, and InstallPrompt waits for consent before showing.
+    localStorage.setItem('advisoros_consent', JSON.stringify({ v: 1, at: new Date().toISOString() }));
     sessionStorage.setItem('ip_fresh', '1');
   });
   const page = await ctx.newPage();
@@ -62,6 +65,10 @@ const hintVisible = page => page.evaluate(() => {
   // Boot is done (passphrase prompt skipped via test flag) — drop the flag
   // so InstallPrompt (which suppresses itself in test mode) can trigger.
   await page.evaluate(() => localStorage.removeItem('advisoros_enc_test'));
+  // Seeded data can make MessageScheduler fire catch-up drafts at boot,
+  // opening a message-preview sheet that blocks the hint's "no modal open"
+  // guard. Close it; the hint appears on its next 12s retry.
+  await page.evaluate(() => { try { App.closeModal({ all: true, silent: true }); } catch (e) {} });
   await fireBIP(page);
   await page.waitForTimeout(13000); // hint is scheduled at 12s
 
@@ -95,6 +102,9 @@ const hintVisible = page => page.evaluate(() => {
       sessionStorage.clear();
     }
     localStorage.setItem('advisoros_enc_test', '1');
+    // Pre-acknowledge the one-time consent notice — this suite tests the
+    // install hint, and InstallPrompt waits for consent before showing.
+    localStorage.setItem('advisoros_consent', JSON.stringify({ v: 1, at: new Date().toISOString() }));
     sessionStorage.setItem('ip_fresh', '1');
   });
   const ipage = await iCtx.newPage();
@@ -103,6 +113,7 @@ const hintVisible = page => page.evaluate(() => {
   await ipage.goto(BASE + '/index.html?ip=2');
   await ipage.waitForFunction(() => typeof App !== 'undefined' && App.currentHash === 'today', null, { timeout: 30000 });
   await ipage.evaluate(() => localStorage.removeItem('advisoros_enc_test'));
+  await ipage.evaluate(() => { try { App.closeModal({ all: true, silent: true }); } catch (e) {} });
   await ipage.waitForTimeout(13000);
 
   ok('iOS: instruction sheet appears without beforeinstallprompt', await hintVisible(ipage));
@@ -126,6 +137,9 @@ const hintVisible = page => page.evaluate(() => {
       sessionStorage.clear();
     }
     localStorage.setItem('advisoros_enc_test', '1');
+    // Pre-acknowledge the one-time consent notice — this suite tests the
+    // install hint, and InstallPrompt waits for consent before showing.
+    localStorage.setItem('advisoros_consent', JSON.stringify({ v: 1, at: new Date().toISOString() }));
     sessionStorage.setItem('ip_fresh', '1');
   });
   const opage = await oCtx.newPage();

@@ -82,7 +82,7 @@ const InstallPrompt = {
     // Give the app time to boot and the user time to land on Today —
     // never interrupt onboarding or an in-flight task. Retry is bounded so
     // an always-busy session just doesn't get the hint this launch.
-    if (this._attempts >= 4) return;
+    if (this._attempts >= 8) return;
     this._attempts++;
     setTimeout(() => {
       if (this._shown || this._isStandalone() || this._installed() || this._dismissedRecently()) return;
@@ -96,7 +96,10 @@ const InstallPrompt = {
       // Companion timing: only interrupt when the user is settled on Today
       // with no sheet already open — never over a task they're in the
       // middle of. Otherwise re-check later (bounded by _attempts).
-      if (App.currentHash !== 'today' || document.querySelector('.modal-overlay.active')) {
+      // The one-time consent notice (ConsentPrompt) takes precedence: wait
+      // until it has been acknowledged before offering the install hint.
+      const consentPending = (() => { try { return !localStorage.getItem('advisoros_consent'); } catch { return false; } })();
+      if (App.currentHash !== 'today' || document.querySelector('.modal-overlay.active') || consentPending) {
         this._schedule();
         return;
       }

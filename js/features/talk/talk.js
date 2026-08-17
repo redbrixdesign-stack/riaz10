@@ -532,7 +532,7 @@ const TalkFeature = {
       <div class="sheet-header"><h3>Preview Message</h3><button class="btn btn-ghost btn-sm" data-action="App.closeModal"><span class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body">
         <div class="fs-12 text-secondary mt-6" id="talk-nudge" style="display:none"></div>
-        <textarea class="textarea" id="talk-message-preview" style="min-height:110px;">${Utils.escapeHtml(message)}</textarea>
+        <textarea class="textarea" id="talk-message-preview" aria-label="Message preview (editable)" style="min-height:110px;">${Utils.escapeHtml(message)}</textarea>
 
         <div class="flex items-center gap-sm mt-sm wrap" >
           <button class="btn btn-sm ${AIService.isEnabled() ? 'btn-outline' : 'btn-ghost'}" data-action="TalkFeature.aiDraft">

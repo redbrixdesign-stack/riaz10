@@ -684,7 +684,9 @@ const App = {
       TodayFeature,
       Geo,
       CustomerFeature,
-      InstallPrompt
+      InstallPrompt,
+      Legal,
+      ConsentPrompt
     };
 
     const runAction = (el, event) => {

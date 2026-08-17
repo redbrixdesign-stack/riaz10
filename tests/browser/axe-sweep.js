@@ -133,6 +133,10 @@ const ok = (label, cond, extra) => {
   ok('Scan', await runAxe('14-scan'));
   await nav('settings');
   ok('Settings', await runAxe('15-settings'));
+  await nav('legal', { page: 'privacy' });
+  ok('Privacy Policy page', await runAxe('17-privacy'));
+  await nav('legal', { page: 'terms' });
+  ok('Terms of Service page', await runAxe('18-terms'));
 
   // --- Onboarding (fresh profile — no config, no data) ---
   const oCtx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
