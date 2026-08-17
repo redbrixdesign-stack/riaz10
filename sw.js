@@ -1,14 +1,15 @@
-const CACHE_NAME = 'advisoros-v6-41';
-const FONT_CACHE_NAME = 'advisoros-fonts-1';
+const CACHE_NAME = 'advisoros-v6-42';
 const STATIC_ASSETS = [
-  './','index.html','css/core.css?v=25','css/components.css?v=29','assets/fonts/material-symbols-rounded.woff2',
+  './','index.html','css/core.css?v=26','css/components.css?v=29',
+  'assets/fonts/material-symbols-rounded.woff2','assets/fonts/hankengrotesk-latin.woff2','assets/fonts/hankengrotesk-latinext.woff2','assets/fonts/jetbrainsmono-latin.woff2',
+  'assets/img/marker-icon.png','assets/img/marker-icon-2x.png','assets/img/marker-shadow.png',
   'js/vendor/dexie.min.js?v=1','js/vendor/minidexie.min.js?v=12',
-  'js/core/config.min.js?v=10','js/core/utils.min.js?v=6','js/core/db.min.js?v=16','js/core/geoprovider.min.js?v=1','js/core/geo.min.js?v=7','js/core/search.min.js?v=3','js/core/tax.min.js?v=2','js/core/app.min.js?v=11','js/core/contact.min.js?v=4',
+  'js/core/config.min.js?v=10','js/core/utils.min.js?v=6','js/core/db.min.js?v=16','js/core/geoprovider.min.js?v=1','js/core/geo.min.js?v=7','js/core/search.min.js?v=3','js/core/tax.min.js?v=2','js/core/install-prompt.min.js?v=1','js/core/app.min.js?v=12','js/core/contact.min.js?v=4',
   'js/services/ai.min.js?v=7','js/services/notification.min.js?v=5','js/services/message-scheduler.min.js?v=4','js/services/export.min.js?v=4','js/services/weather.min.js?v=3',
-  'js/features/companion/companion.min.js?v=9','js/features/onboarding/onboarding.min.js?v=6','js/features/today/today.min.js?v=18','js/features/today/home-screen-controller.min.js?v=11','js/features/appointments/appointments.min.js?v=26','js/features/customer/customer.min.js?v=5','js/features/route/route.min.js?v=10',
+  'js/features/companion/companion.min.js?v=9','js/features/onboarding/onboarding.min.js?v=7','js/features/today/today.min.js?v=18','js/features/today/home-screen-controller.min.js?v=11','js/features/appointments/appointments.min.js?v=26','js/features/customer/customer.min.js?v=5','js/features/route/route.min.js?v=11',
   'js/features/followups/followups.min.js?v=8','js/features/orders/orders.min.js?v=6',
   'js/features/money/money.min.js?v=8','js/features/talk/talk.min.js?v=17','js/features/measure/measure.min.js?v=7',
-  'js/features/ocr/ocr.min.js?v=19','js/features/control/control.min.js?v=6','js/features/settings/settings.min.js?v=12'
+  'js/features/ocr/ocr.min.js?v=20','js/features/control/control.min.js?v=6','js/features/settings/settings.min.js?v=12'
 ];
 
 const FONT_ORIGINS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
@@ -19,7 +20,7 @@ self.addEventListener('install', e => {
 
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(names => Promise.all(
-    names.filter(n => n !== CACHE_NAME && n !== FONT_CACHE_NAME).map(n => caches.delete(n))
+    names.filter(n => n !== CACHE_NAME).map(n => caches.delete(n))
   )).then(() => self.clients.claim()));
 });
 
@@ -27,29 +28,6 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
   if (url.protocol === 'chrome-extension:') return;
-
-  // Material Symbols / Google Fonts: these are the icon font used throughout
-  // the whole UI (nav bar, buttons, cards). They're cross-origin so the
-  // in-app cache above skips them by design — but without ANY offline
-  // caching for them, a poor/blocked connection makes every icon in the app
-  // render as literal text (e.g. "chevron_right") instead of an icon.
-  // Stale-while-revalidate: serve the cached version instantly if we have
-  // one, and refresh it in the background — so it's available offline after
-  // the first successful load, and still stays current when online.
-  if (FONT_ORIGINS.includes(url.hostname)) {
-    e.respondWith(
-      caches.open(FONT_CACHE_NAME).then(async cache => {
-        const cached = await cache.match(e.request);
-        const networkFetch = fetch(e.request).then(resp => {
-          if (resp && resp.ok) cache.put(e.request, resp.clone());
-          return resp;
-        }).catch(() => null);
-        return cached || (await networkFetch) || new Response('', { status: 504 });
-      })
-    );
-    return;
-  }
-
   if (url.origin !== self.location.origin) return;
 
   // Same-origin app files: network-first. This is what actually makes "I
@@ -61,6 +39,9 @@ self.addEventListener('fetch', e => {
   // portals, flaky WiFi), via the 6s timeout below. Without the timeout a
   // request can hang for minutes on a connection that never actually fails,
   // leaving the PWA stuck on a white screen instead of its cached shell.
+  // All fonts (Material Symbols, Hanken Grotesk, JetBrains Mono) are
+  // same-origin assets precached above in STATIC_ASSETS, so they're covered
+  // by this path too — no third-party font caching needed.
   e.respondWith(
     Promise.race([
       fetch(e.request),
@@ -71,9 +52,29 @@ self.addEventListener('fetch', e => {
         caches.open(CACHE_NAME).then(c => c.put(e.request, toCache));
       }
       return resp;
-    }).catch(() => caches.match(e.request).then(cached => cached || caches.match('index.html')))
+    }).catch(() => {
+      // Network failed or stalled — we're about to serve from cache, but
+      // navigator.onLine may still report true (flaky WiFi, captive portal),
+      // so tell the page it's actually offline. Only navigations notify, so
+      // a burst of failed asset fetches doesn't spam clients.
+      if (e.request.mode === 'navigate') notifyClientsOffline();
+      return caches.match(e.request).then(cached => cached || caches.match('index.html'));
+    })
   );
 });
+
+// Post a message to every controlled client so the page can flip the
+// persistent offline strip even when navigator.onLine lies. Delayed: when
+// the message is triggered by a navigation fallback, the freshly-loaded
+// window client doesn't exist yet at respondWith time (and its message
+// listener registers during app boot), so wait a beat before broadcasting.
+function notifyClientsOffline() {
+  setTimeout(() => {
+    self.clients.matchAll({ type: 'window' }).then(clients => {
+      for (const client of clients) client.postMessage({ type: 'beelo-offline' });
+    });
+  }, 1000);
+}
 
 self.addEventListener('push', e => {
   const data = e.data?.json() || {};

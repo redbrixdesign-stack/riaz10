@@ -2,8 +2,10 @@
 /* ============================================
    ADVISOROS — BUG-FIX VERIFICATION
    Proves the three reported bugs are fixed:
-   1. Icons render as glyphs (not raw ligature text) even with Google Fonts
-      blocked and when offline — measured by rendered span width.
+   1. Icons render as glyphs (not raw ligature text) with all third-party
+      fonts blocked and when offline — measured by rendered span width.
+      (All fonts are self-hosted, so blocking Google Fonts must change
+      nothing: zero remote font requests should even fire.)
    2. Bottom nav always shows the 5 static labels with glyph icons.
    3. Home's last card clears the fixed composer at full scroll.
    Run: node tests/browser/verify-fixes.js   (needs :8000 + Playwright)
@@ -22,8 +24,9 @@ const ok = (label, cond, extra) => {
 (async () => {
   const browser = await chromium.launch();
 
-  /* ---- Context 1: Google Fonts BLOCKED from cold start (worst case:
-     no remote font CSS, no remote font cache; only local assets work) ---- */
+  /* ---- Context 1: third-party font origins BLOCKED from cold start (worst
+     case: no remote font CSS, no remote font cache; only local assets work).
+     Since every font is self-hosted now, this must change nothing at all. ---- */
   const ctx1 = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
   await ctx1.route('**://fonts.googleapis.com/**', r => r.abort());
   await ctx1.route('**://fonts.gstatic.com/**', r => r.abort());
@@ -45,16 +48,19 @@ const ok = (label, cond, extra) => {
     return {
       navLabels, navIconWidths, wideIcons,
       iconFontLoaded: document.fonts.check('24px "Material Symbols Rounded"'),
+      hankenFontLoaded: document.fonts.check('16px "Hanken Grotesk"'),
       localFontRequested: performance.getEntriesByType('resource').some(e => e.name.includes('material-symbols-rounded.woff2')),
       remoteRequests: Array.from(document.styleSheets).some(s => (s.href || '').includes('fonts.googleapis'))
     };
   });
-  console.log('\n=== 1. Google Fonts blocked from cold start ===');
+  console.log('\n=== 1. Third-party fonts blocked from cold start ===');
   ok('icon font loads from the local asset', s1.iconFontLoaded && s1.localFontRequested, { loaded: s1.iconFontLoaded, local: s1.localFontRequested });
-  // The body font (Hanken Grotesk) still comes from Google by design; only the
-  // icon font must be local. Assert no Material Symbols request ever fires.
+  ok('body font (Hanken Grotesk) loads from the local asset', s1.hankenFontLoaded, { loaded: s1.hankenFontLoaded });
+  // The icon font must be local; the body fonts are local too now, so NO
+  // Google Fonts request may ever reach the page.
   const msRemote = remoteRequests.filter(u => /material/i.test(u));
   ok('no Google Fonts requests for the ICON font reach the page', msRemote.length === 0, { iconRequests: msRemote.length });
+  ok('zero Google Fonts requests reach the page at all (all fonts self-hosted)', remoteRequests.length === 0, { remote: remoteRequests });
   ok('nav labels are the 5 static names', JSON.stringify(s1.navLabels) === JSON.stringify(['Home', 'Follow-ups', 'Orders', 'Money', 'Tools']), s1.navLabels);
   ok('nav icons render as glyphs (≤40px)', s1.navIconWidths.every(w => w <= 40), s1.navIconWidths);
   ok('zero raw ligature text anywhere on Home (all icon spans ≤48px)', s1.wideIcons === 0, { wideIcons: s1.wideIcons });

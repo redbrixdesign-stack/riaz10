@@ -18,15 +18,15 @@
          or CSP blocks the WebAssembly compile.
        - unpkg.com: Leaflet (js + css) and the Tesseract main script.
        - cdn.jsdelivr.net: Tesseract's default worker + core (importScripts).
-       - fonts.googleapis.com / fonts.gstatic.com: Google Fonts (Hanken Grotesk,
-         JetBrains Mono, Material Symbols).
+       - All fonts (Hanken Grotesk, JetBrains Mono, Material Symbols) are
+         self-hosted same-origin WOFF2s — no Google Fonts requests at all.
        - tile.openstreetmap.org: Leaflet raster tiles (a/b/c subdomains).
        - connect-src 'self' https: — the AI proxy URL is user-configurable in
          Settings and can be any origin, so https: is allowed broadly rather
          than pinning one host users would then have to edit by hand.
        - frame-ancestors is NOT enforced by <meta> CSP (HTTP header only) — it
          is included for when this policy is ever moved to headers. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.tile.openstreetmap.org; connect-src 'self' https:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://unpkg.com; font-src 'self'; img-src 'self' data: blob: https://*.tile.openstreetmap.org; connect-src 'self' https:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
 <style>html,body{background-color:#0A0A0A;}</style>
 
 <title>Beelo</title>
@@ -35,23 +35,16 @@
   <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
   <link rel="icon" type="image/png" href="assets/icons/icon-72.png">
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-  <!-- Fonts loaded non-render-blocking: preload as a low-priority stylesheet,
-       then swap it in once it arrives. Saves ~2 render-blocking requests off
-       the critical path (was contributing to the 1,230ms "render-blocking
-       requests" finding). The <noscript> fallback covers the no-JS case.
-       The icon font (Material Symbols Rounded) is self-hosted — it must work
-       offline, so it ships as a same-origin asset (see css/core.css) and is
-       only preloaded here; no Google Fonts request for icons. -->
-  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+  <!-- All three font families are self-hosted same-origin WOFF2s (see the
+       @font-face blocks in css/core.css), precached by the service worker so
+       they render offline. Preloading them here lets the first paint use the
+       real typefaces immediately instead of swapping in after a FOUT; no
+       Google Fonts request ever fires. -->
   <link rel="preload" href="assets/fonts/material-symbols-rounded.woff2" as="font" type="font/woff2" crossorigin>
-  <noscript>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
-  </noscript>
+  <link rel="preload" href="assets/fonts/hankengrotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/jetbrainsmono-latin.woff2" as="font" type="font/woff2" crossorigin>
 
-  <link rel="stylesheet" href="css/core.css?v=25">
+  <link rel="stylesheet" href="css/core.css?v=26">
   <link rel="stylesheet" href="css/components.css?v=29">
 
   <!-- Storage engine: real Dexie first (indexed queries, transactions); the
@@ -78,7 +71,8 @@
   <script src="js/core/geo.min.js?v=7" defer></script>
   <script src="js/core/search.min.js?v=3" defer></script>
   <script src="js/core/tax.min.js?v=2" defer></script>
-  <script src="js/core/app.min.js?v=11" defer></script>
+  <script src="js/core/install-prompt.min.js?v=1" defer></script>
+  <script src="js/core/app.min.js?v=12" defer></script>
   <script src="js/core/contact.min.js?v=4" defer></script>
 
   <!-- Services -->
@@ -89,13 +83,13 @@
   <script src="js/services/weather.min.js?v=3" defer></script>
 
   <!-- Features -->
-  <script src="js/features/onboarding/onboarding.min.js?v=6" defer></script>
+  <script src="js/features/onboarding/onboarding.min.js?v=7" defer></script>
   <script src="js/features/companion/companion.min.js?v=9" defer></script>
   <script src="js/features/today/today.min.js?v=18" defer></script>
   <script src="js/features/today/home-screen-controller.min.js?v=11" defer></script>
   <script src="js/features/appointments/appointments.min.js?v=26" defer></script>
   <script src="js/features/customer/customer.min.js?v=5" defer></script>
-  <script src="js/features/route/route.min.js?v=10" defer></script>
+  <script src="js/features/route/route.min.js?v=11" defer></script>
   <!-- Follow-ups and Orders load before Money so the bottom-nav order is
        Home, Follow-ups, Orders, Money, Tools (nav order = registration order). -->
   <script src="js/features/followups/followups.min.js?v=8" defer></script>
@@ -103,7 +97,7 @@
   <script src="js/features/money/money.min.js?v=8" defer></script>
   <script src="js/features/talk/talk.min.js?v=17" defer></script>
   <script src="js/features/measure/measure.min.js?v=7" defer></script>
-  <script src="js/features/ocr/ocr.min.js?v=19" defer></script>
+  <script src="js/features/ocr/ocr.min.js?v=20" defer></script>
   <script src="js/features/control/control.min.js?v=6" defer></script>
   <script src="js/features/settings/settings.min.js?v=12" defer></script>
 </body>

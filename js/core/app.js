@@ -658,7 +658,8 @@ const App = {
       ControlFeature,
       TodayFeature,
       Geo,
-      CustomerFeature
+      CustomerFeature,
+      InstallPrompt
     };
 
     const runAction = (el, event) => {
@@ -766,9 +767,21 @@ const App = {
     offlineBanner.id = 'offline-banner';
     offlineBanner.innerHTML = '<span class="material-symbols-rounded fs-15" >wifi_off</span><span>Offline — changes are saved on this phone</span>';
     document.getElementById('app').appendChild(offlineBanner);
-    const applyOfflineState = () => {
-      offlineBanner.style.display = (typeof navigator !== 'undefined' && navigator.onLine === false) ? 'flex' : 'none';
+    const applyOfflineState = (forceOffline) => {
+      offlineBanner.style.display = (forceOffline || (typeof navigator !== 'undefined' && navigator.onLine === false)) ? 'flex' : 'none';
     };
+    // The service worker posts this when it had to serve the shell from
+    // cache because the network failed or stalled — the one case where
+    // navigator.onLine lies (flaky WiFi, captive portals) and the banner
+    // would otherwise never appear even though the app IS offline.
+    navigator.serviceWorker?.addEventListener('message', e => {
+      if (e.data && e.data.type === 'beelo-offline') {
+        applyOfflineState(true);
+        if (typeof navigator !== 'undefined' && navigator.onLine) {
+          Toast.show('Working offline', 'warning');
+        }
+      }
+    });
     window.addEventListener('online', () => {
       applyOfflineState();
       Toast.show('Back online', 'success');

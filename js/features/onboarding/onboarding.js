@@ -56,7 +56,7 @@ const OnboardingFeature = {
           </div>
           <div class="flex gap-sm" >
             ${[400, 600, 800, 1000].map(v => `
-              <button type="button" class="btn btn-outline btn-sm flex-1"  data-action="OnboardingFeature.setTargetPreset" data-args='${JSON.stringify([${v}])}'>£${v}</button>
+              <button type="button" class="btn btn-outline btn-sm flex-1"  data-action="OnboardingFeature.setTargetPreset" data-args='${JSON.stringify([v])}'>£${v}</button>
             `).join('')}
           </div>
 

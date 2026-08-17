@@ -298,6 +298,7 @@ console.log('duplicate prevention (findExistingVisit)');
 
   sandbox.DB.db.appointments = { where: () => ({ equals: () => ({ toArray: async () => [] }) }) };
   sandbox.DB.getAppointmentsForDate = async () => [];
+  sandbox.DB.getAppointmentsByCustomer = async () => [];
   const none = await OCRFeature.findExistingVisit(999, day, '07700 999999', '99 Nowhere Road');
   ok('no match returns null', none === null);
 }
@@ -334,6 +335,7 @@ console.log('duplicate prevention (saveToCustomer)');
 
   sandbox.DB.db.appointments = { where: () => ({ equals: () => ({ toArray: async () => [] }) }) };
   sandbox.DB.getAppointmentsForDate = async () => [];
+  sandbox.DB.getAppointmentsByCustomer = async () => [];
   sandbox.lastNavigate = null;
   await OCRFeature.saveToCustomer();
   ok('non-duplicate scan still creates the appointment', addAppointmentCalls === 1, addAppointmentCalls);

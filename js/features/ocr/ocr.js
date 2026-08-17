@@ -14,6 +14,16 @@ const OCRFeature = {
   tesseractLoadFailed: false,
 
   init() {
+    // Tesseract is loaded lazily in activate() — the first time the user
+    // opens Scan — so the ~1MB OCR engine is never fetched for users who
+    // scan via Claude AI or never open the feature at all (perf 5.2).
+  },
+
+  activate() {
+    // Start pulling the OCR engine the moment the Scan screen opens, so a
+    // photo taken a few seconds later usually finds it already loaded.
+    // processImage() below also retries and waits, so a slow connection
+    // degrades to "reading document…" instead of a dead feature.
     this.loadTesseract();
   },
 
@@ -115,9 +125,13 @@ const OCRFeature = {
       this.loadTesseract();
     }
 
-    // Wait for Tesseract if loading
+    // Wait for Tesseract if it's still loading. Lazy loading (5.2) means the
+    // engine usually starts fetching when the Scan screen opens, but a cold
+    // CDN fetch can take a while — allow up to 30s before falling back to
+    // manual entry, updating the status line so it doesn't look stuck.
     let attempts = 0;
-    while ((!window.Tesseract) && attempts < 30 && this.tesseractLoading) {
+    while ((!window.Tesseract) && attempts < 300 && this.tesseractLoading) {
+      if (attempts === 10) this.setLoadingText('Preparing OCR engine…');
       await new Promise(r => setTimeout(r, 100));
       attempts++;
     }

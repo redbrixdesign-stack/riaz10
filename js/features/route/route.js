@@ -33,6 +33,7 @@ const RouteFeature = {
       script.onload = () => {
         console.log('Leaflet loaded');
         this.leafletLoaded = true;
+        this._selfHostMarkerIcons();
       };
       script.onerror = () => {
         console.error('Leaflet failed to load');
@@ -40,7 +41,22 @@ const RouteFeature = {
       document.head.appendChild(script);
     } else {
       this.leafletLoaded = true;
+      this._selfHostMarkerIcons();
     }
+  },
+
+  // Leaflet's default marker icons resolve relative to leaflet.js on unpkg
+  // (its auto-detected imagePath), which CSP img-src blocks ('self' data:
+  // blob: + OSM tiles only). Point them at same-origin copies with absolute
+  // paths and an empty imagePath so nothing resolves back to unpkg (perf 5.5).
+  _selfHostMarkerIcons() {
+    if (!window.L || !L.Icon?.Default) return;
+    L.Icon.Default.imagePath = '';
+    L.Icon.Default.mergeOptions({
+      iconUrl: '/assets/img/marker-icon.png',
+      iconRetinaUrl: '/assets/img/marker-icon-2x.png',
+      shadowUrl: '/assets/img/marker-shadow.png'
+    });
   },
 
   async render() {

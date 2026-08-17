@@ -34,7 +34,8 @@ const BASE = 'http://localhost:8000';
       const raw = iconSpans.filter(s => (s.textContent || '').trim().length > 0).map(s => s.textContent.trim());
       const fonts = (document.fonts && document.fonts.status) || 'n/a';
       const iconFontLoaded = document.fonts && document.fonts.check ? document.fonts.check('24px "Material Symbols Rounded"') : 'n/a';
-      const iconCssLoaded = Array.from(document.styleSheets).some(s => (s.href || '').includes('fonts.googleapis'));
+      const googleFontsCssLoaded = Array.from(document.styleSheets).some(s => (s.href || '').includes('fonts.googleapis'));
+      const localFontFiles = performance.getEntriesByType('resource').filter(e => e.name.includes('assets/fonts/')).map(e => e.name.split('/').pop());
       const home = document.querySelector('.comp-home');
       const composer = document.querySelector('.comp-composer');
       const scroll = document.getElementById('comp-scroll');
@@ -50,7 +51,7 @@ const BASE = 'http://localhost:8000';
       return {
         navText: nav ? nav.textContent.replace(/\s+/g, ' ') : null,
         navItems: nav ? Array.from(nav.querySelectorAll('.nav-item')).map(b => ({ icon: b.querySelector('.material-symbols-rounded')?.textContent, label: b.querySelector('span:last-child')?.textContent })) : null,
-        iconFontLoaded, fonts, iconCssLoaded,
+        iconFontLoaded, fonts, googleFontsCssLoaded, localFontFiles,
         rawLigatureCount: raw.length,
         rawLigatures: raw.slice(0, 12),
         homeClip: clip
