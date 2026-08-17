@@ -814,7 +814,7 @@ const App = {
     // buttons nested inside cards/rows still resolve their own data-action.
     ['click', 'change', 'input', 'blur', 'keydown', 'keyup'].forEach(type => {
       document.addEventListener(type, (e) => {
-        let el = e.target && e.target.closest ? e.target.closest('[data-action]') : null;
+        let el = e.target && e.target.closest ? e.target.closest('[data-action], [data-file]') : null;
         if (!el) return;
         runAction(el, e);
       }, true);

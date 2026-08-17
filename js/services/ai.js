@@ -74,18 +74,37 @@ const AIService = {
 
   // ---- image handling ----
   // Downsizes to a JPEG the proxy will accept quickly: max 1400px on the
-  // long edge, 0.85 quality. If that fails for any reason, sends the raw
-  // file — the proxy rejects anything over 2MB with a clear message.
+  // long edge, 0.85 quality. iPhone photos are HEIC, which neither the
+  // proxy allowlist (jpeg/png/webp/gif) nor Tesseract can decode — so if
+  // createImageBitmap can't decode the file (unsupported format, older
+  // iOS), fall back to <img> decoding (iOS decodes HEIC natively there)
+  // and re-encode to JPEG. Only if BOTH decoders fail do we send the raw
+  // file, which the proxy rejects with a clear message.
   async _toBase64(file) {
+    let bitmap = null;
     try {
-      const bitmap = typeof createImageBitmap === 'function'
-        ? await createImageBitmap(file)
-        : await new Promise((res, rej) => {
-            const img = new Image();
-            img.onload = () => res(img);
-            img.onerror = rej;
-            img.src = URL.createObjectURL(file);
-          });
+      bitmap = typeof createImageBitmap === 'function' ? await createImageBitmap(file) : null;
+    } catch (e) { bitmap = null; }
+    if (!bitmap) {
+      try {
+        bitmap = await new Promise((res, rej) => {
+          const img = new Image();
+          img.onload = () => res(img);
+          img.onerror = rej;
+          img.src = URL.createObjectURL(file);
+        });
+      } catch (e) {
+        console.warn('AIService: image decode failed, sending raw file', e);
+        const base64 = await new Promise((res, rej) => {
+          const reader = new FileReader();
+          reader.onload = () => res(String(reader.result).split(',')[1] || '');
+          reader.onerror = rej;
+          reader.readAsDataURL(file);
+        });
+        return { base64, mediaType: file.type || 'image/jpeg' };
+      }
+    }
+    try {
       const scale = Math.min(1, 1400 / Math.max(bitmap.width, bitmap.height));
       const canvas = document.createElement('canvas');
       canvas.width = Math.round(bitmap.width * scale);
@@ -94,7 +113,7 @@ const AIService = {
       ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
       return { base64: canvas.toDataURL('image/jpeg', 0.85).split(',')[1], mediaType: 'image/jpeg' };
     } catch (e) {
-      console.warn('AIService: image downscale failed, sending raw file', e);
+      console.warn('AIService: canvas encode failed, sending raw file', e);
       const base64 = await new Promise((res, rej) => {
         const reader = new FileReader();
         reader.onload = () => res(String(reader.result).split(',')[1] || '');

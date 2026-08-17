@@ -26,7 +26,7 @@
          than pinning one host users would then have to edit by hand.
        - frame-ancestors is NOT enforced by <meta> CSP (HTTP header only) — it
          is included for when this policy is ever moved to headers. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://unpkg.com; font-src 'self'; img-src 'self' data: blob: https://*.tile.openstreetmap.org; connect-src 'self' https:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://unpkg.com; font-src 'self'; img-src 'self' data: blob: https://*.tile.openstreetmap.org; connect-src 'self' https:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
 <style>html,body{background-color:#0A0A0A;}</style>
 
 <title>Beelo</title>
@@ -72,12 +72,12 @@
   <script src="js/core/search.min.js?v=3" defer></script>
   <script src="js/core/tax.min.js?v=2" defer></script>
   <script src="js/core/install-prompt.min.js?v=1" defer></script>
-  <script src="js/core/app.min.js?v=15" defer></script>
+  <script src="js/core/app.min.js?v=16" defer></script>
   <script src="js/core/legal.min.js?v=1" defer></script>
   <script src="js/core/contact.min.js?v=4" defer></script>
 
   <!-- Services -->
-  <script src="js/services/ai.min.js?v=7" defer></script>
+  <script src="js/services/ai.min.js?v=8" defer></script>
   <script src="js/services/notification.min.js?v=5" defer></script>
   <script src="js/services/message-scheduler.min.js?v=4" defer></script>
   <script src="js/services/export.min.js?v=4" defer></script>
