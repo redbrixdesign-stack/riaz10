@@ -175,28 +175,44 @@ const App = {
             </div>
             <div class="fs-12 text-tertiary mb-md">Forgetting this passphrase means permanent loss of customer data. No recovery is possible.</div>
             <button class="btn btn-primary btn-block" data-action="App._setPassphrase">Set Passphrase</button>
+            <div class="fs-11 text-tertiary text-center mt-10" >Setting up encryption can take a few seconds on older iPhones — tap once and wait.</div>
           </div>
         `, { onOpen: () => document.getElementById('enc-passphrase-new')?.focus() });
+        // The passphrase gate runs BEFORE setupEvents() attaches the delegated
+        // data-action router (Phase 4.6), so the button's data-action alone
+        // would do nothing — a tap here was silently dead (reported on iPhone).
+        // Attach a direct listener so the modal works regardless of router state.
+        const setBtn = document.querySelector('[data-action="App._setPassphrase"]');
+        if (setBtn) setBtn.addEventListener('click', () => App._setPassphrase());
         App._setPassphrase = async () => {
+          const btn = document.querySelector('[data-action="App._setPassphrase"]');
+          const fail = (msg) => {
+            if (btn) { btn.disabled = false; btn.textContent = 'Set Passphrase'; }
+            Toast.show(msg, 'error');
+          };
           const p1 = document.getElementById('enc-passphrase-new').value;
           const p2 = document.getElementById('enc-passphrase-confirm').value;
-          if (!p1 || p1.length < 8) {
-            Toast.show('Passphrase must be at least 8 characters', 'error');
+          if (!p1 || p1.length < 8) { fail('Passphrase must be at least 8 characters'); return; }
+          if (p1 !== p2) { fail('Passphrases do not match'); return; }
+          if (typeof crypto === 'undefined' || !crypto.subtle) {
+            fail('Encryption needs a secure (https) connection — open the app from its web address, not a local network link.');
             return;
           }
-          if (p1 !== p2) {
-            Toast.show('Passphrases do not match', 'error');
-            return;
-          }
-          this.closeModal();
-          delete App._setPassphrase;
+          if (this._encryptInProgress) return; // single-flight: PBKDF2 is slow on phones
+          this._encryptInProgress = true;
+          if (btn) { btn.disabled = true; btn.textContent = 'Setting up…'; }
           try {
             await initEncryption(p1);
             localStorage.setItem('advisoros_enc_verify', JSON.stringify(await encryptField('advisoros-enc-verify')));
+            this._encryptInProgress = false;
+            this.closeModal();
+            delete App._setPassphrase;
             Toast.show('Encryption enabled', 'success');
           } catch (e) {
+            this._encryptInProgress = false;
             console.error('Encryption init failed:', e);
-            Toast.show('Failed to initialize encryption', 'error');
+            fail('Failed to initialize encryption');
+            return;
           }
           resolve();
         };
@@ -213,19 +229,38 @@ const App = {
             <p class="text-secondary mb-lg">Enter your passphrase to decrypt customer data.</p>
             <div class="form-group">
               <label>Passphrase</label>
-              <input type="password" class="input" id="enc-passphrase" placeholder="Enter passphrase" autocomplete="off">
+              <input type="password" class="input" id="enc-passphrase" placeholder="Enter passphrase" autocomplete="off" autocapitalize="off" spellcheck="false">
             </div>
             <div id="enc-error" class="fs-12 text-danger mb-md" style="display:none;"></div>
             <button class="btn btn-primary btn-block" data-action="App._checkPassphrase">Unlock</button>
+            <div class="fs-11 text-tertiary text-center mt-10" >Decrypting can take a few seconds on older iPhones — tap Unlock once and wait.</div>
           </div>
         `, { onOpen: () => document.getElementById('enc-passphrase')?.focus() });
+        // Same as the set button: the router isn't attached yet, so wire the
+        // Unlock button directly (this modal also keeps its Enter-key path).
+        const unlockBtn = document.querySelector('[data-action="App._checkPassphrase"]');
+        if (unlockBtn) unlockBtn.addEventListener('click', () => App._checkPassphrase());
         App._checkPassphrase = async () => {
-          const passphrase = document.getElementById('enc-passphrase').value;
-          if (!passphrase) {
-            document.getElementById('enc-error').textContent = 'Please enter your passphrase';
-            document.getElementById('enc-error').style.display = 'block';
+          const btn = document.querySelector('[data-action="App._checkPassphrase"]');
+          const input = document.getElementById('enc-passphrase');
+          const errEl = document.getElementById('enc-error');
+          const fail = (msg) => {
+            if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+            if (btn) { btn.disabled = false; btn.innerHTML = 'Unlock'; }
+            if (input) input.value = '';
+          };
+          const passphrase = input ? input.value : '';
+          if (!passphrase) { fail('Please enter your passphrase'); return; }
+          // WebCrypto needs a secure context. Opening the app over plain
+          // http:// (e.g. a LAN address on a phone) leaves crypto.subtle
+          // undefined — say so instead of failing as "Incorrect passphrase".
+          if (typeof crypto === 'undefined' || !crypto.subtle) {
+            fail('Encryption needs a secure (https) connection — open the app from your home-screen icon, not a web address.');
             return;
           }
+          if (this._unlockInProgress) return; // single-flight: PBKDF2 blocks the main thread on phones
+          this._unlockInProgress = true;
+          if (btn) { btn.disabled = true; btn.innerHTML = 'Unlocking…'; }
           try {
             await initEncryption(passphrase);
             const verifyRaw = localStorage.getItem('advisoros_enc_verify');
@@ -233,13 +268,13 @@ const App = {
               const verified = await decryptField(JSON.parse(verifyRaw));
               if (verified !== 'advisoros-enc-verify') throw new Error('Passphrase verification failed');
             }
+            this._unlockInProgress = false;
             this.closeModal();
             delete App._checkPassphrase;
             resolve();
           } catch (e) {
-            document.getElementById('enc-error').textContent = 'Incorrect passphrase';
-            document.getElementById('enc-error').style.display = 'block';
-            document.getElementById('enc-passphrase').value = '';
+            this._unlockInProgress = false;
+            fail('Incorrect passphrase');
           }
         };
         // Allow Enter key to submit
