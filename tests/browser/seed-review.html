@@ -17,7 +17,10 @@
    a follow-up inbox with every task kind, a kanban with every order
    column populated, money/travel history, edge cases (long text,
    missing optional fields, special characters, cancelled visits,
-   incomplete measurements).
+   incomplete measurements). End-to-end coverage: every lead source,
+   every appointment type, every outcome across all six types,
+   travel states (in transit / on site), all expense categories,
+   communication templates, and message flags (sent vs unsent).
 
    Usage: serve the repo (npm run serve), open this page once, then
    open index.html in the SAME browser profile. It writes
@@ -100,7 +103,7 @@
   localStorage.setItem('advisoros_config', JSON.stringify(config));
   await db.settings.put({ key: 'config', value: config });
 
-  // ---- customers (8) ----
+  // ---- customers (12) — every lead source + edge cases ----
   const customers = [
     { firstName: 'Sarah', lastName: 'Johnson', phone: '07700 900123', email: 'sarah.johnson@example.com', postcodeNormalized: 'SK14AA', source: 'Referral', address: { line1: '14 Beechwood Avenue', city: 'Stockport', postcode: 'SK1 4AA' }, notes: 'Ordered the Lounge Bay in February. Likes natural linen tones, not a fan of grey. Two children, prefers afternoon visits.' },
     { firstName: 'John', lastName: 'Smith', phone: '07700 900456', email: 'john.smith@example.com', postcodeNormalized: 'M334AA', source: 'Google', address: { line1: '27 Oakfield Road', city: 'Sale', postcode: 'M33 4AA' } },
@@ -109,14 +112,19 @@
     { firstName: 'Amelia', lastName: 'Green', phone: '', email: '', postcodeNormalized: 'SK95AA', source: 'Website', address: { line1: '9 Birch Lane', city: 'Wilmslow', postcode: 'SK9 5AA' } },
     { firstName: 'Tom', lastName: 'Hardcastle', phone: '07900 555666', email: 'tom@example.com', postcodeNormalized: 'SK75AA', source: 'Show Home', address: { line1: '3 Cypress Close', city: 'Stockport', postcode: 'SK7 5AA' }, notes: 'Ordered for the whole ground floor. Wants everything finished before the school summer fair in July.' },
     { firstName: 'Hannah', lastName: 'Whitfield', phone: '07890 777888', email: 'hannah.w@example.com', postcodeNormalized: 'M162AA', source: 'Facebook', address: { line1: '18 Dale Road', city: 'Manchester', postcode: 'M16 2AA' } },
-    { firstName: 'Mr & Mrs', lastName: 'Khan', phone: '', email: '', postcodeNormalized: 'M225AA', source: 'Leaflet', address: null }
+    { firstName: 'Mr & Mrs', lastName: 'Khan', phone: '', email: '', postcodeNormalized: 'M225AA', source: 'Leaflet', address: null },
+    // Extra lead sources + edge cases (no phone / no email / long name / accent)
+    { firstName: 'Priya', lastName: 'Sharma', phone: '07811 222333', email: 'priya.sharma@example.com', postcodeNormalized: 'SK82AA', source: 'TikTok', address: { line1: '42 Manor Road', city: 'Stockport', postcode: 'SK8 2AA' }, notes: 'Found the show-home reel on TikTok. New kitchen-diner windows — wants Roman blinds.' },
+    { firstName: 'George &', lastName: 'Martha Bell', phone: '07777 123456', email: '', postcodeNormalized: 'WA15AA', source: 'Event', address: { line1: '6 The Paddocks', city: 'Altrincham', postcode: 'WA15 7AA' }, notes: 'Met at the Home & Garden show stand. Two bay windows + a skylight.' },
+    { firstName: 'Eleanor', lastName: 'Whitmore-Cross', phone: '', email: 'eleanor.wc@example.com', postcodeNormalized: 'M207AA', source: 'Other', address: { line1: '88 High Lane', city: 'Manchester', postcode: 'M20 7AA' } },
+    { firstName: 'Olá', lastName: 'Muñoz', phone: '07555 888999', email: 'ola.munoz@example.com', postcodeNormalized: 'SK38AA', source: 'Other', address: { line1: '15 Laurel Close', city: 'Stockport', postcode: 'SK3 8AA' } }
   ];
   const customerIds = [];
   for (let i = 0; i < customers.length; i++) {
     const c = customers[i];
     customerIds.push(await db.customers.add({ ...c, customerNumber: C(i + 1), status: 'active', createdAt: daysAgo(90 - i * 8) }));
   }
-  const [SARAH, JOHN, AMINA, DAVID, AMELIA, TOM, HANNAH, KHAN] = customerIds;
+  const [SARAH, JOHN, AMINA, DAVID, AMELIA, TOM, HANNAH, KHAN, PRIYA, BELL, ELEANOR, MUNOZ] = customerIds;
 
   // ---- appointments ----
   const appt = async (a) => (await db.appointments.add({ status: 'confirmed', outcome: null, value: 0, commission: 0, source: 'manual', ...a }));
@@ -158,6 +166,15 @@
     base.setTime(base.getTime() + (hour * 3600 + minute * 60) * 1000);
     return base.toISOString();
   };
+  // Nth day of the CURRENT month, clamped to never be in the future —
+  // for "this month" money figures that must show in the Money screen.
+  const thisMonthDay = (dayOfMonth, hour, minute = 0) => {
+    const p = ukParts(new Date());
+    const day = Math.min(dayOfMonth, Math.max(1, p.day));
+    const base = ukMidnight(p.year, p.month, day);
+    base.setTime(base.getTime() + (hour * 3600 + minute * 60) * 1000);
+    return base.toISOString();
+  };
 
   // This week — one visit on every weekday (all open, so the week strip
   // and diary are full; weekdays already past show in the strip/My Day,
@@ -189,7 +206,99 @@
   const aSarah5   = await appt({ customerId: SARAH,  clientName: 'Sarah Johnson',   date: daysAgo(25),    type: 'consultation', outcome: 'ordered', value: 2100, commission: 315, status: 'completed', latLng: [53.410, -2.157], address: '14 Beechwood Avenue, Stockport SK1 4AA' });
   await appt({ customerId: HANNAH, clientName: 'Hannah Whitfield', date: daysAgo(30), type: 'consultation', status: 'cancelled', latLng: [53.453, -2.257], address: '18 Dale Road, Manchester M16 2AA' });
 
-  // ---- orders (7) — every kanban column ----
+  // ---- SCENARIO MATRIX: every appointment type × every outcome ----
+  // Consultation outcomes (completed, past — feed pipeline/follow-ups).
+  await appt({ customerId: PRIYA,  clientName: 'Priya Sharma',       date: daysAgo(2),  type: 'consultation', outcome: 'customer_no_show', status: 'completed', latLng: [53.380, -2.180], address: '42 Manor Road, Stockport SK8 2AA' });
+  await appt({ customerId: MUNOZ,  clientName: 'Olá Muñoz',          date: daysAgo(3),  type: 'consultation', outcome: 'advisor_unavailable', status: 'completed', latLng: [53.395, -2.190], address: '15 Laurel Close, Stockport SK3 8AA' });
+  await appt({ customerId: ELEANOR, clientName: 'Eleanor Whitmore-Cross', date: daysAgo(4), type: 'consultation', outcome: 'partner', status: 'completed', latLng: [53.420, -2.240], address: '88 High Lane, Manchester M20 7AA' });
+  await appt({ customerId: BELL,   clientName: 'George & Martha Bell', date: daysAgo(6), type: 'consultation', outcome: 'compare_quotes', status: 'completed', latLng: [53.388, -2.340], address: '6 The Paddocks, Altrincham WA15 7AA' });
+  await appt({ customerId: AMINA,  clientName: 'Amina Patel',        date: daysAgo(7),  type: 'consultation', outcome: 'expensive', status: 'completed', latLng: [53.430, -2.330], address: '5 Ash Grove, Sale M33 4BB' });
+  await appt({ customerId: TOM,    clientName: 'Tom Hardcastle',     date: daysAgo(10), type: 'consultation', outcome: 'spec_mismatch', status: 'completed', latLng: [53.360, -2.170], address: '3 Cypress Close, Stockport SK7 5AA' });
+  await appt({ customerId: HANNAH, clientName: 'Hannah Whitfield',   date: daysAgo(11), type: 'consultation', outcome: 'not_looking_for', status: 'completed', latLng: [53.453, -2.257], address: '18 Dale Road, Manchester M16 2AA' });
+  await appt({ customerId: KHAN,   clientName: 'Mr & Mrs Khan',      date: daysAgo(13), type: 'consultation', outcome: 'out_of_range', status: 'completed', latLng: [53.418, -2.231], address: '31 Larkspur Road, Manchester M22 5AA' });
+  await appt({ customerId: AMELIA, clientName: 'Amelia Green',       date: daysAgo(14), type: 'consultation', outcome: 'other_no_sale', status: 'completed', latLng: [53.326, -2.233], address: '9 Birch Lane, Wilmslow SK9 5AA' });
+  await appt({ customerId: JOHN,   clientName: 'John Smith',         date: daysAgo(16), type: 'consultation', outcome: 'windows_too_high', status: 'completed', latLng: [53.424, -2.322], address: '27 Oakfield Road, Sale M33 4AA' });
+  await appt({ customerId: DAVID,  clientName: "David O'Leary",      date: daysAgo(18), type: 'consultation', outcome: 'ordered', value: 1450, commission: 217.5, status: 'completed', latLng: [53.400, -2.350], address: "St Mary's Court, Altrincham M22 2AA" });
+  await appt({ customerId: SARAH,  clientName: 'Sarah Johnson',      date: daysAgo(21), type: 'consultation', outcome: 'ordered', value: 1650, commission: 247.5, status: 'completed', latLng: [53.410, -2.157], address: '14 Beechwood Avenue, Stockport SK1 4AA' });
+  // Measure outcomes.
+  await appt({ customerId: AMINA,  clientName: 'Amina Patel',        date: daysAgo(5),  type: 'measure', outcome: 'measured', status: 'completed', latLng: [53.430, -2.330], address: '5 Ash Grove, Sale M33 4BB' });
+  await appt({ customerId: PRIYA,  clientName: 'Priya Sharma',       date: daysAgo(8),  type: 'measure', outcome: 'partial', status: 'completed', latLng: [53.380, -2.180], address: '42 Manor Road, Stockport SK8 2AA' });
+  await appt({ customerId: BELL,   clientName: 'George & Martha Bell', date: daysAgo(12), type: 'measure', outcome: 'remeasure', status: 'completed', latLng: [53.388, -2.340], address: '6 The Paddocks, Altrincham WA15 7AA' });
+  await appt({ customerId: ELEANOR, clientName: 'Eleanor Whitmore-Cross', date: daysAgo(15), type: 'measure', outcome: 'cancelled', status: 'completed', latLng: [53.420, -2.240], address: '88 High Lane, Manchester M20 7AA' });
+  // Fitting outcomes.
+  await appt({ customerId: KHAN,   clientName: 'Mr & Mrs Khan',      date: daysAgo(3),  type: 'fitting', outcome: 'advisor_unavailable', status: 'completed', latLng: [53.418, -2.231], address: '31 Larkspur Road, Manchester M22 5AA' });
+  await appt({ customerId: TOM,    clientName: 'Tom Hardcastle',     date: daysAgo(4),  type: 'fitting', outcome: 'not_ready', status: 'completed', latLng: [53.360, -2.170], address: '3 Cypress Close, Stockport SK7 5AA' });
+  await appt({ customerId: DAVID,  clientName: "David O'Leary",      date: daysAgo(5),  type: 'fitting', outcome: 'spec_mismatch', status: 'completed', serviceSent: false, latLng: [53.400, -2.350], address: "St Mary's Court, Altrincham M22 2AA" });
+  await appt({ customerId: HANNAH, clientName: 'Hannah Whitfield',   date: daysAgo(6),  type: 'fitting', outcome: 'customer_no_show', status: 'completed', latLng: [53.453, -2.257], address: '18 Dale Road, Manchester M16 2AA' });
+  await appt({ customerId: AMELIA, clientName: 'Amelia Green',       date: daysAgo(7),  type: 'fitting', outcome: 'missing_parts', status: 'completed', serviceSent: false, latLng: [53.326, -2.233], address: '9 Birch Lane, Wilmslow SK9 5AA' });
+  await appt({ customerId: JOHN,   clientName: 'John Smith',         date: daysAgo(8),  type: 'fitting', outcome: 'access_issue', status: 'completed', serviceSent: false, latLng: [53.424, -2.322], address: '27 Oakfield Road, Sale M33 4AA' });
+  await appt({ customerId: SARAH,  clientName: 'Sarah Johnson',      date: daysAgo(9),  type: 'fitting', outcome: 'refused_child_safety', status: 'completed', latLng: [53.410, -2.157], address: '14 Beechwood Avenue, Stockport SK1 4AA' });
+  await appt({ customerId: AMINA,  clientName: 'Amina Patel',        date: daysAgo(10), type: 'fitting', outcome: 'issues', status: 'completed', serviceSent: false, latLng: [53.430, -2.330], address: '5 Ash Grove, Sale M33 4BB' });
+  await appt({ customerId: BELL,   clientName: 'George & Martha Bell', date: daysAgo(11), type: 'fitting', outcome: 'partial', status: 'completed', latLng: [53.388, -2.340], address: '6 The Paddocks, Altrincham WA15 7AA' });
+  await appt({ customerId: MUNOZ,  clientName: 'Olá Muñoz',          date: daysAgo(12), type: 'fitting', outcome: 'revisit', status: 'completed', serviceSent: false, latLng: [53.395, -2.190], address: '15 Laurel Close, Stockport SK3 8AA' });
+  await appt({ customerId: PRIYA,  clientName: 'Priya Sharma',       date: daysAgo(20), type: 'fitting', outcome: 'refused', status: 'completed', latLng: [53.380, -2.180], address: '42 Manor Road, Stockport SK8 2AA' });
+  // Review outcomes.
+  await appt({ customerId: TOM,    clientName: 'Tom Hardcastle',     date: daysAgo(5),  type: 'review', outcome: 'happy', status: 'completed', latLng: [53.360, -2.170], address: '3 Cypress Close, Stockport SK7 5AA' });
+  await appt({ customerId: SARAH,  clientName: 'Sarah Johnson',      date: daysAgo(6),  type: 'review', outcome: 'minor_issue', status: 'completed', latLng: [53.410, -2.157], address: '14 Beechwood Avenue, Stockport SK1 4AA' });
+  await appt({ customerId: AMELIA, clientName: 'Amelia Green',       date: daysAgo(8),  type: 'review', outcome: 'needs_service_call', status: 'completed', latLng: [53.326, -2.233], address: '9 Birch Lane, Wilmslow SK9 5AA' });
+  await appt({ customerId: DAVID,  clientName: "David O'Leary",      date: daysAgo(10), type: 'review', outcome: 'review_left', status: 'completed', latLng: [53.400, -2.350], address: "St Mary's Court, Altrincham M22 2AA" });
+  await appt({ customerId: KHAN,   clientName: 'Mr & Mrs Khan',      date: daysAgo(11), type: 'review', outcome: 'customer_no_show', status: 'completed', latLng: [53.418, -2.231], address: '31 Larkspur Road, Manchester M22 5AA' });
+  // follow_up outcomes.
+  await appt({ customerId: HANNAH, clientName: 'Hannah Whitfield',   date: daysAgo(3),  type: 'follow_up', outcome: 'reached', status: 'completed', latLng: [53.453, -2.257], address: '18 Dale Road, Manchester M16 2AA' });
+  await appt({ customerId: AMINA,  clientName: 'Amina Patel',        date: daysAgo(4),  type: 'follow_up', outcome: 'no_answer', status: 'completed', latLng: [53.430, -2.330], address: '5 Ash Grove, Sale M33 4BB' });
+  await appt({ customerId: JOHN,   clientName: 'John Smith',         date: daysAgo(9),  type: 'follow_up', outcome: 'ordered', value: 1950, commission: 292.5, status: 'completed', latLng: [53.424, -2.322], address: '27 Oakfield Road, Sale M33 4AA' });
+  await appt({ customerId: BELL,   clientName: 'George & Martha Bell', date: daysAgo(13), type: 'follow_up', outcome: 'lost', status: 'completed', latLng: [53.388, -2.340], address: '6 The Paddocks, Altrincham WA15 7AA' });
+  // service_call outcomes.
+  await appt({ customerId: MUNOZ,  clientName: 'Olá Muñoz',          date: daysAgo(4),  type: 'service_call', outcome: 'resolved', status: 'completed', latLng: [53.395, -2.190], address: '15 Laurel Close, Stockport SK3 8AA' });
+  await appt({ customerId: ELEANOR, clientName: 'Eleanor Whitmore-Cross', date: daysAgo(6), type: 'service_call', outcome: 'revisit_needed', status: 'completed', serviceSent: false, latLng: [53.420, -2.240], address: '88 High Lane, Manchester M20 7AA' });
+  await appt({ customerId: PRIYA,  clientName: 'Priya Sharma',       date: daysAgo(7),  type: 'service_call', outcome: 'access_issue', status: 'completed', serviceSent: false, latLng: [53.380, -2.180], address: '42 Manor Road, Stockport SK8 2AA' });
+
+  // ---- TRAVEL STATES + message flags on live visits ----
+  // Stamp the appointment the app will actually feature as NEXT (same
+  // selection rule as CompanionFeature: earliest upcoming, not done, with
+  // phone/customerId) as "in transit" so the featured card shows "On the
+  // way"; a second open visit today gets "on site" for My Day. Done
+  // dynamically so it works no matter which weekday the seed runs on.
+  {
+    const allRows = await db.appointments.toArray();
+    const now = new Date();
+    const openUpcoming = allRows
+      .filter(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && new Date(a.date) >= now && (a.phone || a.customerId))
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+    const featured = openUpcoming[0];
+    if (featured) {
+      await db.appointments.update(featured.id, { travelStatus: 'in_transit', travelStartedAt: new Date(Date.now() - 12 * 60000).toISOString() });
+    }
+    const todayOpen = allRows
+      .filter(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && new Date(a.date).toDateString() === now.toDateString() && a.id !== (featured && featured.id))
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+    const onSite = todayOpen[todayOpen.length - 1] || todayOpen[0];
+    if (onSite) {
+      await db.appointments.update(onSite.id, { travelStatus: 'on_site', arrivedAt: new Date(Date.now() - 5 * 60000).toISOString() });
+    }
+  }
+  // aTom1 (tomorrow) already has its day-before draft; aHannah1 (tomorrow)
+  // does not → one visit_tomorrow task remains in the inbox.
+  await db.appointments.update(aTom1, { dayBeforeSent: true });
+
+  // ---- FIRST-TIME CUSTOMERS with future bookings (intro tasks) ----
+  await appt({ customerId: PRIYA,  clientName: 'Priya Sharma',       date: ukDay(1, 10, 30), type: 'consultation', latLng: [53.380, -2.180], address: '42 Manor Road, Stockport SK8 2AA', introSent: false });
+  await appt({ customerId: BELL,   clientName: 'George & Martha Bell', date: ukWeekday(3, 10, 0, 1), type: 'fitting', latLng: [53.388, -2.340], address: '6 The Paddocks, Altrincham WA15 7AA', introSent: true });
+  await appt({ customerId: MUNOZ,  clientName: 'Olá Muñoz',          date: ukWeekday(5, 9, 30, 1), type: 'measure', latLng: [53.395, -2.190], address: '15 Laurel Close, Stockport SK3 8AA' });
+  await appt({ customerId: ELEANOR, clientName: 'Eleanor Whitmore-Cross', date: ukNextMonth(14, 15), type: 'consultation', latLng: [53.420, -2.240], address: '88 High Lane, Manchester M20 7AA' });
+  await appt({ customerId: PRIYA,  clientName: 'Priya Sharma',       date: ukNextMonth(18, 11), type: 'measure', latLng: [53.380, -2.180], address: '42 Manor Road, Stockport SK8 2AA' });
+  // Phone conversions typed straight onto the visit (no customerId) —
+  // the app treats these as first-time, generating intro tasks.
+  await appt({ clientName: 'Margaret Doyle', phone: '07700 654321', date: ukDay(1, 13), type: 'consultation', latLng: [53.445, -2.215], address: '7 Larkspur Road, Manchester M22 5AA' });
+  await appt({ clientName: 'Peter Osei',      phone: '07899 111000', date: ukWeekday(2, 10, 0, 1), type: 'measure', latLng: [53.402, -2.235], address: '21 Cheadle Road, Cheadle SK8 1AA' });
+
+  // ---- auto-message scheduler flags (some sent, some not) ----
+  try {
+    localStorage.setItem('advisoros_auto_evening_before_' + aTom1, '1'); // evening-before draft sent for Tom
+    localStorage.setItem('advisoros_auto_morning_of_' + aNext, '1');     // morning-of draft sent for John
+  } catch (e) { /* private mode */ }
+
+  // ---- orders (12) — every kanban column + flags + edge cases ----
   const order = async (o) => { await db.orders.add({ supplierOrderNumber: '', status: 'active', reviewRequested: false, referralRequested: false, ...o }); };
   await order({ customerId: SARAH,  appointmentId: aSarah4, orderNumber: O(1), total: 1850, depositRequired: 925, depositPaid: 925, balanceDue: 925, stage: 'ordered',   createdAt: daysAgo(12) });
   await order({ customerId: TOM,    appointmentId: aTom3,   orderNumber: O(2), total: 2400, depositRequired: 1200, depositPaid: 2400, balanceDue: 0,   stage: 'fitted',   createdAt: daysAgo(15) });
@@ -198,8 +307,18 @@
   await order({ customerId: AMINA,  appointmentId: aDone,   orderNumber: O(5), total: 1850, depositRequired: 925,  depositPaid: 0,    balanceDue: 1850, stage: 'ordered', createdAt: nowIso() });
   await order({ customerId: KHAN,   appointmentId: null,    orderNumber: O(6), total: 3100, depositRequired: 1550, depositPaid: 3100, balanceDue: 0,   stage: 'paid',     createdAt: daysAgo(45), supplierOrderNumber: 'SUP-8821' });
   await order({ customerId: SARAH,  appointmentId: aSarah5, orderNumber: O(7), total: 2100, depositRequired: 1050, depositPaid: 1800, balanceDue: 300, stage: 'fitted',   createdAt: daysAgo(25) });
+  // Fitted + fully paid with review asked (post-fit follow-up flow).
+  await order({ customerId: TOM,    appointmentId: aTom2,   orderNumber: O(8), total: 1980, depositRequired: 990,  depositPaid: 1980, balanceDue: 0,   stage: 'fitted',   createdAt: daysAgo(1), reviewRequested: true });
+  // Delivered with balance + supplier reference (payment reminder).
+  await order({ customerId: JOHN,   appointmentId: null,    orderNumber: O(9), total: 1450, depositRequired: 725,  depositPaid: 725,  balanceDue: 725, stage: 'delivered', createdAt: daysAgo(6), supplierOrderNumber: 'SUP-7742' });
+  // Ordered, deposit not yet paid (full balance outstanding).
+  await order({ customerId: DAVID,  appointmentId: null,    orderNumber: O(10), total: 980,  depositRequired: 490,  depositPaid: 0,    balanceDue: 980, stage: 'ordered',   createdAt: daysAgo(2) });
+  // Paid + referral asked (referral flow).
+  await order({ customerId: HANNAH, appointmentId: null,    orderNumber: O(11), total: 760,  depositRequired: 380,  depositPaid: 760,  balanceDue: 0,   stage: 'paid',     createdAt: daysAgo(30), referralRequested: true });
+  // Paid order with supplier ref + review asked (both flags together).
+  await order({ customerId: AMELIA, appointmentId: null,    orderNumber: O(12), total: 540,  depositRequired: 270,  depositPaid: 540,  balanceDue: 0,   stage: 'paid',     createdAt: daysAgo(18), supplierOrderNumber: 'SUP-6601', reviewRequested: true });
 
-  // ---- expenses ----
+  // ---- expenses (every category) ----
   const exp = async (e) => db.expenses.add({ description: '', ...e });
   await exp({ date: daysAgo(1),  category: 'fuel',      amount: 58.40, description: 'Shell — Princess Road' });
   await exp({ date: daysAgo(6),  category: 'fuel',      amount: 62.10, description: 'BP — Wilmslow Road' });
@@ -209,20 +328,28 @@
   await exp({ date: daysAgo(15), category: 'marketing', amount: 45.00, description: 'Google ads top-up — Sale & Altrincham' });
   await exp({ date: daysAgo(2),  category: 'other',     amount: 12.50, description: 'Parking — Wilmslow town centre' });
   await exp({ date: daysAgo(40), category: 'vehicle',   amount: 180.00, description: 'MOT + service' });
+  await exp({ date: thisMonthDay(4, 9), category: 'insurance', amount: 38.50, description: 'Public liability insurance — monthly' });
+  await exp({ date: daysAgo(9),  category: 'fuel',      amount: 51.20, description: 'Esso — Stockport Road' });
+  await exp({ date: daysAgo(18), category: 'samples',   amount: 22.00, description: 'Roman blind cord + chain samples' });
+  await exp({ date: daysAgo(28), category: 'tools',     amount: 45.99, description: 'Laser level — Cheadle hardware' });
 
-  // ---- trips ----
+  // ---- trips (confirmed + unconfirmed, with/without appointment) ----
   const trip = async (t) => db.trips.add({ purpose: 'business', confirmed: false, ...t });
   await trip({ date: daysAgo(3),  appointmentId: aDavid1, distanceKm: 12.4, confirmed: true });
   await trip({ date: daysAgo(1),  appointmentId: aTom2,   distanceKm: 18.7, confirmed: true });
   await trip({ date: daysAgo(6),  appointmentId: null,    distanceKm: 9.3,  confirmed: false });
   await trip({ date: daysAgo(10), appointmentId: null,    distanceKm: 22.1, confirmed: true });
+  await trip({ date: daysAgo(4),  appointmentId: null,    distanceKm: 14.8, confirmed: false });
+  await trip({ date: daysAgo(2),  appointmentId: aDone,   distanceKm: 7.6,  confirmed: true });
 
-  // ---- measurements ----
+  // ---- measurements (recess + exact, multi-window, incomplete edge) ----
   await db.measurements.add({ appointmentId: aSarah4, windowName: 'Lounge Bay', widthTop: 2110, widthMiddle: 2100, widthBottom: 2095, dropLeft: 1795, dropCentre: 1800, dropRight: 1805, diagonalTlBr: 2165, diagonalTrBl: 2160, tolerance: 10, fittingType: 'recess' });
   await db.measurements.add({ appointmentId: aTom3,   windowName: 'Bay Window — North Facing', widthTop: 2410, widthMiddle: 2400, widthBottom: 2390, dropLeft: 1495, dropCentre: 1500, dropRight: 1505, diagonalTlBr: 2145, diagonalTrBl: 2140, tolerance: 10, fittingType: 'recess' });
   await db.measurements.add({ appointmentId: aAmelia1, windowName: 'Kitchen Window (back)', widthTop: 1200 }); // incomplete — edge case
   await db.measurements.add({ appointmentId: aDone,    windowName: 'Lounge Bay', widthTop: 2110, widthMiddle: 2100, widthBottom: 2095, dropLeft: 1795, dropCentre: 1800, dropRight: 1805, diagonalTlBr: 2165, diagonalTrBl: 2160, tolerance: 10, fittingType: 'recess' });
   await db.measurements.add({ appointmentId: aDone,    windowName: 'Kitchen Window (back)', widthTop: 1210, widthMiddle: 1200, widthBottom: 1195, dropLeft: 895, dropCentre: 900, dropRight: 905, diagonalTlBr: 1265, diagonalTrBl: 1260, tolerance: 10, fittingType: 'recess' });
+  await db.measurements.add({ appointmentId: aTom3,   windowName: 'Hallway — exact fit', widthTop: 905, widthMiddle: 900, widthBottom: 898, dropLeft: 1605, dropCentre: 1610, dropRight: 1612, diagonalTlBr: 1305, diagonalTrBl: 1300, tolerance: 5, fittingType: 'exact' });
+  await db.measurements.add({ appointmentId: aMon,    windowName: 'Bedroom 1', widthTop: 1310, widthMiddle: 1305, widthBottom: 1302, dropLeft: 1295, dropCentre: 1300, dropRight: 1303, diagonalTlBr: 1405, diagonalTrBl: 1400, tolerance: 10, fittingType: 'recess' });
 
   // ---- communications (sent history) ----
   const comm = async (c) => db.communications.add(c);
@@ -233,6 +360,21 @@
   await comm({ customerId: SARAH, type: 'whatsapp_attempted', content: 'Hi', sentAt: daysAgo(2) });
   await comm({ customerId: KHAN, type: 'message',   template: 'follow_up.quote', content: 'Hi, just checking in on the quote for your windows. Any questions I can answer?', sentAt: daysAgo(4) });
   await comm({ customerId: null, type: 'note',      content: 'EOD note: Tom’s fitting done, order complete. Mrs Patel booked for measure next week.', sentAt: daysAgo(1) });
+  // Every communication template family (the app's full sendable set).
+  await comm({ customerId: JOHN,  type: 'message',  template: 'pre_intro', content: 'Hi John, I’m Riaz and I’ll be with you for your consultation. If you can let me know about parking, access and which windows to focus on, that would help me be fully prepared.', sentAt: daysAgo(4) });
+  await comm({ customerId: AMINA, type: 'message',  template: 'evening_before', content: 'Hi Amina, just a quick one — I’m with you tomorrow at 11:00 for your measure. It’d help to know how many windows you’re looking at. See you tomorrow!', sentAt: daysAgo(2) });
+  await comm({ customerId: TOM,   type: 'message',  template: 'morning_of', content: 'Hi Tom, looking forward to seeing you today at 09:30. See you shortly!', sentAt: daysAgo(1) });
+  await comm({ customerId: DAVID, type: 'message',  template: 'on_my_way', content: 'Hi David, I’m on my way and should be with you in about 20 minutes. See you soon!', sentAt: daysAgo(3) });
+  await comm({ customerId: KHAN,  type: 'message',  template: 'running_late', content: 'Hi, running about 15 minutes late due to traffic. Still on my way!', sentAt: daysAgo(5) });
+  await comm({ customerId: AMELIA, type: 'message', template: 'follow_up.gentle', content: 'Hi Amelia, hope you’re well. Just wanted to follow up on our conversation about your windows. No pressure, just here when you’re ready.', sentAt: daysAgo(18) });
+  await comm({ customerId: HANNAH, type: 'message', template: 'follow_up.partner', content: 'Hi Hannah, would it help if I visited when you and your partner are both home? I can bring samples and answer any questions together.', sentAt: daysAgo(10) });
+  await comm({ customerId: JOHN,  type: 'message',  template: 'follow_up.compare', content: 'Hi John, I know you’re comparing options. I can talk you through the differences so you’re comparing like-for-like.', sentAt: daysAgo(15) });
+  await comm({ customerId: MUNOZ, type: 'message',  template: 'follow_up.discount', content: 'Hi Olá, I may have a little room today if we can get this wrapped up. Would you like me to sharpen the quote?', sentAt: daysAgo(6) });
+  await comm({ customerId: PRIYA, type: 'message',  template: 'follow_up.rebook', content: 'Hi Priya, sorry we missed each other. Shall we get another visit booked in?', sentAt: daysAgo(1) });
+  await comm({ customerId: ELEANOR, type: 'message', template: 'follow_up.apology', content: 'Hi Eleanor, sorry I couldn’t make the visit as planned. I’d like to get this rebooked at a time that suits you.', sentAt: daysAgo(2) });
+  await comm({ customerId: TOM,   type: 'message',  template: 'review', content: 'Hi Tom, hope you’re enjoying the new blinds! If you’re happy with the work, a quick review would mean a lot.', sentAt: daysAgo(14) });
+  await comm({ customerId: HANNAH, type: 'message', template: 'referral', content: 'Hi Hannah, if you know anyone looking for window coverings, I’d love an intro — I offer £50 off their first order as a thank you.', sentAt: daysAgo(9) });
+  await comm({ customerId: DAVID, type: 'message',  template: 'service_or_issue_followup', content: 'Hi David, thanks for letting me know about the bracket. I’ve logged it and will come back as soon as I have next steps.', sentAt: daysAgo(2) });
 
   // ---- photos (tiny generated placeholders so galleries/banners have rows) ----
   const makePhoto = (color, label) => {
@@ -244,11 +386,13 @@
   };
   await db.photos.add({ customerId: SARAH, data: makePhoto('#5b7a8c', 'Lounge bay — daylight'), mimeType: 'image/jpeg', caption: 'Lounge bay — daylight', createdAt: daysAgo(11) });
   await db.photos.add({ customerId: JOHN,  data: makePhoto('#6e8c5b', '27 Oakfield Rd'), mimeType: 'image/jpeg', caption: 'Property exterior', createdAt: daysAgo(4) });
+  await db.photos.add({ customerId: DAVID, data: makePhoto('#8c6e5b', "St Mary's Court"), mimeType: 'image/jpeg', caption: 'Flat 12 entrance — key safe right of door', createdAt: daysAgo(3) });
+  await db.photos.add({ customerId: AMINA, data: makePhoto('#5b8c8c', 'Nursery window'), mimeType: 'image/jpeg', caption: 'Nursery — blackout planned', createdAt: daysAgo(7) });
 
-  // ---- sequences ----
+  // ---- sequences (next numbers after seeded counts) ----
   await db.sequences.bulkPut([
-    { name: 'customer', value: 20 },
-    { name: 'order', value: 20 }
+    { name: 'customer', value: 40 },
+    { name: 'order', value: 40 }
   ]);
 
   document.body.textContent = 'SEEDED_OK';
