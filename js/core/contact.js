@@ -29,7 +29,7 @@ const ContactFeature = {
       <div class="sheet-handle"></div>
       <div class="sheet-header">
         <h3>Contact ${Utils.escapeHtml(name || 'Customer')}</h3>
-        <button class="btn btn-ghost btn-sm" onclick="App.closeModal()" aria-label="Close">
+        <button class="btn btn-ghost btn-sm" data-action="App.closeModal" aria-label="Close">
           <span class="material-symbols-rounded">close</span>
         </button>
       </div>
@@ -37,16 +37,16 @@ const ContactFeature = {
         <div class="contact-sheet-number">${Utils.escapeHtml(Utils.formatPhone(cleanedPhone))}</div>
         <div class="contact-sheet-actions">
           ${whatsappUrl ? `
-            <button class="btn contact-sheet-primary" onclick="ContactFeature.openWhatsApp('${Utils.escapeJsString(whatsappUrl)}')">
+            <button class="btn contact-sheet-primary" data-action="ContactFeature.openWhatsApp" data-args='${JSON.stringify([(Utils.escapeJsString(whatsappUrl))])}'>
               <span class="material-symbols-rounded">chat</span>
               WhatsApp
             </button>
           ` : ''}
-          <button class="btn contact-sheet-secondary" onclick="ContactFeature.openCall('${Utils.escapeJsString(telUrl)}')">
+          <button class="btn contact-sheet-secondary" data-action="ContactFeature.openCall" data-args='${JSON.stringify([(Utils.escapeJsString(telUrl))])}'>
             <span class="material-symbols-rounded">phone</span>
             Call
           </button>
-          <button class="btn contact-sheet-secondary" onclick="ContactFeature.copyNumber('${Utils.escapeJsString(cleanedPhone)}')">
+          <button class="btn contact-sheet-secondary" data-action="ContactFeature.copyNumber" data-args='${JSON.stringify([(Utils.escapeJsString(cleanedPhone))])}'>
             <span class="material-symbols-rounded">content_copy</span>
             Copy Number
           </button>

@@ -25,65 +25,65 @@ const ControlFeature = {
 
         <div class="p-md" >
           ${card('Today', `
-            <button class="control-tile" type="button" onclick="App.navigate('appointments', {action: 'add'})">
+            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {action: "add"}])}'>
               <span class="material-symbols-rounded">add</span>
               <span>Add Visit</span>
             </button>
-            <button class="control-tile" type="button" onclick="MoneyFeature.openMileageModal()">
+            <button class="control-tile" type="button" data-action="MoneyFeature.openMileageModal">
               <span class="material-symbols-rounded">route</span>
               <span>Log Mileage</span>
             </button>
-            <button class="control-tile" type="button" onclick="MoneyFeature.openExpenseModal()">
+            <button class="control-tile" type="button" data-action="MoneyFeature.openExpenseModal">
               <span class="material-symbols-rounded">receipt_long</span>
               <span>Log Expense</span>
             </button>
-            <button class="control-tile" type="button" onclick="TodayFeature.openEODModal()">
+            <button class="control-tile" type="button" data-action="TodayFeature.openEODModal">
               <span class="material-symbols-rounded">fact_check</span>
               <span>End of Day</span>
             </button>
           `)}
 
           ${card('Customer', `
-            <button class="control-tile" type="button" onclick="App.navigate('appointments')">
+            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["appointments"])}'>
               <span class="material-symbols-rounded">person_search</span>
               <span>Find Customer</span>
             </button>
-            <button class="control-tile" type="button" onclick="App.navigate('orders')">
+            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["orders"])}'>
               <span class="material-symbols-rounded">view_kanban</span>
               <span>Orders Board</span>
             </button>
-            <button class="control-tile" type="button" onclick="App.navigate('followups')">
+            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["followups"])}'>
               <span class="material-symbols-rounded">campaign</span>
               <span>Follow-ups</span>
             </button>
           `)}
 
           ${card('Money & Route', `
-            <button class="control-tile" type="button" onclick="App.navigate('route')">
+            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["route"])}'>
               <span class="material-symbols-rounded">map</span>
               <span>Route Planner</span>
             </button>
-            <button class="control-tile" type="button" onclick="ControlFeature.openMeasurePicker()">
+            <button class="control-tile" type="button" data-action="ControlFeature.openMeasurePicker">
               <span class="material-symbols-rounded">straighten</span>
               <span>Measure</span>
             </button>
-            <button class="control-tile" type="button" onclick="App.navigate('ocr')">
+            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["ocr"])}'>
               <span class="material-symbols-rounded">document_scanner</span>
               <span>Scan Document</span>
             </button>
           `)}
 
           ${card('Data & Settings', `
-            <button class="control-tile" type="button" onclick="App.navigate('settings')">
+            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["settings"])}'>
               <span class="material-symbols-rounded">settings</span>
               <span>Settings</span>
             </button>
-            <button class="control-tile" type="button" onclick="ExportService.exportBackup()">
+            <button class="control-tile" type="button" data-action="ExportService.exportBackup">
               <span class="material-symbols-rounded">backup</span>
               <span>Export Backup</span>
             </button>
             ${demoSeeded ? `
-            <button class="control-tile" type="button" onclick="ControlFeature.confirmClearPitchDemo()">
+            <button class="control-tile" type="button" data-action="ControlFeature.confirmClearPitchDemo">
               <span class="material-symbols-rounded text-danger">delete_sweep</span>
               <span>Remove Demo Data</span>
             </button>
@@ -122,11 +122,11 @@ const ControlFeature = {
     }
 
     const content = `<div class="sheet-handle"></div>
-      <div class="sheet-header"><h3>Measure for which visit?</h3><button class="btn btn-ghost btn-sm" onclick="App.closeModal()"><span class="material-symbols-rounded">close</span></button></div>
+      <div class="sheet-header"><h3>Measure for which visit?</h3><button class="btn btn-ghost btn-sm" data-action="App.closeModal"><span class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body">
         <div class="flex flex-col gap-sm" >
           ${visits.map(visit => `
-            <button class="list-item bordered-8 text-left"  onclick="App.closeModal(); App.navigate('measure', {appointmentId: ${visit.id}})">
+            <button class="list-item bordered-8 text-left"  data-close="1" data-action="App.navigate" data-args='${JSON.stringify(["measure", {appointmentId: (visit.id)}])}'>
               <span class="material-symbols-rounded text-brand mr-12" >straighten</span>
               <span class="flex-1 min-w-0" >
                 <span class="block fw-600 ellipsis" >${Utils.escapeHtml(visit.clientName || 'Unknown')}</span>
@@ -151,15 +151,15 @@ const ControlFeature = {
 
   async confirmClearPitchDemo() {
     const content = `<div class="sheet-handle"></div>
-      <div class="sheet-header"><h3>Remove Demo Data?</h3><button class="btn btn-ghost btn-sm" onclick="App.closeModal()"><span class="material-symbols-rounded">close</span></button></div>
+      <div class="sheet-header"><h3>Remove Demo Data?</h3><button class="btn btn-ghost btn-sm" data-action="App.closeModal"><span class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body">
         <div class="fs-14 text-secondary mb-md" >
           This removes the sample customers and visits used for demoing the app (Ayesha Khan, James Wilson, and others), along with their visits, orders, and messages. Your own customers and visits are not affected.
         </div>
-        <button class="btn btn-danger btn-block" onclick="ControlFeature.clearPitchDemo()">
+        <button class="btn btn-danger btn-block" data-action="ControlFeature.clearPitchDemo">
           <span class="material-symbols-rounded">delete_sweep</span>Remove Demo Data
         </button>
-        <button class="btn btn-outline btn-block mt-sm"  onclick="App.closeModal()">Cancel</button>
+        <button class="btn btn-outline btn-block mt-sm"  data-action="App.closeModal">Cancel</button>
       </div>`;
     App.openModal(content);
   },

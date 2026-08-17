@@ -262,7 +262,7 @@ const TalkFeature = {
               <span class="fw-600 fs-15" >${Utils.escapeHtml(appt.clientName || 'Unknown')}</span>
               <div class="fs-13 text-secondary mt-2" >Visit tomorrow at ${this.apptTimeText(appt)}</div>
             </div>
-            <button class="btn btn-sm btn-primary shrink-0"  onclick="TalkFeature.sendDayBefore(${appt.id})">
+            <button class="btn btn-sm btn-primary shrink-0"  data-action="TalkFeature.sendDayBefore" data-args='${JSON.stringify([(appt.id)])}'>
               <span class="material-symbols-rounded fs-18" >send</span>
             </button>
           </div>
@@ -292,7 +292,7 @@ const TalkFeature = {
                 </div>
               ` : ''}
             </div>
-            <button class="btn btn-sm btn-primary shrink-0"  onclick="TalkFeature.sendMessage(${item.appointment.id}, '${item.template}')">
+            <button class="btn btn-sm btn-primary shrink-0"  data-action="TalkFeature.sendMessage" data-args='${JSON.stringify([(item.appointment.id), item.template])}'>
               <span class="material-symbols-rounded fs-18" >send</span>
             </button>
           </div>
@@ -302,8 +302,8 @@ const TalkFeature = {
       <div class="p-md" >
         <div class="divider-text">Templates</div>
         <div class="grid-2 gap-sm" >
-          <button class="btn btn-outline btn-sm" onclick="TalkFeature.pickTemplateCustomer('follow_up.quote')"><span class="material-symbols-rounded">replay</span>Quote Follow-up</button>
-          <button class="btn btn-outline btn-sm" onclick="TalkFeature.pickTemplateCustomer('post_sale.review')"><span class="material-symbols-rounded">star</span>Review Request</button>
+          <button class="btn btn-outline btn-sm" data-action="TalkFeature.pickTemplateCustomer" data-args='${JSON.stringify(["follow_up.quote"])}'><span class="material-symbols-rounded">replay</span>Quote Follow-up</button>
+          <button class="btn btn-outline btn-sm" data-action="TalkFeature.pickTemplateCustomer" data-args='${JSON.stringify(["post_sale.review"])}'><span class="material-symbols-rounded">star</span>Review Request</button>
         </div>
       </div>
     </div>`;
@@ -322,11 +322,11 @@ const TalkFeature = {
     }
     return `
       <div class="grid-2 gap-sm mt-12 mb-xs" >
-        <button class="btn btn-primary btn-sm" onclick="TalkFeature.sendMessage(${nextId}, 'on_my_way')">
+        <button class="btn btn-primary btn-sm" data-action="TalkFeature.sendMessage" data-args='${JSON.stringify([(nextId), "on_my_way"])}'>
           <span class="material-symbols-rounded fs-18" >directions_walk</span>
           On My Way
         </button>
-        <button class="btn btn-outline btn-sm" onclick="TalkFeature.sendMessage(${nextId}, 'running_late')">
+        <button class="btn btn-outline btn-sm" data-action="TalkFeature.sendMessage" data-args='${JSON.stringify([(nextId), "running_late"])}'>
           <span class="material-symbols-rounded fs-18" >timer</span>
           Running Late
         </button>
@@ -529,20 +529,20 @@ const TalkFeature = {
       .reduce((m, [outcome, meta]) => { m[meta.template] = outcome; return m; }, {});
 
     const content = `<div class="sheet-handle"></div>
-      <div class="sheet-header"><h3>Preview Message</h3><button class="btn btn-ghost btn-sm" onclick="App.closeModal()"><span class="material-symbols-rounded">close</span></button></div>
+      <div class="sheet-header"><h3>Preview Message</h3><button class="btn btn-ghost btn-sm" data-action="App.closeModal"><span class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body">
         <div class="fs-12 text-secondary mt-6" id="talk-nudge" style="display:none"></div>
         <textarea class="textarea" id="talk-message-preview" style="min-height:110px;">${Utils.escapeHtml(message)}</textarea>
 
         <div class="flex items-center gap-sm mt-sm wrap" >
-          <button class="btn btn-sm ${AIService.isEnabled() ? 'btn-outline' : 'btn-ghost'}" onclick="TalkFeature.aiDraft()">
+          <button class="btn btn-sm ${AIService.isEnabled() ? 'btn-outline' : 'btn-ghost'}" data-action="TalkFeature.aiDraft">
             <span class="material-symbols-rounded fs-16" >auto_awesome</span>Rewrite with AI
           </button>
           <div id="talk-ai-actions" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;">
-            <button class="btn btn-sm btn-ghost" onclick="TalkFeature.regenerateDraft()">
+            <button class="btn btn-sm btn-ghost" data-action="TalkFeature.regenerateDraft">
               <span class="material-symbols-rounded fs-16" >refresh</span>Regenerate
             </button>
-            <button class="btn btn-sm btn-ghost" onclick="TalkFeature.undoAiDraft()">
+            <button class="btn btn-sm btn-ghost" data-action="TalkFeature.undoAiDraft">
               <span class="material-symbols-rounded fs-16" >undo</span>Undo
             </button>
           </div>
@@ -573,13 +573,13 @@ const TalkFeature = {
           <div class="flex gap-6 mt-10 wrap" >
             ${altKeys.map(key => {
               const label = this.OUTCOME_TEMPLATE_MAP[templateToOutcome[key]]?.action || key;
-              return `<button class="btn btn-outline btn-sm" onclick="TalkFeature.switchTemplate('${Utils.escapeJsString(key)}')">${Utils.escapeHtml(label)}</button>`;
+              return `<button class="btn btn-outline btn-sm" data-action="TalkFeature.switchTemplate" data-args='${JSON.stringify([Utils.escapeJsString(key)])}'>${Utils.escapeHtml(label)}</button>`;
             }).join('')}
           </div>
         ` : ''}
 
         <div class="fs-13 text-secondary mt-12 mb-md" >Sending to: ${Utils.escapeHtml(Utils.formatPhone(phone))}</div>
-        <button class="btn btn-primary btn-block" onclick="TalkFeature.confirmSend()">
+        <button class="btn btn-primary btn-block" data-action="TalkFeature.confirmSend">
           <span class="material-symbols-rounded">chat</span>Open WhatsApp
         </button>
       </div>`;
@@ -964,11 +964,11 @@ const TalkFeature = {
     }
 
     const content = `<div class="sheet-handle"></div>
-      <div class="sheet-header"><h3>Choose Customer</h3><button class="btn btn-ghost btn-sm" onclick="App.closeModal()"><span class="material-symbols-rounded">close</span></button></div>
+      <div class="sheet-header"><h3>Choose Customer</h3><button class="btn btn-ghost btn-sm" data-action="App.closeModal"><span class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body">
         <div class="flex flex-col gap-sm" >
           ${visits.map(visit => `
-            <button class="list-item bordered-8 text-left"  onclick="App.closeModal(); TalkFeature.sendMessage(${visit.id}, '${Utils.escapeJsString(key)}')">
+            <button class="list-item bordered-8 text-left"  data-close="1" data-action="TalkFeature.sendMessage" data-args='${JSON.stringify([(visit.id), Utils.escapeJsString(key)])}'>
               <span class="material-symbols-rounded text-brand mr-12" >person</span>
               <span class="flex-1 min-w-0" >
                 <span class="block fw-600 ellipsis" >${Utils.escapeHtml(visit.clientName || 'Unknown')}</span>

@@ -127,7 +127,7 @@ const CompanionFeature = {
           </div>
           <div class="comp-inputbar">
             <input type="text" id="comp-input" class="comp-input" placeholder="Ask Beelo — visits, money, follow-ups…" autocomplete="off">
-            <button class="comp-send" id="comp-send" aria-label="Send" onclick="CompanionFeature.doSend()">
+            <button class="comp-send" id="comp-send" aria-label="Send" data-action="CompanionFeature.doSend">
               <span class="material-symbols-rounded">arrow_upward</span>
             </button>
           </div>
@@ -206,7 +206,7 @@ const CompanionFeature = {
         const isToday = d.iso === todayIso;
         const isPast = d.iso < todayIso;
         return `
-          <button type="button" class="comp-home-week-day ${isToday ? 'today' : ''} ${isPast ? 'past' : ''}" onclick="CompanionFeature.openMyDay('${d.iso}')" ${isToday ? 'aria-current="date"' : ''}>
+          <button type="button" class="comp-home-week-day ${isToday ? 'today' : ''} ${isPast ? 'past' : ''}" data-action="CompanionFeature.openMyDay" data-args='${JSON.stringify([d.iso])}' ${isToday ? 'aria-current="date"' : ''}>
             <span class="comp-home-week-day-label">${d.label}</span>
             <span class="comp-home-week-day-num">${d.num}</span>
             <span class="comp-home-week-day-count">${d.count > 0 ? d.count : '—'}</span>
@@ -217,10 +217,10 @@ const CompanionFeature = {
           <div class="comp-home-section-header">
             <span class="comp-home-section-label">THIS WEEK</span>
             <div class="comp-home-week-nav">
-              <button type="button" class="comp-home-week-arrow" aria-label="Previous week" onclick="CompanionFeature.shiftHomeWeek(-1)">
+              <button type="button" class="comp-home-week-arrow" aria-label="Previous week" data-action="CompanionFeature.shiftHomeWeek" data-args='${JSON.stringify([-1])}'>
                 <span class="material-symbols-rounded" aria-hidden="true">chevron_left</span>
               </button>
-              <button type="button" class="comp-home-week-arrow" aria-label="Next week" onclick="CompanionFeature.shiftHomeWeek(1)">
+              <button type="button" class="comp-home-week-arrow" aria-label="Next week" data-action="CompanionFeature.shiftHomeWeek" data-args='${JSON.stringify([1])}'>
                 <span class="material-symbols-rounded" aria-hidden="true">chevron_right</span>
               </button>
             </div>
@@ -228,7 +228,7 @@ const CompanionFeature = {
           <div class="comp-home-week-strip">${daysHtml}</div>
           <div class="comp-home-week-progress">
             <div class="progress-bar comp-home-week-bar"><div class="fill accent" style="width:${week.pct}%"></div></div>
-            <button type="button" class="comp-home-week-target" onclick="App.navigate('money')">
+            <button type="button" class="comp-home-week-target" data-action="App.navigate" data-args='${JSON.stringify(["money"])}'>
               ${week.gap > 0 ? `${Utils.formatCurrency(week.gap)} to target` : 'Target reached — nice work'}
             </button>
           </div>
@@ -268,13 +268,13 @@ const CompanionFeature = {
             <span class="comp-home-more-value">${Utils.escapeHtml(r.value)}</span>
           </div>`).join('');
         const callBtn = nv.phone ? `
-              <button class="comp-home-cta comp-home-cta--ghost" type="button" onclick="ContactFeature.open({name: '${Utils.escapeJsString(nv.name)}', phone: '${Utils.escapeJsString(nv.phone)}'})">
+              <button class="comp-home-cta comp-home-cta--ghost" type="button" data-action="ContactFeature.open" data-args='${JSON.stringify([{name: Utils.escapeJsString(nv.name), phone: Utils.escapeJsString(nv.phone)}])}'>
                 <span class="material-symbols-rounded" aria-hidden="true">call</span>
                 <span>Call</span>
               </button>` : '';
         featuredHtml = `
           <div class="comp-home-next-visit">
-            <button type="button" class="comp-home-next-visit-main" onclick="App.navigate('appointments', {id: ${nv.id}})">
+            <button type="button" class="comp-home-next-visit-main" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: (nv.id)}])}'>
               <div class="comp-home-next-visit-time">${Utils.escapeHtml(whenText)}</div>
               <div class="comp-home-next-visit-name">${Utils.escapeHtml(nv.name)}</div>
               ${context ? `<div class="comp-home-next-visit-context">${Utils.escapeHtml(context)}</div>` : ''}
@@ -282,7 +282,7 @@ const CompanionFeature = {
               ${journey ? `<div class="comp-home-next-visit-journey">${Utils.escapeHtml(journey)}</div>` : ''}
             </button>
             <div class="comp-home-next-visit-actions">
-              <button class="comp-home-cta comp-home-cta--primary" type="button" onclick="AppointmentsFeature.navigateToVisit('${Utils.escapeJsString(nv.address || '')}', ${nv.id})">
+              <button class="comp-home-cta comp-home-cta--primary" type="button" data-action="AppointmentsFeature.navigateToVisit" data-args='${JSON.stringify([Utils.escapeJsString(nv.address || ''), (nv.id)])}'>
                 <span class="material-symbols-rounded" aria-hidden="true">navigation</span>
                 <span>Navigate</span>
               </button>
@@ -303,7 +303,7 @@ const CompanionFeature = {
           : `${Utils.formatDateUK(v.date, 'weekday-short')} ${Utils.formatDateUK(v.date, 'short')}, ${v.time}`;
         const meta = [v.area, v.eta ? `ETA ${v.eta}` : null].filter(Boolean).join(' · ');
         return `
-          <button type="button" class="comp-home-visit upcoming" onclick="App.navigate('appointments', {id: ${v.id}})">
+          <button type="button" class="comp-home-visit upcoming" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: (v.id)}])}'>
             <div class="comp-home-visit-main">
               <span class="comp-home-visit-time">${Utils.escapeHtml(whenText)}</span>
               <span class="comp-home-visit-name">${Utils.escapeHtml(v.name)}</span>
@@ -321,7 +321,7 @@ const CompanionFeature = {
           </div>
           ${featuredHtml}
           ${rowsHtml ? `<div class="comp-home-visits">${rowsHtml}</div>` : ''}
-          ${upcomingVisits.length > 5 ? `<button class="btn btn-ghost btn-sm comp-home-see-all" onclick="App.navigate('appointments', {tab: 'upcoming'})">See all ${count} visits</button>` : ''}
+          ${upcomingVisits.length > 5 ? `<button class="btn btn-ghost btn-sm comp-home-see-all" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {tab: "upcoming"}])}'>See all ${count} visits</button>` : ''}
         </div>`;
     } else {
       nextVisitHtml = `
@@ -338,7 +338,7 @@ const CompanionFeature = {
     let attentionHtml = '';
     if (homeData.attention && homeData.attention.length > 0) {
       const itemsHtml = homeData.attention.map(item => item.action ? `
-        <button type="button" class="comp-home-attention-item" onclick="${item.action}">
+        <button type="button" class="comp-home-attention-item" ${App.actionAttrs(item.action)}>
           <span class="material-symbols-rounded comp-home-attention-icon" aria-hidden="true">${item.icon}</span>
           <div class="comp-home-attention-content">
             <span class="comp-home-attention-label">${Utils.escapeHtml(item.label)}</span>
@@ -372,7 +372,7 @@ const CompanionFeature = {
           <span class="comp-home-section-label">ASK BEELO</span>
         </div>
         <div class="comp-home-suggestions">
-          ${suggestions.map(s => `<button class="comp-suggestion-chip" type="button" onclick="CompanionFeature.send('${Utils.escapeJsString(s)}')">${Utils.escapeHtml(this.CHIP_LABELS[s] || s)}</button>`).join('')}
+          ${suggestions.map(s => `<button class="comp-suggestion-chip" type="button" data-action="CompanionFeature.send" data-args='${JSON.stringify([Utils.escapeJsString(s)])}'>${Utils.escapeHtml(this.CHIP_LABELS[s] || s)}</button>`).join('')}
         </div>
       </div>` : '';
 
@@ -681,11 +681,11 @@ const CompanionFeature = {
           ${textHtml}
           ${a.actions && a.actions.length ? `
             <div class="comp-actions">
-              ${a.actions.map(x => `<button class="comp-action" type="button" onclick="${x.onclick}">${Utils.escapeHtml(x.label)}</button>`).join('')}
+              ${a.actions.map(x => `<button class="comp-action" type="button" ${App.actionAttrs(x.onclick)}>${Utils.escapeHtml(x.label)}</button>`).join('')}
             </div>` : ''}
           ${suggestions.length ? `
             <div class="comp-chips">
-              ${suggestions.map(k => `<button class="comp-chip" type="button" onclick="CompanionFeature.send('${Utils.escapeJsString(k)}')">${Utils.escapeHtml(this.CHIP_LABELS[k] || k)}</button>`).join('')}
+              ${suggestions.map(k => `<button class="comp-chip" type="button" data-action="CompanionFeature.send" data-args='${JSON.stringify([Utils.escapeJsString(k)])}'>${Utils.escapeHtml(this.CHIP_LABELS[k] || k)}</button>`).join('')}
             </div>` : ''}
         </div>
       </div>`;
@@ -1678,11 +1678,11 @@ const CompanionFeature = {
     }
     const content = `
       <div class="sheet-handle"></div>
-      <div class="sheet-header"><h3>My Day</h3><button class="btn btn-ghost btn-sm" onclick="HomeScreenController.stopDynamicHomeScreen(); App.closeModal()"><span class="material-symbols-rounded">close</span></button></div>
+      <div class="sheet-header"><h3>My Day</h3><button class="btn btn-ghost btn-sm" data-action="HomeScreenController.stopDynamicHomeScreen" data-close="1"><span class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body p-0" style="min-height:72vh;">
         <div id="companion-myday-root"></div>
         <div class="p-md" >
-          <button class="btn btn-primary btn-block" onclick="HomeScreenController.stopDynamicHomeScreen(); App.closeModal()">Back to Beelo</button>
+          <button class="btn btn-primary btn-block" data-action="HomeScreenController.stopDynamicHomeScreen" data-close="1">Back to Beelo</button>
         </div>
       </div>`;
     App.openModal(content);

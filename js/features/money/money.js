@@ -62,7 +62,7 @@ const MoneyFeature = {
     return `<div class="fade-in">
       ${App.renderTopHeader({ 
         title: 'Money', 
-        actions: '<button class="btn btn-sm btn-ghost" aria-label="Download tax summary" onclick="ExportService.exportTaxSummary()"><span class="material-symbols-rounded">download</span></button>' 
+        actions: '<button class="btn btn-sm btn-ghost" aria-label="Download tax summary" data-action="ExportService.exportTaxSummary"><span class="material-symbols-rounded">download</span></button>' 
       })}
       <div class="p-md pb-0" >
         <!-- HERO: This Week Earnings -->
@@ -128,7 +128,7 @@ const MoneyFeature = {
                 <div class="fw-600 text-success">Save ${formatted.weeklySave} this week</div>
                 <div class="fs-13 text-secondary">To cover your January tax bill</div>
               </div>
-              <button class="btn btn-sm btn-secondary" onclick="MoneyFeature.markSaved()">Saved ✓</button>
+              <button class="btn btn-sm btn-secondary" data-action="MoneyFeature.markSaved">Saved ✓</button>
             </div>
           </div>
           ` : ''}
@@ -142,33 +142,33 @@ const MoneyFeature = {
             <span class="material-symbols-rounded text-tertiary">expand_more</span>
           </summary>
           <div class="mt-12 flex flex-col gap-sm" style="padding-top: 12px; border-top: 1px solid var(--border-light);">
-            <button class="btn btn-outline btn-sm btn-block" onclick="App.navigate('appointments')"><span class="material-symbols-rounded">event_available</span>Record a visit outcome</button>
-            <button class="btn btn-outline btn-sm btn-block" onclick="MoneyFeature.openExpenseModal()"><span class="material-symbols-rounded">receipt</span>Log an expense</button>
-            <button class="btn btn-outline btn-sm btn-block" onclick="MoneyFeature.openMileageModal()"><span class="material-symbols-rounded">route</span>Log mileage</button>
+            <button class="btn btn-outline btn-sm btn-block" data-action="App.navigate" data-args='${JSON.stringify(["appointments"])}'><span class="material-symbols-rounded">event_available</span>Record a visit outcome</button>
+            <button class="btn btn-outline btn-sm btn-block" data-action="MoneyFeature.openExpenseModal"><span class="material-symbols-rounded">receipt</span>Log an expense</button>
+            <button class="btn btn-outline btn-sm btn-block" data-action="MoneyFeature.openMileageModal"><span class="material-symbols-rounded">route</span>Log mileage</button>
           </div>
         </details>`}
 
         <!-- This Week | This Month segmented control -->
         <div class="segmented mt-md" id="money-period">
-          <button class="segment active" data-period="week" onclick="MoneyFeature.switchPeriod('week')">This Week</button>
-          <button class="segment" data-period="month" onclick="MoneyFeature.switchPeriod('month')">This Month</button>
+          <button class="segment active" data-period="week" data-action="MoneyFeature.switchPeriod" data-args='${JSON.stringify(["week"])}'>This Week</button>
+          <button class="segment" data-period="month" data-action="MoneyFeature.switchPeriod" data-args='${JSON.stringify(["month"])}'>This Month</button>
         </div>
 
         <!-- This Week details (shown by default) -->
         <div id="money-week" class="mt-md">
           <div class="stats-grid">
-            <div class="stat-card" onclick="MoneyFeature.openRecordsModal()"><div class="value">${Utils.formatCurrency(mileageClaim)}</div><div class="label">Mileage claim</div></div>
-            <div class="stat-card" onclick="MoneyFeature.openRecordsModal()"><div class="value">${Utils.formatCurrency(weekTotal)}</div><div class="label">Expenses</div></div>
-            <div class="stat-card" onclick="MoneyFeature.openRecordsModal()"><div class="value">${weekRecordCount || '—'}</div><div class="label">Records</div></div>
+            <div class="stat-card" data-action="MoneyFeature.openRecordsModal"><div class="value">${Utils.formatCurrency(mileageClaim)}</div><div class="label">Mileage claim</div></div>
+            <div class="stat-card" data-action="MoneyFeature.openRecordsModal"><div class="value">${Utils.formatCurrency(weekTotal)}</div><div class="label">Expenses</div></div>
+            <div class="stat-card" data-action="MoneyFeature.openRecordsModal"><div class="value">${weekRecordCount || '—'}</div><div class="label">Records</div></div>
           </div>
         </div>
 
         <!-- This Month details (hidden by default) -->
         <div id="money-month" class="mt-md" hidden>
           <div class="stats-grid">
-            <div class="stat-card" onclick="MoneyFeature.openRecordsModal()"><div class="value">${Utils.formatDistance(monthMiles)}</div><div class="label">Mileage</div></div>
-            <div class="stat-card" onclick="MoneyFeature.openRecordsModal()"><div class="value">${expenses.length}</div><div class="label">Expenses logged</div></div>
-            <div class="stat-card" onclick="MoneyFeature.openRecordsModal()"><div class="value">${trips.length}</div><div class="label">Trips logged</div></div>
+            <div class="stat-card" data-action="MoneyFeature.openRecordsModal"><div class="value">${Utils.formatDistance(monthMiles)}</div><div class="label">Mileage</div></div>
+            <div class="stat-card" data-action="MoneyFeature.openRecordsModal"><div class="value">${expenses.length}</div><div class="label">Expenses logged</div></div>
+            <div class="stat-card" data-action="MoneyFeature.openRecordsModal"><div class="value">${trips.length}</div><div class="label">Trips logged</div></div>
             <div class="stat-card"><div class="value">${formatted ? formatted.effectiveRate : '—'}</div><div class="label">Effective tax</div></div>
           </div>
         </div>
@@ -176,10 +176,10 @@ const MoneyFeature = {
         <!-- Quick Actions - one primary -->
         <div class="p-md mt-md" >
           <div class="grid-2 gap-12" >
-            <button class="btn btn-primary btn-sm" onclick="MoneyFeature.openExpenseModal()"><span class="material-symbols-rounded">receipt</span>Log Expense</button>
-            <button class="btn btn-outline btn-sm" onclick="MoneyFeature.openMileageModal()"><span class="material-symbols-rounded">route</span>Log Mileage</button>
-            <button class="btn btn-outline btn-sm" onclick="MoneyFeature.openRecordsModal()"><span class="material-symbols-rounded">list</span>View Records</button>
-            <button class="btn btn-outline btn-sm" onclick="ExportService.exportBackup()"><span class="material-symbols-rounded">backup</span>Backup Data</button>
+            <button class="btn btn-primary btn-sm" data-action="MoneyFeature.openExpenseModal"><span class="material-symbols-rounded">receipt</span>Log Expense</button>
+            <button class="btn btn-outline btn-sm" data-action="MoneyFeature.openMileageModal"><span class="material-symbols-rounded">route</span>Log Mileage</button>
+            <button class="btn btn-outline btn-sm" data-action="MoneyFeature.openRecordsModal"><span class="material-symbols-rounded">list</span>View Records</button>
+            <button class="btn btn-outline btn-sm" data-action="ExportService.exportBackup"><span class="material-symbols-rounded">backup</span>Backup Data</button>
           </div>
         </div>
       </div>
@@ -224,7 +224,7 @@ const MoneyFeature = {
     const renderExpense = e => {
       const cat = CONFIG.expenseCategories.find(c => c.id === e.category);
       return `
-        <div class="area-customer-row" onclick="MoneyFeature.openEditExpenseModal(${e.id})">
+        <div class="area-customer-row" data-action="MoneyFeature.openEditExpenseModal" data-args='${JSON.stringify([(e.id)])}'>
           <span class="material-symbols-rounded">${cat?.icon || 'receipt'}</span>
           <span>
             <strong>${Utils.formatCurrency(e.amount)} · ${Utils.escapeHtml(cat?.name || e.category || 'Expense')}</strong>
@@ -237,7 +237,7 @@ const MoneyFeature = {
     const renderTrip = t => {
       const dist = CONFIG.distanceUnit === 'miles' ? (t.distanceKm || 0) * 0.621371 : (t.distanceKm || 0);
       return `
-        <div class="area-customer-row" onclick="MoneyFeature.openEditTripModal(${t.id})">
+        <div class="area-customer-row" data-action="MoneyFeature.openEditTripModal" data-args='${JSON.stringify([(t.id)])}'>
           <span class="material-symbols-rounded">route</span>
           <span>
             <strong>${dist.toFixed(1)} ${CONFIG.distanceUnit} · ${Utils.escapeHtml(t.startLocation || '')} → ${Utils.escapeHtml(t.endLocation || '')}</strong>
@@ -252,7 +252,7 @@ const MoneyFeature = {
       <div class="sheet-handle"></div>
       <div class="sheet-header">
         <h3>This Month's Records</h3>
-        <button class="btn btn-ghost btn-sm" onclick="App.closeModal()">
+        <button class="btn btn-ghost btn-sm" data-action="App.closeModal">
           <span class="material-symbols-rounded">close</span>
         </button>
       </div>
@@ -273,7 +273,7 @@ const MoneyFeature = {
       <div class="sheet-handle"></div>
       <div class="sheet-header">
         <h3>Receipt</h3>
-        <button class="btn btn-ghost btn-sm" onclick="App.closeModal()">
+        <button class="btn btn-ghost btn-sm" data-action="App.closeModal">
           <span class="material-symbols-rounded">close</span>
         </button>
       </div>
@@ -290,7 +290,7 @@ const MoneyFeature = {
       <div class="sheet-handle"></div>
       <div class="sheet-header">
         <h3>Edit Expense</h3>
-        <button class="btn btn-ghost btn-sm" onclick="App.closeModal()">
+        <button class="btn btn-ghost btn-sm" data-action="App.closeModal">
           <span class="material-symbols-rounded">close</span>
         </button>
       </div>
@@ -315,10 +315,10 @@ const MoneyFeature = {
             <img class="max-w-full br-8" src="${expense.photo}" >
           </div>
         ` : ''}
-        <button class="btn btn-primary btn-block" onclick="MoneyFeature.saveEditExpense(${expenseId})">
+        <button class="btn btn-primary btn-block" data-action="MoneyFeature.saveEditExpense" data-args='${JSON.stringify([(expenseId)])}'>
           Save Changes
         </button>
-        <button class="btn btn-danger btn-block mt-sm"  onclick="MoneyFeature.confirmDeleteExpense(${expenseId})">
+        <button class="btn btn-danger btn-block mt-sm"  data-action="MoneyFeature.confirmDeleteExpense" data-args='${JSON.stringify([(expenseId)])}'>
           <span class="material-symbols-rounded">delete</span> Delete Expense
         </button>
       </div>
@@ -352,7 +352,7 @@ const MoneyFeature = {
       <div class="sheet-handle"></div>
       <div class="sheet-header">
         <h3>Delete Expense</h3>
-        <button class="btn btn-ghost btn-sm" onclick="App.closeModal()">
+        <button class="btn btn-ghost btn-sm" data-action="App.closeModal">
           <span class="material-symbols-rounded">close</span>
         </button>
       </div>
@@ -360,7 +360,7 @@ const MoneyFeature = {
         <div class="fs-14 text-secondary lh-150 mb-14" >
           This can't be undone.
         </div>
-        <button class="btn btn-danger btn-block" onclick="MoneyFeature.deleteExpense(${expenseId})">
+        <button class="btn btn-danger btn-block" data-action="MoneyFeature.deleteExpense" data-args='${JSON.stringify([(expenseId)])}'>
           Delete Expense
         </button>
       </div>
@@ -388,7 +388,7 @@ const MoneyFeature = {
       <div class="sheet-handle"></div>
       <div class="sheet-header">
         <h3>Edit Trip</h3>
-        <button class="btn btn-ghost btn-sm" onclick="App.closeModal()">
+        <button class="btn btn-ghost btn-sm" data-action="App.closeModal">
           <span class="material-symbols-rounded">close</span>
         </button>
       </div>
@@ -405,10 +405,10 @@ const MoneyFeature = {
           <label>Distance (${CONFIG.distanceUnit})</label>
           <input type="number" class="input" inputmode="decimal" id="edit-trip-distance" step="0.1" min="0" value="${dist.toFixed(1)}">
         </div>
-        <button class="btn btn-primary btn-block" onclick="MoneyFeature.saveEditTrip(${tripId})">
+        <button class="btn btn-primary btn-block" data-action="MoneyFeature.saveEditTrip" data-args='${JSON.stringify([(tripId)])}'>
           Save Changes
         </button>
-        <button class="btn btn-danger btn-block mt-sm"  onclick="MoneyFeature.confirmDeleteTrip(${tripId})">
+        <button class="btn btn-danger btn-block mt-sm"  data-action="MoneyFeature.confirmDeleteTrip" data-args='${JSON.stringify([(tripId)])}'>
           <span class="material-symbols-rounded">delete</span> Delete Trip
         </button>
       </div>
@@ -446,7 +446,7 @@ const MoneyFeature = {
       <div class="sheet-handle"></div>
       <div class="sheet-header">
         <h3>Delete Trip</h3>
-        <button class="btn btn-ghost btn-sm" onclick="App.closeModal()">
+        <button class="btn btn-ghost btn-sm" data-action="App.closeModal">
           <span class="material-symbols-rounded">close</span>
         </button>
       </div>
@@ -454,7 +454,7 @@ const MoneyFeature = {
         <div class="fs-14 text-secondary lh-150 mb-14" >
           This can't be undone.
         </div>
-        <button class="btn btn-danger btn-block" onclick="MoneyFeature.deleteTrip(${tripId})">
+        <button class="btn btn-danger btn-block" data-action="MoneyFeature.deleteTrip" data-args='${JSON.stringify([(tripId)])}'>
           Delete Trip
         </button>
       </div>
@@ -482,7 +482,7 @@ const MoneyFeature = {
       <div class="sheet-handle"></div>
       <div class="sheet-header">
         <h3>Quick Expense</h3>
-        <button class="btn btn-ghost btn-sm" onclick="App.closeModal()">
+        <button class="btn btn-ghost btn-sm" data-action="App.closeModal">
           <span class="material-symbols-rounded">close</span>
         </button>
       </div>
@@ -503,14 +503,14 @@ const MoneyFeature = {
         </div>
         <div class="form-group">
           <label>Receipt</label>
-          <button class="btn btn-outline btn-sm" type="button" onclick="document.getElementById('expense-photo').click()">
+          <button class="btn btn-outline btn-sm" type="button" data-file="expense-photo">
             <span class="material-symbols-rounded">photo_camera</span>
             Take Photo
           </button>
-          <input type="file" id="expense-photo" accept="image/*" capture="environment" style="display:none;" onchange="MoneyFeature.handleExpensePhoto(event)">
+          <input type="file" id="expense-photo" accept="image/*" capture="environment" style="display:none;" data-action="MoneyFeature.handleExpensePhoto" data-args='${JSON.stringify(["__event__"])}'>
           <div class="mt-sm" id="expense-photo-preview" ></div>
         </div>
-        <button class="btn btn-primary btn-block" onclick="MoneyFeature.saveExpense()">
+        <button class="btn btn-primary btn-block" data-action="MoneyFeature.saveExpense">
           Save Expense
         </button>
       </div>
@@ -601,12 +601,12 @@ const MoneyFeature = {
       <div class="sheet-handle"></div>
       <div class="sheet-header">
         <h3>Log Mileage</h3>
-        <button class="btn btn-ghost btn-sm" onclick="App.closeModal()">
+        <button class="btn btn-ghost btn-sm" data-action="App.closeModal">
           <span class="material-symbols-rounded">close</span>
         </button>
       </div>
       <div class="sheet-body">
-        <button class="btn btn-primary btn-block mb-md" onclick="MoneyFeature.startLiveTrip()" >
+        <button class="btn btn-primary btn-block mb-md" data-action="MoneyFeature.startLiveTrip" >
           <span class="material-symbols-rounded">directions_car</span>
           Start Live Trip
         </button>
@@ -624,7 +624,7 @@ const MoneyFeature = {
           <label>Distance (${CONFIG.distanceUnit})</label>
           <input type="number" class="input" inputmode="decimal" id="trip-distance" placeholder="0.0" step="0.1" min="0">
         </div>
-        <button class="btn btn-outline btn-block" onclick="MoneyFeature.saveTrip()">
+        <button class="btn btn-outline btn-block" data-action="MoneyFeature.saveTrip">
           Log Trip
         </button>
       </div>

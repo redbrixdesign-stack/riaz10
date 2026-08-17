@@ -35,6 +35,7 @@ global.App = {
   navigate() {},
   closeModal() {},
   openModal() {},
+  actionAttrs() { return ''; },
   lastModal: null
 };
 

@@ -36,12 +36,16 @@ const ok = (label, cond, extra) => {
   await page.evaluate(() => App.closeModal({ all: true }));
 
   console.log('\n=== Same-day card ===');
-  const s = await page.evaluate(() => ({
-    isButton: document.querySelector('.comp-home-next-visit-main').tagName,
-    onclick: document.querySelector('.comp-home-next-visit-main').getAttribute('onclick'),
-    strayInputs: document.querySelectorAll('.comp-home-next-visit input, .comp-home-next-visit-main input').length
-  }));
-  ok('info area is a <button> wired to the visit detail route', s.isButton === 'BUTTON' && /App\.navigate\('appointments', \{id: \d+\}\)/.test(s.onclick), s);
+  const s = await page.evaluate(() => {
+    const main = document.querySelector('.comp-home-next-visit-main');
+    return {
+      isButton: main.tagName,
+      action: main.getAttribute('data-action'),
+      args: main.getAttribute('data-args'),
+      strayInputs: document.querySelectorAll('.comp-home-next-visit input, .comp-home-next-visit-main input').length
+    };
+  });
+  ok('info area is a <button> wired to the visit detail route (delegated action)', s.isButton === 'BUTTON' && s.action === 'App.navigate' && /\{\"id\":\d+\}/.test(s.args || ''), s);
   ok('no stray <input> in the card (keyboard symptom)', s.strayInputs === 0, s);
 
   await page.evaluate(() => document.querySelector('.comp-home-next-visit-main').click());
@@ -96,12 +100,16 @@ const ok = (label, cond, extra) => {
   });
   await page.waitForSelector('.comp-home-next-visit-main', { timeout: 15000 });
   await page.waitForTimeout(1200);
-  const future = await page.evaluate(() => ({
-    onclick: document.querySelector('.comp-home-next-visit-main').getAttribute('onclick'),
-    dateLabel: /^[A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2}, \d{2}:\d{2}$/.test(document.querySelector('.comp-home-next-visit-time').textContent.trim())
-  }));
+  const future = await page.evaluate(() => {
+    const main = document.querySelector('.comp-home-next-visit-main');
+    return {
+      action: main.getAttribute('data-action'),
+      args: main.getAttribute('data-args'),
+      dateLabel: /^[A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2}, \d{2}:\d{2}$/.test(document.querySelector('.comp-home-next-visit-time').textContent.trim())
+    };
+  });
   const tid = await page.evaluate(() => window.__tid);
-  ok('future-date card shows the dated label and carries the real visit id', future.dateLabel && future.onclick.includes(`{id: ${tid}}`), { future, tid });
+  ok('future-date card shows the dated label and carries the real visit id', future.dateLabel && future.action === 'App.navigate' && future.args && future.args.includes(`"id":${tid}`), { future, tid });
   await page.evaluate(() => document.querySelector('.comp-home-next-visit-main').click());
   await page.waitForTimeout(1500);
   const hashAfter = await page.evaluate(() => location.hash);

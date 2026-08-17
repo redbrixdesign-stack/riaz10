@@ -317,10 +317,10 @@ const Geo = {
           <strong>Trip in progress</strong>
           <span>${distance.toFixed(1)} ${CONFIG.distanceUnit}${this.activeTrip.destination ? ' · finishes when you arrive & reopen the app' : ''}</span>
         </div>
-        <button class="btn btn-sm btn-ghost" onclick="Geo.cancelTrip()" title="Cancel trip">
+        <button class="btn btn-sm btn-ghost" data-action="Geo.cancelTrip" title="Cancel trip">
           <span class="material-symbols-rounded">close</span>
         </button>
-        <button class="btn btn-sm btn-primary" onclick="Geo.finishTrip()">Finish</button>
+        <button class="btn btn-sm btn-primary" data-action="Geo.finishTrip">Finish</button>
       </div>
     `;
   },
@@ -344,6 +344,13 @@ const Geo = {
   // Navigation handoff delegates to provider
   buildNavigationUrl(destination, origin = '') {
     return this._provider().buildNavigationUrl(destination, origin);
+  },
+
+  // Open turn-by-turn navigation in a new tab (delegated-router friendly:
+  // replaces inline window.open(...) handlers).
+  openNavigation(destination, origin = '') {
+    const url = this.buildNavigationUrl(destination || '', origin || '');
+    if (url) window.open(url, '_blank');
   },
 
   // Optimize route for multiple stops (TSP approximation) - uses local calculateDistance

@@ -168,7 +168,7 @@ const HomeScreenController = {
       const isSelected = d.getTime() === selected.getTime();
       const isTodayDot = d.getTime() === today.getTime();
       return `
-        <button class="hsc-week-day ${isSelected ? 'active' : ''}" type="button" onclick="HomeScreenController.selectDay('${Utils.formatDate(d, 'iso')}')">
+        <button class="hsc-week-day ${isSelected ? 'active' : ''}" type="button" data-action="HomeScreenController.selectDay" data-args='${JSON.stringify([Utils.formatDate(d, 'iso')])}'>
           <span class="hsc-week-day-name">${Utils.formatDate(d, 'weekday-short')}</span>
           <span class="hsc-week-day-num">${d.getDate()}</span>
           ${isTodayDot && !isSelected ? '<span class="hsc-week-day-dot"></span>' : ''}
@@ -183,20 +183,20 @@ const HomeScreenController = {
     return `
       <div class="hsc-root hsc-weekly fade-in">
         <div class="hsc-week-toprow">
-          <button class="hsc-week-icon-btn" type="button" aria-label="Search visits" onclick="App.navigate('appointments')">
+          <button class="hsc-week-icon-btn" type="button" aria-label="Search visits" data-action="App.navigate" data-args='${JSON.stringify(["appointments"])}'>
             <span class="material-symbols-rounded">search</span>
           </button>
         </div>
 
         <div class="hsc-week-header">
-          <button class="hsc-week-nav" type="button" aria-label="Previous day" onclick="HomeScreenController.shiftSelectedDay(-1)">
+          <button class="hsc-week-nav" type="button" aria-label="Previous day" data-action="HomeScreenController.shiftSelectedDay" data-args='${JSON.stringify([-1])}'>
             <span class="material-symbols-rounded">chevron_left</span>
           </button>
-          <div class="hsc-week-title" onclick="HomeScreenController.jumpToToday()">
+          <div class="hsc-week-title" data-action="HomeScreenController.jumpToToday">
             ${Utils.escapeHtml(Utils.formatDate(selected, 'long'))}
             ${!isToday ? '<span class="hsc-week-today-hint">Tap for today</span>' : ''}
           </div>
-          <button class="hsc-week-nav" type="button" aria-label="Next day" onclick="HomeScreenController.shiftSelectedDay(1)">
+          <button class="hsc-week-nav" type="button" aria-label="Next day" data-action="HomeScreenController.shiftSelectedDay" data-args='${JSON.stringify([1])}'>
             <span class="material-symbols-rounded">chevron_right</span>
           </button>
         </div>
@@ -204,7 +204,7 @@ const HomeScreenController = {
         <div class="hsc-week-strip">${dayStripHtml}</div>
 
         ${followUpCount > 0 ? `
-        <button class="hsc-followup-badge" type="button" onclick="App.navigate('followups')">
+        <button class="hsc-followup-badge" type="button" data-action="App.navigate" data-args='${JSON.stringify(["followups"])}'>
           <span class="material-symbols-rounded">campaign</span>
           ${followUpCount} thing${followUpCount === 1 ? '' : 's'} due today
           <span class="material-symbols-rounded ml-auto" >chevron_right</span>
@@ -245,7 +245,7 @@ const HomeScreenController = {
 
     return `
       <div class="hsc-week-row ${isDone ? 'done' : ''}">
-        <button class="hsc-week-row-main" type="button" onclick="App.navigate('appointments', {id: ${appt.id}})">
+        <button class="hsc-week-row-main" type="button" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: (appt.id)}])}'>
           <div class="hsc-week-row-top">
             <span class="hsc-week-row-name">@${name}</span>
             <span class="hsc-week-row-time">${time}</span>
@@ -255,10 +255,10 @@ const HomeScreenController = {
         </button>
         ${!isDone ? `
         <div class="hsc-week-row-actions">
-          <button class="btn btn-outline btn-sm" type="button" onclick="AppointmentsFeature.navigateToVisit('${Utils.escapeJsString(appt.address || '')}', ${appt.id})">
+          <button class="btn btn-outline btn-sm" type="button" data-action="AppointmentsFeature.navigateToVisit" data-args='${JSON.stringify([(Utils.escapeJsString(appt.address || '')), (appt.id)])}'>
             <span class="material-symbols-rounded">navigation</span>Navigate
           </button>
-          <button class="btn btn-outline btn-sm" type="button" ${phone ? '' : 'disabled'} onclick="ContactFeature.open({name: '${Utils.escapeJsString(appt.clientName || 'Customer')}', phone: '${Utils.escapeJsString(phone)}'})">
+          <button class="btn btn-outline btn-sm" type="button" ${phone ? '' : 'disabled'} data-action="ContactFeature.open" data-args='${JSON.stringify([{name: (Utils.escapeJsString(appt.clientName || 'Customer')), phone: (Utils.escapeJsString(phone))}])}'>
             <span class="material-symbols-rounded">chat</span>Talk
           </button>
         </div>
@@ -281,7 +281,7 @@ const HomeScreenController = {
     const label = isOnSite ? 'On site now' : isLate ? 'Running late' : isInTransit ? 'On the way' : 'Up next';
     const color = isLate ? 'var(--warning,#b06000)' : isOnSite ? 'var(--secondary)' : 'var(--text-secondary)';
     const photoThumbs = photos.slice(0, 4).map(p => `
-      <button class="hsc-upnext-photo" type="button" aria-label="View photo" onclick="AppointmentsFeature.openPhotoViewer(${p.id}, ${p.customerId})">
+      <button class="hsc-upnext-photo" type="button" aria-label="View photo" data-action="AppointmentsFeature.openPhotoViewer" data-args='${JSON.stringify([(p.id), (p.customerId)])}'>
         <img src="data:${p.mimeType || 'image/jpeg'};base64,${p.data}" alt="">
       </button>
     `).join('');
@@ -303,7 +303,7 @@ const HomeScreenController = {
   // empty-day state. This gives every state the same way in.
   renderAddVisitLink() {
     return `
-      <button class="hsc-escape-link" type="button" onclick="App.navigate('appointments', {action: 'add'})">
+      <button class="hsc-escape-link" type="button" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {action: "add"}])}'>
         <span class="material-symbols-rounded">add</span>
         Add visit
       </button>

@@ -64,7 +64,7 @@ const TodayFeature = {
       <div class="sheet-handle"></div>
       <div class="sheet-header">
         <h3>End of Day</h3>
-        <button class="btn btn-ghost btn-sm" onclick="App.closeModal()">
+        <button class="btn btn-ghost btn-sm" data-action="App.closeModal"App.closeModal()">
           <span class="material-symbols-rounded">close</span>
         </button>
       </div>
@@ -85,7 +85,7 @@ const TodayFeature = {
           <input type="text" class="input" id="eod-note" placeholder="e.g. Call back Mrs Jones about samples">
         </div>
 
-        <button class="btn btn-primary btn-block" onclick="TodayFeature.completeEOD()">
+        <button class="btn btn-primary btn-block" data-action="TodayFeature.completeEOD"TodayFeature.completeEOD()">
           Done for Today <span class="material-symbols-rounded">check</span>
         </button>
       </div>

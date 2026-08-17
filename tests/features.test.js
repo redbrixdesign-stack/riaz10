@@ -29,6 +29,19 @@ global.App = {
   navigate() {},
   closeModal() {},
   openModal() {},
+  actionAttrs(callString) {
+    const s = String(callString || '').trim();
+    if (!s || s.includes(';')) return '';
+    const m = s.match(/^([A-Za-z_][\w.]*)\((.*)\)$/s);
+    if (!m) return '';
+    const objpath = m[1];
+    const arglist = m[2].trim();
+    const KNOWN = ['App', 'AppointmentsFeature', 'SettingsFeature', 'MoneyFeature', 'TalkFeature', 'MeasureFeature', 'OnboardingFeature', 'RouteFeature', 'OrdersFeature', 'ContactFeature', 'HomeScreenController', 'CompanionFeature', 'ExportService', 'OCRFeature', 'ControlFeature', 'TodayFeature', 'Geo', 'CustomerFeature'];
+    if (!KNOWN.includes(objpath.split('.')[0])) return '';
+    let jsonArgs = arglist.replace(/'([^']*)'/g, '"$1"');
+    if (jsonArgs === '') return `data-action="${objpath}"`;
+    return `data-action="${objpath}" data-args='${jsonArgs}'`;
+  },
   renderTopHeader({ title = '', showBack = false, backHref = '#today', actions = '' } = {}) {
     let leftHtml = '';
     if (showBack && title) {

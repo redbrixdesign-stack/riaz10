@@ -174,7 +174,7 @@ const App = {
               <input type="password" class="input" id="enc-passphrase-confirm" placeholder="Confirm passphrase" autocomplete="off">
             </div>
             <div class="fs-12 text-tertiary mb-md">Forgetting this passphrase means permanent loss of customer data. No recovery is possible.</div>
-            <button class="btn btn-primary btn-block" onclick="App._setPassphrase()">Set Passphrase</button>
+            <button class="btn btn-primary btn-block" data-action="App._setPassphrase">Set Passphrase</button>
           </div>
         `, { onOpen: () => document.getElementById('enc-passphrase-new')?.focus() });
         App._setPassphrase = async () => {
@@ -216,7 +216,7 @@ const App = {
               <input type="password" class="input" id="enc-passphrase" placeholder="Enter passphrase" autocomplete="off">
             </div>
             <div id="enc-error" class="fs-12 text-danger mb-md" style="display:none;"></div>
-            <button class="btn btn-primary btn-block" onclick="App._checkPassphrase()">Unlock</button>
+            <button class="btn btn-primary btn-block" data-action="App._checkPassphrase">Unlock</button>
           </div>
         `, { onOpen: () => document.getElementById('enc-passphrase')?.focus() });
         App._checkPassphrase = async () => {
@@ -368,9 +368,9 @@ const App = {
     const { title = '', showBack = false, backHref = '#today', actions = '' } = options;
     let leftHtml = '';
     if (showBack && title) {
-      leftHtml = `<button class="btn btn-ghost btn-sm" onclick="App.navigate('${Utils.escapeJsString(backHref)}')"><span class="material-symbols-rounded">arrow_back</span></button><h1 class="page-heading">${Utils.escapeHtml(title)}</h1>`;
+      leftHtml = `<button class="btn btn-ghost btn-sm" data-action="App.navigate" data-args='${JSON.stringify([(Utils.escapeJsString(backHref))])}'><span class="material-symbols-rounded">arrow_back</span></button><h1 class="page-heading">${Utils.escapeHtml(title)}</h1>`;
     } else if (showBack) {
-      leftHtml = `<button class="btn btn-ghost btn-sm" onclick="App.navigate('${Utils.escapeJsString(backHref)}')"><span class="material-symbols-rounded">arrow_back</span></button>`;
+      leftHtml = `<button class="btn btn-ghost btn-sm" data-action="App.navigate" data-args='${JSON.stringify([(Utils.escapeJsString(backHref))])}'><span class="material-symbols-rounded">arrow_back</span></button>`;
     } else if (title) {
       leftHtml = `<h1 class="page-heading">${Utils.escapeHtml(title)}</h1>`;
     }
@@ -511,8 +511,8 @@ const App = {
             <span class="material-symbols-rounded">error</span>
             <div>Failed to load</div>
             <div style="display:flex;gap:8px;margin-top:12px;">
-              <button class="btn btn-outline btn-sm" onclick="App.navigate('${Utils.escapeJsString(featureId)}')">Try again</button>
-              ${featureId !== 'today' ? `<button class="btn btn-primary btn-sm" onclick="App.navigate('today')">Go to Today</button>` : ''}
+              <button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='${JSON.stringify([(Utils.escapeJsString(featureId))])}'>Try again</button>
+              ${featureId !== 'today' ? `<button class="btn btn-primary btn-sm" data-action="App.navigate" data-args='["today"]'>Go to Today</button>` : ''}
             </div>
           </div>`;
           App.finalizeNavigation(main, targetHash);
@@ -525,8 +525,8 @@ const App = {
         <span class="material-symbols-rounded">error</span>
         <div>Something went wrong loading this screen</div>
         <div style="display:flex;gap:8px;margin-top:12px;">
-          <button class="btn btn-outline btn-sm" onclick="App.navigate('${Utils.escapeJsString(featureId)}')">Try again</button>
-          ${featureId !== 'today' ? `<button class="btn btn-primary btn-sm" onclick="App.navigate('today')">Go to Today</button>` : ''}
+          <button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='${JSON.stringify([(Utils.escapeJsString(featureId))])}'>Try again</button>
+          ${featureId !== 'today' ? `<button class="btn btn-primary btn-sm" data-action="App.navigate" data-args='["today"]'>Go to Today</button>` : ''}
         </div>
       </div>`;
       App.finalizeNavigation(main, targetHash);
@@ -597,6 +597,30 @@ const App = {
     });
   },
 
+  // Convert a handler call-string ("Obj.method(args)") into data-action +
+  // data-args attributes for the delegated router. Used where handler
+  // strings are built in data objects (companion actions, customer
+  // timeline). Returns '' for anything not parseable, so templates can drop
+  // the attribute safely. This is the ONLY path that turns a string into an
+  // action — gated by the same whitelist as the router, never eval.
+  actionAttrs(callString) {
+    const s = String(callString || '').trim();
+    if (!s || s.includes(';')) return '';
+    const m = s.match(/^([A-Za-z_][\w.]*)\((.*)\)$/s);
+    if (!m) return '';
+    const objpath = m[1];
+    const arglist = m[2].trim();
+    const root = objpath.split('.')[0];
+    const KNOWN = ['App', 'AppointmentsFeature', 'SettingsFeature', 'MoneyFeature', 'TalkFeature', 'MeasureFeature', 'OnboardingFeature', 'RouteFeature', 'OrdersFeature', 'ContactFeature', 'HomeScreenController', 'CompanionFeature', 'ExportService', 'OCRFeature', 'ControlFeature', 'TodayFeature', 'Geo', 'CustomerFeature'];
+    if (!KNOWN.includes(root)) return '';
+    // Rewrite JS string literals to JSON strings (single->double quotes).
+    let jsonArgs = arglist.replace(/'([^']*)'/g, '"$1"');
+    if (jsonArgs === '') {
+      return `data-action="${objpath}"`;
+    }
+    return `data-action="${objpath}" data-args='${jsonArgs}'`;
+  },
+
   // Event setup
   setupEvents() {
     // Back button handling
@@ -605,6 +629,132 @@ const App = {
         this.closeModal();
         this.closeFullModal();
       }
+    });
+
+    // ---- Delegated action router (CSP: removes inline onclick/onchange) ----
+    // Every interactive element that used an inline handler now carries
+    // data-action="Object.method" plus data-args (JSON array) and, for
+    // keydown handlers, data-key="Enter". A single document-level listener
+    // dispatches to a WHITELIST of known globals — never eval, so the CSP
+    // can drop 'unsafe-inline' without opening an injection vector.
+    // data-key support is scoped to the legacy pattern
+    //   if(event.key==='Enter'||event.key===' '){...}
+    // which becomes data-key="Enter, " (comma-separated accepted keys).
+    const ACTION_OBJECTS = {
+      App,
+      AppointmentsFeature,
+      SettingsFeature,
+      MoneyFeature,
+      TalkFeature,
+      MeasureFeature,
+      OnboardingFeature,
+      RouteFeature,
+      OrdersFeature,
+      ContactFeature,
+      HomeScreenController,
+      CompanionFeature,
+      ExportService,
+      OCRFeature,
+      ControlFeature,
+      TodayFeature,
+      Geo,
+      CustomerFeature
+    };
+
+    const runAction = (el, event) => {
+      const action = el.getAttribute('data-action');
+      // data-close-backdrop: close the modal only when the click landed on
+      // the overlay itself, not the sheet inside it (was inline
+      // onclick="if(event.target===this)App.closeModal()").
+      if (el.getAttribute('data-close-backdrop') && event.type === 'click') {
+        if (event.target === el) {
+          event.preventDefault();
+          this.closeModal();
+        }
+        return true;
+      }
+      // data-stop-propagation: swallow clicks here so they don't bubble to a
+      // parent handler (was inline onclick="event.stopPropagation()").
+      if (el.getAttribute('data-stop-propagation')) {
+        event.stopPropagation();
+        return true;
+      }
+      // data-file: click a hidden file input on tap (was inline
+      // document.getElementById('x').click()).
+      if (!action && el.getAttribute('data-file')) {
+        const fileInput = document.getElementById(el.getAttribute('data-file'));
+        if (fileInput) {
+          event.preventDefault();
+          fileInput.click();
+        }
+        return true;
+      }
+      if (!action) return false;
+      // data-stop: stop the event bubbling before running (was inline
+      // event.stopPropagation();...).
+      if (el.getAttribute('data-stop')) {
+        event.stopPropagation();
+      }
+      // data-close: close any open modal first (was inline
+      // App.closeModal();...).
+      if (el.getAttribute('data-close')) {
+        this.closeModal({ all: true, silent: true });
+      }
+      const dot = action.lastIndexOf('.');
+      const objName = dot > 0 ? action.slice(0, dot) : '';
+      const method = dot > 0 ? action.slice(dot + 1) : action;
+      const obj = ACTION_OBJECTS[objName];
+      if (!obj) {
+        console.error(`[action] unknown object "${objName}" from ${action}`);
+        return false;
+      }
+      if (typeof obj[method] !== 'function') {
+        console.error(`[action] "${objName}.${method}" is not a function`);
+        return false;
+      }
+      let args = [];
+      const rawArgs = el.getAttribute('data-args');
+      if (rawArgs) {
+        try { args = JSON.parse(rawArgs); } catch (e) {
+          console.error(`[action] bad data-args on ${action}:`, rawArgs);
+          return false;
+        }
+        if (!Array.isArray(args)) args = [args];
+        // Handlers that need the originating element/event use sentinels in
+        // data-args (file inputs pass the change event; inputs pass their
+        // value/checked state). Substituted here so no eval is needed.
+        args = args.map(a => {
+          if (a === '__event__') return event;
+          if (a === '__value__') return el.value !== undefined ? el.value : '';
+          if (a === '__checked__') return el.checked === true;
+          return a;
+        });
+      }
+      // Keydown gate: only run when the pressed key is in data-key.
+      // data-key="Enter, " means Enter OR space.
+      const keyAttr = el.getAttribute('data-key');
+      if (event && keyAttr) {
+        const keys = keyAttr.split(',').map(k => k.trim() === 'space' ? ' ' : k.trim());
+        if (!keys.includes(event.key)) return false;
+        event.preventDefault();
+      }
+      if (event && event.type !== 'keydown' && event.type !== 'change' && event.type !== 'input' && event.type !== 'blur') event.preventDefault();
+      try {
+        obj[method](...args);
+      } catch (e) {
+        console.error(`[action] ${action} threw:`, e);
+      }
+      return true;
+    };
+
+    // One listener per event type; the router walks up from the target so
+    // buttons nested inside cards/rows still resolve their own data-action.
+    ['click', 'change', 'input', 'blur', 'keydown', 'keyup'].forEach(type => {
+      document.addEventListener(type, (e) => {
+        let el = e.target && e.target.closest ? e.target.closest('[data-action]') : null;
+        if (!el) return;
+        runAction(el, e);
+      }, true);
     });
 
     // Online/offline. A fresh offline launch never fires the 'offline' event

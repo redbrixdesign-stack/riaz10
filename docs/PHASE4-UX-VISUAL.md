@@ -62,30 +62,58 @@ change needed.
 - "Customer 360" is consistent (header + screen title); "Follow up on quote"
   is the action label. No "Chase Quote" remains in the current code.
 
-## 4.6 — Inline-handler refactor (deferred to a dedicated phase) ⏳
+## 4.6 — Inline-handler refactor ✅ (CSP 'unsafe-inline' removed)
 
-**Scope measured:** 337 inline `onclick/onchange/oninput/onblur/...` handlers
-across 19 source files (largest: appointments 104, money 38, settings 37).
-Removing `'unsafe-inline'` from the CSP `script-src` requires migrating every
-one to delegated listeners — there is no partial win: any remaining inline
-handler forces `unsafe-inline` to stay.
+**Goal:** every interactive element migrated from inline `onclick/onchange/
+oninput/onblur/onkeydown` to a delegated router, so `'unsafe-inline'` can be
+dropped from `script-src` — closing the XSS-via-on*-attribute injection
+vector.
 
-This is a security refactor with its own test surface (every tap/change/input
-path), not a visual-system item, and the plan itself flagged it as "a separate
-job". Doing it in the same commit as visual changes would bury regressions.
-**Decision:** ship 4.1–4.5 now; run 4.6 as its own phase with per-feature
-migration + test runs (start with onboarding/home-screen-controller/today at
-~22 handlers, then followups/control, then the large feature files). Until
-then the CSP header keeps `'unsafe-inline'` (the HTML meta CSP already
-documents this).
+**Design (`js/core/app.js` `setupEvents`):** a document-level delegated
+router with a **whitelist** of known globals (App + every feature object +
+Geo/Contact/ExportService). Elements carry:
+- `data-action="Object.method"` + `data-args` (JSON array, evaluated at
+  render via `JSON.stringify`)
+- `data-key="Enter, space"` — keydown gate (was `if(event.key===...)`)
+- `data-close="1"` — close modal then run (was `App.closeModal();...`)
+- `data-stop="1"` — stopPropagation before run
+- `data-file="inputId"` — click a hidden file input
+- `data-close-backdrop="1"` / `data-stop-propagation="1"` — modal shell
+- `App.actionAttrs(callString)` — converts data-built handler strings
+  (companion actions, customer timeline) to router attributes at render.
 
-## Verification summary (Phase 4)
+No `eval` anywhere: the router resolves `ACTION_OBJECTS[name][method]` and
+calls with JSON-parsed args, so injected attributes are inert.
+
+**Migration:** ~380 inline handlers across 19 files converted (script-
+assisted for the repetitive patterns, then hand-fixed for compound/keydown/
+file-trigger cases). Two systematic bugs were caught and fixed during
+verification:
+1. Nested `${...}` inside `JSON.stringify([...])` (invalid template syntax)
+   — inner expressions rewritten to plain references.
+2. Quoted `"(expr)"` artifacts — `"${x}"` args must be unquoted so
+   JSON.stringify evaluates them; a DOM sweep across every screen found and
+   fixed all of them (14 final).
+
+**CSP:** `'unsafe-inline'` removed from `script-src` in both the HTML meta
+CSP and the `vercel.json` header. `style-src` keeps `'unsafe-inline'`
+(inline styles remain) — the security win is on script execution.
+
+**Verified:**
+- 0 inline handlers remain in source (grep across all non-min JS).
+- 0 `data-args` paren artifacts across all screens (DOM sweep).
+- Full interaction sweep under strict CSP: NEXT card→detail, My Day modal,
+  week arrows, companion send, settings section nav, orders sheet, measure
+  fitting type, talk template pick — all dispatch correctly, zero errors.
+- All 9 browser suites + unit suite green; `verify-nexttap.js` updated to
+  assert `data-action`/`data-args` instead of inline `onclick`.
+- Cache bump: `advisoros-v6-41`.
+
+## Verification summary (Phase 4 + 4.6)
 
 - `npm test` — 15 suites, exit 0
 - `npm run build` — `sw.js ?v=` tokens match `index.html`
-- Browser checks: gold primary renders (rgb(253,185,19)); sheet last element
-  clears the nav (764 < 780); "Messages" rename present with no stray "Talk"
-- All 9 browser suites green (seed, viewport, home-week, my-day, next-tap,
-  next-date + boundary, safearea, fixes)
-- Cache bump: `advisoros-v6-40`; `core.css?v=25`, `components.css?v=29`,
-  `talk.min.js?v=16`, `followups.min.js?v=7`
+- Browser checks: gold primary renders; sheet clears the nav; "Messages"
+  rename; **strict-CSP interaction sweep passes with 0 inline handlers**
+- All 9 browser suites green
+- Cache bumps: Phase 4 `v6-40`; 4.6 `v6-41` (18 JS assets re-tokenised)

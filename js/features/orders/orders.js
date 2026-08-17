@@ -121,15 +121,15 @@ const OrdersFeature = {
     const daysSince = Utils.daysBetween(now, new Date(appt.date));
     const tpl = (typeof TalkFeature !== 'undefined') ? TalkFeature.getTemplateForOutcome(appt.outcome) : null;
     return `
-      <button class="kanban-card" type="button" onclick="App.navigate('appointments', {id: ${appt.id}})">
+      <button class="kanban-card" type="button" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: (appt.id)}])}'>
         <div class="kanban-card-top">
           <span class="kanban-card-name">${name}</span>
           <span class="kanban-card-value">${Utils.formatCurrency(appt.value || 0)}</span>
         </div>
         <div class="kanban-card-sub">${Utils.escapeHtml(this.outcomeLabel(appt.outcome))} · ${daysSince <= 0 ? 'today' : daysSince + 'd ago'}</div>
         <div class="kanban-card-actions">
-          ${tpl ? `<span class="kanban-card-action" role="button" tabindex="0" aria-label="Send follow-up" onclick="event.stopPropagation();TalkFeature.sendMessage(${appt.id}, '${Utils.escapeJsString(tpl.template)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();TalkFeature.sendMessage(${appt.id}, '${Utils.escapeJsString(tpl.template)}');}"><span class="material-symbols-rounded">send</span>Follow up</span>` : ''}
-          <span class="kanban-card-action" role="button" tabindex="0" aria-label="Open visit" onclick="event.stopPropagation();App.navigate('appointments', {id: ${appt.id}})"><span class="material-symbols-rounded">open_in_new</span>Visit</span>
+          ${tpl ? `<span class="kanban-card-action" role="button" tabindex="0" aria-label="Send follow-up" data-stop="1" data-action="TalkFeature.sendMessage" data-args='${JSON.stringify([(appt.id), Utils.escapeJsString(tpl.template)])}' data-key="Enter, space"><span class="material-symbols-rounded">send</span>Follow up</span>` : ''}
+          <span class="kanban-card-action" role="button" tabindex="0" aria-label="Open visit" data-stop="1" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: (appt.id)}])}'><span class="material-symbols-rounded">open_in_new</span>Visit</span>
         </div>
       </button>
     `;
@@ -140,7 +140,7 @@ const OrdersFeature = {
     const name = Utils.escapeHtml(customer?.fullName || (customer ? `${customer.firstName || ''} ${customer.lastName || ''}`.trim() : '') || 'Unknown');
     const isPaid = (order.balanceDue || 0) <= 0;
     return `
-      <button class="kanban-card" type="button" onclick="OrdersFeature.openOrderSheet(${order.id})">
+      <button class="kanban-card" type="button" data-action="OrdersFeature.openOrderSheet" data-args='${JSON.stringify([(order.id)])}'>
         <div class="kanban-card-top">
           <span class="kanban-card-name">${name}</span>
           <span class="kanban-card-value">${Utils.formatCurrency(order.total || 0)}</span>
@@ -182,16 +182,16 @@ const OrdersFeature = {
       <div class="sheet-handle"></div>
       <div class="sheet-header">
         <h3>Order ${Utils.escapeHtml(order.orderNumber || '')}</h3>
-        <button class="btn btn-ghost btn-sm" onclick="App.closeModal()"><span class="material-symbols-rounded">close</span></button>
+        <button class="btn btn-ghost btn-sm" data-action="App.closeModal"><span class="material-symbols-rounded">close</span></button>
       </div>
       <div class="sheet-body kanban-sheet-body">
-        <div class="kanban-sheet-customer" role="button" tabindex="0" onclick="App.navigate('customer', {id: ${order.customerId}})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();App.navigate('customer', {id: ${order.customerId}});}">
+        <div class="kanban-sheet-customer" role="button" tabindex="0" data-action="App.navigate" data-args='${JSON.stringify(["customer", {id: (order.customerId)}])}' data-key="Enter, space">
           <div class="kanban-avatar">${Utils.escapeHtml(name.charAt(0).toUpperCase())}</div>
           <div class="kanban-sheet-customer-body">
             <div class="kanban-sheet-customer-name">${Utils.escapeHtml(name)}</div>
             <div class="kanban-sheet-customer-meta">${customer ? Utils.escapeHtml(customer.customerNumber || '') : ''} ${customer ? '· tap for full profile' : ''}</div>
           </div>
-          ${phone ? `<button class="btn btn-outline btn-sm" onclick="event.stopPropagation();OrdersFeature.paymentMessage(${order.id})"><span class="material-symbols-rounded">chat</span>Message</button>` : ''}
+          ${phone ? `<button class="btn btn-outline btn-sm" data-stop="1" data-action="OrdersFeature.paymentMessage" data-args='${JSON.stringify([(order.id)])}'><span class="material-symbols-rounded">chat</span>Message</button>` : ''}
         </div>
 
         <div class="kanban-stage-tracker">
@@ -215,13 +215,13 @@ const OrdersFeature = {
         <div class="form-group">
           <label>Supplier order no.</label>
           <input type="text" class="input" id="order-supplier-number" value="${Utils.escapeHtml(order.supplierOrderNumber || '')}" placeholder="e.g. SUP-2026-0042">
-          <button class="btn btn-outline btn-sm btn-block mt-6"  onclick="OrdersFeature.saveSupplierNumber(${order.id})"><span class="material-symbols-rounded fs-16" >save</span>Save</button>
+          <button class="btn btn-outline btn-sm btn-block mt-6"  data-action="OrdersFeature.saveSupplierNumber" data-args='${JSON.stringify([(order.id)])}'><span class="material-symbols-rounded fs-16" >save</span>Save</button>
         </div>
 
         <div class="divider-text">Move along</div>
         <div class="kanban-btn-grid">
           ${this.STAGES.filter(s => s.id !== 'paid').map(s => `
-            <button class="btn ${stage === s.id ? 'btn-primary' : 'btn-outline'} btn-sm" onclick="OrdersFeature.setStage(${order.id}, '${s.id}')">${Utils.escapeHtml(s.name)}</button>
+            <button class="btn ${stage === s.id ? 'btn-primary' : 'btn-outline'} btn-sm" data-action="OrdersFeature.setStage" data-args='${JSON.stringify([(order.id), s.id])}'>${Utils.escapeHtml(s.name)}</button>
           `).join('')}
         </div>
 
@@ -232,10 +232,10 @@ const OrdersFeature = {
               <input type="number" class="input" inputmode="decimal" id="order-payment-amount" step="0.01" min="0" placeholder="${Utils.escapeHtml(String((order.balanceDue || 0).toFixed(2)))}">
             </div>
             <div class="form-group mb-0" >
-              <button class="btn btn-primary btn-block" onclick="OrdersFeature.recordPayment(${order.id})"><span class="material-symbols-rounded fs-18" >payments</span>Pay ${Utils.formatCurrency(Math.min(order.depositPaid === 0 ? (order.depositRequired || 0) : (order.balanceDue || 0), order.balanceDue || 0))}</button>
+              <button class="btn btn-primary btn-block" data-action="OrdersFeature.recordPayment" data-args='${JSON.stringify([(order.id)])}'><span class="material-symbols-rounded fs-18" >payments</span>Pay ${Utils.formatCurrency(Math.min(order.depositPaid === 0 ? (order.depositRequired || 0) : (order.balanceDue || 0), order.balanceDue || 0))}</button>
             </div>
           </div>
-          <button class="btn btn-outline btn-sm btn-block mb-12"  onclick="OrdersFeature.recordFullPayment(${order.id})"><span class="material-symbols-rounded">task_alt</span>Mark fully paid (${Utils.formatCurrency(order.balanceDue || 0)})</button>
+          <button class="btn btn-outline btn-sm btn-block mb-12"  data-action="OrdersFeature.recordFullPayment" data-args='${JSON.stringify([(order.id)])}'><span class="material-symbols-rounded">task_alt</span>Mark fully paid (${Utils.formatCurrency(order.balanceDue || 0)})</button>
         ` : `
           <div class="card kanban-paid-card">
             <strong><span class="material-symbols-rounded">check_circle</span> Fully paid</strong>
@@ -245,8 +245,8 @@ const OrdersFeature = {
 
         <div class="divider-text">Links</div>
         <div class="kanban-btn-grid">
-          ${order.appointmentId ? `<button class="btn btn-outline btn-sm" onclick="App.closeModal();App.navigate('appointments', {id: ${order.appointmentId}})"><span class="material-symbols-rounded">event</span>Linked visit</button>` : ''}
-          ${order.customerId ? `<button class="btn btn-outline btn-sm" onclick="App.closeModal();App.navigate('customer', {id: ${order.customerId}})"><span class="material-symbols-rounded">person</span>Customer 360</button>` : ''}
+          ${order.appointmentId ? `<button class="btn btn-outline btn-sm" data-close="1" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: (order.appointmentId)}])}'><span class="material-symbols-rounded">event</span>Linked visit</button>` : ''}
+          ${order.customerId ? `<button class="btn btn-outline btn-sm" data-close="1" data-action="App.navigate" data-args='${JSON.stringify(["customer", {id: (order.customerId)}])}'><span class="material-symbols-rounded">person</span>Customer 360</button>` : ''}
         </div>
       </div>
     `;

@@ -102,10 +102,10 @@ const settle = (page, ms = 2200) => page.waitForTimeout(ms);
   await shot(A, '03-orders.png', 'Orders kanban — Quoted/Ordered/Delivered/Fitted/Paid');
 
   // 20 Order sheet (order cards only — quoted cards navigate to the visit).
-  // Drive the first order card's own onclick via the DOM so a lingering
-  // modal overlay can never intercept the pointer.
+  // Drive the first order card's own delegated action via the DOM so a
+  // lingering modal overlay can never intercept the pointer.
   await A.evaluate(() => {
-    const card = document.querySelector('.kanban-card[onclick*="openOrderSheet"]');
+    const card = document.querySelector('.kanban-card[data-action*="openOrderSheet"]');
     if (card) card.click();
   });
   await A.waitForSelector('.modal-overlay.active', { timeout: 15000 });
@@ -208,7 +208,7 @@ const settle = (page, ms = 2200) => page.waitForTimeout(ms);
   await full(A, '16-customer-360-full.png', 'Customer 360 full page');
 
   // 25 Edit customer modal
-  const editBtn = A.locator('button[onclick*="openEditCustomerModal"]').first();
+  const editBtn = A.locator('button[data-action*="openEditCustomerModal"]').first();
   await editBtn.click();
   await A.waitForSelector('.modal-overlay.active', { timeout: 10000 }).catch(() => {});
   await settle(A, 800);
@@ -216,7 +216,7 @@ const settle = (page, ms = 2200) => page.waitForTimeout(ms);
   await A.evaluate(() => App.closeModal({ all: true }));
 
   // 26 Photo viewer
-  const photo = A.locator('[onclick*="openPhotoViewer"], .photo-tile').first();
+  const photo = A.locator('[data-action*="openPhotoViewer"], .photo-tile').first();
   if (await photo.count()) {
     await photo.click();
     await A.waitForSelector('.modal-overlay.active', { timeout: 10000 }).catch(() => {});

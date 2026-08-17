@@ -33,7 +33,7 @@ const ok = (label, cond, extra) => {
     const header = document.querySelector('.top-header');
     if (!h || !header) return null;
     const r = h.getBoundingClientRect();
-    const back = header.querySelector('[onclick*="arrow_back"]');
+    const back = header.querySelector('[data-action*="App.navigate"]');
     const actions = header.querySelector('.header-actions');
     const backR = back ? back.getBoundingClientRect() : null;
     const actR = actions ? actions.getBoundingClientRect() : null;

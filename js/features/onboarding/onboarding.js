@@ -56,7 +56,7 @@ const OnboardingFeature = {
           </div>
           <div class="flex gap-sm" >
             ${[400, 600, 800, 1000].map(v => `
-              <button type="button" class="btn btn-outline btn-sm flex-1"  onclick="OnboardingFeature.setTargetPreset(${v})">£${v}</button>
+              <button type="button" class="btn btn-outline btn-sm flex-1"  data-action="OnboardingFeature.setTargetPreset" data-args='${JSON.stringify([${v}])}'>£${v}</button>
             `).join('')}
           </div>
 
@@ -73,8 +73,8 @@ const OnboardingFeature = {
             UK mileage tax relief is calculated in miles: 55p/mile for the first 10,000 business miles (2026/27).
           </p>
           <div class="segmented" id="ob-distance-segmented">
-            <button type="button" class="segment ${this.data.distanceUnit === 'miles' ? 'active' : ''}" data-value="miles" onclick="OnboardingFeature.setUnit('distanceUnit', 'miles', 'ob-distance-segmented')">Miles</button>
-            <button type="button" class="segment ${this.data.distanceUnit === 'km' ? 'active' : ''}" data-value="km" onclick="OnboardingFeature.setUnit('distanceUnit', 'km', 'ob-distance-segmented')">Kilometres</button>
+            <button type="button" class="segment ${this.data.distanceUnit === 'miles' ? 'active' : ''}" data-value="miles" data-action="OnboardingFeature.setUnit" data-args='${JSON.stringify(["distanceUnit", "miles", "ob-distance-segmented"])}'>Miles</button>
+            <button type="button" class="segment ${this.data.distanceUnit === 'km' ? 'active' : ''}" data-value="km" data-action="OnboardingFeature.setUnit" data-args='${JSON.stringify(["distanceUnit", "km", "ob-distance-segmented"])}'>Kilometres</button>
           </div>
 
           <div class="divider-text mt-28" >Measurement Unit</div>
@@ -82,20 +82,20 @@ const OnboardingFeature = {
             Used when you measure a window for blinds/curtains on a visit.
           </p>
           <div class="segmented" id="ob-measurement-segmented">
-            <button type="button" class="segment ${this.data.measurementUnit === 'mm' ? 'active' : ''}" data-value="mm" onclick="OnboardingFeature.setUnit('measurementUnit', 'mm', 'ob-measurement-segmented')">mm</button>
-            <button type="button" class="segment ${this.data.measurementUnit === 'cm' ? 'active' : ''}" data-value="cm" onclick="OnboardingFeature.setUnit('measurementUnit', 'cm', 'ob-measurement-segmented')">cm</button>
-            <button type="button" class="segment ${this.data.measurementUnit === 'inches' ? 'active' : ''}" data-value="inches" onclick="OnboardingFeature.setUnit('measurementUnit', 'inches', 'ob-measurement-segmented')">in</button>
+            <button type="button" class="segment ${this.data.measurementUnit === 'mm' ? 'active' : ''}" data-value="mm" data-action="OnboardingFeature.setUnit" data-args='${JSON.stringify(["measurementUnit", "mm", "ob-measurement-segmented"])}'>mm</button>
+            <button type="button" class="segment ${this.data.measurementUnit === 'cm' ? 'active' : ''}" data-value="cm" data-action="OnboardingFeature.setUnit" data-args='${JSON.stringify(["measurementUnit", "cm", "ob-measurement-segmented"])}'>cm</button>
+            <button type="button" class="segment ${this.data.measurementUnit === 'inches' ? 'active' : ''}" data-value="inches" data-action="OnboardingFeature.setUnit" data-args='${JSON.stringify(["measurementUnit", "inches", "ob-measurement-segmented"])}'>in</button>
           </div>
 
-          <button class="btn btn-primary btn-block mt-xl"  onclick="OnboardingFeature.finish()">
+          <button class="btn btn-primary btn-block mt-xl"  data-action="OnboardingFeature.finish">
             Start Using Beelo <span class="material-symbols-rounded">check</span>
           </button>
 
-          <button class="btn btn-outline btn-block mt-10"  onclick="OnboardingFeature.importBackup()">
+          <button class="btn btn-outline btn-block mt-10"  data-action="OnboardingFeature.importBackup">
             <span class="material-symbols-rounded">restore</span>
             Restore Backup Instead
           </button>
-          <input type="file" id="ob-import-file" accept=".json,application/json" style="display:none;" onchange="OnboardingFeature.handleImport(event)">
+          <input type="file" id="ob-import-file" accept=".json,application/json" style="display:none;" data-action="OnboardingFeature.handleImport" data-args='["__event__"]'>
         </div>
       </div>
     `;

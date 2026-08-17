@@ -64,10 +64,6 @@
     "description": "Visits Diary full page (full page)"
   },
   {
-    "file": "23-modal-visit-outcome.png",
-    "description": "Visit detail screen (outcome logging)"
-  },
-  {
     "file": "07-visits-upcoming.png",
     "description": "Visits — Upcoming tab"
   },

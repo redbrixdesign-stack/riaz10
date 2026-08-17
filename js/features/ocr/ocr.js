@@ -52,15 +52,15 @@ const OCRFeature = {
           <span class="material-symbols-rounded fs-64 text-tertiary mb-md" >document_scanner</span>
           <div class="fw-600 mb-sm" >Capture from Order Screenshot or Business Card</div>
           <div class="fs-13 text-secondary mb-lg" >Take a photo and we'll extract the details automatically</div>
-          <button class="btn btn-primary btn-lg btn-block" onclick="document.getElementById('ocr-input').click()">
+          <button class="btn btn-primary btn-lg btn-block" data-file="ocr-input">
             <span class="material-symbols-rounded">photo_camera</span>Take Photo
           </button>
           ${AIService.isEnabled() ? '<div class="fs-12 text-tertiary mt-10" >Photos are analysed by Claude AI — you can turn this off in Settings.</div>' : ''}
-          <input type="file" id="ocr-input" accept="image/*" style="display:none;" onchange="OCRFeature.processImage(event)">
+          <input type="file" id="ocr-input" accept="image/*" style="display:none;" data-action="OCRFeature.processImage" data-args='${JSON.stringify(["__event__"])}'>
         </div>
         <div id="ocr-result" style="display:none;">
           <div class="divider-text">Extracted Data</div>
-          <div class="card"><div id="ocr-fields"></div><button class="btn btn-primary btn-block mt-md"  onclick="OCRFeature.saveToCustomer()">Save Customer &amp; Visit</button></div>
+          <div class="card"><div id="ocr-fields"></div><button class="btn btn-primary btn-block mt-md"  data-action="OCRFeature.saveToCustomer">Save Customer &amp; Visit</button></div>
         </div>
         <div id="ocr-loading" style="display:none;text-align:center;padding:48px;">
           <div class="skeleton w-48 h-48 round mx-auto mb-md" ></div>
@@ -73,7 +73,7 @@ const OCRFeature = {
             <div class="form-group"><label>Phone</label><input type="tel" class="input" id="ocr-manual-phone" inputmode="tel" placeholder="Phone number"></div>
             <div class="form-group"><label>Address</label><input type="text" class="input" id="ocr-manual-address" placeholder="House number and street, town"></div>
             <div class="form-group"><label>Postcode</label><input type="text" class="input text-uppercase" id="ocr-manual-postcode" placeholder="e.g. M14 7FZ" ></div>
-            <button class="btn btn-primary btn-block" onclick="OCRFeature.saveManual()">Save Customer</button>
+            <button class="btn btn-primary btn-block" data-action="OCRFeature.saveManual">Save Customer</button>
           </div>
         </div>
       </div>

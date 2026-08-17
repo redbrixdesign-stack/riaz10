@@ -408,7 +408,7 @@ const ExportService = {
               <input type="password" class="input" id="enc-backup-password" placeholder="Enter password" autocomplete="off">
             </div>
             <div id="enc-backup-error" class="fs-12 text-danger mb-md" style="display:none;"></div>
-            <button class="btn btn-primary btn-block" onclick="ExportService._submitPassword()">Decrypt & Import</button>
+            <button class="btn btn-primary btn-block" data-action="ExportService._submitPassword">Decrypt & Import</button>
           </div>
         </div>
       `;

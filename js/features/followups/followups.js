@@ -284,8 +284,8 @@ const FollowupsFeature = {
           <div class="mt-20" >
             <div class="divider-text">Quick opens</div>
             <div class="grid-2 gap-sm" >
-              <button class="btn btn-outline btn-sm" onclick="App.navigate('orders')"><span class="material-symbols-rounded">view_kanban</span>Orders board</button>
-              <button class="btn btn-outline btn-sm" onclick="App.navigate('talk')"><span class="material-symbols-rounded">chat</span>Messages</button>
+              <button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='${JSON.stringify(["orders"])}'><span class="material-symbols-rounded">view_kanban</span>Orders board</button>
+              <button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='${JSON.stringify(["talk"])}'><span class="material-symbols-rounded">chat</span>Messages</button>
             </div>
           </div>
         </div>
@@ -341,7 +341,7 @@ const FollowupsFeature = {
         </div>
         <div class="flex gap-sm mt-10" >
           ${this.renderPrimaryAction(task)}
-          ${task.customer ? `<button class="btn btn-ghost btn-sm" aria-label="Open customer profile" onclick="App.navigate('customer', {id: ${task.customer.id}})"><span class="material-symbols-rounded fs-18" >person</span></button>` : ''}
+          ${task.customer ? `<button class="btn btn-ghost btn-sm" aria-label="Open customer profile" data-action="App.navigate" data-args='${JSON.stringify(["customer", {id: (task.customer.id)}])}'><span class="material-symbols-rounded fs-18" >person</span></button>` : ''}
         </div>
       </div>
     `;
@@ -350,20 +350,20 @@ const FollowupsFeature = {
   renderPrimaryAction(task) {
     if (task.kind === 'quote') {
       return `
-        <button class="btn btn-sm btn-primary flex-1"  onclick="TalkFeature.sendMessage(${task.appointment.id}, '${Utils.escapeJsString(task.template)}')">
+        <button class="btn btn-sm btn-primary flex-1"  data-action="TalkFeature.sendMessage" data-args='${JSON.stringify([(task.appointment.id), Utils.escapeJsString(task.template)])}'>
           <span class="material-symbols-rounded fs-16" >send</span>Follow up
         </button>
-        <button class="btn btn-sm btn-outline flex-1"  onclick="App.navigate('appointments', {id: ${task.appointment.id}})">Visit</button>
+        <button class="btn btn-sm btn-outline flex-1"  data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: (task.appointment.id)}])}'>Visit</button>
       `;
     }
     if (task.kind === 'payment') {
       const order = task.order;
       return `
-        <button class="btn btn-sm btn-primary flex-1"  onclick="OrdersFeature.openOrderSheet(${order.id})">
+        <button class="btn btn-sm btn-primary flex-1"  data-action="OrdersFeature.openOrderSheet" data-args='${JSON.stringify([(order.id)])}'>
           <span class="material-symbols-rounded fs-16" >payments</span>Collect
         </button>
         ${order.appointmentId ? `
-          <button class="btn btn-sm btn-outline flex-1"  onclick="OrdersFeature.paymentMessage(${order.id})">
+          <button class="btn btn-sm btn-outline flex-1"  data-action="OrdersFeature.paymentMessage" data-args='${JSON.stringify([(order.id)])}'>
             <span class="material-symbols-rounded fs-16" >send</span>Message
           </button>
         ` : ''}
@@ -371,7 +371,7 @@ const FollowupsFeature = {
     }
     if (task.kind === 'visit_today') {
       return `
-        <button class="btn btn-sm btn-primary flex-1"  onclick="App.navigate('appointments', {id: ${task.appointment.id}})">
+        <button class="btn btn-sm btn-primary flex-1"  data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: (task.appointment.id)}])}'>
           <span class="material-symbols-rounded fs-16" >fact_check</span>Log outcome
         </button>
       `;
@@ -379,14 +379,14 @@ const FollowupsFeature = {
     if (task.kind === 'intro' || task.kind === 'post_fit' || task.kind === 'service') {
       const labels = { intro: 'Send intro', post_fit: 'Send thank-you', service: 'Acknowledge' };
       return `
-        <button class="btn btn-sm btn-primary flex-1"  onclick="TalkFeature.sendMessage(${task.appointment.id}, '${Utils.escapeJsString(task.template)}')">
+        <button class="btn btn-sm btn-primary flex-1"  data-action="TalkFeature.sendMessage" data-args='${JSON.stringify([(task.appointment.id), Utils.escapeJsString(task.template)])}'>
           <span class="material-symbols-rounded fs-16" >send</span>${labels[task.kind]}
         </button>
-        <button class="btn btn-sm btn-outline flex-1"  onclick="App.navigate('appointments', {id: ${task.appointment.id}})">Visit</button>
+        <button class="btn btn-sm btn-outline flex-1"  data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: (task.appointment.id)}])}'>Visit</button>
       `;
     }
     return `
-      <button class="btn btn-sm btn-primary flex-1"  onclick="TalkFeature.sendDayBefore(${task.appointment.id})">
+      <button class="btn btn-sm btn-primary flex-1"  data-action="TalkFeature.sendDayBefore" data-args='${JSON.stringify([(task.appointment.id)])}'>
         <span class="material-symbols-rounded fs-16" >send</span>Send reminder
       </button>
     `;

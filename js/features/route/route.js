@@ -110,10 +110,10 @@ const RouteFeature = {
         ${App.renderTopHeader({ 
           title: "Route", 
           actions: `
-            <button class="btn btn-sm btn-ghost" onclick="RouteFeature.openTodayRoute()" aria-label="Open full day route">
+            <button class="btn btn-sm btn-ghost" data-action="RouteFeature.openTodayRoute" aria-label="Open full day route">
               <span class="material-symbols-rounded">navigation</span>
             </button>
-            <button class="btn btn-sm btn-ghost" onclick="RouteFeature.optimizeRoute()">
+            <button class="btn btn-sm btn-ghost" data-action="RouteFeature.optimizeRoute">
               <span class="material-symbols-rounded">route</span>
             </button>
           ` 
@@ -138,7 +138,7 @@ const RouteFeature = {
                 <span class="text-tertiary fs-12">${Utils.escapeHtml(Utils.truncate(nextLegFrom, 18))}</span>
               </div>
             </div>
-            <button class="btn btn-primary btn-sm shrink-0" onclick="RouteFeature.openLegRoute(${activeLeg.index})" style="min-height: 40px;">
+            <button class="btn btn-primary btn-sm shrink-0" data-action="RouteFeature.openLegRoute" data-args='${JSON.stringify([(activeLeg.index)])}' style="min-height: 40px;">
               <span class="material-symbols-rounded fs-18">navigation</span>
               <span class="fs-12">Start</span>
             </button>
@@ -209,7 +209,7 @@ const RouteFeature = {
           ` : routeList.map((a, i) => {
             const stopPhoto = a.customerId ? photoByCustomer.get(a.customerId) : null;
             return `
-            <div class="list-item" onclick="RouteFeature.focusMarker(${i})">
+            <div class="list-item" data-action="RouteFeature.focusMarker" data-args='${JSON.stringify([(i)])}'>
               ${stopPhoto ? `
                 <img class="route-stop-photo" src="data:${stopPhoto.mimeType || 'image/jpeg'};base64,${stopPhoto.data}" alt="${Utils.escapeHtml(a.clientName || '')}">
               ` : `
@@ -219,7 +219,7 @@ const RouteFeature = {
                 <div class="fw-500 fs-14 ellipsis" >${Utils.escapeHtml(a.clientName || 'Unknown')}</div>
                 <div class="fs-12 text-tertiary" >${Utils.formatTime(a.date)} · ${Utils.escapeHtml(this.getAreaLabel(a))} · ${Utils.escapeHtml(Utils.truncate(a.address || '', 24))}</div>
               </div>
-              <button class="btn btn-sm btn-ghost" onclick="event.stopPropagation(); window.open('${Utils.escapeJsString(Geo.buildNavigationUrl(a.address || '', CONFIG.businessAddress || ''))}', '_blank')">
+              <button class="btn btn-sm btn-ghost" data-stop="1" data-action="Geo.openNavigation" data-args='${JSON.stringify([(Utils.escapeJsString(a.address || '')), (Utils.escapeJsString(CONFIG.businessAddress || ''))])}'>
                 <span class="material-symbols-rounded fs-18" >navigation</span>
               </button>
             </div>
@@ -797,13 +797,13 @@ const RouteFeature = {
           <strong>${Utils.escapeHtml(plan.activeLeg?.from.label || 'Base')} → ${Utils.escapeHtml(plan.activeLeg?.to.label || 'Visit')}</strong>
         </div>
         ${unresolvedCount > 0 ? `
-          <button class="route-leg-retry" onclick="RouteFeature.retryLocations()">
+          <button class="route-leg-retry" data-action="RouteFeature.retryLocations">
             <span class="material-symbols-rounded fs-16" >refresh</span>
             ${unresolvedCount} location${unresolvedCount === 1 ? '' : 's'} couldn't be found - tap to retry
           </button>
         ` : ''}
         ${implausibleCount > 0 ? `
-          <button class="route-leg-retry" onclick="RouteFeature.retryLocations()">
+          <button class="route-leg-retry" data-action="RouteFeature.retryLocations">
             <span class="material-symbols-rounded fs-16" >warning</span>
             ${implausibleCount} location${implausibleCount === 1 ? '' : 's'} looked wrong (too far away) - check the address and retry
           </button>
@@ -820,7 +820,7 @@ const RouteFeature = {
                   ? 'Location not found'
                   : 'Distance pending';
           return `
-          <button class="route-leg ${index === activeIndex ? 'active' : ''}" onclick="RouteFeature.openLegRoute(${index})">
+          <button class="route-leg ${index === activeIndex ? 'active' : ''}" data-action="RouteFeature.openLegRoute" data-args='${JSON.stringify([(index)])}'>
             <span class="route-leg-index">${leg.isReturn ? '<span class="material-symbols-rounded">home</span>' : index + 1}</span>
             <span class="route-leg-main">
               <strong>${Utils.escapeHtml(leg.from.label)} → ${Utils.escapeHtml(leg.to.label)}</strong>
@@ -851,7 +851,7 @@ const RouteFeature = {
             <span class="material-symbols-rounded">${offline ? 'wifi_off' : 'map'}</span>
             <div>${offline ? 'Map unavailable offline' : 'Map failed to load'}</div>
             <div class="fs-13" >${offline ? 'Check your connection' : 'This can happen if the map service is temporarily unreachable'}</div>
-            <button class="btn btn-outline btn-sm mt-12"  onclick="RouteFeature.retryMap()">Try again</button>
+            <button class="btn btn-outline btn-sm mt-12"  data-action="RouteFeature.retryMap">Try again</button>
           </div>
         `;
         return;

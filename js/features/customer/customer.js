@@ -109,7 +109,7 @@ const CustomerFeature = {
               <div class="fs-20 fw-600" >${Utils.escapeHtml(name)}</div>
               <div class="fs-13 text-secondary mt-2" >${Utils.escapeHtml(customer.customerNumber || '')}</div>
             </div>
-            <button class="btn btn-ghost btn-sm" aria-label="Edit customer details" onclick="AppointmentsFeature.openEditCustomerModal(${customer.id})">
+            <button class="btn btn-ghost btn-sm" aria-label="Edit customer details" data-action="AppointmentsFeature.openEditCustomerModal" data-args='${JSON.stringify([(customer.id)])}'>
               <span class="material-symbols-rounded">edit</span>
             </button>
           </div>
@@ -123,18 +123,18 @@ const CustomerFeature = {
                 <span class="material-symbols-rounded fs-18" >call</span>
                 Call
               </a>
-              <button class="btn btn-outline btn-sm flex-1 gap-6"  onclick="ContactFeature.open({name: '${Utils.escapeJsString(name)}', phone: '${Utils.escapeJsString(phone)}'})">
+              <button class="btn btn-outline btn-sm flex-1 gap-6"  data-action="ContactFeature.open" data-args='${JSON.stringify([{name: (Utils.escapeJsString(name)), phone: (Utils.escapeJsString(phone))}])}'>
                 <span class="material-symbols-rounded fs-18" >chat</span>
                 Message
               </button>
             ` : ''}
             ${address ? `
-              <button class="btn btn-outline btn-sm flex-1 gap-6"  onclick="window.open('${Utils.escapeJsString(Geo.buildNavigationUrl(address))}', '_blank')">
+              <button class="btn btn-outline btn-sm flex-1 gap-6"  data-action="Geo.openNavigation" data-args='${JSON.stringify([(Utils.escapeJsString(address))])}'>
                 <span class="material-symbols-rounded fs-18" >navigation</span>
                 Navigate
               </button>
             ` : ''}
-            <button class="btn btn-outline btn-sm flex-1 gap-6"  onclick="App.navigate('appointments', {action: 'add', name: '${Utils.escapeJsString(name)}', phone: '${Utils.escapeJsString(phone)}', address: '${Utils.escapeJsString(address)}'})">
+            <button class="btn btn-outline btn-sm flex-1 gap-6"  data-action="App.navigate" data-args='${JSON.stringify(["appointments", {action: "add", name: (Utils.escapeJsString(name)), phone: (Utils.escapeJsString(phone)), address: (Utils.escapeJsString(address))}])}'>
               <span class="material-symbols-rounded fs-18" >add</span>
               Visit
             </button>
@@ -143,7 +143,7 @@ const CustomerFeature = {
 
         <div class="card card-page" >
           <div class="hsc-stat-row">
-            <div class="hsc-stat hsc-stat-clickable" role="button" tabindex="0" aria-label="View visit history" onclick="CustomerFeature.scrollToHistory()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();CustomerFeature.scrollToHistory();}">
+            <div class="hsc-stat hsc-stat-clickable" role="button" tabindex="0" aria-label="View visit history" data-action="CustomerFeature.scrollToHistory" data-key="Enter, space">
               <div class="hsc-stat-value">${appts.length}</div>
               <div class="hsc-stat-label">Visits</div>
             </div>
@@ -176,8 +176,8 @@ const CustomerFeature = {
                     <strong>${Utils.escapeHtml(a.clientName || 'Customer')} · ${Utils.formatCurrency(a.value || 0)}</strong>
                     <small>${Utils.formatDate(a.date, 'short')} · ${daysSince <= 0 ? 'today' : daysSince + 'd ago'} · ${Utils.escapeHtml(this.getOutcomeName(a.outcome))}</small>
                   </span>
-                  ${tpl ? `<button class="btn btn-outline btn-sm" onclick="TalkFeature.sendMessage(${a.id}, '${Utils.escapeJsString(tpl.template)}')"><span class="material-symbols-rounded fs-16" >send</span></button>` : ''}
-                  <button class="btn btn-ghost btn-sm" onclick="App.navigate('appointments', {id: ${a.id}})"><span class="material-symbols-rounded fs-18" >chevron_right</span></button>
+                  ${tpl ? `<button class="btn btn-outline btn-sm" data-action="TalkFeature.sendMessage" data-args='${JSON.stringify([(a.id), (Utils.escapeJsString(tpl.template))])}'><span class="material-symbols-rounded fs-16" >send</span></button>` : ''}
+                  <button class="btn btn-ghost btn-sm" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: (a.id)}])}'><span class="material-symbols-rounded fs-18" >chevron_right</span></button>
                 </div>
               `;
             }).join('')}
@@ -188,12 +188,12 @@ const CustomerFeature = {
           <div class="card card-page" >
             <div class="flex items-center justify-between mb-sm" >
               <div class="fs-13 fw-600 text-secondary" >Orders (${orders.length})</div>
-              <button class="btn btn-ghost btn-sm" aria-label="Open orders board" onclick="App.navigate('orders')">
+              <button class="btn btn-ghost btn-sm" aria-label="Open orders board" data-action="App.navigate" data-args='${JSON.stringify(["orders"])}'>
                 <span class="material-symbols-rounded">view_kanban</span>
               </button>
             </div>
             ${orders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).map(o => `
-              <button class="area-customer-row w-full text-left mb-6"  onclick="OrdersFeature.openOrderSheet(${o.id})">
+              <button class="area-customer-row w-full text-left mb-6"  data-action="OrdersFeature.openOrderSheet" data-args='${JSON.stringify([(o.id)])}'>
                 <span class="material-symbols-rounded text-success" >receipt</span>
                 <span class="flex-1 min-w-0" >
                   <strong>${Utils.escapeHtml(o.orderNumber || 'Order')}</strong>
@@ -211,7 +211,7 @@ const CustomerFeature = {
             ${measurements.map(m => {
               const visit = apptById.get(m.appointmentId);
               return `
-                <button class="area-customer-row w-full text-left mb-6"  onclick="App.navigate('measure', {appointmentId: ${m.appointmentId}, measurementId: ${m.id}})">
+                <button class="area-customer-row w-full text-left mb-6"  data-action="App.navigate" data-args='${JSON.stringify(["measure", {appointmentId: (m.appointmentId), measurementId: (m.id)}])}'>
                   <span class="material-symbols-rounded">straighten</span>
                   <span class="flex-1 min-w-0" >
                     <strong>${Utils.escapeHtml(m.windowName || 'Window')}</strong>
@@ -238,7 +238,7 @@ const CustomerFeature = {
           ${timeline.length === 0 ? `
             <div class="fs-13 text-tertiary text-center py-16" >No visits, orders, or messages recorded yet</div>
           ` : timeline.map(item => `
-            <div class="hsc-appt-row cursor-pointer cursor-default" ${item.onclick ? `onclick="${item.onclick}" ` : ''}>
+            <div class="hsc-appt-row cursor-pointer cursor-default" ${item.onclick ? App.actionAttrs(item.onclick) + ' ' : ''}>
               <span class="material-symbols-rounded text-tertiary" >${item.icon}</span>
               <span class="hsc-appt-details">
                 <span class="hsc-appt-name">${item.title}</span>
@@ -252,7 +252,7 @@ const CustomerFeature = {
         <div class="card card-page" >
           <div class="flex items-center justify-between mb-sm" >
             <div class="fs-13 fw-600 text-secondary" >Photos ${photos.length ? `(${photos.length})` : ''}</div>
-            <button class="btn btn-outline btn-sm" style="gap:6px;" aria-label="Add photo" onclick="document.getElementById('customer-photo-input').click()">
+            <button class="btn btn-outline btn-sm" style="gap:6px;" aria-label="Add photo" data-file="customer-photo-input">
               <span class="material-symbols-rounded fs-16" >photo_camera</span>Add Photo
             </button>
           </div>
@@ -263,11 +263,11 @@ const CustomerFeature = {
               ${photos.map(p => this.renderPhotoThumb(p)).join('')}
             </div>
           `}
-          <input type="file" id="customer-photo-input" accept="image/*" style="display:none;" onchange="AppointmentsFeature.captureCustomerPhoto(event, ${customerId})">
+          <input type="file" id="customer-photo-input" accept="image/*" style="display:none;" data-action="AppointmentsFeature.captureCustomerPhoto" data-args='${JSON.stringify(["__event__", (customerId)])}'>
         </div>
 
         <div class="card-page" >
-          <button class="btn btn-danger btn-block btn-sm" onclick="AppointmentsFeature.confirmDeleteCustomer(${customer.id})">
+          <button class="btn btn-danger btn-block btn-sm" data-action="AppointmentsFeature.confirmDeleteCustomer" data-args='${JSON.stringify([(customer.id)])}'>
             <span class="material-symbols-rounded">delete</span>
             Delete Customer
           </button>
@@ -293,7 +293,7 @@ const CustomerFeature = {
   },
 
   renderPhotoThumb(p) {
-    return `<div class="photo-tile"  role="button" tabindex="0" aria-label="View photo" onclick="AppointmentsFeature.openPhotoViewer(${p.id}, ${p.customerId})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();AppointmentsFeature.openPhotoViewer(${p.id}, ${p.customerId});}">
+    return `<div class="photo-tile"  role="button" tabindex="0" aria-label="View photo" data-action="AppointmentsFeature.openPhotoViewer" data-args='${JSON.stringify([(p.id), (p.customerId)])}' data-key="Enter, space">
       <img class="img-cover" src="data:${p.mimeType || 'image/jpeg'};base64,${p.data}" alt="" >
     </div>`;
   }

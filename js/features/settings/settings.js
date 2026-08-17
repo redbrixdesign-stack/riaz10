@@ -120,7 +120,7 @@ const SettingsFeature = {
       ${App.renderTopHeader({ title: 'Settings' })}
       <div class="p-md" >
         ${sections.map(s => `
-          <button class="card mb-md" onclick="App.navigate('settings?section=${s.id}')" style="text-align:left;">
+          <button class="card mb-md" data-action="App.navigate" data-args='${JSON.stringify([`settings?section=${s.id}`])}' style="text-align:left;">
             <div class="flex items-start gap-md">
               <span class="material-symbols-rounded fs-24 shrink-0" style="color:var(--accent);">${s.icon}</span>
               <div class="flex-1 min-w-0">
@@ -191,11 +191,11 @@ const SettingsFeature = {
         <div class="fw-600 mb-12">Your Details</div>
         <div class="form-group">
           <label>Name</label>
-          <input type="text" class="input" id="set-name" value="${Utils.escapeHtml(CONFIG.advisorName || '')}" placeholder="Your full name" onblur="SettingsFeature.setName(this.value)">
+          <input type="text" class="input" id="set-name" value="${Utils.escapeHtml(CONFIG.advisorName || '')}" placeholder="Your full name" data-action="SettingsFeature.setName" data-args='${JSON.stringify(["__value__"])}'>
         </div>
         <div class="form-group">
           <label>Weekly Earnings Target (£)</label>
-          <input type="number" class="input" inputmode="decimal" id="set-target" value="${CONFIG.weeklyTarget || 600}" step="10" min="0" onblur="SettingsFeature.setTarget(this.value)">
+          <input type="number" class="input" inputmode="decimal" id="set-target" value="${CONFIG.weeklyTarget || 600}" step="10" min="0" data-action="SettingsFeature.setTarget" data-args='${JSON.stringify(["__value__"])}'>
           <div class="hint">What you want to take home this week. Everything else derives from this.</div>
         </div>
         <div class="form-group mb-0">
@@ -205,7 +205,7 @@ const SettingsFeature = {
         </div>
         <div class="form-group mb-0 mt-14">
           <label>Minimum Hourly Value (&pound;)</label>
-          <input type="number" class="input" inputmode="decimal" id="set-min-hourly" value="${CONFIG.minHourlyRate || ''}" placeholder="${TaxCalculator.getMinHourlyRate().rate.toFixed(0)} (estimated)" step="1" min="0" onblur="SettingsFeature.setMinHourlyRate(this.value)">
+          <input type="number" class="input" inputmode="decimal" id="set-min-hourly" value="${CONFIG.minHourlyRate || ''}" placeholder="${TaxCalculator.getMinHourlyRate().rate.toFixed(0)} (estimated)" step="1" min="0" data-action="SettingsFeature.setMinHourlyRate" data-args='${JSON.stringify(["__value__"])}'>
           <div class="hint">What your time is worth, at minimum. Only used by "Check my floor" on a visit after a price objection — leave blank to use a rough estimate from your weekly target.</div>
         </div>
       </div>`;
@@ -217,7 +217,7 @@ const SettingsFeature = {
         <div class="fw-600 mb-12">Company Branding</div>
         <div class="form-group mb-0">
           <label>Company Name</label>
-          <input type="text" class="input" id="set-company-name" value="${Utils.escapeHtml(CONFIG.companyName || '')}" placeholder="e.g. Your Company Ltd" onblur="SettingsFeature.setCompanyName(this.value)">
+          <input type="text" class="input" id="set-company-name" value="${Utils.escapeHtml(CONFIG.companyName || '')}" placeholder="e.g. Your Company Ltd" data-action="SettingsFeature.setCompanyName" data-args='${JSON.stringify(["__value__"])}'>
           <div class="hint">Shown throughout the app in place of "Beelo". Leave blank to use the default Beelo branding.</div>
         </div>
       </div>`;
@@ -230,7 +230,7 @@ const SettingsFeature = {
         <div class="fs-12 text-secondary mb-12">Where you normally start and return from. Used for route distance and ETA planning.</div>
         <div class="form-group mb-0">
           <label>Home / Business Address</label>
-          <textarea class="textarea" id="set-business-address" placeholder="e.g. 12 Example Street, Manchester M14 7FZ" onblur="SettingsFeature.setBusinessAddress(this.value)">${Utils.escapeHtml(CONFIG.businessAddress || '')}</textarea>
+          <textarea class="textarea" id="set-business-address" placeholder="e.g. 12 Example Street, Manchester M14 7FZ" data-action="SettingsFeature.setBusinessAddress" data-args='${JSON.stringify(["__value__"])}'>${Utils.escapeHtml(CONFIG.businessAddress || '')}</textarea>
         </div>
       </div>`;
   },
@@ -243,7 +243,7 @@ const SettingsFeature = {
             <div class="fw-600">Morning Brief</div>
             <div class="fs-12 text-secondary mt-2">7am UK time — but only if Beelo is open (or was recently) around then. Phones suspend background tabs/PWAs, so this won't reliably fire overnight; it's a bonus, not a real alarm.</div>
           </div>
-          <button class="btn btn-sm ${briefEnabled ? 'btn-primary' : 'btn-outline'}" onclick="SettingsFeature.toggleMorningBrief()">
+          <button class="btn btn-sm ${briefEnabled ? 'btn-primary' : 'btn-outline'}" data-action="SettingsFeature.toggleMorningBrief">
             ${briefEnabled ? 'On' : 'Off'}
           </button>
         </div>
@@ -260,7 +260,7 @@ const SettingsFeature = {
             <div class="fw-600">Automated Messages</div>
             <div class="fs-12 text-secondary mt-2">Drafts a message the evening before and morning of each visit (and an "on my way" draft when you start driving). Every draft opens the preview sheet for your review — nothing is ever sent on its own.</div>
           </div>
-          <button class="btn btn-sm ${enabled ? 'btn-primary' : 'btn-outline'}" onclick="SettingsFeature.toggleAutoMessages()">
+          <button class="btn btn-sm ${enabled ? 'btn-primary' : 'btn-outline'}" data-action="SettingsFeature.toggleAutoMessages">
             ${enabled ? 'On' : 'Off'}
           </button>
         </div>
@@ -270,11 +270,11 @@ const SettingsFeature = {
 
         <div class="form-group mt-10">
           <label>Evening-before draft (day before the visit)</label>
-          <input type="time" class="input" id="set-msg-evening" value="${String(am.eveningHour ?? 18).padStart(2, '0')}:00" onchange="SettingsFeature.setAutoMessageHour('eveningHour', this.value)">
+          <input type="time" class="input" id="set-msg-evening" value="${String(am.eveningHour ?? 18).padStart(2, '0')}:00" data-action="SettingsFeature.setAutoMessageHour" data-args='${JSON.stringify(["eveningHour", "__value__"])}'>
         </div>
         <div class="form-group mb-0">
           <label>Morning-of draft (visit day)</label>
-          <input type="time" class="input" id="set-msg-morning" value="${String(am.morningHour ?? 8).padStart(2, '0')}:00" onchange="SettingsFeature.setAutoMessageHour('morningHour', this.value)">
+          <input type="time" class="input" id="set-msg-morning" value="${String(am.morningHour ?? 8).padStart(2, '0')}:00" data-action="SettingsFeature.setAutoMessageHour" data-args='${JSON.stringify(["morningHour", "__value__"])}'>
         </div>
         ` : ''}
       </div>`;
@@ -293,25 +293,25 @@ const SettingsFeature = {
         <div class="fs-12 text-secondary mb-12">How commission is calculated from a sale's value.</div>
 
         <div class="segmented mb-12">
-          <button class="segment ${mode === 'two_stage' ? 'active' : ''}" onclick="SettingsFeature.setCommissionMode('two_stage')">Sale reduction + net %</button>
-          <button class="segment ${mode === 'simple' ? 'active' : ''}" onclick="SettingsFeature.setCommissionMode('simple')">Simple %</button>
+          <button class="segment ${mode === 'two_stage' ? 'active' : ''}" data-action="SettingsFeature.setCommissionMode" data-args='${JSON.stringify(["two_stage"])}'>Sale reduction + net %</button>
+          <button class="segment ${mode === 'simple' ? 'active' : ''}" data-action="SettingsFeature.setCommissionMode" data-args='${JSON.stringify(["simple"])}'>Simple %</button>
         </div>
 
         ${mode === 'two_stage' ? `
           <div class="form-group">
             <label>Step 1: Reduce sale value by (%)</label>
-            <input type="number" class="input" inputmode="decimal" id="set-commission-reduction" value="${commission.saleReductionRate ?? 20}" step="0.1" min="0" max="100" onblur="SettingsFeature.setSaleReductionRate(this.value)">
+            <input type="number" class="input" inputmode="decimal" id="set-commission-reduction" value="${commission.saleReductionRate ?? 20}" step="0.1" min="0" max="100" data-action="SettingsFeature.setSaleReductionRate" data-args='${JSON.stringify(["__value__"])}'>
             <div class="hint">e.g. 20 means the net figure is 80% of the sale value.</div>
           </div>
           <div class="form-group mb-0">
             <label>Step 2: Commission on the net (%)</label>
-            <input type="number" class="input" inputmode="decimal" id="set-commission-net" value="${commission.netCommissionRate ?? 15.25}" step="0.01" min="0" max="100" onblur="SettingsFeature.setNetCommissionRate(this.value)">
+            <input type="number" class="input" inputmode="decimal" id="set-commission-net" value="${commission.netCommissionRate ?? 15.25}" step="0.01" min="0" max="100" data-action="SettingsFeature.setNetCommissionRate" data-args='${JSON.stringify(["__value__"])}'>
             <div class="hint">Applied to the net figure from Step 1.</div>
           </div>
         ` : `
           <div class="form-group mb-0">
             <label>Commission Rate (%)</label>
-            <input type="number" class="input" inputmode="decimal" id="set-commission-simple" value="${commission.simpleRate ?? 10}" step="0.1" min="0" max="100" onblur="SettingsFeature.setSimpleCommissionRate(this.value)">
+            <input type="number" class="input" inputmode="decimal" id="set-commission-simple" value="${commission.simpleRate ?? 10}" step="0.1" min="0" max="100" data-action="SettingsFeature.setSimpleCommissionRate" data-args='${JSON.stringify(["__value__"])}'>
             <div class="hint">Applied directly to the full sale value.</div>
           </div>
         `}
@@ -327,8 +327,8 @@ const SettingsFeature = {
       <div class="card mb-md">
         <div class="fw-600 mb-12">Advisor Mode</div>
         <div class="segmented">
-          <button class="segment ${CONFIG.advisorMode === 'company' ? 'active' : ''}" onclick="SettingsFeature.setMode('company')">Company</button>
-          <button class="segment ${CONFIG.advisorMode === 'independent' ? 'active' : ''}" onclick="SettingsFeature.setMode('independent')">Independent</button>
+          <button class="segment ${CONFIG.advisorMode === 'company' ? 'active' : ''}" data-action="SettingsFeature.setMode" data-args='${JSON.stringify(["company"])}'>Company</button>
+          <button class="segment ${CONFIG.advisorMode === 'independent' ? 'active' : ''}" data-action="SettingsFeature.setMode" data-args='${JSON.stringify(["independent"])}'>Independent</button>
         </div>
       </div>`;
   },
@@ -336,7 +336,7 @@ const SettingsFeature = {
   renderTradeDetail() {
     return `
       <div class="form-group"><label>Trade</label>
-        <select class="select" onchange="SettingsFeature.setTrade(this.value)">
+        <select class="select" data-action="SettingsFeature.setTrade" data-args='${JSON.stringify(["__value__"])}'>
           ${CONFIG.trades.map(t => `<option value="${t.id}" ${CONFIG.trade === t.id ? 'selected' : ''}>${t.name}</option>`).join('')}
         </select>
       </div>`;
@@ -349,16 +349,16 @@ const SettingsFeature = {
         <div class="flex gap-md">
           <div class="flex-1"><label class="fs-12 text-secondary">Distance</label>
             <div class="segmented mt-xs">
-              <button class="segment ${CONFIG.distanceUnit === 'miles' ? 'active' : ''}" onclick="SettingsFeature.setDistanceUnit('miles')">mi</button>
-              <button class="segment ${CONFIG.distanceUnit === 'km' ? 'active' : ''}" onclick="SettingsFeature.setDistanceUnit('km')">km</button>
+              <button class="segment ${CONFIG.distanceUnit === 'miles' ? 'active' : ''}" data-action="SettingsFeature.setDistanceUnit" data-args='${JSON.stringify(["miles"])}'>mi</button>
+              <button class="segment ${CONFIG.distanceUnit === 'km' ? 'active' : ''}" data-action="SettingsFeature.setDistanceUnit" data-args='${JSON.stringify(["km"])}'>km</button>
             </div>
             ${CONFIG.country === 'GB' ? '<div class="fs-11 text-tertiary mt-xs">HMRC pays mileage relief in miles</div>' : ''}
           </div>
           <div class="flex-1"><label class="fs-12 text-secondary">Measurement</label>
             <div class="segmented mt-xs">
-              <button class="segment ${CONFIG.measurementUnit === 'mm' ? 'active' : ''}" onclick="SettingsFeature.setMeasurementUnit('mm')">mm</button>
-              <button class="segment ${CONFIG.measurementUnit === 'cm' ? 'active' : ''}" onclick="SettingsFeature.setMeasurementUnit('cm')">cm</button>
-              <button class="segment ${CONFIG.measurementUnit === 'inches' ? 'active' : ''}" onclick="SettingsFeature.setMeasurementUnit('inches')">in</button>
+              <button class="segment ${CONFIG.measurementUnit === 'mm' ? 'active' : ''}" data-action="SettingsFeature.setMeasurementUnit" data-args='${JSON.stringify(["mm"])}'>mm</button>
+              <button class="segment ${CONFIG.measurementUnit === 'cm' ? 'active' : ''}" data-action="SettingsFeature.setMeasurementUnit" data-args='${JSON.stringify(["cm"])}'>cm</button>
+              <button class="segment ${CONFIG.measurementUnit === 'inches' ? 'active' : ''}" data-action="SettingsFeature.setMeasurementUnit" data-args='${JSON.stringify(["inches"])}'>in</button>
             </div>
           </div>
         </div>
@@ -381,7 +381,7 @@ const SettingsFeature = {
             <div class="fw-600">Claude AI</div>
             <div class="fs-12 text-secondary mt-2">Reads scanned documents (Scan screen) and drafts customer messages (Talk screen).</div>
           </div>
-          <button class="btn btn-sm ${ai.enabled ? 'btn-primary' : 'btn-outline'}" onclick="SettingsFeature.toggleAI()">
+          <button class="btn btn-sm ${ai.enabled ? 'btn-primary' : 'btn-outline'}" data-action="SettingsFeature.toggleAI">
             ${ai.enabled ? 'On' : 'Off'}
           </button>
         </div>
@@ -390,15 +390,15 @@ const SettingsFeature = {
 
         <div class="form-group mt-10">
           <label>Proxy URL</label>
-          <input type="text" class="input" id="set-ai-url" value="${Utils.escapeHtml(ai.proxyUrl || '')}" placeholder="https://your-site.vercel.app/api/claude" onblur="SettingsFeature.setAIUrl(this.value)">
+          <input type="text" class="input" id="set-ai-url" value="${Utils.escapeHtml(ai.proxyUrl || '')}" placeholder="https://your-site.vercel.app/api/claude" data-action="SettingsFeature.setAIUrl" data-args='${JSON.stringify(["__value__"])}'>
         </div>
         <div class="form-group">
           <label>Shared Secret (optional)</label>
-          <input type="password" class="input" id="set-ai-secret" value="" placeholder="${secretSaved ? 'Saved for this session — leave blank to keep it' : 'Only if your proxy requires X-AI-Key'}" onblur="SettingsFeature.setAISecret(this.value)">
+          <input type="password" class="input" id="set-ai-secret" value="" placeholder="${secretSaved ? 'Saved for this session — leave blank to keep it' : 'Only if your proxy requires X-AI-Key'}" data-action="SettingsFeature.setAISecret" data-args='${JSON.stringify(["__value__"])}'>
         </div>
         <div class="form-group">
           <label>OCR model (document reading)</label>
-          <select class="select" id="set-ai-ocr-model" onchange="SettingsFeature.setAIModel('ocrModel', this.value)">
+          <select class="select" id="set-ai-ocr-model" data-action="SettingsFeature.setAIModel" data-args='${JSON.stringify(["ocrModel", "__value__"])}'>
             <option value="claude-sonnet-4-5" ${ai.ocrModel === 'claude-sonnet-4-5' ? 'selected' : ''}>Claude Sonnet 4.5 — best accuracy</option>
             <option value="claude-3-7-sonnet-latest" ${ai.ocrModel === 'claude-3-7-sonnet-latest' ? 'selected' : ''}>Claude Sonnet 3.7</option>
             <option value="claude-haiku-4-5" ${ai.ocrModel === 'claude-haiku-4-5' ? 'selected' : ''}>Claude Haiku 4.5 — fastest/cheapest</option>
@@ -406,7 +406,7 @@ const SettingsFeature = {
         </div>
         <div class="form-group mb-0">
           <label>Draft model (message writing)</label>
-          <select class="select" id="set-ai-draft-model" onchange="SettingsFeature.setAIModel('draftModel', this.value)">
+          <select class="select" id="set-ai-draft-model" data-action="SettingsFeature.setAIModel" data-args='${JSON.stringify(["draftModel", "__value__"])}'>
             <option value="claude-haiku-4-5" ${ai.draftModel === 'claude-haiku-4-5' ? 'selected' : ''}>Claude Haiku 4.5 — fast & cheap</option>
             <option value="claude-sonnet-4-5" ${ai.draftModel === 'claude-sonnet-4-5' ? 'selected' : ''}>Claude Sonnet 4.5 — higher quality</option>
             <option value="claude-3-5-haiku-latest" ${ai.draftModel === 'claude-3-5-haiku-latest' ? 'selected' : ''}>Claude Haiku 3.5</option>
@@ -414,7 +414,7 @@ const SettingsFeature = {
         </div>
 
         <div class="inset-dark mt-12 dark-note fs-12 text-secondary">${Utils.escapeHtml(usageLine)}</div>
-        <button class="btn btn-outline btn-sm btn-block mt-10" onclick="SettingsFeature.testAI()"><span class="material-symbols-rounded fs-16">bolt</span>Test connection</button>
+        <button class="btn btn-outline btn-sm btn-block mt-10" data-action="SettingsFeature.testAI"><span class="material-symbols-rounded fs-16">bolt</span>Test connection</button>
       </div>`;
   },
 
@@ -458,7 +458,7 @@ const SettingsFeature = {
 
       <!-- Primary Backup Action -->
       <div class="mb-md">
-        <button class="btn btn-primary btn-block" onclick="ExportService.exportBackup()">
+        <button class="btn btn-primary btn-block" data-action="ExportService.exportBackup">
           <span class="material-symbols-rounded mr-8">backup</span>
           <span class="fw-600">Back Up My Beelo</span>
         </button>
@@ -470,18 +470,18 @@ const SettingsFeature = {
         <div class="fw-600 mb-4" >Restore from Backup</div>
         <div class="fs-13 text-secondary mb-8" >Replaces all data on this device with a previous backup</div>
         <div class="flex flex-col gap-sm">
-          <button class="btn btn-outline btn-sm" onclick="SettingsFeature.importBackup()">
+          <button class="btn btn-outline btn-sm" data-action="SettingsFeature.importBackup">
             <span class="material-symbols-rounded mr-8">restore</span>
             <span>Choose Backup File</span>
           </button>
-          <input type="file" id="import-file" accept=".json" style="display:none;" onchange="SettingsFeature.handleImport(event)">
+          <input type="file" id="import-file" accept=".json" style="display:none;" data-action="SettingsFeature.handleImport" data-args='${JSON.stringify(["__event__"])}'>
         </div>
         <div class="fs-11 text-tertiary mt-4" >Only restores from Beelo backup files (.json). Your AI proxy secret is never included in backups and will not be affected.</div>
       </div>
 
       <!-- Export CSV -->
       <div class="flex flex-col gap-sm mt-sm">
-        <button class="btn btn-outline btn-sm" onclick="SettingsFeature.exportCSV()">
+        <button class="btn btn-outline btn-sm" data-action="SettingsFeature.exportCSV">
           <span class="material-symbols-rounded mr-8">download</span>
           <span>Export to CSV (single table)</span>
         </button>
@@ -492,7 +492,7 @@ const SettingsFeature = {
         <div class="fw-600 mb-4 text-danger" >Danger Zone</div>
         <div class="fs-13 text-secondary mb-8" >Permanent actions that cannot be undone</div>
         <div class="flex flex-col gap-sm">
-          <button class="btn btn-outline btn-sm text-danger border-danger-soft" onclick="SettingsFeature.confirmWipe()">
+          <button class="btn btn-outline btn-sm text-danger border-danger-soft" data-action="SettingsFeature.confirmWipe">
             <span class="material-symbols-rounded mr-8">delete_forever</span>
             <span>Start Fresh — Delete All Data</span>
           </button>
@@ -794,7 +794,7 @@ const SettingsFeature = {
       <div class="sheet-handle"></div>
       <div class="sheet-header">
         <h3>Delete everything?</h3>
-        <button class="btn btn-ghost btn-sm" onclick="App.closeModal()">
+        <button class="btn btn-ghost btn-sm" data-action="App.closeModal">
           <span class="material-symbols-rounded">close</span>
         </button>
       </div>
@@ -802,10 +802,10 @@ const SettingsFeature = {
         <div class="fs-14 text-secondary lh-150 mb-14" >
           This permanently deletes every customer, visit, order, photo, expense and message — plus all your settings and targets. There is <strong>no undo</strong>, so export a backup first if you might need this data again.
         </div>
-        <button class="btn btn-danger btn-block" onclick="SettingsFeature.confirmWipeFinal()">
+        <button class="btn btn-danger btn-block" data-action="SettingsFeature.confirmWipeFinal">
           <span class="material-symbols-rounded">warning</span> Yes — delete all my data
         </button>
-        <button class="btn btn-outline btn-block mt-10"  onclick="App.closeModal()">Cancel</button>
+        <button class="btn btn-outline btn-block mt-10"  data-action="App.closeModal">Cancel</button>
       </div>
     `;
     App.openModal(content);
