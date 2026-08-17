@@ -726,11 +726,16 @@ const App = {
 
     const runAction = (el, event) => {
       const action = el.getAttribute('data-action');
-      // data-close-backdrop: close the modal only when the click landed on
-      // the overlay itself, not the sheet inside it (was inline
+      // The modal overlay is a data-close-backdrop target: it exists ONLY to
+      // close the sheet when the click lands on the backdrop itself. The
+      // router's closest('[data-action]') can match this overlay for ANY
+      // event whose target sits inside the sheet (plain form inputs, labels,
+      // scroll areas) — without a click-type guard, a keydown/keyup while
+      // typing in a modal form would run the overlay's App.closeModal action
+      // and the modal would close mid-keystroke (was inline
       // onclick="if(event.target===this)App.closeModal()").
-      if (el.getAttribute('data-close-backdrop') && event.type === 'click') {
-        if (event.target === el) {
+      if (el.getAttribute('data-close-backdrop')) {
+        if (event.type === 'click' && event.target === el) {
           event.preventDefault();
           this.closeModal();
         }
