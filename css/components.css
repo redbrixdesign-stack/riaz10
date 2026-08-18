@@ -2543,6 +2543,44 @@ body.trip-active .toast-container {
 }
 
 /* Messages */
+/* Chat-mode header: a slim bar offering the way back to the Home feed
+   (tapping an Ask Beelo chip must never strand the advisor in a
+   transcript with no way out). */
+.comp-chat-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 2px 10px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--comp-border);
+}
+.comp-chat-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px 6px 8px;
+  border: none;
+  border-radius: 999px;
+  background: var(--comp-card);
+  color: var(--comp-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 40px;
+}
+.comp-chat-back .material-symbols-rounded {
+  font-size: 18px;
+  color: var(--comp-bee);
+}
+.comp-chat-back:focus-visible { outline: 2px solid var(--comp-bee); outline-offset: 2px; }
+.comp-chat-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--comp-muted);
+  letter-spacing: 0.02em;
+}
+
 .comp-msg {
   display: flex;
   gap: 10px;
@@ -2751,8 +2789,10 @@ body.trip-active .toast-container {
 #companion-myday-root { min-height: 72vh; }
 
 /* ============================================
-   HOME SCREEN — Beelo Companion (Phase 2 redesign)
-   Hierarchical layout: Greeting → Right Now → Today → Attention → Ask Beelo
+   HOME SCREEN — Beelo Companion
+   One appointment feed: NEXT featured card + compact rows → Attention
+   → Ask Beelo chips. (Greeting banner and weekly strip were removed —
+   the feed is the Home screen.)
    ============================================ */
 
 .comp-home {
@@ -3040,6 +3080,26 @@ body.trip-active .toast-container {
   font-weight: 600;
   color: var(--comp-muted);
   margin-top: 2px;
+}
+
+/* Customer detail line — area + phone on the featured card. */
+.comp-home-next-visit-customer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--comp-text);
+  margin-top: 2px;
+}
+.comp-home-next-visit-cust-icon {
+  font-size: 14px;
+  color: var(--comp-muted);
+}
+.comp-home-next-visit-cust-sep {
+  color: var(--comp-muted);
+  opacity: 0.7;
 }
 
 /* Actions — Navigate is the primary (subtle gold border), Call secondary. */

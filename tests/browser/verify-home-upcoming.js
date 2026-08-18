@@ -69,8 +69,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   });
 
   const waitForHome = async () => {
-    await page.waitForSelector('.comp-home-greeting-sub', { timeout: 20000 });
-    await page.waitForFunction(() => /visits? today/.test(document.querySelector('.comp-home-greeting-sub').textContent || ''), null, { timeout: 20000 });
+    await page.waitForSelector('.comp-home-next-visit, .comp-home-section-label', { timeout: 20000 });
+    await page.waitForFunction(() => !!document.querySelector('.comp-home-next-visit-time') || !!document.querySelector('.comp-home-empty'), null, { timeout: 20000 });
     await sleep(800);
   };
 
@@ -85,27 +85,27 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     const dayAppts = (await DB.getAppointmentsForDate(today.toISOString())).filter(a => a.status !== 'cancelled');
     const upcoming = await DB.getUpcomingAppointments(14);
     const todayUpcoming = upcoming.filter(a => Utils.isSameDay(new Date(a.date), today));
-    const greeting = (document.querySelector('.comp-home-greeting-sub') || {}).textContent || '';
-    const todayCell = Array.from(document.querySelectorAll('.comp-home-week-day.today .comp-home-week-day-count')).map(e => e.textContent.trim())[0];
+    const labels = Array.from(document.querySelectorAll('.comp-home-section-label')).map(e => e.textContent.trim());
     return {
       dayCount: dayAppts.length,
       todayUpcomingCount: todayUpcoming.length,
       pastInUpcoming: todayUpcoming.some(a => /PAST/.test(a.clientName)),
-      greeting,
-      todayCell
+      labels,
+      hasGreeting: !!document.querySelector('.comp-home-greeting'),
+      hasWeekStrip: !!document.querySelector('.comp-home-week-strip')
     };
   });
 
   console.log(`\n  Phase 1 — seed + ${added.length} extra today visits (diary day-window count = ${p1.dayCount})`);
   ok('query: upcoming includes ALL of today\'s visits (day window)', p1.todayUpcomingCount === p1.dayCount, { todayUpcomingCount: p1.todayUpcomingCount, dayCount: p1.dayCount });
   ok('query: the earlier-today visit is included', p1.pastInUpcoming === true, p1);
-  ok(`greeting counts ${p1.dayCount} visits today (day window)`, new RegExp(`${p1.dayCount} visit`).test(p1.greeting), { greeting: p1.greeting });
-  ok(`week strip today cell shows ${p1.dayCount}`, p1.todayCell === String(p1.dayCount), { todayCell: p1.todayCell });
+  ok('Home is one feed — NEXT is the first section', p1.labels[0] === 'NEXT', p1.labels);
+  ok('no greeting banner / week strip on Home', !p1.hasGreeting && !p1.hasWeekStrip, p1);
 
   /* ---------- Phase 2: feed visibility — exactly the user's day ---------- */
   // A clean day with exactly 4 visits (3 later, 1 an hour ago). The NEXT
-  // feed must show all four, and the featured card must be the earliest
-  // pending one (the visit to attend NOW — even though it already passed).
+  // feed must show all four, with the first FUTURE visit featured and the
+  // earlier-today one still listed in the rows below it.
   await page.evaluate(async () => {
     await DB.db.appointments.clear();
     const custs = await DB.db.customers.toArray();
@@ -139,8 +139,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
       featuredIsFirstFuture: /Home Upcoming 0/.test(featured),
       featured: featured.replace(/\s+/g, ' ').slice(0, 120),
       nextCount,
-      rowCount: rows.length,
-      greeting: (document.querySelector('.comp-home-greeting-sub') || {}).textContent || ''
+      rowCount: rows.length
     };
   });
 
@@ -149,7 +148,6 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   ok('feed: the earlier-today visit is listed', p2.pastOnHome, p2);
   ok('feed: the featured NEXT card is the first FUTURE visit (not the past one)', p2.featuredIsFirstFuture && !p2.featuredIsPast, { featured: p2.featured });
   ok(`NEXT section counts ${p2.dayCount} visits`, p2.nextCount.includes(`${p2.dayCount} visit`), { nextCount: p2.nextCount });
-  ok(`greeting counts ${p2.dayCount} visits today`, new RegExp(`${p2.dayCount} visit`).test(p2.greeting), { greeting: p2.greeting });
   ok('feed rows rendered (featured + compact)', p2.rowCount >= 4, { rowCount: p2.rowCount });
 
   ok('no console errors', errs.length === 0, errs);

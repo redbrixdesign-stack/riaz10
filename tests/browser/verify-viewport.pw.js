@@ -39,9 +39,8 @@ const ok = (label, cond, extra) => {
       return {
         overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
         labels,
-        hasGreetingHeading: !!document.querySelector('.comp-home-greeting-main[role="heading"]'),
-        hasGoldenDot: !!document.querySelector('.comp-home-greeting-dot'),
-        hasAvatar: !!document.querySelector('.comp-home-avatar'),
+        hasGreeting: !!document.querySelector('.comp-home-greeting'),
+        hasWeekStrip: !!document.querySelector('.comp-home-week-strip'),
         visitCount: document.querySelectorAll('.comp-home-visit').length,
         nextName: document.querySelector('.comp-home-next-visit-name')?.textContent.trim() || null,
         anyTimeIsNow: times.some(t => t === nowT)
@@ -49,13 +48,12 @@ const ok = (label, cond, extra) => {
     });
     const p = w + 'px';
     ok(`${p}: no horizontal overflow`, r.overflowX <= 0, r.overflowX);
-    ok(`${p}: name heading + golden dot render, no B avatar`, r.hasGreetingHeading && r.hasGoldenDot && !r.hasAvatar);
-    // THIS WEEK → NEXT (featured card + upcoming rows) → ATTENTION → ASK BEELO
-    const iWeek = r.labels.indexOf('THIS WEEK');
+    ok(`${p}: no greeting banner / week strip (single feed)`, !r.hasGreeting && !r.hasWeekStrip, r.labels);
+    // NEXT (featured card + upcoming rows) → ATTENTION → ASK BEELO
     const iNext = r.labels.indexOf('NEXT');
     const iAtt = r.labels.indexOf('NEEDS YOUR ATTENTION');
     const iAsk = r.labels.indexOf('ASK BEELO');
-    ok(`${p}: labelled sections present in order`, iWeek >= 0 && iNext > iWeek && iAtt > iNext && iAsk > iAtt, r.labels);
+    ok(`${p}: labelled sections present in order (NEXT first)`, iNext === 0 && iAtt > iNext && iAsk > iAtt, r.labels);
     ok(`${p}: featured card + visit rows show real times (not the live clock)`, !!r.nextName && r.visitCount > 0 && !r.anyTimeIsNow, { times: r.times });
   }
 

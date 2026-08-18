@@ -51,7 +51,7 @@ const ok = (label, cond, extra) => {
   ok('comp-brand element absent from DOM', !gone.brand, gone);
   ok('comp-clock element absent from DOM', !gone.clock, gone);
   ok('no Beelo brand mark or avatar on Home', !gone.homeBrand && !gone.homeAvatar, gone);
-  ok('advisor-name greeting is the first feed element', gone.greeting, gone);
+  ok('greeting banner absent (single appointment feed)', !gone.greeting, gone);
 
   console.log('\n=== Safe-area padding wired (env) ===');
   const rules = await page.evaluate(() => {
@@ -73,16 +73,16 @@ const ok = (label, cond, extra) => {
   console.log('\n=== Layout with env() = 0 (desktop/no-notch) ===');
   const zero = await page.evaluate(() => {
     const scroll = document.getElementById('comp-scroll');
-    const greeting = document.querySelector('.comp-home-greeting');
+    const first = document.querySelector('.comp-home') ? document.querySelector('.comp-home').firstElementChild : null;
     return {
       scrollPaddingTop: getComputedStyle(scroll).paddingTop,
-      greetingTop: Math.round(greeting.getBoundingClientRect().top),
-      greetingVisible: greeting.getBoundingClientRect().top >= 0,
-      isFirst: !!document.querySelector('.comp-home') && document.querySelector('.comp-home').firstElementChild?.classList.contains('comp-home-greeting')
+      firstTop: first ? Math.round(first.getBoundingClientRect().top) : null,
+      firstVisible: first ? first.getBoundingClientRect().top >= 0 : false,
+      firstIsNextSection: !!(first && first.classList.contains('comp-home-section'))
     };
   });
   ok('padding-top computes to 14px when inset = 0', zero.scrollPaddingTop === '14px', zero);
-  ok('advisor-name greeting is the first visible element, fully on screen', zero.isFirst && zero.greetingVisible && zero.greetingTop < 40, zero);
+  ok('the NEXT feed section is the first visible element, fully on screen', zero.firstIsNextSection && zero.firstVisible && zero.firstTop < 40, zero);
 
   // Cross-check: same env() behaviour on the shared header screens (unchanged).
   await page.evaluate(() => App.navigate('settings'));

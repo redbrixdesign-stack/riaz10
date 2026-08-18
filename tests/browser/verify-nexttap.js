@@ -66,14 +66,22 @@ const ok = (label, cond, extra) => {
   await page.waitForTimeout(800);
   ok('Navigate does not open the visit detail (stays on Home)', await page.evaluate(() => location.hash === '#today'), await page.evaluate(() => location.hash));
 
-  await page.evaluate(() => document.querySelector('.comp-home-cta--ghost').click()); // Call
-  await page.waitForTimeout(800);
-  const call = await page.evaluate(() => ({
-    hash: location.hash,
-    modal: !!document.querySelector('.modal-overlay.active'),
-    contact: /Contact/.test(document.getElementById('bottom-sheet')?.textContent || '')
-  }));
-  ok('Call opens the contact sheet, not the visit detail', call.hash === '#today' && call.modal && call.contact, call);
+  // The Call (ghost) button only exists when the featured visit has a
+  // phone — it depends on which visit is featured, which is time-of-day
+  // dependent. Guard the tap instead of assuming a phone exists.
+  const hasGhost = await page.evaluate(() => !!document.querySelector('.comp-home-cta--ghost'));
+  if (hasGhost) {
+    await page.evaluate(() => document.querySelector('.comp-home-cta--ghost').click()); // Call
+    await page.waitForTimeout(800);
+    const call = await page.evaluate(() => ({
+      hash: location.hash,
+      modal: !!document.querySelector('.modal-overlay.active'),
+      contact: /Contact/.test(document.getElementById('bottom-sheet')?.textContent || '')
+    }));
+    ok('Call opens the contact sheet, not the visit detail', call.hash === '#today' && call.modal && call.contact, call);
+  } else {
+    console.log('  [skip] featured visit has no phone — Call button not rendered (by design)');
+  }
   await page.evaluate(() => App.closeModal({ all: true }));
 
   // "More about this visit" only exists when the visit carries notes/access

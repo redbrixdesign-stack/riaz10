@@ -42,15 +42,14 @@ const ok = (label, cond, extra) => {
       names: Array.from(document.querySelectorAll('.comp-home-visit-name')).map(e => e.textContent.trim()),
       nextName: document.querySelector('.comp-home-next-visit-name')?.textContent.trim() || null,
       hasSmith: /John Smith/.test(t),
-      hasTargetGap: /to target/.test(t),
       hasAttention: /NEEDS YOUR ATTENTION/.test(t),
-      arrows: document.querySelectorAll('.comp-home-week-arrow').length
+      weekStrip: !!document.querySelector('.comp-home-week-strip')
     };
   });
-  ok('Home feed: THIS WEEK → NEXT → ATTENTION → ASK BEELO order', JSON.stringify(home.labels) === JSON.stringify(['THIS WEEK', 'NEXT', 'NEEDS YOUR ATTENTION', 'ASK BEELO']), home.labels);
+  ok('Home feed: NEXT → ATTENTION → ASK BEELO order (one feed)', JSON.stringify(home.labels) === JSON.stringify(['NEXT', 'NEEDS YOUR ATTENTION', 'ASK BEELO']), home.labels);
   ok('Home feed: featured card + upcoming rows render real names + times', !!home.nextName && home.names.includes('Amelia Green') && home.times.length >= 3, { nextName: home.nextName, names: home.names.slice(0, 5), times: home.times });
-  ok('Home: John Smith is next; target gap visible', home.hasSmith && home.hasTargetGap && home.hasAttention);
-  ok('Home week strip has ‹ › arrows', home.arrows === 2, home.arrows);
+  ok('Home: John Smith is next; attention visible', home.hasSmith && home.hasAttention);
+  ok('Home: no weekly strip (single appointment feed)', !home.weekStrip);
 
   const dueCount = await page.evaluate(() => App.features.get('followups').getDueCount());
   ok('follow-ups due count > 0 (mixed inbox)', dueCount > 0, dueCount);
