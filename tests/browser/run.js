@@ -161,7 +161,10 @@ async function loadAndWait(ws, url, markerStarts, label, timeoutMs) {
     ok('customer numbering intact', v.customerNumbers === `CUS-${year}-0003,CUS-${year}-0007`, v.customerNumbers);
     ok('appointments migrated (2)', v.appts === 2, v);
     ok('legacy outcome renamed to ordered', v.apptOutcomes === 'ordered,ordered', v.apptOutcomes);
-    ok('orders migrated (1)', v.orders === 1, v);
+    // One legacy order is migrated directly; the second sold appointment is
+    // intentionally backfilled into an order so the Orders board cannot hide
+    // sales recorded by older app versions.
+    ok('legacy order migrated + sold appointment backfilled (2)', v.orders === 2, v);
     ok('localStorage fallback rows migrated (expenses)', v.expenses === 1 && v.expenseAmounts === '42', v);
     ok('sequence guard bumped 0 → 7', v.seqCustomer === 7, v.seqCustomer);
     ok('migration flag set', v.flag === true, v.flag);
@@ -185,7 +188,7 @@ async function loadAndWait(ws, url, markerStarts, label, timeoutMs) {
     console.log('STEP4 second-boot state:', state2);
     ok('second boot: no duplicate customers', v2.customers === 2 && v2.customers === v.customers, v2);
     ok('second boot: no duplicate appointments', v2.appts === 2 && v2.appts === v.appts, v2);
-    ok('second boot: no duplicate orders', v2.orders === 1 && v2.orders === v.orders, v2);
+    ok('second boot: no duplicate orders', v2.orders === 2 && v2.orders === v.orders, v2);
     ok('second boot: no duplicate localStorage rows', v2.expenses === 1 && v2.expenses === v.expenses, v2);
     ok('second boot: sequence not re-guarded', v2.seqCustomer === 7 && v2.seqCustomer === v.seqCustomer, v2.seqCustomer);
 

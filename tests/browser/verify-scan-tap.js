@@ -3,10 +3,9 @@
    ADVISOROS — SCAN TAP + OCR FLOW VERIFICATION
    Regression for the "scan button is dead" report:
    1. Add Visit → "Scan customer details" opens the Scan screen.
-   2. Tapping "Take Photo" (a data-file button with NO data-action) must
-      actually fire the hidden file input — the delegated router used to
-      only match [data-action], silently swallowing every data-file tap
-      since the 4.6 migration (file picker never opened).
+   2. Tapping "Take Photo" must fire the file input through a native
+      label/input association. This remains reliable in iOS Home Screen mode,
+      where Safari can silently reject scripted clicks on display:none inputs.
    3. After picking a file, the OCR pipeline must run without the CSP
       blob-worker block (worker-src 'self' blob:) and land on a result
       or manual-entry state — never hang.
@@ -60,11 +59,12 @@ const ok = (label, cond, extra) => {
     input.addEventListener('click', () => { window.__ocrClicks++; });
   });
 
-  // Tap the Take Photo button (data-file, NO data-action) — the reported dead tap.
-  await page.click('[data-file="ocr-input"]');
+  // Use a real touch gesture on the native label — the reported dead tap was
+  // device-specific and could not be covered by a desktop-style click alone.
+  await page.tap('label[for="ocr-input"]');
   await page.waitForTimeout(400);
   const clicked = await page.evaluate(() => window.__ocrClicks);
-  ok('tapping Take Photo fires the hidden file input (router data-file path)', clicked >= 1, { clicks: clicked });
+  ok('touching Take Photo fires the native file input', clicked >= 1, { clicks: clicked });
 
   // Drive the real change event with a tiny PNG (no text → empty extraction
   // is fine; the point is the pipeline runs and doesn't hang or CSP-crash).

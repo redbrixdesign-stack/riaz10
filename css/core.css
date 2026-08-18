@@ -100,6 +100,20 @@
   --max-width: 480px;
 }
 
+/* Keep file controls available to native mobile activation while removing
+   them visually. iOS Home Screen apps can silently reject a scripted click
+   on an input hidden with display:none; a <label for> targeting this input
+   follows Safari's native camera/file-picker path instead. */
+.native-file-input {
+  position: fixed;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  inset-inline-start: -10000px;
+}
+
 /* The app is dark-only by design (field use); there is no light theme and
    no prefers-color-scheme override — the dark tokens above apply always. */
 
