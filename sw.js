@@ -1,7 +1,8 @@
-const CACHE_NAME = 'advisoros-v6-49';
+const CACHE_NAME = 'advisoros-v6-50';
 const STATIC_ASSETS = [
-  './','index.html','css/core.css?v=28','css/components.css?v=31',
+  './','index.html','css/core.css?v=29','css/components.css?v=31',
   'assets/fonts/material-symbols-rounded.woff2','assets/fonts/hankengrotesk-latin.woff2','assets/fonts/hankengrotesk-latinext.woff2','assets/fonts/jetbrainsmono-latin.woff2',
+  'assets/icons/badge-72.png','assets/icons/icon-72.png','assets/icons/icon-96.png','assets/icons/icon-128.png','assets/icons/icon-144.png','assets/icons/icon-152.png','assets/icons/icon-192.png','assets/icons/icon-384.png','assets/icons/icon-512.png','assets/icons/apple-touch-icon-180.png',
   'assets/img/marker-icon.png','assets/img/marker-icon-2x.png','assets/img/marker-shadow.png',
   'js/vendor/dexie.min.js?v=1','js/vendor/minidexie.min.js?v=12',
   'js/core/config.min.js?v=10','js/core/utils.min.js?v=6','js/core/db.min.js?v=16','js/core/geoprovider.min.js?v=1','js/core/geo.min.js?v=7','js/core/search.min.js?v=3','js/core/tax.min.js?v=2','js/core/install-prompt.min.js?v=1','js/core/app.min.js?v=18','js/core/legal.min.js?v=1','js/core/contact.min.js?v=4',

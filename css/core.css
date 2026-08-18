@@ -470,7 +470,9 @@ button:not(:disabled):active,
   border: 1px solid var(--border-light);
   border-radius: var(--radius-sm);
   font-family: var(--font-body);
-  font-size: 15px;
+  /* 16px minimum so iOS Safari does not auto-zoom into the field on focus
+     (any input below 16px triggers zoom, including in standalone PWAs). */
+  font-size: 16px;
   background: var(--surface-elevated);
   color: var(--text-primary);
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;

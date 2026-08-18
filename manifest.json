@@ -4,23 +4,101 @@
   "description": "The self-employed companion for field service professionals",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#F3EEDF",
+  "background_color": "#0A0A0A",
   "theme_color": "#0A0A0A",
   "orientation": "portrait",
   "scope": "./",
   "icons": [
-    {"src": "assets/icons/icon-72.png", "sizes": "72x72", "type": "image/png", "purpose": "maskable any"},
-    {"src": "assets/icons/icon-96.png", "sizes": "96x96", "type": "image/png", "purpose": "maskable any"},
-    {"src": "assets/icons/icon-128.png", "sizes": "128x128", "type": "image/png", "purpose": "maskable any"},
-    {"src": "assets/icons/icon-144.png", "sizes": "144x144", "type": "image/png", "purpose": "maskable any"},
-    {"src": "assets/icons/icon-152.png", "sizes": "152x152", "type": "image/png", "purpose": "maskable any"},
-    {"src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable any"},
-    {"src": "assets/icons/icon-384.png", "sizes": "384x384", "type": "image/png", "purpose": "maskable any"},
-    {"src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable any"}
+    {
+      "src": "assets/icons/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "assets/icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ],
-  "categories": ["business", "productivity", "utilities"],
+  "categories": [
+    "business",
+    "productivity",
+    "utilities"
+  ],
   "shortcuts": [
-    {"name": "Add Visit", "short_name": "Add", "description": "Add a new visit", "url": "./#appointments?action=add", "icons": [{"src": "assets/icons/icon-96.png", "sizes": "96x96"}]},
-    {"name": "Log Expense", "short_name": "Expense", "description": "Quick expense log", "url": "./#money", "icons": [{"src": "assets/icons/icon-96.png", "sizes": "96x96"}]}
+    {
+      "name": "Add Visit",
+      "short_name": "Add",
+      "description": "Add a new visit",
+      "url": "./#appointments?action=add",
+      "icons": [
+        {
+          "src": "assets/icons/icon-96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Log Expense",
+      "short_name": "Expense",
+      "description": "Quick expense log",
+      "url": "./#money",
+      "icons": [
+        {
+          "src": "assets/icons/icon-96.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
   ]
 }
