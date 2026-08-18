@@ -71,6 +71,13 @@ console.log('AI index summary (never claim a connection that is not there)');
   const html = SettingsFeature.renderIndex();
   ok('disabled -> Off', html.includes('>Off</div>') && html.includes('Claude AI'), html.match(/Claude AI.{0,60}/s)?.[0]);
 }
+
+console.log('commission index summary (decimal rate rendered as a percentage)');
+{
+  const html = SettingsFeature.renderIndex();
+  ok('0.122 effective rate -> 12.2%', html.includes('12.2% effective · two_stage'), html.match(/Commission Rate[\s\S]{0,240}/)?.[0]);
+  ok('does not display the decimal as 0.122%', !html.includes('0.122% effective'), html.match(/Commission Rate[\s\S]{0,240}/)?.[0]);
+}
 {
   sandbox.CONFIG.ai = { enabled: true, proxyUrl: '' };
   const html = SettingsFeature.renderIndex();

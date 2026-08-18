@@ -3,8 +3,8 @@
 **Version:** 2 (replaces the v1 catalog — v1 was a templated checklist, not
 per-screen-verified, and predates the current app state)
 **Date:** 2026-08-16
-**Method:** live per-screen probe (`tests/browser/audit-current.js` +
-`tests/browser/audit-theme.js` + fresh screenshots in `screenshots/review/`)
+**Method:** deterministic capture (`tests/browser/capture-review.js`) plus
+manual console, overflow, keyboard and accessibility checks
 **Viewport:** 390×844 (mobile-first; 320/430 variants captured too)
 **Data state:** `tests/browser/seed-review.html` demo dataset
 
@@ -41,11 +41,11 @@ claims hold**, so they were dropped rather than carried forward:
 | Visits — Pipeline | tab pipeline | `08-visits-pipeline.png` | Short lead board ends tidily mid-screen (same acceptable pattern as Orders). |
 | Visits — Area | tab area | `09-visits-area.png` | Before a search, only the input form is shown (~47% height) — acceptable form layout; the "No local history yet" empty state fills properly once a search returns nothing. |
 | Visits — Past | tab past | `10-visits-past.png` | Empty state now fills the visible area (void 66% → 14% measured). |
-| Route | `#route` | `11-route.png` | **Known limitation (not a regression):** the map tiles come from OpenStreetMap, so a fully-offline load shows a grey map; the stop list and plan still work. Consider caching tiles or a static fallback. |
+| Route | `#route` | `11-route.png` | Repeated Route → away → Route navigation is a required regression check. Map tiles come from OpenStreetMap, so a fully-offline load uses the non-map route content and unavailable state. |
 | Talk | `#talk` | `12-talk.png` | No outstanding issues. |
 | Measure | `#measure` | `13-measure.png` | Sparse: the "select a visit to measure" state occupies only the top ~19% of the viewport. Candidate polish: vertically centre the picker state. |
 | Scan | `#ocr` | `14-scan.png` | Sparse tool screen (~43% height content). Acceptable for a camera/tool UI; could be centred for polish. |
-| Settings | `#settings` | `15-settings.png` | No outstanding issues. 11 section cards, fills viewport. |
+| Settings | `#settings` | `15-settings.png` | 12 section cards. Effective commission must be formatted as a percentage (for example decimal `0.122` is displayed as `12.2%`). |
 | Customer 360 | `#customer` | `16-customer-360.png` | No outstanding issues. |
 | Onboarding | `#onboarding` | `17-onboarding.png` | No outstanding issues. |
 
@@ -56,11 +56,12 @@ claims hold**, so they were dropped rather than carried forward:
   was removed; every surface is a dark layer on the ink canvas (audit:
   90–100% dark, 0–4% light = gold accents only).
 - **Icons:** self-hosted, offline-safe, no raw ligature text.
-- **Errors/overflow:** zero JS errors and zero horizontal overflow across
-  all 16 screens at 390px (probe run).
+- **Errors/overflow:** release captures require zero uncaught JS errors and
+  zero horizontal overflow across the route inventory at 390px.
 - **Empty states:** page-level empties fill the visible area.
 
 ## Regeneration
 
-`node tests/browser/capture-review.js && node tests/browser/capture-extra.js`
-then `python3 scripts/compose-review-canvas.py` — needs `npm run serve` on :8000.
+Run `npm run serve`, then `node tests/browser/capture-review.js`, followed by
+`python3 scripts/compose-review-canvas.py`. Record the browser version, commit,
+viewport, fixture and any accepted differences alongside the regenerated set.

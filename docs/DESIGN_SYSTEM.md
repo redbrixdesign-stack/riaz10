@@ -1,4 +1,4 @@
-| Chat card | `.comp-*` | Home companion — same dark elevated surface as every other card |# Beelo Design System
+# Beelo Design System
 
 Single source of truth for the visual language. **Every screen uses these
 tokens and components** — if a screen looks different, that's a bug, not a
@@ -12,10 +12,10 @@ Beelo has **one** dark theme — there is no light theme and no
 
 > **Dark Manchester Ink canvas + elevated dark surfaces + Beelo Gold accent.**
 
-- The page background is ALWAYS the ink canvas (`--bg: #1B1B18`).
+- The page background is ALWAYS the ink canvas (`--bg: #0A0A0A`).
 - Cards, headers, the bottom nav, sheets, inputs, toasts and list rows are
-  ALL **dark elevated surfaces** (`--surface: #22221E`,
-  `--surface-elevated: #2A2A24`, `--surface-muted: #3A362E`) separated by
+  ALL **dark elevated surfaces** (`--surface: #121212`,
+  `--surface-elevated: #171717`, `--surface-muted: #202020`) separated by
   thin warm hairlines (`--border-light`).
 - Text is light cream throughout — there is **no cream/white surface** and
   no dark-on-light text re-scoping. A screen with a cream background is a
@@ -31,24 +31,34 @@ deliberate readability choice.
 
 | Token | Value | Meaning |
 |---|---|---|
-| `--bg` | `#1B1B18` | Page canvas (Manchester Ink) |
-| `--bg-elevated` / `--surface` | `#22221E` | Elevated dark surface (cards, nav, sheets) |
-| `--surface-elevated` | `#2A2A24` | Inputs, kanban cards, toasts, primary button |
-| `--surface-muted` | `#3A362E` | Hover/pressed, muted chips |
-| `--border` / `--border-light` | `#5C574D` / 40% | Hairline borders on dark |
+| `--bg` | `#0A0A0A` | Page canvas (Manchester Ink) |
+| `--bg-elevated` | `#101010` | Slightly raised canvas region |
+| `--surface` | `#121212` | Elevated dark surface (cards, nav, sheets) |
+| `--surface-elevated` | `#171717` | Inputs, kanban cards and toasts |
+| `--surface-muted` | `#202020` | Hover/pressed and muted chips |
+| `--border` / `--border-light` | `#4A4A44` / 50% | Hairline borders on dark |
 | `--text-primary` | `#F5F0E8` | Primary text (light everywhere) |
 | `--text-secondary` / `--text-tertiary` | warm greys | Secondary / faint text |
 | `--accent` | `#FDB913` | Beelo Gold — see colour meanings |
+
+## 2.1 Responsive shell
+
+- Below 900px the application shell is capped at 480px and remains phone-first.
+- At 900px and above `--max-width` becomes 720px for data-heavy tablet and
+  desktop use. The bottom navigation, sheets and live banners consume the same
+  token and must remain aligned with the shell.
+- Screen content must not depend on a hard-coded 480px width. Test at 320, 390,
+  430, 768, 900 and 1280 CSS pixels before release.
 
 ## 3. Colour meanings (one meaning per colour)
 
 | Colour | Token | Use it ONLY for |
 |---|---|---|
 | **Gold** | `--accent` | **Brand + primary action + current/important state.** Avatar, active nav, primary CTA (send), the "NEXT" tag, week progress, the gold briefing/ETA lines on Home, highlighted fact values in companion answers. **Never** for warnings or overdue. |
-| **Amber** | `--warning` (`#8d5d0f`) | **Overdue / urgent-but-not-broken.** The "Overdue" tag, overdue day-strip state, payment reminders. Deliberately a different hue from gold — gold is brand, amber is a warning. |
+| **Amber** | `--warning` (`#C08A2D`) | **Overdue / urgent-but-not-broken.** The "Overdue" tag, overdue day-strip state, payment reminders. Deliberately a different hue from gold — gold is brand, amber is a warning. |
 | **Green** | `--secondary` (`#4f6a2f`) | **Success / done / positive.** "Done" states, success badges/toasts, paid order text. |
-| **Red** | `--danger` (`#9a3d32`) | **Destructive / needs action now.** Delete, service issues, high-priority follow-up badges. |
-| **Slate** | `--info` (`#4a5d68`) | **Neutral info / delivered.** Info toasts, "delivered" states. |
+| **Red** | `--danger` (`#C0563F`) | **Destructive / needs action now.** Delete, service issues, high-priority follow-up badges. Use `--danger-text` (`#E0876F`) for small text on dark surfaces. |
+| **Slate** | `--info` (`#5A7180`) | **Neutral info / delivered.** Info toasts, "delivered" states. |
 
 Rules that follow from this:
 - Warnings and brand accents are never the same colour (gold ≠ amber).

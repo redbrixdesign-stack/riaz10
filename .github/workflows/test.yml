@@ -15,13 +15,19 @@ jobs:
           node-version: 22
           cache: npm
 
+      # The root proxy integration test imports server/index.js, whose
+      # runtime dependencies are intentionally owned by server/package.json.
+      # Install them first so a clean runner matches the documented package
+      # boundary instead of relying on a developer's existing server/node_modules.
+      - name: Install server dependencies
+        working-directory: server
+        run: npm ci
+
       - name: Install and test (repo root)
         run: |
           npm ci
           npm test
 
-      - name: Install and test (server/)
+      - name: Test server package
         working-directory: server
-        run: |
-          npm ci
-          npm test
+        run: npm test

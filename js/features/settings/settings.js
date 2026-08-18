@@ -37,6 +37,7 @@ const SettingsFeature = {
     const commission = CONFIG.commission || {};
     const commissionMode = commission.mode || 'two_stage';
     const effectiveRate = TaxCalculator.getEffectiveCommissionRate();
+    const effectiveRatePercent = (effectiveRate * 100).toFixed(1);
     const weeklyTarget = CONFIG.weeklyTarget || 600;
 
     const sections = [
@@ -79,7 +80,7 @@ const SettingsFeature = {
         id: 'commission',
         title: 'Commission Rate',
         icon: 'percent',
-        summary: `${effectiveRate}% effective · ${commissionMode}`,
+        summary: `${effectiveRatePercent}% effective · ${commissionMode}`,
         description: 'How commission is calculated from sales'
       },
       {
