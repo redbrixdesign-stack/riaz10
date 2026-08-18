@@ -792,8 +792,15 @@ const DB = {
   },
 
   async getUpcomingAppointments(days = 7) {
+    // Window starts at today's UK midnight (not the current instant) so
+    // appointments earlier today are still "upcoming" — the Home feed and
+    // "next visit" queries must count every visit for today, otherwise a
+    // morning appointment vanishes from Home the moment its time passes
+    // (Home showed 3 of 4 today visits while the diary showed all 4).
     const now = new Date();
-    const future = new Date();
+    const p = Utils.ukParts(now);
+    const start = Utils.ukMidnightInstant(p.year, p.month, p.day);
+    const future = new Date(start);
     future.setDate(future.getDate() + days);
 
     const rows = await this.db.appointments.toArray();
@@ -802,7 +809,7 @@ const DB = {
     // appointment booked later for an earlier date would otherwise mask the
     // ones in between (e.g. a 24th created before two 17ths).
     const matched = rows
-      .filter(a => a.status !== 'cancelled' && this._inDateWindow(a.date, now, future))
+      .filter(a => a.status !== 'cancelled' && this._inDateWindow(a.date, start, future))
       .sort((a, b) => new Date(a.date) - new Date(b.date));
     return Promise.all(matched.map(a => decryptAppointment(a)));
   },

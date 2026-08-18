@@ -34,8 +34,9 @@ const FollowupsFeature = {
     try { pipeline = await DB.getPipeline(); } catch (e) {}
     try { orders = await DB.db.orders.toArray(); } catch (e) {}
     try { upcoming = await DB.getUpcomingAppointments(5); } catch (e) {}
-    // getUpcomingAppointments starts at "now", so a visit earlier today would
-    // never surface — pull the full day separately for the outcome tasks.
+    // getUpcomingAppointments now starts at today's UK midnight, so it already
+    // includes earlier-today visits; the separate full-day pull stays as a
+    // harmless redundant guard for the outcome tasks.
     try { todayAppts = await DB.getAppointmentsForDate(now.toISOString()); } catch (e) {}
     try { allAppts = await DB.getAllAppointments(); } catch (e) {}
     // Intro messages apply to ANY distance of booking, not just the next few

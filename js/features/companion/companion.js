@@ -420,8 +420,15 @@ const CompanionFeature = {
       }
     }
 
-    // Next visit (most urgent upcoming that hasn't already happened)
-    const next = upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && (a.phone || a.customerId)) || upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome) || null;
+    // Next visit (the most urgent pending one — prefer a visit that hasn't
+    // happened yet, so the featured card never points at a time already
+    // past; earlier-today visits still appear in the feed rows below, which
+    // is where the day-count consistency the Home report was about lives).
+    const now = new Date();
+    const next = upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && new Date(a.date) >= now && (a.phone || a.customerId))
+      || upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && new Date(a.date) >= now)
+      || upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && (a.phone || a.customerId))
+      || upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome) || null;
     
     // Next visit data
     let nextVisit = null;
@@ -1096,7 +1103,11 @@ const CompanionFeature = {
   async answerNextVisit() {
     let upcoming = [];
     try { upcoming = await DB.getUpcomingAppointments(14); } catch (e) {}
-    const next = upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && (a.phone || a.customerId)) || upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome) || null;
+    const now = new Date();
+    const next = upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && new Date(a.date) >= now && (a.phone || a.customerId))
+      || upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && new Date(a.date) >= now)
+      || upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && (a.phone || a.customerId))
+      || upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome) || null;
 
     if (!next) {
       return { text: 'No upcoming visits booked. Add one and I\'ll keep an eye on it.', facts: [], actions: [{ label: 'Add Visit', onclick: "App.navigate('appointments', {action: 'add'})" }], suggestions: ['today', 'week'] };
