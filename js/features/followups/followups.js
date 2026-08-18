@@ -77,7 +77,12 @@ const FollowupsFeature = {
     const tasks = [];
 
     // 1. Quote chases from visit outcomes (Talk's timing rules).
-    const skippableIds = new Set([...upcoming, ...todayAppts].map(a => a.id));
+    // Only visits STILL awaiting an outcome are covered by the visit_today /
+    // visit_tomorrow tasks below — a quoted (or otherwise concluded) visit
+    // today would otherwise be skipped by its own guard and never get its
+    // chase (quote logged this morning = no follow-up: a real gap found by
+    // the end-to-end journey audit).
+    const skippableIds = new Set([...upcoming, ...todayAppts].filter(a => !a.outcome && a.status !== 'completed').map(a => a.id));
     for (const appt of pipeline) {
       if (skippableIds.has(appt.id)) continue;
       const match = (typeof TalkFeature !== 'undefined') ? TalkFeature.getTemplateForOutcome(appt.outcome) : null;
@@ -202,7 +207,11 @@ const FollowupsFeature = {
       ? [...(TalkFeature.SERVICE_OUTCOMES.fitting || []), ...(TalkFeature.SERVICE_OUTCOMES.service_call || [])]
       : [];
     const serviceFailures = new Set(serviceOutcomes);
-    const coveredIds = new Set([...upcoming, ...todayAppts].map(a => a.id));
+    // Same guard shape as the quote chases: only visits still awaiting an
+    // outcome are "covered" by today's outcome tasks. A fitting completed
+    // TODAY must still get its post-fit thank-you — before this fix the
+    // completed visit sat on today's list and its thank-you vanished.
+    const coveredIds = new Set([...upcoming, ...todayAppts].filter(a => !a.outcome && a.status !== 'completed').map(a => a.id));
     for (const appt of allAppts) {
       const daysAgo = Utils.daysBetween(now, new Date(appt.date));
       if (daysAgo < 0 || daysAgo > 14) continue;
