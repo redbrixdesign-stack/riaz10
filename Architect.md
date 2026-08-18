@@ -1218,3 +1218,252 @@ The release record must contain:
 - accessibility summary;
 - current known defects and approved exceptions;
 - rollback procedure.
+
+---
+
+## 24. Additive product-expansion roadmap
+
+This section defines a proposed path from the current appointment-to-payment
+companion into a more complete solo field-service operating system. It is a
+roadmap, not a description of already implemented behavior. Sections 1–23 and
+the working source remain the canonical contract for the current release until
+each capability below is implemented, verified, and deliberately promoted into
+the relevant canonical sections.
+
+### 24.1 Change strategy
+
+All roadmap work must preserve existing installations and workflows.
+
+1. Extend the current vanilla HTML/CSS/JavaScript, feature-registration, hash-routing, IndexedDB, encryption, backup, and PWA architecture. Do not introduce a framework rewrite as part of a feature phase.
+2. Treat current customers, appointments, orders, expenses, trips, measurements, communications, photos, settings, and sequences as compatibility contracts.
+3. Prefer new additive tables and nullable references over changing the meaning of existing fields.
+4. Every schema change requires an idempotent Dexie migration, mini-Dexie compatibility where still supported, backup-format handling, import validation, and rollback consideration.
+5. Existing data must remain readable before, during, and after migration. Migrations must never manufacture commercial facts that cannot be inferred safely.
+6. New screens must be reachable without changing the five primary navigation destinations unless a separate product decision approves that navigation change.
+7. New automation may create drafts or suggestions, but external communication, navigation, deletion, payment, import replacement, and AI use remain user initiated.
+8. Every phase must be independently releasable. Do not begin the next phase until the current phase passes its unit, browser, offline, backup/restore, accessibility, and regression gates.
+9. Readable source is authoritative during development, but a phase is not complete until `npm run build` regenerates the production minified assets and service-worker versions are aligned.
+10. If baseline tests are already failing, record and isolate those failures before implementation; do not silently weaken, delete, or rewrite unrelated assertions to obtain a green build.
+
+### 24.2 Phase 0 — baseline, boundaries, and safety net
+
+**Goal:** create a trustworthy foundation for additive work without changing product behavior.
+
+Deliverables:
+
+- resolve and document the calendar-window contract for upcoming appointments;
+- make the complete automated and browser suites reproducible;
+- capture fixtures for a legacy installation, a current installation, and a restored backup;
+- add domain-level DB methods for important mutations that currently write through `DB.db.*` directly;
+- define transaction boundaries for visit completion, order reconciliation, payment recording, and customer aggregate refresh;
+- establish schema and backup-version rules for the roadmap tables;
+- document feature-flag and rollback conventions;
+- record baseline browser, offline, accessibility, and performance evidence.
+
+Exit criteria:
+
+- the existing core journeys behave identically with pre-phase fixtures;
+- all accepted baseline failures are either fixed or explicitly registered;
+- a backup produced before the phase restores successfully afterward;
+- no current IndexedDB record, URL, storage key, or feature ID changes meaning.
+
+### 24.3 Phase 1 — durable work management and recovery
+
+**Goal:** prevent enquiries and operational actions from being forgotten, while
+improving the safety of device-local data.
+
+Additive domain objects:
+
+- `leads`: enquiry identity, source, status, received date, next-action date, notes, loss reason, and optional customer/appointment link;
+- `tasks`: title, type, due date, status, priority, snooze date, recurrence metadata, and optional links to a lead, customer, appointment, order, or job;
+- `taskEvents` or equivalent history where completion/snooze auditability is required.
+
+Behavior:
+
+- provide a lead inbox and a conversion flow that reuses the existing customer and visit creation paths;
+- retain current derived Follow-ups, but allow the advisor to create, complete, and snooze durable tasks;
+- allow a derived suggestion to create or link to a durable task without producing duplicates;
+- surface overdue tasks on Home and Follow-ups without displacing the existing day view;
+- strengthen backup status, reminders, validation, and recovery guidance;
+- do not claim automatic cloud backup unless a separately designed encrypted remote-backup system actually exists.
+
+Exit criteria:
+
+- an enquiry can exist safely without an appointment;
+- a user-created reminder survives reload, offline use, backup, and restore;
+- completing or snoozing a task is idempotent;
+- all existing derived follow-ups still appear and clear under their current rules.
+
+### 24.4 Phase 2 — structured quote-to-order conversion
+
+**Goal:** eliminate duplicate commercial data entry and make acceptance explicit.
+
+Additive domain objects:
+
+- `quotes`: customer, source appointment, number, version, status, issue/expiry dates, subtotal, discounts, tax treatment, total, notes, terms snapshot, and acceptance metadata;
+- `quoteItems`: quote, description, quantity, unit, unit price, cost, optional product/supplier reference, and display order;
+- optionally `documents` for generated quote artifacts and immutable document metadata.
+
+Behavior:
+
+- create a structured quote from a visit without removing the existing quoted outcome;
+- support draft, issued, accepted, rejected, superseded, and expired states;
+- preserve quote versions rather than overwriting a document already issued;
+- generate a reviewable/printable customer document that works offline after creation;
+- convert an accepted quote into exactly one order through an idempotent transaction;
+- retain the existing appointment-to-order flow for older data and users who do not create structured quotes;
+- never reinterpret a historic appointment value as itemized quote data.
+
+Exit criteria:
+
+- quote totals are derived from line items and tested for rounding and discounts;
+- conversion cannot create duplicate orders;
+- legacy orders and quote-like appointment outcomes remain visible;
+- quote and order backups restore with relationships and sequence floors intact.
+
+### 24.5 Phase 3 — job execution and field completion
+
+**Goal:** separate selling work from delivery/installation/service work and make
+on-site completion reliable.
+
+Additive domain objects:
+
+- `jobs`: customer, originating order, job type, operational status, scheduled window, completion state, warranty dates, and sign-off metadata;
+- `jobAppointments` only if a join table is needed; otherwise add a nullable `jobId` to appointments while retaining `appointmentId` links already in use;
+- `checklistTemplates`, `checklistItems`, and `checklistResponses` for visit-type-specific work;
+- `jobIssues`: missing/damaged material, return visit, service issue, owner, due date, and resolution;
+- optionally `documents` for job sheets, completion records, and customer sign-off artifacts.
+
+Behavior:
+
+- one order may produce multiple jobs or appointments;
+- support operational stages such as materials ordered, materials received/checked, fitting scheduled, on site, blocked, return visit required, completed, and signed off;
+- provide configurable checklists for consultation, measurement, fitting, and service visits;
+- connect before/after photos and measurements to the appropriate job while preserving customer and appointment views;
+- require explicit advisor confirmation before completing work or capturing customer sign-off;
+- keep the existing Orders board functional as a commercial overview during migration.
+
+Exit criteria:
+
+- a sold order can schedule and complete multiple operational visits;
+- incomplete mandatory checklist items are visible and require an explicit override rather than being silently ignored;
+- job completion does not automatically imply payment, and payment does not fabricate job completion;
+- legacy appointment-only work remains usable.
+
+### 24.6 Phase 4 — payment ledger and formal documents
+
+**Goal:** replace mutable payment totals with an auditable financial trail and
+close the administrative cycle.
+
+Additive domain objects:
+
+- `payments`: order/invoice link, amount, direction, date, method, reference, status, notes, and reversal/refund relationship;
+- `invoices` and `invoiceItems`: sequential number, customer snapshot, dates, status, totals, terms, and source quote/order/job links;
+- `creditNotes` or a typed document/transaction model if refunds and corrections require them;
+- `documents`: generated invoice, receipt, job-sheet, and completion-certificate metadata.
+
+Behavior:
+
+- derive amount paid and balance due from payment records;
+- migrate existing `depositPaid` values into an explicit opening/migrated payment only when the amount is unambiguous, retaining provenance;
+- support partial payments, refunds/reversals, methods, references, and receipts;
+- generate invoices and receipts locally without requiring network access;
+- keep existing order balance fields as derived compatibility values until all consumers migrate;
+- do not add payment processing merely as part of ledger implementation.
+
+Exit criteria:
+
+- ledger entries reconcile exactly to order/invoice balances;
+- corrections use reversal or credit records rather than destructive history edits;
+- historical order cards, Money totals, customer totals, and backups remain consistent;
+- document numbering cannot collide after import or restore.
+
+### 24.7 Phase 5 — profitability, suppliers, and capacity
+
+**Goal:** help a genuinely self-employed advisor choose profitable work and plan
+days that can actually be delivered.
+
+Additive domain objects:
+
+- `suppliers`, `products`, and optionally `purchaseOrders`/`purchaseOrderItems`;
+- `jobCosts`: materials, subcontractors, travel allocation, payment fees, and other direct costs;
+- `availabilityBlocks`: working hours, leave, and unavailable periods;
+- optional vehicle/sample/stock records only after a concrete inventory workflow is approved.
+
+Behavior:
+
+- calculate revenue, direct cost, gross profit, margin, and effective hourly value per quote/order/job;
+- distinguish commission-advisor, sole-trader, and hybrid financial modes without changing historic figures when settings change;
+- track supplier submission, expected delivery, receipt/checking, shortages, damage, returns, and supplier follow-up tasks;
+- make appointments duration-aware and warn about overlaps, insufficient travel buffers, closed hours, and unrealistic days;
+- offer route-aware booking suggestions as advice, never silent rescheduling;
+- effective-date tax, mileage, commission, and costing policies so later configuration changes do not rewrite history.
+
+Exit criteria:
+
+- profitability reconciles from explicit revenue and cost inputs;
+- schedule warnings are deterministic and overrideable;
+- supplier delays generate visible actions without corrupting commercial order stages;
+- changing current business settings leaves historical calculations reproducible.
+
+### 24.8 Phase 6 — retention and optional integrations
+
+**Goal:** complete the post-job relationship and add external connectivity only
+where it materially reduces solo-advisor administration.
+
+Behavior:
+
+- model satisfaction checks, review requests, referrals, warranty/service dates, maintenance reminders, and repeat-work opportunities;
+- maintain explicit contact preferences and consent where applicable;
+- distinguish message drafted, handed off, advisor-confirmed sent, delivered, and replied states; never infer delivery from an external-app launch;
+- add calendar, accounting, payment, supplier, or remote-backup integrations one at a time behind provider adapters;
+- queue safe local changes while offline and expose sync conflicts rather than silently overwriting records;
+- keep integrations optional so the local core remains usable when disconnected or when a provider is removed.
+
+Cloud sync, accounts, teams, shared ownership, and manager dashboards remain a
+separate architecture programme. They must not be smuggled into a solo-user
+integration phase because identity, tenancy, conflict resolution, access
+control, deletion, and encryption-key management require their own design.
+
+Exit criteria:
+
+- the post-payment lifecycle can produce a review, referral, warranty/service action, or repeat opportunity;
+- disabling or disconnecting an integration does not prevent access to local records;
+- imported/provider data has provenance and conflicts are user-visible;
+- no integration broadens external actions beyond the consent rules in this document.
+
+### 24.9 Definition of done for every roadmap phase
+
+A phase is complete only when all of the following are true:
+
+- scope and explicit non-goals were recorded before implementation;
+- current behavior was traced through readable source, minified production assets, tests, and relevant documentation;
+- schema migrations are additive, idempotent, and tested from every supported prior schema/backup fixture;
+- writes involving multiple authoritative records are transactional or have a tested rollback strategy;
+- feature flags default safely for existing installations and can be removed only after stabilization;
+- empty, loading, error, offline, permission-denied, duplicate, conflict, and destructive states are implemented;
+- keyboard, screen-reader naming, focus, safe-area, and supported mobile-width behavior are verified;
+- unit and browser tests cover the new happy path, boundaries, failure recovery, and regression of existing core journeys;
+- backup, restore, cascade deletion, encryption-at-rest, and export behavior include the new data;
+- `npm run build`, the full test suites, service-worker alignment, and release evidence pass;
+- `Architect.md`, user-facing feature documentation, and the release checklist are updated to distinguish implemented behavior from future work;
+- no unrelated refactor or visual redesign is bundled into the phase.
+
+### 24.10 Phase dependency order
+
+The default dependency sequence is:
+
+```text
+Phase 0: Baseline and safety
+    → Phase 1: Leads, durable tasks, recovery
+    → Phase 2: Quotes and conversion
+    → Phase 3: Jobs, checklists, sign-off
+    → Phase 4: Payments, invoices, receipts
+    → Phase 5: Profitability, suppliers, capacity
+    → Phase 6: Retention and optional integrations
+```
+
+A later phase may be split into smaller releases, but it must not rely on a
+future phase's unimplemented data model. Any deliberate reordering requires an
+architecture note explaining dependencies, migration consequences, and how the
+current product remains operational throughout the change.
