@@ -14,7 +14,7 @@
    Run: node tests/browser/verify-orders-kanban.js (needs :8000 + Playwright)
    ============================================ */
 'use strict';
- = require('playwright');
+const { chromium } = require('playwright');
 const BASE = 'http://localhost:8000';
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 let fails = 0;

@@ -295,6 +295,13 @@ const DB = {
     // still carrying the old ids so filters/reports don't silently miss them.
     await this.migrateLegacyOutcomes();
 
+    // Legacy sales were recorded as appointment outcomes only (v5-era apps,
+    // or any sale logged before the orders table existed) — they never got
+    // an order row, so the Orders kanban (driven purely by the orders table)
+    // showed ZERO orders for real sales while the Quoted column filled. Turn
+    // every sold appointment with no linked order into a proper order record.
+    await this.backfillLegacyOrders();
+
     // One-time migration: encrypt any plaintext customer PII fields
     await migratePlaintextCustomers();
 
@@ -302,6 +309,51 @@ const DB = {
     await migratePlaintextAppointments();
 
     console.log('Database initialized');
+  },
+
+  // Creates an order row for every appointment with outcome 'ordered' that
+  // does not already have a linked order (by appointmentId). Idempotent —
+  // runs on every boot, but the appointmentId link check means it can never
+  // duplicate an existing order. Heals existing installed apps whose sales
+  // predate the orders table (the phone report: "4 orders but the kanban
+  // shows zero").
+  async backfillLegacyOrders() {
+    let sold = [];
+    try { sold = await this.db.appointments.where('outcome').equals('ordered').toArray(); } catch (e) { return; }
+    if (!sold.length) return;
+    let orders = [];
+    try { orders = await this.db.orders.toArray(); } catch (e) { return; }
+    const linkedApptIds = new Set(orders.map(o => o.appointmentId).filter(Boolean));
+    let created = 0;
+    for (const appt of sold) {
+      if (linkedApptIds.has(appt.id)) continue;
+      const total = Number(appt.value) || 0;
+      if (total <= 0 && !appt.customerId) continue; // nothing meaningful to backfill
+      const deposit = (typeof App !== 'undefined' && typeof App.calculateDeposit === 'function')
+        ? App.calculateDeposit(total)
+        : { amount: total > 0 ? Math.round((total * 0.5) * 100) / 100 : 0 };
+      const seq = await this.getNextSequence('order');
+      const orderNumber = `ORD-${new Date().getFullYear()}-${String(seq).padStart(4, '0')}`;
+      await this.db.orders.add({
+        customerId: appt.customerId || null,
+        appointmentId: appt.id,
+        orderNumber,
+        total,
+        depositRequired: deposit.amount,
+        depositPaid: 0,
+        balanceDue: total,
+        status: 'deposit_pending',
+        stage: 'ordered',
+        supplierOrderNumber: '',
+        reviewRequested: false,
+        referralRequested: false,
+        createdAt: appt.date ? new Date(appt.date).toISOString() : new Date().toISOString()
+      });
+      linkedApptIds.add(appt.id);
+      if (appt.customerId) { try { await this.refreshCustomerTotals(appt.customerId); } catch (e) {} }
+      created++;
+    }
+    if (created) console.log(`Backfilled ${created} legacy order(s) from sold appointments`);
   },
 
   async migrateLegacyOutcomes() {

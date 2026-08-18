@@ -272,7 +272,11 @@ async function runDbJs(engine, tag) {
   ok(engine + ': getAppointmentsForDate excludes cancelled', todayAppts.length === 1, todayAppts.length);
 
   const o = await DB.addOrder({ customerId: c.id, total: 1000, commission: 100 });
-  ok(engine + ': order numbering', o.orderNumber.startsWith('ORD-') && o.orderNumber.endsWith('-0001'), o.orderNumber);
+  // The legacy-outcome fixture above has 2 sold appointments with no linked
+  // order, so backfillLegacyOrders() issues ORD-...-0001/-0002 first; a new
+  // order must continue the sequence after them (0003+), never collide.
+  ok(engine + ': order numbering continues after backfilled legacy orders',
+    o.orderNumber.startsWith('ORD-') && !o.orderNumber.endsWith('-0001') && !o.orderNumber.endsWith('-0002'), o.orderNumber);
   ok(engine + ': deposit via App.calculateDeposit', o.depositRequired === 200, o.depositRequired);
   const totals = await DB.db.customers.get(c.id);
   ok(engine + ': customer totals recomputed', totals.totalOrdersValue === 1000 && totals.orderCount === 1, totals);

@@ -47,7 +47,11 @@ const OrdersFeature = {
     const orderByStage = { ordered: [], delivered: [], fitted: [], paid: [] };
     for (const o of orders) {
       const stage = (o.balanceDue || 0) <= 0 ? 'paid' : (o.stage || 'ordered');
-      if (orderByStage[stage]) orderByStage[stage].push(o);
+      // Never drop an order silently: an unexpected stage value (legacy
+      // data, hand-edited row) would otherwise make the board undercount.
+      const bucket = orderByStage[stage] ? stage : 'ordered';
+      if (bucket !== stage) console.warn('Order ' + (o.orderNumber || o.id) + ' has unknown stage "' + stage + '" — shown in Ordered');
+      orderByStage[bucket].push(o);
     }
 
     const quotedValue = quoteCards.reduce((s, a) => s + (a.value || 0), 0);
