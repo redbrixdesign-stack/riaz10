@@ -66,7 +66,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   ok('IOS-4 apple-mobile-web-app-title is Beelo', head.title === 'Beelo', head.title);
   ok('standalone-capable meta + black-translucent status bar + viewport-fit=cover',
     head.capable === 'yes' && head.statusBar === 'black-translucent' && /viewport-fit=cover/.test(head.viewport), head);
-  ok('IOS-3 apple-touch-icon points at the 180px icon', /apple-touch-icon-180\.png/.test(head.appleIcon || ''), head.appleIcon);
+  ok('IOS-3 apple-touch-icon points at the gold 180px icon', /apple-touch-icon-gold-180\.png/.test(head.appleIcon || ''), head.appleIcon);
   ok('display-mode standalone is honoured', head.displayMode === 'standalone', head.displayMode);
 
   // IOS-2: computed font-size of real inputs
@@ -80,7 +80,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
   // IOS-5: SW precaches the icons
   const sw = await (await fetch(BASE + '/sw.js')).text();
-  ok('IOS-5 service worker precaches the icon set', /assets\/icons\/apple-touch-icon-180\.png/.test(sw) && /assets\/icons\/icon-512\.png/.test(sw));
+  ok('IOS-5 service worker precaches the gold icon set', /assets\/icons\/apple-touch-icon-gold-180\.png/.test(sw) && /assets\/icons\/icon-gold-512\.png/.test(sw));
   const cacheName = (sw.match(/CACHE_NAME = '([^']+)'/) || [])[1];
   console.log('  CACHE_NAME:', cacheName);
 
@@ -92,7 +92,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   console.log('  Notification API in Chromium:', notif.inWindow, '(iOS Safari: absent -> guard fires)');
 
   // Asset reachability for the new icons
-  for (const f of ['assets/icons/apple-touch-icon-180.png', 'assets/icons/icon-192-maskable.png', 'assets/icons/icon-512-maskable.png']) {
+  for (const f of ['assets/icons/apple-touch-icon-gold-180.png', 'assets/icons/icon-gold-192-maskable.png', 'assets/icons/icon-gold-512-maskable.png']) {
     const r = await fetch(BASE + '/' + f);
     ok('served: ' + f, r.status === 200 && (r.headers.get('content-type') || '').includes('png'), r.status);
   }

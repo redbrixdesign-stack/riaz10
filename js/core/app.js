@@ -173,7 +173,7 @@ const App = {
             <h3>Set Encryption Passphrase</h3>
           </div>
           <div class="sheet-body p-md">
-            <p class="text-secondary mb-lg">Your customer data (names, phones, addresses, emails) will be encrypted at rest. Choose a passphrase you'll remember — it's required every time you open AdvisorOS.</p>
+            <p class="text-secondary mb-lg">Your customer data (names, phones, addresses, emails) will be encrypted at rest. Choose a passphrase you'll remember — it's required every time you open Beelo.</p>
             <div class="form-group">
               <label>Passphrase</label>
               <input type="password" class="input" id="enc-passphrase-new" placeholder="Enter passphrase" autocomplete="off">
@@ -232,7 +232,7 @@ const App = {
         this.openModal(`
           <div class="sheet-handle"></div>
           <div class="sheet-header">
-            <h3>Unlock AdvisorOS</h3>
+            <h3>Unlock Beelo</h3>
           </div>
           <div class="sheet-body p-md">
             <p class="text-secondary mb-lg">Enter your passphrase to decrypt customer data.</p>
@@ -375,12 +375,11 @@ const App = {
     if (!CONFIG.class4NIC?.lowerThreshold) {
       CONFIG.class4NIC = { lowerThreshold: 12570, upperThreshold: 50270, mainRate: 0.06, additionalRate: 0.02 };
     }
-    // HMRC's approved car mileage rate is 45p/mile (first 10,000 miles),
-    // 25p above. A legacy migration once overwrote the correct 0.45 default
-    // with 0.55 (overclaiming the relief by 22% in the tax estimate), so
-    // this normalises any install back to the HMRC rate.
-    if (CONFIG.country === 'GB' && CONFIG.mileageRate === 0.55) {
-      CONFIG.mileageRate = 0.45;
+    // From 6 April 2026 HMRC's approved car/goods-vehicle mileage rate is
+    // 55p/mile for the first 10,000 business miles and 25p above. Repair the
+    // previous GB default so existing installations receive the 2026-27 rate.
+    if (CONFIG.country === 'GB' && CONFIG.mileageRate === 0.45) {
+      CONFIG.mileageRate = 0.55;
       CONFIG.mileageRateOver = 0.25;
     }
     // Weekly sales target is now DERIVED (weeklyTarget ÷ effective commission rate) —
@@ -412,9 +411,9 @@ const App = {
     const { title = '', showBack = false, backHref = '#today', actions = '' } = options;
     let leftHtml = '';
     if (showBack && title) {
-      leftHtml = `<button class="btn btn-ghost btn-sm" data-action="App.navigate" data-args='${JSON.stringify([(Utils.escapeJsString(backHref))])}'><span class="material-symbols-rounded">arrow_back</span></button><h1 class="page-heading">${Utils.escapeHtml(title)}</h1>`;
+      leftHtml = `<button class="btn btn-ghost btn-sm" aria-label="Back" data-action="App.navigate" data-args='${JSON.stringify([(Utils.escapeJsString(backHref))])}'><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span></button><h1 class="page-heading">${Utils.escapeHtml(title)}</h1>`;
     } else if (showBack) {
-      leftHtml = `<button class="btn btn-ghost btn-sm" data-action="App.navigate" data-args='${JSON.stringify([(Utils.escapeJsString(backHref))])}'><span class="material-symbols-rounded">arrow_back</span></button>`;
+      leftHtml = `<button class="btn btn-ghost btn-sm" aria-label="Back" data-action="App.navigate" data-args='${JSON.stringify([(Utils.escapeJsString(backHref))])}'><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span></button>`;
     } else if (title) {
       leftHtml = `<h1 class="page-heading">${Utils.escapeHtml(title)}</h1>`;
     }
@@ -660,7 +659,13 @@ const App = {
     window.addEventListener('hashchange', () => {
       const hash = window.location.hash.slice(1) || 'today';
       const cleanHash = hash.split('?')[0];
-      if (this.features.has(cleanHash) && hash !== this.currentHash) {
+      if (!this.features.has(cleanHash)) {
+        // Never leave the address bar claiming one screen while another is
+        // visible. Replace (rather than push) the invalid history entry so
+        // Back does not return the user to the same broken URL.
+        window.history.replaceState(null, '', '#today');
+        if (this.currentHash !== 'today') this.navigate('today');
+      } else if (hash !== this.currentHash) {
         this.navigate(hash);
       }
     });

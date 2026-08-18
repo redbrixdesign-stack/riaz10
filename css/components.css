@@ -2672,7 +2672,7 @@ body.trip-active .toast-container {
 .comp-toggle-label.disabled {
   /* Solid recolour, not opacity (0.45 on secondary text ≈ 4.1:1).
      #9B968A on the dark surface measures 4.7:1 (WCAG AA). */
-  color: #9B968A;
+  color: var(--disabled-text);
   cursor: not-allowed;
 }
 .comp-toggle-label input { position: absolute; opacity: 0; pointer-events: none; }

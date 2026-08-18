@@ -64,7 +64,7 @@ const ok = (label, cond, extra) => {
   // browser notice about meta-CSP limits, not a violation — exclude it.
   const cspBlocked = consoleErrors.filter(e => /Refused to/.test(e));
   ok('no CSP violations during onboarding', cspBlocked.length === 0, cspBlocked);
-  const runtime = consoleErrors.filter(e => !/frame-ancestors.*ignored.*meta/.test(e) && !/React DevTools/.test(e));
+  const runtime = consoleErrors.filter(e => !/frame-ancestors.*ignored.*meta/.test(e));
   ok('no page/runtime errors at all', runtime.length === 0, runtime);
 
   await browser.close();

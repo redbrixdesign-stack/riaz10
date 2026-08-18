@@ -18,12 +18,12 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const sw = await (await fetch(BASE + '/sw.js')).text();
   const cacheName = (sw.match(/CACHE_NAME = '([^']+)'/) || [])[1];
   ok('live: SW CACHE_NAME updated (' + cacheName + ')', /advisoros-v6-50/.test(cacheName), cacheName);
-  ok('live: SW precaches icons + 180 apple-touch-icon', /apple-touch-icon-180\.png/.test(sw) && /icon-512\.png/.test(sw));
+  ok('live: SW precaches gold icons + 180 apple-touch-icon', /apple-touch-icon-gold-180\.png/.test(sw) && /icon-gold-512\.png/.test(sw));
 
   const html = await (await fetch(BASE + '/')).text();
-  ok('live: apple-mobile-web-app-title + 180 icon + core.css?v=29', /apple-mobile-web-app-title/.test(html) && /apple-touch-icon-180\.png/.test(html) && /core\.css\?v=29/.test(html));
+  ok('live: apple-mobile-web-app-title + gold 180 icon + core.css?v=30', /apple-mobile-web-app-title/.test(html) && /apple-touch-icon-gold-180\.png/.test(html) && /core\.css\?v=30/.test(html));
 
-  for (const f of ['assets/icons/apple-touch-icon-180.png', 'assets/icons/icon-192-maskable.png', 'assets/icons/icon-512-maskable.png']) {
+  for (const f of ['assets/icons/apple-touch-icon-gold-180.png', 'assets/icons/icon-gold-192-maskable.png', 'assets/icons/icon-gold-512-maskable.png']) {
     const r = await fetch(BASE + '/' + f);
     ok('live: served ' + f, r.status === 200 && (r.headers.get('content-type') || '').includes('png'), r.status);
   }

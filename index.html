@@ -32,9 +32,10 @@
 
 <title>Beelo</title>
 
-  <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon-180.png">
-  <link rel="icon" type="image/png" href="assets/icons/icon-72.png">
+  <link rel="manifest" href="manifest.json?v=3">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon-gold-180.png">
+  <link rel="icon" type="image/png" href="assets/icons/icon-gold-72.png">
+  <meta name="apple-mobile-web-app-title" content="Beelo">
 
   <!-- All three font families are self-hosted same-origin WOFF2s (see the
        @font-face blocks in css/core.css), precached by the service worker so
@@ -45,8 +46,8 @@
   <link rel="preload" href="assets/fonts/hankengrotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/jetbrainsmono-latin.woff2" as="font" type="font/woff2" crossorigin>
 
-  <link rel="stylesheet" href="css/core.css?v=29">
-  <link rel="stylesheet" href="css/components.css?v=31">
+  <link rel="stylesheet" href="css/core.css?v=30">
+  <link rel="stylesheet" href="css/components.css?v=32">
 
   <!-- Storage engine: real Dexie first (indexed queries, transactions); the
        bundled mini-Dexie shim only registers if Dexie is unavailable. -->
@@ -73,13 +74,13 @@
   <script src="js/core/search.min.js?v=3" defer></script>
   <script src="js/core/tax.min.js?v=2" defer></script>
   <script src="js/core/install-prompt.min.js?v=1" defer></script>
-  <script src="js/core/app.min.js?v=18" defer></script>
+  <script src="js/core/app.min.js?v=20" defer></script>
   <script src="js/core/legal.min.js?v=1" defer></script>
   <script src="js/core/contact.min.js?v=4" defer></script>
 
   <!-- Services -->
   <script src="js/services/ai.min.js?v=8" defer></script>
-  <script src="js/services/notification.min.js?v=5" defer></script>
+  <script src="js/services/notification.min.js?v=7" defer></script>
   <script src="js/services/message-scheduler.min.js?v=4" defer></script>
   <script src="js/services/export.min.js?v=4" defer></script>
   <script src="js/services/weather.min.js?v=3" defer></script>
@@ -91,7 +92,7 @@
   <script src="js/features/today/home-screen-controller.min.js?v=11" defer></script>
   <script src="js/features/appointments/appointments.min.js?v=27" defer></script>
   <script src="js/features/customer/customer.min.js?v=5" defer></script>
-  <script src="js/features/route/route.min.js?v=11" defer></script>
+  <script src="js/features/route/route.min.js?v=12" defer></script>
   <!-- Follow-ups and Orders load before Money so the bottom-nav order is
        Home, Follow-ups, Orders, Money, Tools (nav order = registration order). -->
   <script src="js/features/followups/followups.min.js?v=9" defer></script>
@@ -101,6 +102,6 @@
   <script src="js/features/measure/measure.min.js?v=7" defer></script>
   <script src="js/features/ocr/ocr.min.js?v=20" defer></script>
   <script src="js/features/control/control.min.js?v=6" defer></script>
-  <script src="js/features/settings/settings.min.js?v=14" defer></script>
+  <script src="js/features/settings/settings.min.js?v=15" defer></script>
 </body>
 </html>

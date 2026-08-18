@@ -144,16 +144,15 @@ async function sectionA() {
   setCommission({});
   ok('sales target: zero effective rate -> 0', Tax.getRequiredWeeklySales(600) === 0, Tax.getRequiredWeeklySales(600));
 
-  // Mileage: 0.45/mile up to 10,000 miles (HMRC approved car rate), 0.25
-  // above; negatives clamp. The 0.55 default was corrected to 0.45 — a 55p
-  // first band overclaimed the relief by 22%, understating the tax bill.
+  // Mileage: 0.55/mile up to 10,000 miles (2026-27 HMRC approved car and
+  // goods-vehicle rate from 6 April 2026), 0.25 above; negatives clamp.
   ok('mileage: zero km -> 0', Tax.calculateMileageClaim(0) === 0, Tax.calculateMileageClaim(0));
   ok('mileage: negative km -> 0', Tax.calculateMileageClaim(-100) === 0, Tax.calculateMileageClaim(-100));
   const exactly = Tax.calculateMileageClaim(10000 / 0.621371);
-  ok('mileage: exactly 10,000 miles -> 4500', Math.abs(exactly - 4500) < 0.01, exactly);
+  ok('mileage: exactly 10,000 miles -> 5500', Math.abs(exactly - 5500) < 0.01, exactly);
   const above = Tax.calculateMileageClaim(18000);
   const miles = 18000 * 0.621371;
-  const expectedAbove = 10000 * 0.45 + (miles - 10000) * 0.25;
+  const expectedAbove = 10000 * 0.55 + (miles - 10000) * 0.25;
   ok('mileage: above 10,000 miles uses second band', Math.abs(above - expectedAbove) < 0.01, above);
 
   // UK-midnight instants: hard legal boundaries (the April 6 tax-year

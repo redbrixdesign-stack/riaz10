@@ -75,7 +75,7 @@ const CONFIG = {
   ],
   personalAllowance: 12570,
   class4NIC: { lowerThreshold: 12570, upperThreshold: 50270, mainRate: 0.06, additionalRate: 0.02 },
-  mileageRate: 0.45,
+  mileageRate: 0.55,
   mileageRateOver: 0.25,
 
   // Minimum acceptable value of the advisor's own time, per hour — used only

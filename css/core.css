@@ -61,6 +61,7 @@
   --surface: #121212;
   --surface-elevated: #171717;
   --surface-muted: #202020;
+  --desktop-gutter-bg: #0F0F0A;
   --border: #4A4A44;
   --border-light: rgba(74, 74, 68, 0.5);
 
@@ -69,6 +70,7 @@
   --text-secondary: #C7C1B0;
   --text-tertiary: #8E8878;
   --text-inverse: #FFFFFF;
+  --disabled-text: #9B968A;
 
   /* Shadows */
   --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.22);
@@ -725,8 +727,17 @@ button:not(:disabled):active,
   }
 
   body {
-    background: #0F0F0A;
+    background: var(--desktop-gutter-bg);
   }
+}
+
+/* Data-heavy screens gain breathing room on tablet/desktop while the phone
+   contract remains unchanged. Shared shell consumers (nav, sheets, banners)
+   all follow --max-width, so fixed UI stays aligned with the content column. */
+@media (min-width: 900px) {
+  :root { --max-width: 720px; }
+
+  #app { max-width: var(--max-width); }
 }
 
 /* ============================================

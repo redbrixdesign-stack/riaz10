@@ -11,6 +11,7 @@ const RouteFeature = {
   map: null,
   markers: [],
   routeLine: null,
+  _activationId: 0,
   leafletLoaded: false,
 
   init() {
@@ -851,11 +852,16 @@ const RouteFeature = {
   },
 
   async activate() {
+    // Each activation owns a generation. Route setup performs asynchronous
+    // geocoding/location work, so an activation may otherwise finish after
+    // the user has left the screen and collide with a later Leaflet map.
+    const activationId = ++this._activationId;
     // Wait for Leaflet to load
     if (!this.leafletLoaded) {
       let attempts = 0;
       while (!window.L && attempts < 50) {
         await new Promise(r => setTimeout(r, 100));
+        if (activationId !== this._activationId) return;
         attempts++;
       }
       if (!window.L) {
@@ -874,7 +880,8 @@ const RouteFeature = {
       }
     }
 
-    await this.initMap();
+    if (activationId !== this._activationId) return;
+    await this.initMap(activationId);
   },
 
   async retryMap() {
@@ -924,9 +931,9 @@ const RouteFeature = {
     App.navigate('route');
   },
 
-  async initMap() {
+  async initMap(activationId = this._activationId) {
     const mapEl = document.getElementById('route-map');
-    if (!mapEl) return;
+    if (!mapEl || activationId !== this._activationId) return;
 
     // Get today's appointments
     const today = Utils.getToday();
@@ -939,6 +946,7 @@ const RouteFeature = {
     const base = await this.getBasePoint();
     appointments = await this.ensureAppointmentCoords(appointments);
     const plan = this.analyseDay(appointments, today, base);
+    if (activationId !== this._activationId || document.getElementById('route-map') !== mapEl) return;
     // Marker numbers must agree with the stop list on screen (which is time
     // order) or "tap list row 3" / "leg 3" point at different stops.
     const mapAppointments = plan.appointments;
@@ -966,7 +974,14 @@ const RouteFeature = {
 
     // Initialize map
     try {
-      this.map = L.map('route-map', {
+      // A previous completed activation is removed before a replacement is
+      // created. The generation/element checks above handle in-flight stale
+      // activations; this handles an explicit same-screen retry.
+      if (this.map) {
+        this.map.remove();
+        this.map = null;
+      }
+      this.map = L.map(mapEl, {
         zoomControl: false,
         attributionControl: false
       }).setView(center, zoom);
@@ -1252,6 +1267,9 @@ const RouteFeature = {
   },
 
   deactivate() {
+    // Invalidate any activate()/initMap() work still awaiting network,
+    // geolocation, or Leaflet loading before removing the current map.
+    this._activationId++;
     if (this.map) {
       this.map.remove();
       this.map = null;

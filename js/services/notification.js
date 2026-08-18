@@ -118,8 +118,8 @@ const NotificationService = {
   showNotification(title, options = {}) {
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification(title, {
-        icon: 'assets/icons/icon-192.png',
-        badge: 'assets/icons/badge-72.png',
+        icon: 'assets/icons/icon-gold-192.png',
+        badge: 'assets/icons/badge-gold-72.png',
         ...options
       });
     }
@@ -197,7 +197,7 @@ const NotificationService = {
       this.showNotification('Your morning brief is ready ☀️', { body, tag: 'morning-brief' });
     } catch (e) {
       console.log('Morning brief generation failed:', e);
-      this.showNotification('Your morning brief is ready ☀️', { body: 'Open AdvisorOS to see your day.' });
+      this.showNotification('Your morning brief is ready ☀️', { body: 'Open Beelo to see your day.' });
     }
   }
 };

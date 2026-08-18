@@ -98,7 +98,7 @@
     commission: { mode: 'simple', simpleRate: 15, saleReductionRate: 20, netCommissionRate: 15.25, tiers: null },
     depositRules: { minimum: 750, fullPaymentThreshold: 1500, percentageAboveThreshold: 50 },
     followups: { paymentReminderDays: 3 },
-    mileageRate: 0.45, mileageRateOver: 0.25
+    mileageRate: 0.55, mileageRateOver: 0.25
   };
   localStorage.setItem('advisoros_config', JSON.stringify(config));
   await db.settings.put({ key: 'config', value: config });
