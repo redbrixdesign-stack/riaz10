@@ -52,24 +52,18 @@ const ok = (label, cond, extra) => {
   await page.waitForTimeout(800);
   ok('Scan screen opens from Add Visit', true);
 
-  // Instrument the hidden input so we can prove the button's tap reaches it.
-  await page.evaluate(() => {
-    const input = document.getElementById('ocr-input');
-    window.__ocrClicks = 0;
-    input.addEventListener('click', () => { window.__ocrClicks++; });
-  });
-
-  // Use a real touch gesture on the native label — the reported dead tap was
-  // device-specific and could not be covered by a desktop-style click alone.
+  // Require a real filechooser event. Counting an input click is insufficient:
+  // the delegated router previously prevented that click's default action,
+  // so the click fired while the iOS camera/picker remained closed.
+  const chooserPromise = page.waitForEvent('filechooser', { timeout: 10000 });
   await page.tap('label[for="ocr-input"]');
-  await page.waitForTimeout(400);
-  const clicked = await page.evaluate(() => window.__ocrClicks);
-  ok('touching Take Photo fires the native file input', clicked >= 1, { clicks: clicked });
+  const chooser = await chooserPromise;
+  ok('touching Take Photo opens the native file chooser', !!chooser);
 
-  // Drive the real change event with a tiny PNG (no text → empty extraction
-  // is fine; the point is the pipeline runs and doesn't hang or CSP-crash).
+  // Complete the chooser with a tiny PNG (no text → empty extraction is fine;
+  // the point is the pipeline runs and doesn't hang or CSP-crash).
   const tinyPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
-  await page.setInputFiles('#ocr-input', { name: 'shot.png', mimeType: 'image/png', buffer: tinyPng });
+  await chooser.setFiles({ name: 'shot.png', mimeType: 'image/png', buffer: tinyPng });
 
   // The Tesseract fallback loads from the CDN and runs in a blob worker —
   // wait for either a result, manual entry, or the 30s engine-wait to give
