@@ -236,12 +236,52 @@ const CompanionFeature = {
   },
 
   welcomeHtml(homeData) {
-    // The Home screen is ONE appointment feed — no greeting banner, no
-    // weekly strip. The top of the feed is the NEXT visit as a rich card
-    // (customer detail + actions), everything else follows as compact rows.
-    // Attention items and the Ask Beelo chips sit below the feed.
+    // Home = the weekly calendar strip on top, then ONE appointment feed
+    // (NEXT visit as a rich card + compact rows), then attention, then Ask
+    // Beelo chips. No greeting banner. (The strip was briefly removed and
+    // restored — the advisor wants the week at a glance back.)
 
-    // A. NEXT / UPCOMING — the appointment feed. The first upcoming visit
+    // A. THIS WEEK — navigational 7-day calendar (tap a day → My Day)
+    // with a thin target progress line.
+    let weekStripHtml = '';
+    const week = homeData.week;
+    if (week && week.target > 0) {
+      const todayIso = Utils.formatDate(Utils.getToday(), 'iso');
+      const daysHtml = (homeData.weekDays || []).map(d => {
+        const isToday = d.iso === todayIso;
+        const isPast = d.iso < todayIso;
+        return `
+          <button type="button" class="comp-home-week-day ${isToday ? 'today' : ''} ${isPast ? 'past' : ''}" data-action="CompanionFeature.openMyDay" data-args='${JSON.stringify([d.iso])}' ${isToday ? 'aria-current="date"' : ''}>
+            <span class="comp-home-week-day-label">${d.label}</span>
+            <span class="comp-home-week-day-num">${d.num}</span>
+            <span class="comp-home-week-day-count">${d.count > 0 ? d.count : '—'}</span>
+          </button>`;
+      }).join('');
+      weekStripHtml = `
+        <div class="comp-home-section">
+          <div class="comp-home-section-header">
+            <span class="comp-home-section-label">THIS WEEK</span>
+            <div class="comp-home-week-nav">
+              <button type="button" class="comp-home-week-arrow" aria-label="Previous week" data-action="CompanionFeature.shiftHomeWeek" data-args='${JSON.stringify([-1])}'>
+                <span class="material-symbols-rounded" aria-hidden="true">chevron_left</span>
+              </button>
+              <button type="button" class="comp-home-week-arrow" aria-label="Next week" data-action="CompanionFeature.shiftHomeWeek" data-args='${JSON.stringify([1])}'>
+                <span class="material-symbols-rounded" aria-hidden="true">chevron_right</span>
+              </button>
+            </div>
+          </div>
+          <div class="comp-home-week-strip">${daysHtml}</div>
+          <div class="comp-home-week-progress">
+            <div class="progress-bar comp-home-week-bar"><div class="fill accent" style="width:${week.pct}%"></div></div>
+            <button type="button" class="comp-home-week-target" data-action="App.navigate" data-args='${JSON.stringify(["money"])}'>
+              ${week.gap > 0 ? `${Utils.formatCurrency(week.gap)} to target` : 'Target reached — nice work'}
+            </button>
+          </div>
+          ${homeData.weekRange ? `<div class="comp-home-week-range">${Utils.escapeHtml(homeData.weekRange)} · tap a day for the diary</div>` : ''}
+        </div>`;
+    }
+
+    // B. NEXT / UPCOMING — the appointment feed. The first upcoming visit
     // renders as the featured card (active, full detail + actions +
     // "More about this visit"); the remaining upcoming visits render as
     // compact rows (customer name, time, ETA). ONE feed — no separate
@@ -390,6 +430,7 @@ const CompanionFeature = {
 
     return `
       <div class="comp-home">
+        ${weekStripHtml}
         ${nextVisitHtml}
         ${attentionHtml}
         ${suggestionsHtml}

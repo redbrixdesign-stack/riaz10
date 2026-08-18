@@ -13,7 +13,8 @@
 
    Phase 1 (query regression): with the seed + 4 extra today visits, the
      upcoming query must include every day-window visit, including the
-     earlier-today one, and the greeting/week strip must match the diary.
+     earlier-today one, and the weekly strip's today cell must match the
+     diary.
    Phase 2 (feed visibility, the user's exact shape): a day with exactly
      four visits — three later, one an hour ago — must show ALL FOUR in
      the Home NEXT feed (featured card + rows), with the first FUTURE
@@ -86,11 +87,13 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     const upcoming = await DB.getUpcomingAppointments(14);
     const todayUpcoming = upcoming.filter(a => Utils.isSameDay(new Date(a.date), today));
     const labels = Array.from(document.querySelectorAll('.comp-home-section-label')).map(e => e.textContent.trim());
+    const todayCell = Array.from(document.querySelectorAll('.comp-home-week-day.today .comp-home-week-day-count')).map(e => e.textContent.trim())[0];
     return {
       dayCount: dayAppts.length,
       todayUpcomingCount: todayUpcoming.length,
       pastInUpcoming: todayUpcoming.some(a => /PAST/.test(a.clientName)),
       labels,
+      todayCell,
       hasGreeting: !!document.querySelector('.comp-home-greeting'),
       hasWeekStrip: !!document.querySelector('.comp-home-week-strip')
     };
@@ -99,8 +102,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   console.log(`\n  Phase 1 — seed + ${added.length} extra today visits (diary day-window count = ${p1.dayCount})`);
   ok('query: upcoming includes ALL of today\'s visits (day window)', p1.todayUpcomingCount === p1.dayCount, { todayUpcomingCount: p1.todayUpcomingCount, dayCount: p1.dayCount });
   ok('query: the earlier-today visit is included', p1.pastInUpcoming === true, p1);
-  ok('Home is one feed — NEXT is the first section', p1.labels[0] === 'NEXT', p1.labels);
-  ok('no greeting banner / week strip on Home', !p1.hasGreeting && !p1.hasWeekStrip, p1);
+  ok('Home: weekly calendar strip is back, above the feed', p1.labels[0] === 'THIS WEEK' && p1.hasWeekStrip, p1.labels);
+  ok(`weekly strip today cell shows ${p1.dayCount} (matches the diary)`, p1.todayCell === String(p1.dayCount), { todayCell: p1.todayCell });
+  ok('no greeting banner on Home', !p1.hasGreeting, p1);
 
   /* ---------- Phase 2: feed visibility — exactly the user's day ---------- */
   // A clean day with exactly 4 visits (3 later, 1 an hour ago). The NEXT

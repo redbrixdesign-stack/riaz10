@@ -36,14 +36,12 @@ const ok = (label, cond, extra) => {
   }));
   const click = sel => page.evaluate(s => { const b = document.querySelector(s); if (b) b.click(); }, sel);
 
-  // My Day opens as a full-screen panel (Home's week strip is gone — the
-  // single appointment feed is Home now, so My Day is reached via the
-  // app's own action).
-  await page.evaluate(() => CompanionFeature.openMyDay());
+  // The weekly calendar strip on Home opens My Day via a day-cell tap.
+  await page.evaluate(() => { const d = document.querySelectorAll('.comp-home-week-day')[3]; if (d) d.click(); });
   await page.waitForSelector('.bottom-sheet .hsc-root', { timeout: 15000 });
   await page.waitForTimeout(1500);
   const opened = await read();
-  ok('My Day panel opens on the selected day', opened.selected && !!opened.title, opened);
+  ok('weekly strip day tap opens My Day on that day', opened.selected && !!opened.title, opened);
 
   // Next-day arrow advances; previous-day returns
   await click('.bottom-sheet .hsc-week-nav[aria-label="Next day"]');

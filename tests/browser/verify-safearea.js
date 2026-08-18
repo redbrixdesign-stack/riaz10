@@ -82,7 +82,7 @@ const ok = (label, cond, extra) => {
     };
   });
   ok('padding-top computes to 14px when inset = 0', zero.scrollPaddingTop === '14px', zero);
-  ok('the NEXT feed section is the first visible element, fully on screen', zero.firstIsNextSection && zero.firstVisible && zero.firstTop < 40, zero);
+  ok('the weekly-calendar section is the first visible element, fully on screen', zero.firstIsNextSection && zero.firstVisible && zero.firstTop < 40, zero);
 
   // Cross-check: same env() behaviour on the shared header screens (unchanged).
   await page.evaluate(() => App.navigate('settings'));

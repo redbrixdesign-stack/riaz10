@@ -2790,9 +2790,9 @@ body.trip-active .toast-container {
 
 /* ============================================
    HOME SCREEN — Beelo Companion
-   One appointment feed: NEXT featured card + compact rows → Attention
-   → Ask Beelo chips. (Greeting banner and weekly strip were removed —
-   the feed is the Home screen.)
+   THIS WEEK calendar strip (tap a day → My Day) → ONE appointment
+   feed: NEXT featured card + compact rows → Attention → Ask Beelo.
+   (No greeting banner.)
    ============================================ */
 
 .comp-home {

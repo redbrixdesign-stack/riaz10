@@ -54,7 +54,7 @@ const settle = (page, ms = 2200) => page.waitForTimeout(ms);
   await A.evaluate(() => document.fonts.ready);
 
   // 01 Home — companion feed
-  await shot(A, '01-home.png', 'Home: single appointment feed — NEXT featured card + rows, Attention, Ask Beelo');
+  await shot(A, '01-home.png', 'Home: THIS WEEK calendar strip, NEXT feed (featured card + rows), Attention, Ask Beelo');
   await full(A, '01-home-full.png', 'Home full page');
 
   // 27 Chat answer (rule-built, AI off) — drive the same handler the chip

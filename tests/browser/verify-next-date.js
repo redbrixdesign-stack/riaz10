@@ -61,7 +61,12 @@ const ok = (label, cond, extra) => {
   const s1 = await runScenario('S1: next visit today', async () => {
     await DB.deleteAllData();
     const c = await DB.addCustomer({ firstName: 'Test', lastName: 'One' });
-    const d = new Date(Date.now() + 60 * 60000).toISOString();
+    // Anchored to TODAY at a fixed UK hour (01:30), not Date.now()+offset:
+    // running near the UK midnight boundary used to push the visit onto
+    // tomorrow's early hours and break the time-only label. The featured
+    // card still shows a past-today visit (fallback selection), so this
+    // label is time-only whenever the suite runs.
+    const d = new Date(Utils.getToday().getTime() + (1.5 * 3600) * 1000).toISOString();
     await DB.addAppointment({ customerId: c.id, clientName: 'Test One', type: 'consultation', date: d, latLng: [53.4, -2.2] });
     App.navigate('today');
     return d;
