@@ -762,6 +762,11 @@ const App = {
 
     const runAction = (el, event) => {
       const action = el.getAttribute('data-action');
+      // Some controls deliberately expose their action on only one DOM event.
+      // File inputs must complete their native click/default action so Safari
+      // can open the camera; processing belongs to the later change event.
+      const expectedEvent = el.getAttribute('data-event');
+      if (expectedEvent && event.type !== expectedEvent) return false;
       // The modal overlay is a data-close-backdrop target: it exists ONLY to
       // close the sheet when the click lands on the backdrop itself. The
       // router's closest('[data-action]') can match this overlay for ANY
