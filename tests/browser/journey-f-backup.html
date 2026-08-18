@@ -146,7 +146,9 @@ window.addEventListener("load", async () => {
     restCustomer && restCustomer.customerNumber === customer.customerNumber && restCustomer.phone === '07700900123' && restCustomer.status === 'active',
     { got: restCustomer && restCustomer.customerNumber });
 
-  const restPast = await DB.db.appointments.get(pastAppt.id);
+  // Use the decrypting wrapper: notes is in APPT_PII_FIELDS, so the raw
+  // table row holds the encrypted {iv, ct} object, not the string.
+  const restPast = await DB.getAppointment(pastAppt.id);
   step('visit restored with outcome + value + notes',
     restPast && restPast.outcome === 'quoted' && restPast.value === 1500 && restPast.notes.includes('bay window'),
     { got: restPast && restPast.outcome });
