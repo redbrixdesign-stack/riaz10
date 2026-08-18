@@ -1,6 +1,6 @@
-const CACHE_NAME = 'advisoros-v6-57';
+const CACHE_NAME = 'advisoros-v6-58';
 const STATIC_ASSETS = [
-  './','index.html','manifest.json?v=3','css/core.css?v=30','css/components.css?v=32',
+  './','index.html','manifest.json?v=3','css/core.css?v=31','css/components.css?v=32',
   'assets/fonts/material-symbols-rounded.woff2','assets/fonts/hankengrotesk-latin.woff2','assets/fonts/hankengrotesk-latinext.woff2','assets/fonts/jetbrainsmono-latin.woff2',
   'assets/icons/badge-gold-72.png','assets/icons/icon-gold-72.png','assets/icons/icon-gold-96.png','assets/icons/icon-gold-128.png','assets/icons/icon-gold-144.png','assets/icons/icon-gold-152.png','assets/icons/icon-gold-192.png','assets/icons/icon-gold-384.png','assets/icons/icon-gold-512.png','assets/icons/icon-gold-192-maskable.png','assets/icons/icon-gold-512-maskable.png','assets/icons/apple-touch-icon-gold-180.png',
   'assets/img/marker-icon.png','assets/img/marker-icon-2x.png','assets/img/marker-shadow.png',
@@ -10,7 +10,7 @@ const STATIC_ASSETS = [
   'js/features/companion/companion.min.js?v=9','js/features/onboarding/onboarding.min.js?v=7','js/features/today/today.min.js?v=18','js/features/today/home-screen-controller.min.js?v=11','js/features/appointments/appointments.min.js?v=27','js/features/customer/customer.min.js?v=5','js/features/route/route.min.js?v=12',
   'js/features/followups/followups.min.js?v=9','js/features/orders/orders.min.js?v=9',
   'js/features/money/money.min.js?v=8','js/features/talk/talk.min.js?v=18','js/features/measure/measure.min.js?v=7',
-  'js/features/ocr/ocr.min.js?v=20','js/features/control/control.min.js?v=6','js/features/settings/settings.min.js?v=15'
+  'js/features/ocr/ocr.min.js?v=21','js/features/control/control.min.js?v=6','js/features/settings/settings.min.js?v=15'
 ];
 
 const FONT_ORIGINS = ['fonts.googleapis.com', 'fonts.gstatic.com'];

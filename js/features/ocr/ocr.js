@@ -62,11 +62,11 @@ const OCRFeature = {
           <span class="material-symbols-rounded fs-64 text-tertiary mb-md" >document_scanner</span>
           <div class="fw-600 mb-sm" >Capture from Order Screenshot or Business Card</div>
           <div class="fs-13 text-secondary mb-lg" >Take a photo and we'll extract the details automatically</div>
-          <button class="btn btn-primary btn-lg btn-block" data-file="ocr-input">
+          <label class="btn btn-primary btn-lg btn-block" for="ocr-input">
             <span class="material-symbols-rounded">photo_camera</span>Take Photo
-          </button>
+          </label>
           ${AIService.isEnabled() ? '<div class="fs-12 text-tertiary mt-10" >Photos are analysed by Claude AI — you can turn this off in Settings.</div>' : ''}
-          <input type="file" id="ocr-input" accept="image/*" style="display:none;" data-action="OCRFeature.processImage" data-args='${JSON.stringify(["__event__"])}'>
+          <input type="file" id="ocr-input" class="native-file-input" accept="image/*" capture="environment" data-action="OCRFeature.processImage" data-args='${JSON.stringify(["__event__"])}'>
         </div>
         <div id="ocr-result" style="display:none;">
           <div class="divider-text">Extracted Data</div>
