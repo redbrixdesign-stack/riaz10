@@ -1,0 +1,10 @@
+'use strict';
+const fs=require('fs'),path=require('path');
+global.document={getElementById:()=>null,createElement:()=>({}),head:{appendChild(){}}};
+global.App={registerFeature:f=>global.FollowupsFeature=f,renderTopHeader:()=>''};global.CONFIG={followups:{paymentReminderDays:3}};
+global.Utils={escapeHtml:String,formatCurrency:String,formatDate:()=>'',formatTime:()=>'',getTomorrow:()=>new Date(),ukParts:()=>({year:2026,month:8,day:19}),daysBetween:()=>0};
+global.TalkFeature={getTemplateForOutcome:()=>null,SERVICE_OUTCOMES:{},apptTimeText:()=>''};
+global.DB={getJobs:async()=>[{id:1,customerId:5,status:'return_visit_required'},{id:2,customerId:5,status:'on_site'},{id:3,customerId:5,appointmentId:44,status:'blocked'}],getJobIssues:async id=>id===1?[{id:8,status:'open',requiresReturnVisit:true}]:id===3?[{id:9,status:'open'}]:[],getCustomersByIds:async()=>[{id:5,firstName:'Alice'}]};
+(0,eval)(fs.readFileSync(path.join(__dirname,'..','js/features/followups/followups.js'),'utf8'));
+const ok=(n,c)=>{if(!c){console.error('FAIL:',n);process.exitCode=1}else console.log('OK:',n)};
+(async()=>{const tasks=await FollowupsFeature.loadJobTasks([{kind:'service',appointment:{id:44}}]);ok('return-visit job creates one task',tasks.length===1&&tasks[0].job.id===1);ok('task has stable job key',tasks[0].derivedKey==='job:attention:1');ok('existing appointment service task prevents duplicate job task',!tasks.some(t=>t.job.id===3));ok('clear active job creates no task',!tasks.some(t=>t.job.id===2));})();

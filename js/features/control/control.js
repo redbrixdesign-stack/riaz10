@@ -44,6 +44,10 @@ const ControlFeature = {
           `)}
 
           ${card('Customer', `
+            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["jobs"])}'>
+              <span class="material-symbols-rounded">construction</span>
+              <span>Jobs</span>
+            </button>
             <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["leads"])}'>
               <span class="material-symbols-rounded">person_add</span>
               <span>Lead Inbox</span>

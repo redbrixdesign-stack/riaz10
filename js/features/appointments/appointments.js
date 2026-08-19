@@ -1793,6 +1793,8 @@ const AppointmentsFeature = {
     const scannedPhone = params.phone || '';
     const scannedAddress = params.address || '';
     const leadId = Number.isInteger(Number(params.leadId)) && Number(params.leadId) > 0 ? Number(params.leadId) : null;
+    const jobId = Number.isInteger(Number(params.jobId)) && Number(params.jobId) > 0 ? Number(params.jobId) : null;
+    const jobRole = ['fitting', 'service', 'return_visit'].includes(params.jobRole) ? params.jobRole : null;
     return `
       <div class="fade-in">
         ${App.renderTopHeader({ 
@@ -1803,7 +1805,11 @@ const AppointmentsFeature = {
 
         <div class="p-md" >
           ${leadId ? `<input type="hidden" id="appt-lead-id" value="${leadId}">` : ''}
+          ${jobId ? `<input type="hidden" id="appt-job-id" value="${jobId}">` : ''}
+          ${jobRole ? `<input type="hidden" id="appt-job-role" value="${jobRole}">` : ''}
+          ${jobId ? `<input type="hidden" id="appt-job-operation-id" value="${Utils.escapeHtml(Utils.generateId('job-visit'))}">` : ''}
           ${leadId ? '<div class="card inset-dark mb-md" id="lead-booking-banner"><span class="material-symbols-rounded fs-18">person_add</span> Booking from enquiry…</div>' : ''}
+          ${jobId ? '<div class="card inset-dark mb-md" id="job-booking-banner"><span class="material-symbols-rounded fs-18">construction</span> Scheduling linked job visit…</div>' : ''}
           <div class="form-group">
             <label>Customer Name *</label>
             <input type="text" class="input" id="appt-name" autocomplete="name" placeholder="e.g. Sarah Johnson" value="${Utils.escapeHtml(scannedName)}">
@@ -1999,7 +2005,10 @@ const AppointmentsFeature = {
       arrivalStart: windowData.arrivalStart || '',
       arrivalEnd: windowData.arrivalEnd || '',
       arrivalError: windowData.error || '',
-      leadId: parseInt(document.getElementById('appt-lead-id')?.value, 10) || null
+      leadId: parseInt(document.getElementById('appt-lead-id')?.value, 10) || null,
+      jobId: parseInt(document.getElementById('appt-job-id')?.value, 10) || null,
+      jobRole: document.getElementById('appt-job-role')?.value || null,
+      jobOperationId: document.getElementById('appt-job-operation-id')?.value || null
     };
   },
 
@@ -2028,6 +2037,21 @@ const AppointmentsFeature = {
       console.error('Lead booking load failed:', error);
       Toast.show('Could not load the enquiry', 'error');
     }
+  },
+
+  async hydrateJobBooking(jobId) {
+    if (!jobId || typeof DB.getJob !== 'function') return;
+    try {
+      const job = await DB.getJob(jobId);
+      if (!job || String(document.getElementById('appt-job-id')?.value) !== String(jobId)) return;
+      const customer = job.customerId ? await DB.getCustomer(job.customerId) : null;
+      const name = customer?.fullName || [customer?.firstName, customer?.lastName].filter(Boolean).join(' ');
+      const address = typeof customer?.address === 'string' ? customer.address : [customer?.address?.line1, customer?.address?.town, customer?.address?.postcode].filter(Boolean).join(', ');
+      const values = { 'appt-name': name, 'appt-phone': customer?.phone || '', 'appt-address': address };
+      for (const [id, value] of Object.entries(values)) { const input = document.getElementById(id); if (input && !input.value) input.value = value || ''; }
+      const banner = document.getElementById('job-booking-banner');
+      if (banner) banner.innerHTML = `<span class="material-symbols-rounded fs-18">construction</span> Scheduling for ${Utils.escapeHtml(job.jobNumber || 'job')}`;
+    } catch (error) { console.error('Job booking load failed:', error); Toast.show('Could not load job details', 'error'); }
   },
 
   // Toggle the Save button between its normal and "working" states so the user
@@ -2110,7 +2134,7 @@ const AppointmentsFeature = {
       Toast.show('Visit form is no longer open. Please check details and try again.', 'error');
       return;
     }
-    const { name, phone, address, date, time, durationSlots, type, source, access, notes, arrivalStart, arrivalEnd, arrivalError, leadId } = data;
+    const { name, phone, address, date, time, durationSlots, type, source, access, notes, arrivalStart, arrivalEnd, arrivalError, leadId, jobId, jobRole, jobOperationId } = data;
 
 	    if (!name || !address || !date) {
 	      Toast.show('Please fill in required fields', 'error');
@@ -2208,6 +2232,15 @@ const AppointmentsFeature = {
           return;
         }
         App.navigate('appointments', { id: newAppt.id });
+        return;
+      }
+
+      if (jobId && typeof DB.scheduleJobVisit === 'function') {
+        const result = await DB.scheduleJobVisit(jobId, { ...appointmentData, jobRole: jobRole || type, operationId: jobOperationId });
+        const newAppt = result.appointment || result;
+        Toast.show('Job visit scheduled', 'success');
+        if (typeof MessageScheduler !== 'undefined') MessageScheduler.reschedule();
+        App.navigate('jobs', { id: jobId });
         return;
       }
 
@@ -3405,6 +3438,7 @@ const AppointmentsFeature = {
       this.switchTab(params.tab);
     }
     if (params.leadId) this.hydrateLeadBooking(parseInt(params.leadId, 10));
+    if (params.jobId) this.hydrateJobBooking(parseInt(params.jobId, 10));
   }
 };
 

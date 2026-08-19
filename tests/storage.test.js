@@ -304,7 +304,7 @@ async function runDbJs(engine, tag) {
   await DB.addPhoto({ customerId: c.id, data: photoData, caption: 'Back yard' });
 
   const exported = await DB.exportAll();
-  ok(engine + ': exportAll shape', Object.keys(exported).length === 15 && exported.customers.length === 3 && exported.photos.length === 1, Object.keys(exported));
+  ok(engine + ': exportAll shape', Object.keys(exported).length === 20 && exported.customers.length === 3 && exported.photos.length === 1, Object.keys(exported));
 
   // Import: corrupt payload must throw and leave data untouched.
   const beforeExport = await DB.exportAll();
@@ -609,7 +609,7 @@ async function runBackupRoundtrip(engine, tag) {
   await DB.setSetting('pitchDemoSeeded', true);
 
   const exported = await DB.exportAll();
-  ok(engine + ': backup exports all 15 tables', Object.keys(exported).length === 15, Object.keys(exported));
+  ok(engine + ': backup exports all 20 tables', Object.keys(exported).length === 20, Object.keys(exported));
   ok(engine + ': backup carries photos', exported.photos.length === 3, exported.photos.length);
   ok(engine + ': backup drops runtime-only settings', exported.settings.length === 1 && exported.settings[0].key === 'config', exported.settings);
   ok(engine + ': backup carries sequences', exported.sequences.length === 3, exported.sequences);
@@ -842,14 +842,14 @@ async function runBackupEnvelope() {
 
   const backup = await ExportService.exportBackup();
   const storageContract = DB.storageContract();
-  ok('envelope: authoritative storage contract is schema 4 / format 1',
-    storageContract.databaseSchemaVersion === 4 && storageContract.backupFormatVersion === 1, storageContract);
+  ok('envelope: authoritative storage contract is schema 5 / format 1',
+    storageContract.databaseSchemaVersion === 5 && storageContract.backupFormatVersion === 1, storageContract);
   ok('envelope: backupFormatVersion present', backup.backupFormatVersion === 1, backup.backupFormatVersion);
-  ok('envelope: databaseSchemaVersion present', backup.databaseSchemaVersion === 4, backup.databaseSchemaVersion);
+  ok('envelope: databaseSchemaVersion present', backup.databaseSchemaVersion === 5, backup.databaseSchemaVersion);
   ok('envelope: appVersion present', backup.appVersion === '5.0', backup.appVersion);
   ok('envelope: legacy version field kept', backup.version === '5.0');
   ok('envelope: exportedAt timestamp', typeof backup.exportedAt === 'string' && !isNaN(Date.parse(backup.exportedAt)));
-  ok('envelope: carries all 15 data tables', Object.keys(backup.data).length === 15, Object.keys(backup.data));
+  ok('envelope: carries all 20 data tables', Object.keys(backup.data).length === 20, Object.keys(backup.data));
   ok('envelope: photos in backup', backup.data.photos.length === 1 && backup.data.photos[0].data === photo);
   ok('envelope: no proxy secret in backup config', backup.config.ai && backup.config.ai.secret === undefined);
   ok('envelope: secret absent from serialized file', JSON.stringify(backup).indexOf('super-secret-key') === -1);
@@ -1171,6 +1171,52 @@ async function runPhase2QuoteStorage(engine) {
   ok(engine + ': quote numbering continues after restore', next.quote.quoteNumber !== created.quote.quoteNumber);
 }
 
+async function runPhase3JobStorage(engine) {
+  const sandbox = baseSandbox();
+  if (engine === 'dexie') { const Dexie = require('dexie'); Dexie.dependencies.indexedDB = indexedDB; Dexie.dependencies.IDBKeyRange = IDBKeyRange; sandbox.Dexie = Dexie; }
+  else sandbox.Dexie = loadShim(sandbox);
+  const DB = loadDbJs(sandbox, `advisoros_v6_phase3_${engine}_${Date.now()}`); await DB.init(); await sandbox.initEncryption('phase3-passphrase');
+  const customer = await DB.addCustomer({ firstName: 'Job', lastName: 'Customer' });
+  const order = await DB.addOrder({ customerId: customer.id, total: 800 });
+  const first = await DB.createJobFromOrder(order.id, { type: 'fitting', notes: 'Private fitting note' }, 'job-op-1');
+  const retry = await DB.createJobFromOrder(order.id, { type: 'fitting' }, 'job-op-1');
+  const second = await DB.createJobFromOrder(order.id, { type: 'service_call' }, 'job-op-2');
+  ok(engine + ': job creation dedupes operation but permits multiple jobs per order', first.created && !retry.created && second.created && first.job.id !== second.job.id);
+  ok(engine + ': job PII encrypted at rest', typeof (await DB.db.jobs.get(first.job.id)).notes === 'object');
+  const template = await DB.createChecklistTemplate({ name: 'Fitting', visitType: 'fitting' }, [{ label: 'Check brackets', required: true }, { label: 'Clean area', required: false }]);
+  const visits = await Promise.all([
+    DB.scheduleJobVisit(first.job.id, { date: new Date().toISOString(), type: 'fitting', operationId: 'visit-op-1' }),
+    DB.scheduleJobVisit(first.job.id, { date: new Date().toISOString(), type: 'fitting', operationId: 'visit-op-1' })
+  ]);
+  ok(engine + ': job visit scheduling is retry-safe', visits[0].id === visits[1].id && (await DB.getJobAppointments(first.job.id)).length === 1 && (await DB.getJob(first.job.id)).status === 'fitting_scheduled');
+  if (engine === 'dexie') {
+    const originalUpdate = DB.db.jobs.update.bind(DB.db.jobs); DB.db.jobs.update = async () => { throw new Error('injected job scheduling failure'); };
+    let threw = false; try { await DB.scheduleJobVisit(second.job.id, { date: new Date(Date.now() + 86400000).toISOString(), operationId: 'visit-fail' }); } catch (e) { threw = true; }
+    DB.db.jobs.update = originalUpdate;
+    ok('dexie: scheduling failure rolls back appointment', threw && !(await DB.getJobAppointments(second.job.id)).some(a => a.jobScheduleOperationId === 'visit-fail'));
+  }
+  let completionBlocked = false; try { await DB.completeJob(first.job.id, { confirmed: true, operationId: 'complete-1' }); } catch (e) { completionBlocked = true; }
+  ok(engine + ': mandatory checklist blocks completion', completionBlocked);
+  await DB.setChecklistResponse({ jobId: first.job.id, appointmentId: visits[0].id, checklistItemId: template.items[0].id, completed: true, notes: 'Done safely' });
+  const issue = await DB.addJobIssue(first.job.id, { title: 'Damaged part', type: 'damaged_material', dueAt: new Date(Date.now() + 86400000).toISOString() });
+  let issueBlocked = false; try { await DB.completeJob(first.job.id, { confirmed: true, operationId: 'complete-2' }); } catch (e) { issueBlocked = true; }
+  ok(engine + ': open issue blocks completion', issueBlocked);
+  let resolveBlocked = false; try { await DB.resolveJobIssue(issue.id, 'Replaced'); } catch (e) { resolveBlocked = true; }
+  ok(engine + ': issue resolution requires confirmation', resolveBlocked);
+  await DB.resolveJobIssue(issue.id, 'Replaced', { confirmed: true });
+  const completed = await DB.completeJob(first.job.id, { confirmed: true, operationId: 'complete-3' });
+  let signoffBlocked = false; try { await DB.signOffJob(second.job.id, { confirmed: true }); } catch (e) { signoffBlocked = true; }
+  const signed = await DB.signOffJob(first.job.id, { confirmed: true, customerName: 'Customer', operationId: 'sign-1' });
+  ok(engine + ': completion and sign-off are explicit and separate from payment', completed.status === 'completed' && signed.status === 'signed_off' && signoffBlocked && (await DB.db.orders.get(order.id)).balanceDue === 800);
+  const rawResponse = (await DB.db.checklistResponses.where('jobId').equals(first.job.id).first()); const rawIssue = await DB.db.jobIssues.get(issue.id); const rawSigned = await DB.db.jobs.get(first.job.id);
+  ok(engine + ': job operational PII encrypted', typeof rawResponse.notes === 'object' && typeof rawIssue.title === 'object' && typeof rawIssue.resolution === 'object' && typeof rawSigned.signoffName === 'object');
+  await DB.addPhoto({ customerId: customer.id, jobId: first.job.id, appointmentId: visits[0].id, data: Buffer.from('job-photo').toString('base64') });
+  const exported = await DB.exportAll(); await DB.deleteAllData(); await DB.importAll(JSON.parse(JSON.stringify(exported)));
+  ok(engine + ': job graph backup restores', (await DB.db.jobs.count()) === 2 && (await DB.db.checklistTemplates.count()) === 1 && (await DB.db.checklistItems.count()) === 2 && (await DB.db.checklistResponses.count()) === 1 && (await DB.db.jobIssues.count()) === 1 && (await DB.db.photos.where('jobId').equals(first.job.id).count()) === 1);
+  await DB.deleteCustomer(customer.id);
+  ok(engine + ': customer deletion removes job graph', (await DB.db.jobs.count()) === 0 && (await DB.db.checklistResponses.count()) === 0 && (await DB.db.jobIssues.count()) === 0);
+}
+
 // ---------- runner ----------
 
 (async () => {
@@ -1226,6 +1272,10 @@ async function runPhase2QuoteStorage(engine) {
   await runPhase2QuoteStorage('dexie');
   console.log('\nTest 18: Phase 2 quote storage — bundled shim');
   await runPhase2QuoteStorage('shim');
+  console.log('\nTest 19: Phase 3 job storage — real Dexie');
+  await runPhase3JobStorage('dexie');
+  console.log('\nTest 20: Phase 3 job storage — bundled shim');
+  await runPhase3JobStorage('shim');
   console.log('\n' + (failures === 0 ? 'ALL TESTS PASSED' : failures + ' TEST(S) FAILED'));
   process.exit(failures === 0 ? 0 : 1);
 })().catch(e => { console.error('UNEXPECTED ERROR:', e); process.exit(1); });

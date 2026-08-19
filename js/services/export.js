@@ -217,12 +217,12 @@ const ExportService = {
   // Backup envelope (backupFormatVersion 1):
   //   {
   //     backupFormatVersion: 1,     // the backup FILE format — bump on layout change
-  //     databaseSchemaVersion: 4,   // the app's DB schema at export time
+  //     databaseSchemaVersion: 5,   // the app's DB schema at export time
   //     appVersion: '5.0',
   //     version: '5.0',             // legacy field, kept for older app builds
   //     exportedAt: <ISO>,
   //     config: <sanitized CONFIG>, // no secrets (proxy key) travel in the file
-  //     data: { ...DB.exportAll() } // all 15 tables, incl. structured quotes
+  //     data: { ...DB.exportAll() } // all 20 tables, incl. field jobs
   //   }
   // The format version is deliberately separate from the DB schema version:
   // a future schema bump doesn't have to change the file layout, and a

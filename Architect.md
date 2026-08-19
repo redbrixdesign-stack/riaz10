@@ -272,7 +272,7 @@ Web Crypto requires a secure context. Production must be served over HTTPS. Loop
 
 ## 7. Data model
 
-The database contains fifteen tables.
+The database contains twenty tables.
 
 ### 7.1 `customers`
 
@@ -406,7 +406,28 @@ Documents are not a schema-4 table: current printable previews can be generated
 from the immutable issued quote version, and no independent binary artifact is
 required yet.
 
-### 7.13 Relationships
+### 7.13 `jobs` and field-execution records
+
+`jobs` separates operational delivery, fitting, and service work from the
+commercial order. Multiple jobs may link to one order. Repeating the same
+creation operation is idempotent, while an explicit new operation can create a
+second legitimate job. Appointments retain their existing meaning and gain only
+a nullable `jobId`, allowing multiple visits to share one job.
+
+`checklistTemplates` and `checklistItems` define visit-type-specific work.
+`checklistResponses` records per-job or per-visit completion. `jobIssues` records
+missing/damaged material, return visits, service problems, due dates, owners,
+and confirmed resolution. Response notes, issue content, job notes, overrides,
+and customer sign-off names are encrypted at rest.
+
+Completion requires explicit advisor confirmation. Missing mandatory checklist
+items or unresolved issues require a recorded override reason. Customer sign-off
+is a second explicit action after completion; neither action changes payment.
+Photos may link directly to a job and appointment, while measurements remain
+linked through their appointment so existing customer and visit views continue
+to work.
+
+### 7.14 Relationships
 
 ```text
 Customer
@@ -418,6 +439,10 @@ Customer
  │   ├─ Quote Items
  │   └─ Order (zero or one, only after explicit acceptance)
  ├─ Orders
+ │   └─ Jobs
+ │       ├─ Linked Visits
+ │       ├─ Checklist Responses
+ │       └─ Job Issues
  ├─ Leads and Tasks
  ├─ Communications
  └─ Photos
@@ -505,7 +530,7 @@ The advisor can review completed versus total visits, see earnings recorded for 
 ### 8.8 Backup and restore
 
 1. Export a full JSON backup.
-2. The backup contains all fifteen tables, sanitized configuration, schema/app metadata, photos, durable work, structured quotes, and quote items.
+2. The backup contains all twenty tables, sanitized configuration, schema/app metadata, photos, durable work, structured quotes, jobs, checklists, responses, and issues.
 3. Runtime-only AI secrets are excluded.
 4. An optional backup password encrypts the file with PBKDF2/AES-GCM.
 5. Import validates version, shape, IDs, references, types, and configuration before replacing data.

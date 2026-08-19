@@ -37,11 +37,13 @@ const CustomerFeature = {
     let comms = [];
     let photos = [];
     let structuredQuotes = [];
+    let jobs = [];
     try { appts = await DB.getAppointmentsByCustomer(customerId); } catch (e) {}
     try { orders = await DB.db.orders.where('customerId').equals(customerId).toArray(); } catch (e) {}
     try { comms = await DB.db.communications.where('customerId').equals(customerId).toArray(); } catch (e) {}
     try { photos = await DB.getPhotosForCustomer(customerId); } catch (e) {}
     try { if (typeof DB.getQuotes === 'function') structuredQuotes = await DB.getQuotes({ customerId }); } catch (e) {}
+    try { if (typeof DB.getJobs === 'function') jobs = await DB.getJobs({ customerId }); } catch (e) {}
 
     appts.sort((a, b) => new Date(a.date) - new Date(b.date));
     const firstVisit = appts[0];
@@ -211,6 +213,8 @@ const CustomerFeature = {
             `).join('')}
           </div>
         ` : ''}
+
+        ${jobs.length ? `<div class="card card-page"><div class="flex items-center justify-between mb-sm"><div class="fs-13 fw-600 text-secondary">Jobs (${jobs.length})</div><button class="btn btn-ghost btn-sm" data-action="App.navigate" data-args='${JSON.stringify(['jobs', { customerId }])}' aria-label="Open all customer jobs"><span class="material-symbols-rounded">construction</span></button></div>${jobs.map(job => `<button class="area-customer-row w-full text-left mb-6" data-action="App.navigate" data-args='${JSON.stringify(['jobs', { id: job.id }])}'><span class="material-symbols-rounded">construction</span><span class="flex-1"><strong>${Utils.escapeHtml(job.jobNumber || `Job ${job.id}`)}</strong><small>${Utils.escapeHtml((job.status || 'materials_ordered').replace(/_/g, ' '))}</small></span><span class="material-symbols-rounded">chevron_right</span></button>`).join('')}</div>` : ''}
 
         ${measurements.length ? `
           <div class="card card-page" >

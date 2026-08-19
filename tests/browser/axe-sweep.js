@@ -138,6 +138,35 @@ const ok = (label, cond, extra) => {
     ok('Quote document preview', await runAxe('10d-quote-preview'));
     await page.evaluate(() => App.closeModal({ all: true, silent: true }));
   }
+  const jobId = await page.evaluate(async () => {
+    const order = (await DB.db.orders.toArray())[0];
+    if (!order) return null;
+    const templates = await DB.db.checklistTemplates.toArray();
+    if (!templates.some(template => template.visitType === 'fitting')) {
+      await DB.createChecklistTemplate({ visitType: 'fitting', name: 'Fitting checks' }, [
+        { label: 'Check fitted product', required: true },
+        { label: 'Clean work area', required: false }
+      ]);
+    }
+    const result = await DB.createJobFromOrder(order.id, { type: 'fitting' }, `axe-job-${Date.now()}`);
+    await DB.addJobIssue(result.job.id, { title: 'Accessibility test issue', notes: 'Requires advisor review', requiresReturnVisit: true });
+    return result.job.id;
+  });
+  if (jobId) {
+    await nav('jobs', { id: jobId });
+    ok('Job field workspace', await runAxe('10e-job-detail'));
+    await click('[data-action="JobsFeature.openAddIssue"]');
+    ok('Add job issue modal', await runAxe('10f-job-issue'));
+    await page.evaluate(() => App.closeModal({ all: true, silent: true }));
+    await click('[data-action="JobsFeature.openCompleteJob"]');
+    ok('Blocked job completion modal', await runAxe('10g-job-completion'));
+    await page.evaluate(() => App.closeModal({ all: true, silent: true }));
+    await page.evaluate(async id => DB.completeJob(id, { confirmed: true, overrideReason: 'Accessibility test override', operationId: `axe-complete-${id}` }), jobId);
+    await nav('jobs', { id: jobId });
+    await click('[data-action="JobsFeature.openSignOff"]');
+    ok('Customer sign-off modal', await runAxe('10h-job-signoff'));
+    await page.evaluate(() => App.closeModal({ all: true, silent: true }));
+  }
   await nav('route');
   ok('Route', await runAxe('11-route'));
   await nav('talk');

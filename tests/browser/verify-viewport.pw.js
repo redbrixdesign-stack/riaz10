@@ -58,6 +58,29 @@ const ok = (label, cond, extra) => {
     ok(`${p}: featured card + visit rows show real times (not the live clock)`, !!r.nextName && r.visitCount > 0 && !r.anyTimeIsNow, { times: r.times });
   }
 
+  // Phase 3 field workspace at the narrowest supported iPhone width.
+  await page.setViewportSize({ width: 320, height: 568 });
+  const jobId = await page.evaluate(async () => {
+    const order = (await DB.db.orders.toArray())[0];
+    if (!order) return null;
+    if (!(await DB.db.checklistTemplates.toArray()).some(template => template.visitType === 'fitting')) {
+      await DB.createChecklistTemplate({ visitType: 'fitting', name: 'Fitting checks' }, [{ label: 'Check fitted product', required: true }]);
+    }
+    return (await DB.createJobFromOrder(order.id, { type: 'fitting' }, `viewport-job-${Date.now()}`)).job.id;
+  });
+  if (jobId) {
+    await page.evaluate(id => App.navigate('jobs', { id }), jobId);
+    await page.waitForFunction(() => App.currentHash.startsWith('jobs'));
+    await page.waitForTimeout(1200);
+    const jobViewport = await page.evaluate(() => ({
+      overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      hasWorkspace: !!document.querySelector('[data-action="JobsFeature.openCompleteJob"]'),
+      minChecklistTarget: Math.min(...Array.from(document.querySelectorAll('.job-check-input')).map(input => input.getBoundingClientRect().width))
+    }));
+    ok('320px job workspace: no horizontal overflow', jobViewport.overflowX <= 0, jobViewport.overflowX);
+    ok('320px job workspace: field controls render with 24px targets', jobViewport.hasWorkspace && jobViewport.minChecklistTarget >= 24, jobViewport);
+  }
+
   // Empty state: fresh profile, no records.
   const ctxE = await browser.newContext({ viewport: { width: 375, height: 700 }, deviceScaleFactor: 2, isMobile: true });
   const e = await ctxE.newPage();

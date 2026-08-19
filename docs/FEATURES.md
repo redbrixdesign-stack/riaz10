@@ -82,6 +82,19 @@ The home tab is an AI-style chat assistant, not a static dashboard.
   printed offline, then converted into exactly one order. Historic appointment
   quote outcomes remain visible alongside them.
 
+### Jobs (field execution)
+- Orders can create one or more operational jobs without changing the
+  commercial order stage or payment balance.
+- Jobs track materials ordered/received, fitting scheduled, on site, blocked,
+  return visit required, completed, and signed-off states.
+- Fitting, service, and return visits use the existing diary, arrival-window,
+  travel, and conflict checks and remain linked to the job.
+- Required/optional checklists and job issues work offline. Completion needs an
+  explicit confirmation; missing required checks or unresolved issues require
+  a recorded override reason.
+- Customer sign-off is a separate confirmed action. Neither completion nor
+  sign-off marks an order paid.
+
 ### Follow-ups (inbox)
 A "what's due today" inbox so nothing slips:
 
@@ -142,15 +155,19 @@ Backup.
 ## 3. How it works
 
 ### Storage
-- **IndexedDB** via bundled Dexie 4 (`advisoros_v6` database) with 15
+- **IndexedDB** via bundled Dexie 4 (`advisoros_v6` database) with 20
   tables: customers, appointments, orders, expenses, trips, measurements,
   communications, settings, sequences, photos, leads, tasks, taskEvents,
-  quotes, and quoteItems.
+  quotes, quoteItems, jobs, checklistTemplates, checklistItems,
+  checklistResponses, and jobIssues.
 - Lead identity/contact data and task title/notes are encrypted at rest. The
   backup format remains version 1; older backups import with the three Phase 1
   tables empty.
 - Quote notes, terms, acceptance/rejection details, and item descriptions are
   encrypted at rest. Older backups import with the Phase 2 tables empty.
+- Job notes/sign-off/override details, checklist response text, and issue
+  content are encrypted at rest. Older backups import with Phase 3 tables
+  empty.
 - If Dexie is unavailable, a **bundled mini-Dexie shim** (601 lines) serves
   the same API; if IndexedDB itself is unavailable it degrades to an
   in-memory store with a warning.

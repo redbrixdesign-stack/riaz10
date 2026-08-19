@@ -250,7 +250,8 @@ const FollowupsFeature = {
   async loadTasks() {
     const derived = await this.loadDerivedTasks();
     const structured = await this.loadStructuredQuoteTasks(derived);
-    const combined = [...derived, ...structured];
+    const jobTasks = await this.loadJobTasks(derived);
+    const combined = [...derived, ...structured, ...jobTasks];
     return typeof TaskService !== 'undefined' ? TaskService.merge(combined) : combined;
   },
 
@@ -296,6 +297,35 @@ const FollowupsFeature = {
           daysLabel: `${daysSinceIssue}d since issue`, action: `Follow up ${quote.quoteNumber || 'issued quote'}`, priority: 'normal'
         });
       }
+    }
+    return tasks;
+  },
+
+  async loadJobTasks(existing = []) {
+    if (typeof DB.getJobs !== 'function' || typeof DB.getJobIssues !== 'function') return [];
+    let jobs = [];
+    try { jobs = await DB.getJobs(); } catch (e) { return []; }
+    const serviceAppointmentIds = new Set(existing.filter(t => t.kind === 'service').map(t => t.appointment?.id).filter(Boolean));
+    const customerIds = [...new Set(jobs.map(j => j.customerId).filter(Boolean))];
+    const customers = new Map();
+    try {
+      const rows = customerIds.length && typeof DB.getCustomersByIds === 'function' ? await DB.getCustomersByIds(customerIds) : [];
+      for (const customer of rows) customers.set(customer.id, customer);
+    } catch (e) {}
+    const tasks = [];
+    for (const job of jobs) {
+      let issues = [];
+      try { issues = await DB.getJobIssues(job.id); } catch (e) {}
+      const openIssues = issues.filter(issue => !issue.resolvedAt && issue.status !== 'resolved');
+      if (job.appointmentId && serviceAppointmentIds.has(job.appointmentId)) continue;
+      const status = job.status || job.stage;
+      if (!openIssues.length && !['blocked', 'return_visit_required'].includes(status)) continue;
+      const returnNeeded = status === 'return_visit_required' || openIssues.some(issue => issue.requiresReturnVisit);
+      tasks.push({
+        kind: 'job_issue', derivedKey: `job:attention:${job.id}`, job, customer: customers.get(job.customerId) || null,
+        due: true, inDays: 0, daysLabel: returnNeeded ? 'Return visit needed' : `${openIssues.length} open issue${openIssues.length === 1 ? '' : 's'}`,
+        action: returnNeeded ? 'Arrange the return visit and resolve the issue' : 'Resolve the blocked job issue', priority: 'high'
+      });
     }
     return tasks;
   },
@@ -380,7 +410,7 @@ const FollowupsFeature = {
       ? `${Utils.formatDate(task.appointment.date, 'short')} · ${task.daysLabel}${dueIn}`
       : (task.order ? `${Utils.escapeHtml(task.order.orderNumber || 'Order')} · ${task.daysLabel}${dueIn}` : `${task.daysLabel || ''}${dueIn}`);
 
-    const icons = { quote: 'receipt_long', structured_quote: 'request_quote', quote_expiring: 'event_busy', quote_accepted: 'task_alt', payment: 'payments', visit_today: 'event_available', visit_tomorrow: 'event', intro: 'waving_hand', post_fit: 'handyman', service: 'build', };
+    const icons = { quote: 'receipt_long', structured_quote: 'request_quote', quote_expiring: 'event_busy', quote_accepted: 'task_alt', job_issue: 'construction', payment: 'payments', visit_today: 'event_available', visit_tomorrow: 'event', intro: 'waving_hand', post_fit: 'handyman', service: 'build', };
     // Border colour = what the task needs from you. Payment and service issues
     // are urgent (warning/danger); today's visits and intros are primary
     // actions; everything else (quote chases, post-fit thank-yous,
@@ -420,6 +450,9 @@ const FollowupsFeature = {
   },
 
   renderPrimaryAction(task) {
+    if (task.job) {
+      return `<button class="btn btn-sm btn-primary flex-1" data-action="App.navigate" data-args='${JSON.stringify(["jobs", {id: task.job.id}])}'><span class="material-symbols-rounded fs-16">construction</span>Open job</button>`;
+    }
     if (task.quote) {
       return `<button class="btn btn-sm btn-primary flex-1" data-action="App.navigate" data-args='${JSON.stringify(["quotes", {id: task.quote.id}])}'><span class="material-symbols-rounded fs-16">${task.kind === 'quote_accepted' ? 'shopping_cart' : 'visibility'}</span>${task.kind === 'quote_accepted' ? 'Review & convert' : 'Review quote'}</button>`;
     }

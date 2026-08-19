@@ -184,6 +184,8 @@ const OrdersFeature = {
     let order = null;
     try { order = await DB.db.orders.get(orderId); } catch (e) {}
     if (!order) { Toast.show('Order not found', 'error'); return; }
+    let jobs = [];
+    try { if (typeof DB.getJobs === 'function') jobs = await DB.getJobs({ orderId }); } catch (e) {}
 
     let customer = null;
     try { customer = order.customerId ? await DB.getCustomer(order.customerId) : null; } catch (e) {}
@@ -265,6 +267,7 @@ const OrdersFeature = {
 
         <div class="divider-text">Links</div>
         <div class="kanban-btn-grid">
+          <button class="btn btn-outline btn-sm" data-close="1" data-action="App.navigate" data-args='${JSON.stringify(['jobs', { orderId: order.id }])}'><span class="material-symbols-rounded">construction</span>${jobs.length ? `Jobs (${jobs.length})` : 'Create job'}</button>
           ${order.appointmentId ? `<button class="btn btn-outline btn-sm" data-close="1" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: (order.appointmentId)}])}'><span class="material-symbols-rounded">event</span>Linked visit</button>` : ''}
           ${order.customerId ? `<button class="btn btn-outline btn-sm" data-close="1" data-action="App.navigate" data-args='${JSON.stringify(["customer", {id: (order.customerId)}])}'><span class="material-symbols-rounded">person</span>Customer 360</button>` : ''}
         </div>

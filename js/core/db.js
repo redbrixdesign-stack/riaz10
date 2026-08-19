@@ -6,9 +6,9 @@
 // Every table a backup can carry. exportAll() and importAll() speak this
 // exact list; adding a table here is a backup-format change and must be
 // mirrored in the backup envelope's versioning (js/services/export.js).
-const DATABASE_SCHEMA_VERSION = 4;
+const DATABASE_SCHEMA_VERSION = 5;
 const BACKUP_FORMAT_VERSION = 1;
-const BACKUP_TABLES = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'photos', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems', 'settings', 'sequences'];
+const BACKUP_TABLES = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'photos', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems', 'jobs', 'checklistTemplates', 'checklistItems', 'checklistResponses', 'jobIssues', 'settings', 'sequences'];
 
 // ============================================
 // Field-level encryption (AES-GCM 256-bit, key from passphrase via PBKDF2)
@@ -24,6 +24,9 @@ const LEAD_PII_FIELDS = ['name', 'firstName', 'lastName', 'phone', 'email', 'add
 const TASK_PII_FIELDS = ['title', 'notes'];
 const QUOTE_PII_FIELDS = ['notes', 'termsSnapshot', 'acceptanceName', 'rejectionReason'];
 const QUOTE_ITEM_PII_FIELDS = ['description'];
+const JOB_PII_FIELDS = ['notes', 'signoffName', 'completionOverrideReason'];
+const CHECKLIST_RESPONSE_PII_FIELDS = ['value', 'notes'];
+const JOB_ISSUE_PII_FIELDS = ['title', 'description', 'owner', 'resolution'];
 const PBKDF2_ITERATIONS = 100000;
 const KEY_LENGTH = 256;
 const IV_LENGTH = 12;
@@ -268,6 +271,12 @@ const encryptQuote = quote => encryptStringFields(quote, QUOTE_PII_FIELDS);
 const decryptQuote = quote => decryptStringFields(quote, QUOTE_PII_FIELDS);
 const encryptQuoteItem = item => encryptStringFields(item, QUOTE_ITEM_PII_FIELDS);
 const decryptQuoteItem = item => decryptStringFields(item, QUOTE_ITEM_PII_FIELDS);
+const encryptJob = job => encryptStringFields(job, JOB_PII_FIELDS);
+const decryptJob = job => decryptStringFields(job, JOB_PII_FIELDS);
+const encryptChecklistResponse = row => encryptStringFields(row, CHECKLIST_RESPONSE_PII_FIELDS);
+const decryptChecklistResponse = row => decryptStringFields(row, CHECKLIST_RESPONSE_PII_FIELDS);
+const encryptJobIssue = row => encryptStringFields(row, JOB_ISSUE_PII_FIELDS);
+const decryptJobIssue = row => decryptStringFields(row, JOB_ISSUE_PII_FIELDS);
 
 async function migratePlaintextWorkItems() {
   if (!encryptionKey) return;
@@ -275,7 +284,10 @@ async function migratePlaintextWorkItems() {
     ['leads', LEAD_PII_FIELDS, encryptLead],
     ['tasks', TASK_PII_FIELDS, encryptTask],
     ['quotes', QUOTE_PII_FIELDS, encryptQuote],
-    ['quoteItems', QUOTE_ITEM_PII_FIELDS, encryptQuoteItem]
+    ['quoteItems', QUOTE_ITEM_PII_FIELDS, encryptQuoteItem],
+    ['jobs', JOB_PII_FIELDS, encryptJob],
+    ['checklistResponses', CHECKLIST_RESPONSE_PII_FIELDS, encryptChecklistResponse],
+    ['jobIssues', JOB_ISSUE_PII_FIELDS, encryptJobIssue]
   ]) {
     const rows = await DB.db[table].toArray();
     for (const row of rows) {
@@ -334,13 +346,19 @@ const DB = {
     // Photos were added after the original v6 store — additive migration, so
     // existing databases keep their data and simply gain the new table.
     this.db.version(DATABASE_SCHEMA_VERSION).stores({
-      photos: '++id, customerId, createdAt',
+      photos: '++id, customerId, jobId, appointmentId, createdAt',
+      appointments: '++id, customerId, jobId, date, type, status, outcome, source, createdAt',
       orders: '++id, customerId, appointmentId, quoteId, orderNumber, supplierOrderNumber, status, createdAt',
       leads: '++id, customerId, appointmentId, status, source, receivedAt, nextActionAt, createdAt',
       tasks: '++id, status, type, dueAt, snoozedUntil, priority, leadId, customerId, appointmentId, orderId, sourceKey, createdAt',
       taskEvents: '++id, taskId, type, occurredAt, idempotencyKey, createdAt',
       quotes: '++id, customerId, appointmentId, quoteNumber, version, status, issueDate, expiryDate, createdAt',
-      quoteItems: '++id, quoteId, displayOrder, createdAt'
+      quoteItems: '++id, quoteId, displayOrder, createdAt',
+      jobs: '++id, customerId, orderId, type, status, sourceKey, scheduledStart, scheduledEnd, createdAt',
+      checklistTemplates: '++id, visitType, active, createdAt',
+      checklistItems: '++id, templateId, required, displayOrder, createdAt',
+      checklistResponses: '++id, jobId, appointmentId, checklistItemId, completed, updatedAt',
+      jobIssues: '++id, jobId, appointmentId, type, status, dueAt, createdAt'
     });
 
     if (typeof this.db.open === 'function') {
@@ -659,7 +677,7 @@ const DB = {
   // what actually happened, not just "done".
   async deleteCustomer(customerId) {
     return this._runWrite(
-      ['customers', 'appointments', 'orders', 'communications', 'photos', 'measurements', 'trips', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems'],
+      ['customers', 'appointments', 'orders', 'communications', 'photos', 'measurements', 'trips', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems', 'jobs', 'checklistResponses', 'jobIssues'],
       async () => {
         const [appts, orders, comms] = await Promise.all([
           this.db.appointments.where('customerId').equals(customerId).toArray(),
@@ -671,6 +689,8 @@ const DB = {
         const orderIds = orders.map(o => o.id);
         const quotes = await this.db.quotes.where('customerId').equals(customerId).toArray();
         const quoteIds = quotes.map(q => q.id);
+        const jobs = await this.db.jobs.where('customerId').equals(customerId).toArray();
+        const jobIds = jobs.map(j => j.id);
         const leads = await this.db.leads.where('customerId').equals(customerId).toArray();
         const leadIds = leads.map(l => l.id);
         const allTasks = await this.db.tasks.toArray();
@@ -681,6 +701,11 @@ const DB = {
         await this.db.leads.where('customerId').equals(customerId).delete();
         if (quoteIds.length) await this.db.quoteItems.where('quoteId').anyOf(quoteIds).delete();
         await this.db.quotes.where('customerId').equals(customerId).delete();
+        if (jobIds.length) {
+          await this.db.checklistResponses.where('jobId').anyOf(jobIds).delete();
+          await this.db.jobIssues.where('jobId').anyOf(jobIds).delete();
+        }
+        await this.db.jobs.where('customerId').equals(customerId).delete();
         const measurementCount = apptIds.length ? await this.db.measurements.where('appointmentId').anyOf(apptIds).delete() : 0;
         const tripCount = apptIds.length ? await this.db.trips.where('appointmentId').anyOf(apptIds).delete() : 0;
         await this.db.appointments.where('customerId').equals(customerId).delete();
@@ -688,7 +713,7 @@ const DB = {
         await this.db.communications.where('customerId').equals(customerId).delete();
         await this.db.photos.where('customerId').equals(customerId).delete();
         await this.db.customers.delete(customerId);
-        return { appointments: appts.length, orders: orders.length, communications: comms.length, photos: photoCount, measurements: measurementCount, trips: tripCount, leads: leads.length, tasks: tasks.length, taskEvents: taskIds.length, quotes: quotes.length };
+        return { appointments: appts.length, orders: orders.length, communications: comms.length, photos: photoCount, measurements: measurementCount, trips: tripCount, leads: leads.length, tasks: tasks.length, taskEvents: taskIds.length, quotes: quotes.length, jobs: jobs.length };
       }
     );
   },
@@ -717,9 +742,11 @@ const DB = {
   // Photos are part of the operational customer record (window/wall photos an
   // advisor may rely on), so they ARE included in exportAll()/importAll() —
   // a restored backup must reconstruct them, not leave them behind.
-  async addPhoto({ customerId, data, mimeType = 'image/jpeg', caption = '' }) {
+  async addPhoto({ customerId, jobId = null, appointmentId = null, data, mimeType = 'image/jpeg', caption = '' }) {
     const photo = {
       customerId,
+      jobId,
+      appointmentId,
       data,
       mimeType,
       caption: caption || '',
@@ -1371,6 +1398,153 @@ const DB = {
     return result;
   },
 
+  // Phase 3 job execution -----------------------------------------------
+  async createJobFromOrder(orderId, data = {}, operationId = null) {
+    const order = await this.db.orders.get(orderId);
+    if (!order) throw new Error('Order not found');
+    const sourceKey = operationId || `order:${orderId}:default`;
+    const now = new Date().toISOString();
+    const prepared = await encryptJob({ ...data, customerId: order.customerId, orderId, type: data.type || 'fitting', status: data.status || 'materials_ordered', sourceKey, createdAt: now, updatedAt: now });
+    let job; let created = false;
+    const run = async () => {
+      job = await this.db.jobs.where('sourceKey').equals(sourceKey).first();
+      if (!job) { const id = await this.db.jobs.add(prepared); job = { ...prepared, id }; created = true; }
+    };
+    if (typeof this.db.transaction === 'function') await this.db.transaction('rw', this.db.jobs, run); else await run();
+    return { job: await decryptJob(job), created };
+  },
+
+  async getJob(id) { const row = await this.db.jobs.get(id); return row ? decryptJob(row) : null; },
+  async getJobs(filters = {}) {
+    let rows = await this.db.jobs.toArray();
+    for (const field of ['customerId', 'orderId', 'status', 'type']) if (filters[field] !== undefined && filters[field] !== null) rows = rows.filter(row => row[field] === filters[field]);
+    rows.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return Promise.all(rows.map(row => decryptJob(row)));
+  },
+  async updateJob(id, fields) {
+    const job = await this.getJob(id); if (!job) throw new Error('Job not found');
+    const protectedFields = { ...fields }; delete protectedFields.id; delete protectedFields.customerId; delete protectedFields.orderId; delete protectedFields.sourceKey;
+    await this.db.jobs.update(id, await encryptJob({ ...protectedFields, updatedAt: new Date().toISOString() }));
+    return this.getJob(id);
+  },
+  async transitionJob(id, stage, metadata = {}) {
+    const stages = ['materials_ordered', 'materials_received', 'fitting_scheduled', 'on_site', 'blocked', 'return_visit_required', 'completed', 'signed_off'];
+    if (!stages.includes(stage)) throw new Error('Invalid job stage');
+    const job = await this.getJob(id); if (!job) throw new Error('Job not found');
+    if (metadata.operationId && job.lastTransitionOperationId === metadata.operationId) return job;
+    if (['completed', 'signed_off'].includes(stage)) throw new Error('Use the explicit completion or sign-off action');
+    return this.updateJob(id, { status: stage, lastTransitionOperationId: metadata.operationId || null, stageChangedAt: new Date().toISOString() });
+  },
+  async setJobStage(id, stage, metadata = {}) { return this.transitionJob(id, stage, metadata); },
+
+  async linkAppointmentToJob(jobId, appointmentId, role = null) {
+    const job = await this.db.jobs.get(jobId); if (!job) throw new Error('Job not found');
+    const appointment = await this.getAppointment(appointmentId); if (!appointment) throw new Error('Appointment not found');
+    if (appointment.customerId && appointment.customerId !== job.customerId) throw new Error('Appointment belongs to a different customer');
+    await this.db.appointments.update(appointmentId, { jobId, jobRole: role || appointment.jobRole || 'work_visit' });
+    return this.getAppointment(appointmentId);
+  },
+  async linkJobAppointment(jobId, appointmentId, role = null) { return this.linkAppointmentToJob(jobId, appointmentId, role); },
+  async getJobAppointments(jobId) {
+    const rows = await this.db.appointments.where('jobId').equals(jobId).toArray(); rows.sort((a, b) => new Date(a.date) - new Date(b.date));
+    return Promise.all(rows.map(row => decryptAppointment(row)));
+  },
+  async scheduleJobVisit(jobId, appointmentData) {
+    const job = await this.getJob(jobId); if (!job) throw new Error('Job not found');
+    if (!appointmentData || !appointmentData.date) throw new Error('Visit date is required');
+    const operationId = appointmentData.operationId || null;
+    const plain = { ...appointmentData, operationId: undefined, customerId: job.customerId, jobId, jobScheduleOperationId: operationId, type: appointmentData.type || job.type || 'fitting', status: appointmentData.status || 'confirmed', outcome: appointmentData.outcome || null, value: appointmentData.value || 0, commission: appointmentData.commission || 0, createdAt: new Date().toISOString() };
+    const encrypted = await encryptAppointment(plain);
+    const run = async () => {
+      let existing = null;
+      if (operationId) existing = (await this.db.appointments.where('jobId').equals(jobId).toArray()).find(a => a.jobScheduleOperationId === operationId);
+      if (existing) return existing;
+      const id = await this.db.appointments.add(encrypted);
+      if (job.status === 'materials_received' || job.status === 'materials_ordered') await this.db.jobs.update(jobId, { status: 'fitting_scheduled', scheduledStart: plain.arrivalStart || plain.date, scheduledEnd: plain.arrivalEnd || null, updatedAt: new Date().toISOString() });
+      return { ...encrypted, id };
+    };
+    let row;
+    if (typeof this.db.transaction === 'function') row = await this.db.transaction('rw', [this.db.appointments, this.db.jobs], run);
+    else {
+      if (!this._jobScheduleLocks) this._jobScheduleLocks = new Map();
+      const key = `${jobId}:${operationId || 'new'}`;
+      if (operationId && this._jobScheduleLocks.has(key)) row = await this._jobScheduleLocks.get(key);
+      else { const pending = run().finally(() => this._jobScheduleLocks.delete(key)); if (operationId) this._jobScheduleLocks.set(key, pending); row = await pending; }
+    }
+    return decryptAppointment(row);
+  },
+
+  async createChecklistTemplate(data, items) {
+    if (!data || !data.visitType || !Array.isArray(items) || !items.length) throw new Error('Checklist template and items are required');
+    const now = new Date().toISOString(); let templateId;
+    await this._runWrite(['checklistTemplates', 'checklistItems'], async () => {
+      templateId = await this.db.checklistTemplates.add({ ...data, active: data.active !== false, createdAt: now, updatedAt: now });
+      for (let i = 0; i < items.length; i++) {
+        if (!String(items[i].label || '').trim()) throw new Error('Checklist item label is required');
+        await this.db.checklistItems.add({ ...items[i], templateId, label: String(items[i].label).trim(), required: items[i].required !== false, displayOrder: items[i].displayOrder ?? i, createdAt: now });
+      }
+    });
+    return { template: await this.db.checklistTemplates.get(templateId), items: await this.db.checklistItems.where('templateId').equals(templateId).toArray() };
+  },
+  async getChecklistForJob(jobId, appointmentId = null) {
+    const job = await this.getJob(jobId); if (!job) throw new Error('Job not found');
+    let visitType = job.type;
+    if (appointmentId) { const appt = await this.getAppointment(appointmentId); if (appt) visitType = appt.type || visitType; }
+    const templates = (await this.db.checklistTemplates.where('visitType').equals(visitType).toArray()).filter(t => t.active !== false).sort((a, b) => (b.id || 0) - (a.id || 0));
+    const template = templates[0] || null;
+    const items = template ? (await this.db.checklistItems.where('templateId').equals(template.id).toArray()).sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0)) : [];
+    let responses = await this.db.checklistResponses.where('jobId').equals(jobId).toArray();
+    if (appointmentId) responses = responses.filter(r => r.appointmentId === appointmentId || r.appointmentId == null);
+    responses = await Promise.all(responses.map(r => decryptChecklistResponse(r)));
+    return { template, items, responses };
+  },
+  async setChecklistResponse(data) {
+    if (!data || !Number.isInteger(data.jobId) || !Number.isInteger(data.checklistItemId)) throw new Error('Job and checklist item are required');
+    if (!await this.db.jobs.get(data.jobId) || !await this.db.checklistItems.get(data.checklistItemId)) throw new Error('Checklist relationship not found');
+    const prepared = await encryptChecklistResponse({ ...data, completed: data.completed === true, updatedAt: new Date().toISOString() });
+    const rows = await this.db.checklistResponses.where('jobId').equals(data.jobId).toArray();
+    const existing = rows.find(r => r.checklistItemId === data.checklistItemId && (r.appointmentId || null) === (data.appointmentId || null));
+    if (existing) { await this.db.checklistResponses.update(existing.id, prepared); return decryptChecklistResponse({ ...existing, ...prepared }); }
+    const id = await this.db.checklistResponses.add({ ...prepared, createdAt: new Date().toISOString() }); return decryptChecklistResponse({ ...prepared, id });
+  },
+
+  async addJobIssue(jobId, data) {
+    if (!await this.db.jobs.get(jobId)) throw new Error('Job not found');
+    if (!data || !String(data.title || '').trim()) throw new Error('Issue title is required');
+    const now = new Date().toISOString(); const issue = await encryptJobIssue({ ...data, jobId, title: String(data.title).trim(), status: 'open', createdAt: now, updatedAt: now });
+    const id = await this.db.jobIssues.add(issue); return decryptJobIssue({ ...issue, id });
+  },
+  async getJobIssues(jobId) { const rows = await this.db.jobIssues.where('jobId').equals(jobId).toArray(); return Promise.all(rows.map(r => decryptJobIssue(r))); },
+  async resolveJobIssue(issueId, resolution, options = {}) {
+    if (options.confirmed !== true) throw new Error('Issue resolution requires explicit confirmation');
+    const issue = await this.db.jobIssues.get(issueId); if (!issue) throw new Error('Issue not found');
+    if (issue.status === 'resolved') return decryptJobIssue(issue);
+    const fields = await encryptJobIssue({ status: 'resolved', resolution: resolution || '', resolvedAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+    await this.db.jobIssues.update(issueId, fields); return decryptJobIssue({ ...issue, ...fields });
+  },
+
+  async completeJob(jobId, options = {}) {
+    if (options.confirmed !== true) throw new Error('Job completion requires explicit confirmation');
+    const job = await this.getJob(jobId); if (!job) throw new Error('Job not found');
+    if (options.operationId && job.lastCompletionOperationId === options.operationId) return job;
+    const checklist = await this.getChecklistForJob(jobId);
+    const completedIds = new Set(checklist.responses.filter(r => r.completed).map(r => r.checklistItemId));
+    const missing = checklist.items.filter(item => item.required && !completedIds.has(item.id));
+    const openIssues = (await this.getJobIssues(jobId)).filter(issue => issue.status !== 'resolved');
+    if ((missing.length || openIssues.length) && !String(options.overrideReason || '').trim()) throw new Error('Mandatory checklist items or issues remain; an override reason is required');
+    const now = new Date().toISOString();
+    return this.updateJob(jobId, { status: 'completed', completedAt: now, completionOverrideReason: options.overrideReason || '', lastCompletionOperationId: options.operationId || null });
+  },
+  async signOffJob(jobId, options = {}) {
+    if (options.confirmed !== true) throw new Error('Customer sign-off requires explicit confirmation');
+    const job = await this.getJob(jobId); if (!job) throw new Error('Job not found');
+    if (options.operationId && job.lastSignoffOperationId === options.operationId) return job;
+    if (job.status !== 'completed' && job.status !== 'signed_off') throw new Error('Complete the job before sign-off');
+    if (job.status === 'signed_off') return job;
+    const now = new Date().toISOString();
+    return this.updateJob(jobId, { status: 'signed_off', signedOffAt: now, signoffName: options.customerName || '', signoffMethod: options.method || 'advisor_recorded', lastSignoffOperationId: options.operationId || null });
+  },
+
   // Phase 1 durable work management ------------------------------------
   async addLead(data) {
     const now = new Date().toISOString();
@@ -1558,7 +1732,7 @@ const DB = {
 
   // Schema version of the current database. Real Dexie reports it as `verno`
   // once opened; the bundled shim keeps it internally without exposing it, so
-  // fall back to the current schema constant (4 = structured quote tables added).
+  // fall back to the current schema constant (5 = field execution tables added).
   schemaVersion() {
     return typeof this.db.verno === 'number' ? this.db.verno : DATABASE_SCHEMA_VERSION;
   },
@@ -1583,7 +1757,7 @@ const DB = {
   // travel inside a backup.
   async exportAll() {
     const data = {};
-    const tables = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'photos', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems'];
+    const tables = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'photos', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems', 'jobs', 'checklistTemplates', 'checklistItems', 'checklistResponses', 'jobIssues'];
     for (const table of tables) {
       data[table] = await this.db[table].toArray();
     }
@@ -1605,6 +1779,9 @@ const DB = {
     if (data.tasks && data.tasks.length) data.tasks = await Promise.all(data.tasks.map(row => decryptTask(row)));
     if (data.quotes && data.quotes.length) data.quotes = await Promise.all(data.quotes.map(row => decryptQuote(row)));
     if (data.quoteItems && data.quoteItems.length) data.quoteItems = await Promise.all(data.quoteItems.map(row => decryptQuoteItem(row)));
+    if (data.jobs && data.jobs.length) data.jobs = await Promise.all(data.jobs.map(row => decryptJob(row)));
+    if (data.checklistResponses && data.checklistResponses.length) data.checklistResponses = await Promise.all(data.checklistResponses.map(row => decryptChecklistResponse(row)));
+    if (data.jobIssues && data.jobIssues.length) data.jobIssues = await Promise.all(data.jobIssues.map(row => decryptJobIssue(row)));
     const RUNTIME_SETTING_KEYS = ['__v6_legacy_migrated__', '__storage_probe__', 'pitchDemoSeeded'];
     data.settings = (await this.db.settings.toArray()).filter(s => !RUNTIME_SETTING_KEYS.includes(s.key));
     data.sequences = await this.db.sequences.toArray();
@@ -1645,6 +1822,15 @@ const DB = {
     if (encryptionKey && importData.quoteItems) {
       importData = { ...importData };
       importData.quoteItems = await Promise.all(importData.quoteItems.map(row => encryptQuoteItem(row)));
+    }
+    if (encryptionKey && importData.jobs) {
+      importData = { ...importData }; importData.jobs = await Promise.all(importData.jobs.map(row => encryptJob(row)));
+    }
+    if (encryptionKey && importData.checklistResponses) {
+      importData = { ...importData }; importData.checklistResponses = await Promise.all(importData.checklistResponses.map(row => encryptChecklistResponse(row)));
+    }
+    if (encryptionKey && importData.jobIssues) {
+      importData = { ...importData }; importData.jobIssues = await Promise.all(importData.jobIssues.map(row => encryptJobIssue(row)));
     }
 
     // On the real engine this is a single atomic readwrite transaction
@@ -1784,6 +1970,9 @@ const DB = {
     const leadIds = new Set((data.leads || []).map(l => l.id));
     const taskIds = new Set((data.tasks || []).map(t => t.id));
     const quoteIds = new Set((data.quotes || []).map(q => q.id));
+    const jobIds = new Set((data.jobs || []).map(j => j.id));
+    const checklistTemplateIds = new Set((data.checklistTemplates || []).map(t => t.id));
+    const checklistItemIds = new Set((data.checklistItems || []).map(i => i.id));
     const checkRef = (table, record, field, validIds) => {
       const v = record[field];
       if (v === null || v === undefined) {
@@ -1802,6 +1991,7 @@ const DB = {
       if (record.customerId !== null && record.customerId !== undefined) {
         checkRef('appointments', record, 'customerId', customerIds);
       }
+      if (record.jobId !== null && record.jobId !== undefined) checkRef('appointments', record, 'jobId', jobIds);
     }
     for (const record of data.orders || []) {
       checkRef('orders', record, 'customerId', customerIds);
@@ -1832,6 +2022,8 @@ const DB = {
     }
     for (const record of data.photos || []) {
       checkRef('photos', record, 'customerId', customerIds);
+      if (record.jobId !== null && record.jobId !== undefined) checkRef('photos', record, 'jobId', jobIds);
+      if (record.appointmentId !== null && record.appointmentId !== undefined) checkRef('photos', record, 'appointmentId', appointmentIds);
       if (typeof record.data !== 'string' || record.data.length === 0) {
         throw new Error('Backup file is corrupt: a photo record is missing its image data');
       }
@@ -1872,6 +2064,28 @@ const DB = {
     for (const record of data.orders || []) {
       if (record.quoteId !== null && record.quoteId !== undefined) checkRef('orders', record, 'quoteId', quoteIds);
     }
+    const jobStatuses = ['materials_ordered', 'materials_received', 'fitting_scheduled', 'on_site', 'blocked', 'return_visit_required', 'completed', 'signed_off'];
+    for (const record of data.jobs || []) {
+      checkRef('jobs', record, 'customerId', customerIds); checkRef('jobs', record, 'orderId', orderIds);
+      if (!jobStatuses.includes(record.status) || typeof record.sourceKey !== 'string' || !record.sourceKey) throw new Error('Backup file is corrupt: job state is invalid');
+    }
+    for (const record of data.checklistTemplates || []) {
+      if (typeof record.visitType !== 'string' || !record.visitType) throw new Error('Backup file is corrupt: checklist template is invalid');
+    }
+    for (const record of data.checklistItems || []) {
+      checkRef('checklistItems', record, 'templateId', checklistTemplateIds);
+      if (typeof record.label !== 'string' || !record.label) throw new Error('Backup file is corrupt: checklist item is invalid');
+    }
+    for (const record of data.checklistResponses || []) {
+      checkRef('checklistResponses', record, 'jobId', jobIds); checkRef('checklistResponses', record, 'checklistItemId', checklistItemIds);
+      if (record.appointmentId !== null && record.appointmentId !== undefined) checkRef('checklistResponses', record, 'appointmentId', appointmentIds);
+      if (typeof record.completed !== 'boolean') throw new Error('Backup file is corrupt: checklist response is invalid');
+    }
+    for (const record of data.jobIssues || []) {
+      checkRef('jobIssues', record, 'jobId', jobIds);
+      if (record.appointmentId !== null && record.appointmentId !== undefined) checkRef('jobIssues', record, 'appointmentId', appointmentIds);
+      if (!['open', 'resolved'].includes(record.status) || typeof record.title !== 'string' || !record.title) throw new Error('Backup file is corrupt: job issue is invalid');
+    }
 
     // 4. Dates. Appointment dates drive the diary, trips and expenses drive
     // mileage/money — those must parse. The remaining date-bearing fields
@@ -1893,6 +2107,8 @@ const DB = {
       ['tasks', ['dueAt', 'snoozedUntil', 'completedAt']],
       ['taskEvents', ['occurredAt']]
       ,['quotes', ['issueDate', 'expiryDate', 'acceptedAt', 'rejectedAt', 'convertedAt']]
+      ,['jobs', ['scheduledStart', 'scheduledEnd', 'completedAt', 'signedOffAt', 'stageChangedAt']]
+      ,['jobIssues', ['dueAt', 'resolvedAt']]
     ]) {
       for (const record of data[table] || []) {
         for (const field of fields) {
