@@ -869,10 +869,14 @@ const App = {
           return a;
         });
       }
-      // Keydown gate: only run when the pressed key is in data-key.
+      // Keydown gate: only gate KEYBOARD events. A click/tap must always
+      // dispatch — previously a data-key div[role=button] (e.g. the visit
+      // detail's "View customer profile" area) was silently unclickable
+      // because clicks have no event.key, so keys.includes(undefined) was
+      // false and the action was swallowed.
       // data-key="Enter, " means Enter OR space.
       const keyAttr = el.getAttribute('data-key');
-      if (event && keyAttr) {
+      if (event && event.type === 'keydown' && keyAttr) {
         const keys = keyAttr.split(',').map(k => k.trim() === 'space' ? ' ' : k.trim());
         if (!keys.includes(event.key)) return false;
         event.preventDefault();
