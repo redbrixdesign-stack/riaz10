@@ -6,9 +6,9 @@
 // Every table a backup can carry. exportAll() and importAll() speak this
 // exact list; adding a table here is a backup-format change and must be
 // mirrored in the backup envelope's versioning (js/services/export.js).
-const DATABASE_SCHEMA_VERSION = 5;
+const DATABASE_SCHEMA_VERSION = 6;
 const BACKUP_FORMAT_VERSION = 1;
-const BACKUP_TABLES = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'photos', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems', 'jobs', 'checklistTemplates', 'checklistItems', 'checklistResponses', 'jobIssues', 'settings', 'sequences'];
+const BACKUP_TABLES = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'photos', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems', 'jobs', 'checklistTemplates', 'checklistItems', 'checklistResponses', 'jobIssues', 'payments', 'invoices', 'invoiceItems', 'creditNotes', 'documents', 'settings', 'sequences'];
 
 // ============================================
 // Field-level encryption (AES-GCM 256-bit, key from passphrase via PBKDF2)
@@ -27,6 +27,11 @@ const QUOTE_ITEM_PII_FIELDS = ['description'];
 const JOB_PII_FIELDS = ['notes', 'signoffName', 'completionOverrideReason'];
 const CHECKLIST_RESPONSE_PII_FIELDS = ['value', 'notes'];
 const JOB_ISSUE_PII_FIELDS = ['title', 'description', 'owner', 'resolution'];
+const PAYMENT_PII_FIELDS = ['reference', 'notes'];
+const INVOICE_PII_FIELDS = ['customerSnapshot', 'terms', 'notes'];
+const INVOICE_ITEM_PII_FIELDS = ['description'];
+const CREDIT_PII_FIELDS = ['reason', 'itemSnapshot'];
+const DOCUMENT_PII_FIELDS = ['filename'];
 const PBKDF2_ITERATIONS = 100000;
 const KEY_LENGTH = 256;
 const IV_LENGTH = 12;
@@ -277,6 +282,16 @@ const encryptChecklistResponse = row => encryptStringFields(row, CHECKLIST_RESPO
 const decryptChecklistResponse = row => decryptStringFields(row, CHECKLIST_RESPONSE_PII_FIELDS);
 const encryptJobIssue = row => encryptStringFields(row, JOB_ISSUE_PII_FIELDS);
 const decryptJobIssue = row => decryptStringFields(row, JOB_ISSUE_PII_FIELDS);
+const encryptPayment = row => encryptStringFields(row, PAYMENT_PII_FIELDS);
+const decryptPayment = row => decryptStringFields(row, PAYMENT_PII_FIELDS);
+async function encryptInvoice(row) { const out = await encryptStringFields(row, INVOICE_PII_FIELDS); if (row?.customerSnapshot && typeof row.customerSnapshot === 'object') out.customerSnapshot = await encryptField(JSON.stringify(row.customerSnapshot)); return out; }
+async function decryptInvoice(row) { const out = await decryptStringFields(row, INVOICE_PII_FIELDS); if (typeof out?.customerSnapshot === 'string' && out.customerSnapshot.startsWith('{')) try { out.customerSnapshot = JSON.parse(out.customerSnapshot); } catch (e) {} return out; }
+const encryptInvoiceItem = row => encryptStringFields(row, INVOICE_ITEM_PII_FIELDS);
+const decryptInvoiceItem = row => decryptStringFields(row, INVOICE_ITEM_PII_FIELDS);
+async function encryptCreditNote(row) { const out = await encryptStringFields(row, CREDIT_PII_FIELDS); if (Array.isArray(row?.itemSnapshot)) out.itemSnapshot = await encryptField(JSON.stringify(row.itemSnapshot)); return out; }
+async function decryptCreditNote(row) { const out = await decryptStringFields(row, CREDIT_PII_FIELDS); if (typeof out?.itemSnapshot === 'string' && out.itemSnapshot.startsWith('[')) try { out.itemSnapshot = JSON.parse(out.itemSnapshot); } catch (e) {} return out; }
+const encryptDocument = row => encryptStringFields(row, DOCUMENT_PII_FIELDS);
+const decryptDocument = row => decryptStringFields(row, DOCUMENT_PII_FIELDS);
 
 async function migratePlaintextWorkItems() {
   if (!encryptionKey) return;
@@ -288,6 +303,11 @@ async function migratePlaintextWorkItems() {
     ['jobs', JOB_PII_FIELDS, encryptJob],
     ['checklistResponses', CHECKLIST_RESPONSE_PII_FIELDS, encryptChecklistResponse],
     ['jobIssues', JOB_ISSUE_PII_FIELDS, encryptJobIssue]
+    ,['payments', PAYMENT_PII_FIELDS, encryptPayment]
+    ,['invoices', INVOICE_PII_FIELDS, encryptInvoice]
+    ,['invoiceItems', INVOICE_ITEM_PII_FIELDS, encryptInvoiceItem]
+    ,['creditNotes', CREDIT_PII_FIELDS, encryptCreditNote]
+    ,['documents', DOCUMENT_PII_FIELDS, encryptDocument]
   ]) {
     const rows = await DB.db[table].toArray();
     for (const row of rows) {
@@ -359,6 +379,11 @@ const DB = {
       checklistItems: '++id, templateId, required, displayOrder, createdAt',
       checklistResponses: '++id, jobId, appointmentId, checklistItemId, completed, updatedAt',
       jobIssues: '++id, jobId, appointmentId, type, status, dueAt, createdAt'
+      ,payments: '++id, customerId, orderId, invoiceId, direction, kind, status, date, operationId, reversesPaymentId, createdAt'
+      ,invoices: '++id, customerId, orderId, jobId, invoiceNumber, status, issueDate, dueDate, createdAt'
+      ,invoiceItems: '++id, invoiceId, displayOrder, createdAt'
+      ,creditNotes: '++id, customerId, invoiceId, creditNumber, status, issueDate, createdAt'
+      ,documents: '++id, customerId, type, invoiceId, paymentId, jobId, generatedAt, createdAt'
     });
 
     if (typeof this.db.open === 'function') {
@@ -596,7 +621,7 @@ const DB = {
   },
 
   async initSequences() {
-    const sequences = ['customer', 'order', 'quote'];
+    const sequences = ['customer', 'order', 'quote', 'invoice', 'credit'];
     for (const name of sequences) {
       const exists = await this.db.sequences.get(name);
       if (!exists) {
@@ -677,7 +702,7 @@ const DB = {
   // what actually happened, not just "done".
   async deleteCustomer(customerId) {
     return this._runWrite(
-      ['customers', 'appointments', 'orders', 'communications', 'photos', 'measurements', 'trips', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems', 'jobs', 'checklistResponses', 'jobIssues'],
+      ['customers', 'appointments', 'orders', 'communications', 'photos', 'measurements', 'trips', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems', 'jobs', 'checklistResponses', 'jobIssues', 'payments', 'invoices', 'invoiceItems', 'creditNotes', 'documents'],
       async () => {
         const [appts, orders, comms] = await Promise.all([
           this.db.appointments.where('customerId').equals(customerId).toArray(),
@@ -691,6 +716,7 @@ const DB = {
         const quoteIds = quotes.map(q => q.id);
         const jobs = await this.db.jobs.where('customerId').equals(customerId).toArray();
         const jobIds = jobs.map(j => j.id);
+        const invoices = await this.db.invoices.where('customerId').equals(customerId).toArray(); const invoiceIds=invoices.map(i=>i.id);
         const leads = await this.db.leads.where('customerId').equals(customerId).toArray();
         const leadIds = leads.map(l => l.id);
         const allTasks = await this.db.tasks.toArray();
@@ -706,6 +732,8 @@ const DB = {
           await this.db.jobIssues.where('jobId').anyOf(jobIds).delete();
         }
         await this.db.jobs.where('customerId').equals(customerId).delete();
+        if(invoiceIds.length)await this.db.invoiceItems.where('invoiceId').anyOf(invoiceIds).delete();
+        await this.db.payments.where('customerId').equals(customerId).delete(); await this.db.creditNotes.where('customerId').equals(customerId).delete(); await this.db.documents.where('customerId').equals(customerId).delete(); await this.db.invoices.where('customerId').equals(customerId).delete();
         const measurementCount = apptIds.length ? await this.db.measurements.where('appointmentId').anyOf(apptIds).delete() : 0;
         const tripCount = apptIds.length ? await this.db.trips.where('appointmentId').anyOf(apptIds).delete() : 0;
         await this.db.appointments.where('customerId').equals(customerId).delete();
@@ -1051,31 +1079,104 @@ const DB = {
   async _recordOrderPaymentUnsafe(orderId, amount, operationId = null) {
     const order = await this.db.orders.get(orderId);
     if (!order) return null;
-    if (operationId && order.lastPaymentOperationId === operationId) {
-      return { order, applied: 0, balanceDue: order.balanceDue || 0, fullyPaid: (order.balanceDue || 0) <= 0 };
+    await this._migrateLegacyOrderPaymentUnsafe(order);
+    if (operationId) {
+      const existing = await this.db.payments.where('operationId').equals(operationId).first();
+      if (existing) { const summary = await this._reconcileOrderLedgerUnsafe(orderId); return { order: summary.order, applied: 0, balanceDue: summary.balanceDue, fullyPaid: summary.balanceDue <= 0, payment: existing }; }
     }
-    const applied = Math.max(0, Math.min(Number(amount) || 0, order.balanceDue || 0));
-    const depositPaid = Math.min((order.depositPaid || 0) + applied, order.total || 0);
-    const balanceDue = Math.max(0, (order.balanceDue || 0) - applied);
-    const fields = { depositPaid, balanceDue, stage: balanceDue <= 0 ? 'paid' : (order.stage || 'ordered') };
-    if (operationId) fields.lastPaymentOperationId = operationId;
-    await this.db.orders.update(orderId, fields);
-    return { order: { ...order, ...fields }, applied, balanceDue, fullyPaid: balanceDue <= 0 };
+    const summaryBefore = await this._ledgerSummaryUnsafe(orderId);
+    const applied = Math.max(0, Math.min(Number(amount) || 0, Math.max(0, (order.total || 0) - summaryBefore.paid)));
+    let payment = null;
+    if (applied > 0) { const now = new Date().toISOString(); payment = { customerId: order.customerId, orderId, amount: applied, direction: 'in', kind: 'payment', status: 'cleared', date: now, method: 'unspecified', operationId: operationId || null, createdAt: now }; payment.id = await this.db.payments.add(payment); }
+    const summary = await this._reconcileOrderLedgerUnsafe(orderId);
+    return { order: summary.order, applied, balanceDue: summary.balanceDue, fullyPaid: summary.balanceDue <= 0, payment };
   },
 
   async recordOrderPayment(orderId, amount, operationId = null) {
-    return this._runWrite(['orders'], () => this._recordOrderPaymentUnsafe(orderId, amount, operationId));
+    return this._runWrite(['orders', 'payments'], () => this._recordOrderPaymentUnsafe(orderId, amount, operationId));
   },
 
   async setOrderPaid(orderId) {
-    return this._runWrite(['orders'], async () => {
+    return this._runWrite(['orders', 'payments'], async () => {
       const order = await this.db.orders.get(orderId);
       if (!order) return null;
-      const fields = { depositPaid: order.total || 0, balanceDue: 0, stage: 'paid' };
-      await this.db.orders.update(orderId, fields);
-      return { ...order, ...fields };
+      const result = await this._recordOrderPaymentUnsafe(orderId, order.balanceDue ?? order.total ?? 0, `set-paid:${orderId}:${order.balanceDue ?? order.total ?? 0}`);
+      return result && result.order;
     });
   },
+
+  async _migrateLegacyOrderPaymentUnsafe(order) {
+    const existing = await this.db.payments.where('orderId').equals(order.id).toArray();
+    if (existing.length || !(Number(order.depositPaid) > 0)) return null;
+    const paid = Math.round(Number(order.depositPaid) * 100) / 100;
+    if (Math.round(((Number(order.total) || 0) - paid) * 100) / 100 !== Math.round((Number(order.balanceDue) || 0) * 100) / 100) return null;
+    const now = new Date().toISOString(); const row = { customerId: order.customerId, orderId: order.id, amount: paid, direction: 'in', kind: 'opening_migrated', status: 'cleared', date: order.createdAt || now, method: 'legacy', operationId: `legacy-order:${order.id}`, provenance: 'unambiguous depositPaid compatibility value', createdAt: now };
+    row.id = await this.db.payments.add(row); return row;
+  },
+  async migrateLegacyOrderPayment(orderId) { return this._runWrite(['orders', 'payments'], async () => { const order = await this.db.orders.get(orderId); return order ? this._migrateLegacyOrderPaymentUnsafe(order) : null; }); },
+  async _ledgerSummaryUnsafe(orderId) {
+    const rows = (await this.db.payments.where('orderId').equals(orderId).toArray()).filter(p => p.status === 'cleared');
+    const paid = Math.round(rows.reduce((sum, p) => sum + (p.direction === 'in' ? Number(p.amount) || 0 : -(Number(p.amount) || 0)), 0) * 100) / 100;
+    return { paid: Math.max(0, paid), entries: rows };
+  },
+  async _reconcileOrderLedgerUnsafe(orderId) {
+    const order = await this.db.orders.get(orderId); if (!order) throw new Error('Order not found');
+    const summary = await this._ledgerSummaryUnsafe(orderId); const depositPaid = Math.min(order.total || 0, summary.paid); const balanceDue = Math.max(0, Math.round(((order.total || 0) - depositPaid) * 100) / 100);
+    const fields = { depositPaid, balanceDue, stage: balanceDue <= 0 ? 'paid' : (order.stage === 'paid' ? 'ordered' : (order.stage || 'ordered')) };
+    await this.db.orders.update(orderId, fields); return { order: { ...order, ...fields }, paid: depositPaid, balanceDue, entries: summary.entries };
+  },
+  async reconcileOrderLedger(orderId) { return this._runWrite(['orders', 'payments'], async () => { const order = await this.db.orders.get(orderId); if (!order) throw new Error('Order not found'); await this._migrateLegacyOrderPaymentUnsafe(order); return this._reconcileOrderLedgerUnsafe(orderId); }); },
+  async reconcileOrderBalance(orderId) { return this.reconcileOrderLedger(orderId); },
+  async recordPayment(data) {
+    if (!data || !Number.isInteger(data.orderId) || !(Number(data.amount) > 0) || !data.operationId) throw new Error('Order, positive amount and operation id are required');
+    if(data.direction&&!['in','out'].includes(data.direction))throw new Error('Invalid payment direction');if(data.status&&!['pending','cleared','void'].includes(data.status))throw new Error('Invalid payment status');
+    const prepared = await encryptPayment({ ...data, amount: Math.round(Number(data.amount) * 100) / 100, direction: data.direction || 'in', kind: data.kind || 'payment', status: data.status || 'cleared', date: data.date || new Date().toISOString(), createdAt: new Date().toISOString() });
+    const row = await this._runWrite(['orders', 'payments', 'invoices'], async () => {
+      const order = await this.db.orders.get(data.orderId); if (!order) throw new Error('Order not found'); await this._migrateLegacyOrderPaymentUnsafe(order);
+      if (data.invoiceId != null && !await this.db.invoices.get(data.invoiceId)) throw new Error('Invoice not found');
+      let row = await this.db.payments.where('operationId').equals(data.operationId).first(); if (!row) { const id = await this.db.payments.add({ ...prepared, customerId: order.customerId }); row = { ...prepared, customerId: order.customerId, id }; }
+      await this._reconcileOrderLedgerUnsafe(data.orderId); return row;
+    });
+    return decryptPayment(row);
+  },
+  async recordLedgerPayment(data) { return this.recordPayment(data); },
+  async reversePayment(paymentId, options = {}) {
+    const original = await this.db.payments.get(paymentId); if (!original) throw new Error('Payment not found');
+    if (original.status !== 'cleared' || original.direction !== 'in' || !['payment','opening_migrated'].includes(original.kind)) throw new Error('Only a cleared incoming payment can be reversed');
+    const linked=(await this.db.payments.where('reversesPaymentId').equals(paymentId).toArray()).filter(p=>p.status==='cleared'); const remaining=original.amount-linked.reduce((s,p)=>s+(p.amount||0),0); if(!(remaining>0))throw new Error('Payment already fully reversed or refunded');
+    return this.recordPayment({ orderId: original.orderId, invoiceId: original.invoiceId || null, amount: remaining, direction: 'out', kind: 'reversal', reversesPaymentId: paymentId, method: original.method, reference: options.reason || '', date: options.date, operationId: options.operationId });
+  },
+  async reverseLedgerEntry(id, options = {}) { return this.reversePayment(id, options); },
+  async refundPayment(paymentId, options = {}) {
+    const original = await this.db.payments.get(paymentId); if (!original) throw new Error('Payment not found');
+    if (original.status !== 'cleared' || original.direction !== 'in' || !['payment','opening_migrated'].includes(original.kind)) throw new Error('Only a cleared incoming payment can be refunded');
+    const linked=(await this.db.payments.where('reversesPaymentId').equals(paymentId).toArray()).filter(p=>p.status==='cleared'); const remaining=original.amount-linked.reduce((s,p)=>s+(p.amount||0),0); const amount=Number(options.amount)||remaining; if(!(amount>0)||amount>remaining)throw new Error('Refund exceeds remaining payment');
+    return this.recordPayment({ orderId: original.orderId, invoiceId: original.invoiceId || null, amount, direction: 'out', kind: 'refund', reversesPaymentId: paymentId, method: options.method || original.method, reference: options.reference || '', notes: options.notes || '', operationId: options.operationId });
+  },
+  async getPayments(filters = {}) { let rows = await this.db.payments.toArray(); for (const f of ['customerId','orderId','invoiceId','status','kind']) if (filters[f] != null) rows = rows.filter(r => r[f] === filters[f]); rows.sort((a,b)=>new Date(b.date)-new Date(a.date)); return Promise.all(rows.map(decryptPayment)); },
+  async getLedgerEntries(filters = {}) { return this.getPayments(filters); },
+
+  _invoiceTotals(items) { const money=v=>Math.round((Number(v)||0)*100)/100; const subtotal=money((items||[]).reduce((s,i)=>s+(Number(i.quantity)||0)*(Number(i.unitPrice)||0),0)); const taxAmount=money((items||[]).reduce((s,i)=>s+(Number(i.quantity)||0)*(Number(i.unitPrice)||0)*(Number(i.taxRate)||0)/100,0)); return { subtotal, taxAmount, total: money(subtotal+taxAmount) }; },
+  async _prepareInvoiceItems(items, invoiceId = null) { if (!Array.isArray(items)||!items.length) throw new Error('Invoice items are required'); return Promise.all(items.map(async(i,n)=>{ if(!String(i.description||'').trim()||!(Number(i.quantity)>0)||Number(i.unitPrice)<0) throw new Error('Invoice item is invalid'); return encryptInvoiceItem({...i,invoiceId,description:String(i.description).trim(),quantity:Number(i.quantity),unitPrice:Number(i.unitPrice),taxRate:Math.max(0,Number(i.taxRate)||0),displayOrder:i.displayOrder??n,createdAt:i.createdAt||new Date().toISOString()}); })); },
+  async createInvoice(data, items = null) {
+    items = items || data?.items; if (!data || !Number.isInteger(data.customerId)) throw new Error('Invoice customer is required');
+    const customer = await this.getCustomer(data.customerId); if (!customer) throw new Error('Customer not found');
+    if(data.orderId!=null){const order=await this.db.orders.get(data.orderId);if(!order||order.customerId!==data.customerId)throw new Error('Invoice order relationship is invalid');}
+    if(data.jobId!=null){const job=await this.db.jobs.get(data.jobId);if(!job||job.customerId!==data.customerId)throw new Error('Invoice job relationship is invalid');}
+    const preparedItems = await this._prepareInvoiceItems(items); const totals=this._invoiceTotals(items); const now=new Date().toISOString();
+    const base=await encryptInvoice({...data,items:undefined,...totals,customerSnapshot:data.customerSnapshot||{name:customer.fullName||`${customer.firstName||''} ${customer.lastName||''}`.trim(),address:customer.address||null,email:customer.email||''},status:'draft',createdAt:now,updatedAt:now}); let invoiceId;
+    await this._runWrite(['invoices','invoiceItems','sequences'],async()=>{const seq=await this._nextSequenceUnsafe('invoice'); invoiceId=await this.db.invoices.add({...base,invoiceNumber:`INV-${new Date().getFullYear()}-${String(seq).padStart(4,'0')}`}); for(const item of preparedItems) await this.db.invoiceItems.add({...item,invoiceId});}); return this.getInvoice(invoiceId);
+  },
+  async getInvoice(id){const row=await this.db.invoices.get(id);if(!row)return null;const items=await this.db.invoiceItems.where('invoiceId').equals(id).toArray();items.sort((a,b)=>(a.displayOrder||0)-(b.displayOrder||0));return{invoice:await decryptInvoice(row),items:await Promise.all(items.map(decryptInvoiceItem))};},
+  async getInvoices(filters={}){let rows=await this.db.invoices.toArray();for(const f of ['customerId','orderId','jobId','status'])if(filters[f]!=null)rows=rows.filter(r=>r[f]===filters[f]);return Promise.all(rows.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).map(decryptInvoice));},
+  async updateInvoice(id,changes={},items=null){const current=await this.getInvoice(id);if(!current)throw new Error('Invoice not found');if(current.invoice.status!=='draft')throw new Error('Issued invoices are immutable');const plain=items||current.items;const totals=this._invoiceTotals(plain);const safe={...changes};delete safe.id;delete safe.invoiceNumber;delete safe.status;delete safe.customerId;const encrypted=await encryptInvoice({...safe,...totals,updatedAt:new Date().toISOString()});const prepared=items?await this._prepareInvoiceItems(items,id):null;await this._runWrite(['invoices','invoiceItems'],async()=>{await this.db.invoices.update(id,encrypted);if(prepared){await this.db.invoiceItems.where('invoiceId').equals(id).delete();for(const item of prepared)await this.db.invoiceItems.add(item);}});return this.getInvoice(id);},
+  async issueInvoice(id){const current=await this.getInvoice(id);if(!current||current.invoice.status!=='draft')throw new Error('Only draft invoices can be issued');const now=new Date().toISOString();await this.db.invoices.update(id,{status:'issued',issueDate:current.invoice.issueDate||now,updatedAt:now});return(await this.getInvoice(id)).invoice;},
+  async getInvoiceBalance(id){const pack=await this.getInvoice(id);if(!pack)throw new Error('Invoice not found');const payments=(await this.db.payments.where('invoiceId').equals(id).toArray()).filter(p=>p.status==='cleared');const paid=payments.reduce((s,p)=>s+(p.direction==='in'?p.amount:-p.amount),0);const credits=(await this.db.creditNotes.where('invoiceId').equals(id).toArray()).filter(c=>c.status==='issued').reduce((s,c)=>s+(c.amount||0),0);return{total:pack.invoice.total,paid:Math.max(0,paid),credits,balanceDue:Math.max(0,Math.round((pack.invoice.total-paid-credits)*100)/100)};},
+  async createCreditNote(invoiceId,data={}){const pack=await this.getInvoice(invoiceId);if(!pack||pack.invoice.status==='draft')throw new Error('Credit notes require an issued invoice');const amount=Math.round((Number(data.amount)||0)*100)/100;const existing=(await this.db.creditNotes.where('invoiceId').equals(invoiceId).toArray()).filter(c=>c.status==='issued').reduce((s,c)=>s+(c.amount||0),0);if(!(amount>0)||amount>Math.max(0,pack.invoice.total-existing))throw new Error('Credit amount exceeds invoice balance');const snapshot=data.itemSnapshot||pack.items;if(!Array.isArray(snapshot)||!snapshot.length)throw new Error('Credit item snapshot is required');const now=new Date().toISOString();const base=await encryptCreditNote({...data,invoiceId,customerId:pack.invoice.customerId,amount,itemSnapshot:snapshot,status:'issued',issueDate:data.issueDate||now,createdAt:now});let id;await this._runWrite(['creditNotes','sequences'],async()=>{const seq=await this._nextSequenceUnsafe('credit');id=await this.db.creditNotes.add({...base,creditNumber:`CRN-${new Date().getFullYear()}-${String(seq).padStart(4,'0')}`});});return decryptCreditNote(await this.db.creditNotes.get(id));},
+  async getCreditNote(id){const row=await this.db.creditNotes.get(id);return row?decryptCreditNote(row):null;},
+  async getCreditNotes(filters={}){let rows=await this.db.creditNotes.toArray();for(const f of ['customerId','invoiceId','status'])if(filters[f]!=null)rows=rows.filter(r=>r[f]===filters[f]);return Promise.all(rows.map(decryptCreditNote));},
+  async addDocumentMetadata(data){if(!data||!data.type)throw new Error('Document type is required');const plain={...data,generatedAt:data.generatedAt||new Date().toISOString(),createdAt:new Date().toISOString()};const row=await encryptDocument(plain);const id=await this.db.documents.add(row);return{...plain,id};},
+  async getReceipt(paymentId){const payment=await this.db.payments.get(paymentId);if(!payment)return null;const document=await this.db.documents.where('paymentId').equals(paymentId).first();return{payment:await decryptPayment(payment),document:document?await decryptDocument(document):null};},
 
   async _refreshCustomerTotalsUnsafe(customerId) {
     if (!customerId) return;
@@ -1092,7 +1193,7 @@ const DB = {
     if (!current) throw new Error('Appointment not found');
     const encryptedFields = await encryptAppointment(appointmentFields);
     const customerId = current.customerId;
-    return this._runWrite(['appointments', 'orders', 'customers', 'sequences'], async () => {
+    return this._runWrite(['appointments', 'orders', 'customers', 'sequences', 'payments'], async () => {
       const linked = await this.db.orders.where('appointmentId').equals(appointmentId).toArray();
       linked.sort((a, b) => (a.id || 0) - (b.id || 0));
       let order = linked[0] || null;
@@ -1101,7 +1202,9 @@ const DB = {
         const total = appointmentFields.value;
         const depositRequired = App.calculateDeposit(total).amount;
         if (order) {
-          const depositPaid = Math.min(order.depositPaid || 0, total);
+          await this._migrateLegacyOrderPaymentUnsafe(order);
+          const ledger = await this._ledgerSummaryUnsafe(order.id);
+          const depositPaid = Math.min(ledger.paid || 0, total);
           const balanceDue = Math.max(0, total - depositPaid);
           const fields = { total, depositRequired, depositPaid, balanceDue, status: 'deposit_pending', stage: balanceDue <= 0 ? 'paid' : (order.stage === 'paid' ? 'ordered' : (order.stage || 'ordered')) };
           await this.db.orders.update(order.id, fields);
@@ -1732,7 +1835,7 @@ const DB = {
 
   // Schema version of the current database. Real Dexie reports it as `verno`
   // once opened; the bundled shim keeps it internally without exposing it, so
-  // fall back to the current schema constant (5 = field execution tables added).
+  // fall back to the current schema constant (6 = finance ledger tables added).
   schemaVersion() {
     return typeof this.db.verno === 'number' ? this.db.verno : DATABASE_SCHEMA_VERSION;
   },
@@ -1757,7 +1860,7 @@ const DB = {
   // travel inside a backup.
   async exportAll() {
     const data = {};
-    const tables = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'photos', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems', 'jobs', 'checklistTemplates', 'checklistItems', 'checklistResponses', 'jobIssues'];
+    const tables = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'photos', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems', 'jobs', 'checklistTemplates', 'checklistItems', 'checklistResponses', 'jobIssues', 'payments', 'invoices', 'invoiceItems', 'creditNotes', 'documents'];
     for (const table of tables) {
       data[table] = await this.db[table].toArray();
     }
@@ -1782,6 +1885,8 @@ const DB = {
     if (data.jobs && data.jobs.length) data.jobs = await Promise.all(data.jobs.map(row => decryptJob(row)));
     if (data.checklistResponses && data.checklistResponses.length) data.checklistResponses = await Promise.all(data.checklistResponses.map(row => decryptChecklistResponse(row)));
     if (data.jobIssues && data.jobIssues.length) data.jobIssues = await Promise.all(data.jobIssues.map(row => decryptJobIssue(row)));
+    if(data.payments?.length)data.payments=await Promise.all(data.payments.map(decryptPayment));if(data.invoices?.length)data.invoices=await Promise.all(data.invoices.map(decryptInvoice));if(data.invoiceItems?.length)data.invoiceItems=await Promise.all(data.invoiceItems.map(decryptInvoiceItem));if(data.creditNotes?.length)data.creditNotes=await Promise.all(data.creditNotes.map(decryptCreditNote));
+    if(data.documents?.length)data.documents=await Promise.all(data.documents.map(decryptDocument));
     const RUNTIME_SETTING_KEYS = ['__v6_legacy_migrated__', '__storage_probe__', 'pitchDemoSeeded'];
     data.settings = (await this.db.settings.toArray()).filter(s => !RUNTIME_SETTING_KEYS.includes(s.key));
     data.sequences = await this.db.sequences.toArray();
@@ -1832,6 +1937,8 @@ const DB = {
     if (encryptionKey && importData.jobIssues) {
       importData = { ...importData }; importData.jobIssues = await Promise.all(importData.jobIssues.map(row => encryptJobIssue(row)));
     }
+    if(encryptionKey&&importData.payments){importData={...importData};importData.payments=await Promise.all(importData.payments.map(encryptPayment));}if(encryptionKey&&importData.invoices){importData={...importData};importData.invoices=await Promise.all(importData.invoices.map(encryptInvoice));}if(encryptionKey&&importData.invoiceItems){importData={...importData};importData.invoiceItems=await Promise.all(importData.invoiceItems.map(encryptInvoiceItem));}if(encryptionKey&&importData.creditNotes){importData={...importData};importData.creditNotes=await Promise.all(importData.creditNotes.map(encryptCreditNote));}
+    if(encryptionKey&&importData.documents){importData={...importData};importData.documents=await Promise.all(importData.documents.map(encryptDocument));}
 
     // On the real engine this is a single atomic readwrite transaction
     // across every table: a failure anywhere aborts the whole import and
@@ -1973,6 +2080,8 @@ const DB = {
     const jobIds = new Set((data.jobs || []).map(j => j.id));
     const checklistTemplateIds = new Set((data.checklistTemplates || []).map(t => t.id));
     const checklistItemIds = new Set((data.checklistItems || []).map(i => i.id));
+    const invoiceIds = new Set((data.invoices || []).map(i => i.id));
+    const paymentIds = new Set((data.payments || []).map(p => p.id));
     const checkRef = (table, record, field, validIds) => {
       const v = record[field];
       if (v === null || v === undefined) {
@@ -2086,6 +2195,11 @@ const DB = {
       if (record.appointmentId !== null && record.appointmentId !== undefined) checkRef('jobIssues', record, 'appointmentId', appointmentIds);
       if (!['open', 'resolved'].includes(record.status) || typeof record.title !== 'string' || !record.title) throw new Error('Backup file is corrupt: job issue is invalid');
     }
+    for(const r of data.invoices||[]){checkRef('invoices',r,'customerId',customerIds);if(r.orderId!=null)checkRef('invoices',r,'orderId',orderIds);if(r.jobId!=null)checkRef('invoices',r,'jobId',jobIds);if(!['draft','issued','paid','void'].includes(r.status)||typeof r.invoiceNumber!=='string'||!Number.isFinite(r.total))throw new Error('Backup file is corrupt: invoice is invalid');}
+    for(const r of data.invoiceItems||[]){checkRef('invoiceItems',r,'invoiceId',invoiceIds);if(typeof r.description!=='string'||!(Number(r.quantity)>0)||Number(r.unitPrice)<0)throw new Error('Backup file is corrupt: invoice item is invalid');}
+    for(const r of data.payments||[]){checkRef('payments',r,'customerId',customerIds);if(r.orderId!=null)checkRef('payments',r,'orderId',orderIds);if(r.invoiceId!=null)checkRef('payments',r,'invoiceId',invoiceIds);if(r.reversesPaymentId!=null)checkRef('payments',r,'reversesPaymentId',paymentIds);if(!(r.amount>0)||!['in','out'].includes(r.direction)||!['pending','cleared','void'].includes(r.status))throw new Error('Backup file is corrupt: payment is invalid');}
+    for(const r of data.creditNotes||[]){checkRef('creditNotes',r,'customerId',customerIds);checkRef('creditNotes',r,'invoiceId',invoiceIds);if(!(r.amount>0)||!['issued','void'].includes(r.status)||typeof r.creditNumber!=='string')throw new Error('Backup file is corrupt: credit note is invalid');}
+    for(const r of data.documents||[]){checkRef('documents',r,'customerId',customerIds);if(r.invoiceId!=null)checkRef('documents',r,'invoiceId',invoiceIds);if(r.paymentId!=null)checkRef('documents',r,'paymentId',paymentIds);if(r.jobId!=null)checkRef('documents',r,'jobId',jobIds);if(typeof r.type!=='string'||!r.type)throw new Error('Backup file is corrupt: document metadata is invalid');}
 
     // 4. Dates. Appointment dates drive the diary, trips and expenses drive
     // mileage/money — those must parse. The remaining date-bearing fields
@@ -2109,6 +2223,10 @@ const DB = {
       ,['quotes', ['issueDate', 'expiryDate', 'acceptedAt', 'rejectedAt', 'convertedAt']]
       ,['jobs', ['scheduledStart', 'scheduledEnd', 'completedAt', 'signedOffAt', 'stageChangedAt']]
       ,['jobIssues', ['dueAt', 'resolvedAt']]
+      ,['payments',['date']]
+      ,['invoices',['issueDate','dueDate']]
+      ,['creditNotes',['issueDate']]
+      ,['documents',['generatedAt']]
     ]) {
       for (const record of data[table] || []) {
         for (const field of fields) {
@@ -2129,12 +2247,12 @@ const DB = {
   // found in the imported records (same CUS-/ORD-YYYY-#### pattern and year
   // scoping the legacy migration uses). Never lowers an existing counter.
   async _guardSequences(data) {
-    for (const name of ['customer', 'order', 'quote']) {
-      const prefix = name === 'customer' ? 'CUS-' : name === 'order' ? 'ORD-' : 'QUO-';
+    for (const name of ['customer', 'order', 'quote', 'invoice', 'credit']) {
+      const prefix = name === 'customer' ? 'CUS-' : name === 'order' ? 'ORD-' : name === 'quote' ? 'QUO-' : name === 'invoice' ? 'INV-' : 'CRN-';
       const year = new Date().getFullYear();
       const re = new RegExp(`^${prefix}\\d{4}-(\\d+)$`);
-      const table = name === 'quote' ? 'quotes' : name + 's';
-      const numberField = name === 'quote' ? 'quoteNumber' : name + 'Number';
+      const table = name === 'quote' ? 'quotes' : name === 'invoice' ? 'invoices' : name === 'credit' ? 'creditNotes' : name + 's';
+      const numberField = name === 'quote' ? 'quoteNumber' : name === 'credit' ? 'creditNumber' : name + 'Number';
       const maxSeq = (data[table] || []).reduce((max, r) => {
         const m = String(r[numberField] || '').match(re);
         return Math.max(max, m ? parseInt(m[1], 10) : 0);

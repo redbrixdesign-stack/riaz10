@@ -251,7 +251,8 @@ const FollowupsFeature = {
     const derived = await this.loadDerivedTasks();
     const structured = await this.loadStructuredQuoteTasks(derived);
     const jobTasks = await this.loadJobTasks(derived);
-    const combined = [...derived, ...structured, ...jobTasks];
+    const invoiceTasks = await this.loadInvoiceTasks(derived);
+    const combined = [...derived, ...structured, ...jobTasks, ...invoiceTasks];
     return typeof TaskService !== 'undefined' ? TaskService.merge(combined) : combined;
   },
 
@@ -325,6 +326,39 @@ const FollowupsFeature = {
         kind: 'job_issue', derivedKey: `job:attention:${job.id}`, job, customer: customers.get(job.customerId) || null,
         due: true, inDays: 0, daysLabel: returnNeeded ? 'Return visit needed' : `${openIssues.length} open issue${openIssues.length === 1 ? '' : 's'}`,
         action: returnNeeded ? 'Arrange the return visit and resolve the issue' : 'Resolve the blocked job issue', priority: 'high'
+      });
+    }
+    return tasks;
+  },
+
+  async loadInvoiceTasks(existing = []) {
+    if (typeof DB.getInvoices !== 'function') return [];
+    let invoices = [];
+    try { invoices = await DB.getInvoices(); } catch (e) { return []; }
+    const representedOrders = new Set(existing.filter(t => t.kind === 'payment').map(t => t.order?.id).filter(Boolean));
+    const customerIds = [...new Set(invoices.map(i => i.customerId).filter(Boolean))];
+    const customers = new Map();
+    try {
+      const rows = customerIds.length && typeof DB.getCustomersByIds === 'function' ? await DB.getCustomersByIds(customerIds) : [];
+      for (const customer of rows) customers.set(customer.id, customer);
+    } catch (e) {}
+    const now = new Date();
+    const tasks = [];
+    for (const invoice of invoices) {
+      if (!['issued', 'overdue'].includes(invoice.status) || !invoice.dueDate) continue;
+      if (invoice.orderId && representedOrders.has(invoice.orderId)) continue;
+      const daysOverdue = Utils.daysBetween(now, new Date(invoice.dueDate));
+      if (daysOverdue <= 0) continue;
+      let balanceDue = Number(invoice.balanceDue ?? invoice.total ?? 0);
+      if (typeof DB.getInvoiceBalance === 'function') {
+        try { balanceDue = Number((await DB.getInvoiceBalance(invoice.id)).balanceDue) || 0; } catch (e) {}
+      }
+      if (balanceDue <= 0) continue;
+      tasks.push({
+        kind: 'invoice_overdue', derivedKey: `invoice:overdue:${invoice.id}`, invoice,
+        customer: customers.get(invoice.customerId) || null, due: true, inDays: 0,
+        daysLabel: `${daysOverdue}d overdue`, action: `Collect ${Utils.formatCurrency(balanceDue)} for ${invoice.invoiceNumber || 'invoice'}`,
+        priority: 'high'
       });
     }
     return tasks;
@@ -410,7 +444,7 @@ const FollowupsFeature = {
       ? `${Utils.formatDate(task.appointment.date, 'short')} · ${task.daysLabel}${dueIn}`
       : (task.order ? `${Utils.escapeHtml(task.order.orderNumber || 'Order')} · ${task.daysLabel}${dueIn}` : `${task.daysLabel || ''}${dueIn}`);
 
-    const icons = { quote: 'receipt_long', structured_quote: 'request_quote', quote_expiring: 'event_busy', quote_accepted: 'task_alt', job_issue: 'construction', payment: 'payments', visit_today: 'event_available', visit_tomorrow: 'event', intro: 'waving_hand', post_fit: 'handyman', service: 'build', };
+    const icons = { quote: 'receipt_long', structured_quote: 'request_quote', quote_expiring: 'event_busy', quote_accepted: 'task_alt', job_issue: 'construction', invoice_overdue: 'request_quote', payment: 'payments', visit_today: 'event_available', visit_tomorrow: 'event', intro: 'waving_hand', post_fit: 'handyman', service: 'build', };
     // Border colour = what the task needs from you. Payment and service issues
     // are urgent (warning/danger); today's visits and intros are primary
     // actions; everything else (quote chases, post-fit thank-yous,
@@ -450,6 +484,9 @@ const FollowupsFeature = {
   },
 
   renderPrimaryAction(task) {
+    if (task.invoice) {
+      return `<button class="btn btn-sm btn-primary flex-1" data-action="App.navigate" data-args='${JSON.stringify(["invoices", {id: task.invoice.id}])}'><span class="material-symbols-rounded fs-16">request_quote</span>Open invoice</button>`;
+    }
     if (task.job) {
       return `<button class="btn btn-sm btn-primary flex-1" data-action="App.navigate" data-args='${JSON.stringify(["jobs", {id: task.job.id}])}'><span class="material-symbols-rounded fs-16">construction</span>Open job</button>`;
     }

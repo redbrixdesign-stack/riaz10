@@ -71,6 +71,20 @@ The home tab is an AI-style chat assistant, not a static dashboard.
 - Commission engine: simple (%) or two-stage (sale reduced 20% → 15.25% of
   net), fully configurable. The weekly **sales** target is derived from the
   earnings target — one number to set, not two.
+- An append-only payment ledger records methods, references, refunds, and
+  reversals. Order paid/balance figures are projections of that ledger rather
+  than editable financial history.
+
+### Invoices and formal documents
+- Orders can produce multiple itemised invoice drafts with domain-calculated
+  tax and totals. Issued invoices are immutable.
+- Payments reconcile against orders and optionally invoices. Existing deposit
+  and full-payment buttons feed the same ledger.
+- Credit notes reduce an invoice balance without pretending cash was refunded;
+  refunds and payment reversals remain separate linked ledger entries.
+- Invoices, receipts, refund/reversal confirmations, and credit notes preview
+  and print offline. Messaging is review-first and never processes or sends a
+  payment automatically.
 
 ### Orders
 - **Kanban board**: Ordered → Delivered → Fitted → Paid, plus an open
@@ -155,11 +169,13 @@ Backup.
 ## 3. How it works
 
 ### Storage
-- **IndexedDB** via bundled Dexie 4 (`advisoros_v6` database) with 20
+- **IndexedDB** via bundled Dexie 4 (`advisoros_v6` database) with 25
   tables: customers, appointments, orders, expenses, trips, measurements,
   communications, settings, sequences, photos, leads, tasks, taskEvents,
   quotes, quoteItems, jobs, checklistTemplates, checklistItems,
   checklistResponses, and jobIssues.
+  The Phase 4 additions are payments, invoices, invoiceItems, creditNotes, and
+  document metadata.
 - Lead identity/contact data and task title/notes are encrypted at rest. The
   backup format remains version 1; older backups import with the three Phase 1
   tables empty.
@@ -168,6 +184,9 @@ Backup.
 - Job notes/sign-off/override details, checklist response text, and issue
   content are encrypted at rest. Older backups import with Phase 3 tables
   empty.
+- Payment references/notes, invoice snapshots/notes/terms, item descriptions,
+  and credit-note content are encrypted at rest. Older backups import the
+  Phase 4 tables as empty and retain their compatibility order balances.
 - If Dexie is unavailable, a **bundled mini-Dexie shim** (601 lines) serves
   the same API; if IndexedDB itself is unavailable it degrades to an
   in-memory store with a warning.

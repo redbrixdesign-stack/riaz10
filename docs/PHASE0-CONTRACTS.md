@@ -36,11 +36,13 @@ Database schema version and backup file-format version are independent:
 | `advisoros_v6` schema 3 | Open without structural migration; idempotent PII repair/encryption may run | Phase 1 storage tests; repeated boot is stable |
 | `advisoros_v6` schema 4 | Add structured quotes and quote items, add the nullable order quote link, and preserve every prior table | Both-engine Phase 2 storage tests; repeated boot is stable |
 | `advisoros_v6` schema 5 | Add jobs, checklist templates/items/responses, issues, nullable appointment job links, and optional photo job/visit links | Both-engine Phase 3 storage tests; repeated boot is stable |
+| `advisoros_v6` schema 6 | Add payments, invoices/items, credit notes, document metadata, and guarded invoice/credit sequences | Both-engine Phase 4 storage tests; repeated boot is stable |
 | Legacy backup envelope `version: 4.0` or `5.0` | Treat as backup format 1 with absent newer tables empty | Seven-table immutable fixture restores; sequence floors advance |
 | Backup format 1 / database schema 2 | Treat absent Phase 1 tables as empty, validate supplied data, re-encrypt PII, and guard sequences | Pre-Phase-0 immutable fixture restores on real Dexie and mini-Dexie |
 | Backup format 1 / database schema 3 | Validate and restore all thirteen tables, including lead/task links and task-event history | Both-engine Phase 1 roundtrip and rollback tests |
 | Backup format 1 / database schema 4 | Validate and restore all fifteen tables, quote versions/items, order links, and quote sequence floors | Both-engine Phase 2 roundtrip, conversion, and compatibility tests |
 | Backup format 1 / database schema 5 | Validate and restore all twenty tables and every job/checklist/issue/appointment relationship | Both-engine Phase 3 roundtrip, completion, cascade, and compatibility tests |
+| Backup format 1 / database schema 6 | Validate and restore all twenty-five tables, immutable ledger links, invoice relationships, credits, documents, and numbering floors | Both-engine Phase 4 reconciliation and restore tests |
 | Future backup format | Reject before confirmation or writes | Database and device config remain unchanged |
 
 Before every future schema change, extend this matrix and commit an immutable

@@ -304,7 +304,7 @@ async function runDbJs(engine, tag) {
   await DB.addPhoto({ customerId: c.id, data: photoData, caption: 'Back yard' });
 
   const exported = await DB.exportAll();
-  ok(engine + ': exportAll shape', Object.keys(exported).length === 20 && exported.customers.length === 3 && exported.photos.length === 1, Object.keys(exported));
+  ok(engine + ': exportAll shape', Object.keys(exported).length === 25 && exported.customers.length === 3 && exported.photos.length === 1, Object.keys(exported));
 
   // Import: corrupt payload must throw and leave data untouched.
   const beforeExport = await DB.exportAll();
@@ -609,10 +609,10 @@ async function runBackupRoundtrip(engine, tag) {
   await DB.setSetting('pitchDemoSeeded', true);
 
   const exported = await DB.exportAll();
-  ok(engine + ': backup exports all 20 tables', Object.keys(exported).length === 20, Object.keys(exported));
+  ok(engine + ': backup exports all 25 tables', Object.keys(exported).length === 25, Object.keys(exported));
   ok(engine + ': backup carries photos', exported.photos.length === 3, exported.photos.length);
   ok(engine + ': backup drops runtime-only settings', exported.settings.length === 1 && exported.settings[0].key === 'config', exported.settings);
-  ok(engine + ': backup carries sequences', exported.sequences.length === 3, exported.sequences);
+  ok(engine + ': backup carries sequences', exported.sequences.length === 5, exported.sequences);
   ok(engine + ': backup photo payloads exact', exported.photos.some(p => p.data === photoB) && exported.photos.some(p => p.data === photoA));
 
   // Wipe (simulating a lost/cleared device) then restore from the dump.
@@ -842,14 +842,14 @@ async function runBackupEnvelope() {
 
   const backup = await ExportService.exportBackup();
   const storageContract = DB.storageContract();
-  ok('envelope: authoritative storage contract is schema 5 / format 1',
-    storageContract.databaseSchemaVersion === 5 && storageContract.backupFormatVersion === 1, storageContract);
+  ok('envelope: authoritative storage contract is schema 6 / format 1',
+    storageContract.databaseSchemaVersion === 6 && storageContract.backupFormatVersion === 1, storageContract);
   ok('envelope: backupFormatVersion present', backup.backupFormatVersion === 1, backup.backupFormatVersion);
-  ok('envelope: databaseSchemaVersion present', backup.databaseSchemaVersion === 5, backup.databaseSchemaVersion);
+  ok('envelope: databaseSchemaVersion present', backup.databaseSchemaVersion === 6, backup.databaseSchemaVersion);
   ok('envelope: appVersion present', backup.appVersion === '5.0', backup.appVersion);
   ok('envelope: legacy version field kept', backup.version === '5.0');
   ok('envelope: exportedAt timestamp', typeof backup.exportedAt === 'string' && !isNaN(Date.parse(backup.exportedAt)));
-  ok('envelope: carries all 20 data tables', Object.keys(backup.data).length === 20, Object.keys(backup.data));
+  ok('envelope: carries all 25 data tables', Object.keys(backup.data).length === 25, Object.keys(backup.data));
   ok('envelope: photos in backup', backup.data.photos.length === 1 && backup.data.photos[0].data === photo);
   ok('envelope: no proxy secret in backup config', backup.config.ai && backup.config.ai.secret === undefined);
   ok('envelope: secret absent from serialized file', JSON.stringify(backup).indexOf('super-secret-key') === -1);
@@ -1217,6 +1217,18 @@ async function runPhase3JobStorage(engine) {
   ok(engine + ': customer deletion removes job graph', (await DB.db.jobs.count()) === 0 && (await DB.db.checklistResponses.count()) === 0 && (await DB.db.jobIssues.count()) === 0);
 }
 
+async function runPhase4FinanceStorage(engine){
+ const sandbox=baseSandbox();if(engine==='dexie'){const Dexie=require('dexie');Dexie.dependencies.indexedDB=indexedDB;Dexie.dependencies.IDBKeyRange=IDBKeyRange;sandbox.Dexie=Dexie;}else sandbox.Dexie=loadShim(sandbox);const DB=loadDbJs(sandbox,`advisoros_v6_phase4_${engine}_${Date.now()}`);await DB.init();await sandbox.initEncryption('phase4-pass');
+ const c=await DB.addCustomer({firstName:'Finance',lastName:'Customer'});const o=await DB.addOrder({customerId:c.id,total:500});await DB.db.orders.update(o.id,{depositPaid:100,balanceDue:400});const migrated=await DB.migrateLegacyOrderPayment(o.id);const again=await DB.migrateLegacyOrderPayment(o.id);ok(engine+': unambiguous legacy payment migrates exactly once',migrated&&again===null&&(await DB.db.payments.where('orderId').equals(o.id).count())===1);
+ const p=await DB.recordLedgerPayment({orderId:o.id,amount:200,method:'card',reference:'REF',notes:'Private',operationId:'pay-1'});await DB.recordLedgerPayment({orderId:o.id,amount:200,operationId:'pay-1'});let sum=await DB.reconcileOrderBalance(o.id);ok(engine+': ledger payment idempotent and projects order',sum.paid===300&&sum.balanceDue===200&&(await DB.db.payments.where('orderId').equals(o.id).count())===2);
+ await DB.refundPayment(p.id,{amount:50,operationId:'refund-1'});let over=false;try{await DB.refundPayment(p.id,{amount:151,operationId:'refund-over'});}catch(e){over=true;}let reverseRefund=false;try{await DB.reversePayment((await DB.getPayments({kind:'refund'}))[0].id,{operationId:'bad-reverse'});}catch(e){reverseRefund=true;}sum=await DB.reconcileOrderLedger(o.id);ok(engine+': refunds are append-only and cannot over-credit',over&&reverseRefund&&sum.paid===250&&sum.balanceDue===250);
+ const invoice=await DB.createInvoice({customerId:c.id,orderId:o.id,terms:'Private terms'},[{description:'Supply',quantity:2,unitPrice:100,taxRate:20}]);ok(engine+': invoice totals derive from items',invoice.invoice.subtotal===200&&invoice.invoice.taxAmount===40&&invoice.invoice.total===240);await DB.issueInvoice(invoice.invoice.id);let immutable=false;try{await DB.updateInvoice(invoice.invoice.id,{notes:'change'});}catch(e){immutable=true;}const credit=await DB.createCreditNote(invoice.invoice.id,{amount:40,reason:'Adjustment'});let overCredit=false;try{await DB.createCreditNote(invoice.invoice.id,{amount:201});}catch(e){overCredit=true;}ok(engine+': issued invoice immutable and credits bounded',immutable&&overCredit&&credit.creditNumber.startsWith('CRN-')&&(await DB.getCreditNote(credit.id)).reason==='Adjustment');
+ await DB.recordPayment({orderId:o.id,invoiceId:invoice.invoice.id,amount:100,method:'bank',operationId:'invoice-pay'});const balance=await DB.getInvoiceBalance(invoice.invoice.id);ok(engine+': invoice balance reconciles payments and credits',balance.balanceDue===100);
+ const doc=await DB.addDocumentMetadata({customerId:c.id,type:'receipt',paymentId:p.id,filename:'receipt.pdf',hash:'abc'});const receipt=await DB.getReceipt(p.id);ok(engine+': document metadata links without binary',receipt.document.id===doc.id&&receipt.payment.reference==='REF');
+ const rawP=await DB.db.payments.get(p.id),rawI=await DB.db.invoices.get(invoice.invoice.id),rawC=await DB.db.creditNotes.get(credit.id);ok(engine+': finance PII encrypted at rest',typeof rawP.reference==='object'&&typeof rawI.terms==='object'&&typeof rawC.reason==='object');
+ const exported=await DB.exportAll();await DB.deleteAllData();await DB.importAll(JSON.parse(JSON.stringify(exported)));ok(engine+': finance graph backup restores',(await DB.db.payments.count())===4&&(await DB.db.invoices.count())===1&&(await DB.db.invoiceItems.count())===1&&(await DB.db.creditNotes.count())===1&&(await DB.db.documents.count())===1);const inv2=await DB.createInvoice({customerId:c.id},[{description:'Next',quantity:1,unitPrice:1}]);ok(engine+': invoice numbering continues after restore',inv2.invoice.invoiceNumber!==invoice.invoice.invoiceNumber);
+}
+
 // ---------- runner ----------
 
 (async () => {
@@ -1276,6 +1288,8 @@ async function runPhase3JobStorage(engine) {
   await runPhase3JobStorage('dexie');
   console.log('\nTest 20: Phase 3 job storage — bundled shim');
   await runPhase3JobStorage('shim');
+  console.log('\nTest 21: Phase 4 finance storage — real Dexie');await runPhase4FinanceStorage('dexie');
+  console.log('\nTest 22: Phase 4 finance storage — bundled shim');await runPhase4FinanceStorage('shim');
   console.log('\n' + (failures === 0 ? 'ALL TESTS PASSED' : failures + ' TEST(S) FAILED'));
   process.exit(failures === 0 ? 0 : 1);
 })().catch(e => { console.error('UNEXPECTED ERROR:', e); process.exit(1); });

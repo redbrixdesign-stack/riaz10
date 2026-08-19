@@ -267,6 +267,7 @@ const OrdersFeature = {
 
         <div class="divider-text">Links</div>
         <div class="kanban-btn-grid">
+          <button class="btn btn-outline btn-sm" data-close="1" data-action="App.navigate" data-args='${JSON.stringify(['invoices', { orderId: order.id, customerId: order.customerId }])}'><span class="material-symbols-rounded">receipt_long</span>Invoices &amp; payments</button>
           <button class="btn btn-outline btn-sm" data-close="1" data-action="App.navigate" data-args='${JSON.stringify(['jobs', { orderId: order.id }])}'><span class="material-symbols-rounded">construction</span>${jobs.length ? `Jobs (${jobs.length})` : 'Create job'}</button>
           ${order.appointmentId ? `<button class="btn btn-outline btn-sm" data-close="1" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: (order.appointmentId)}])}'><span class="material-symbols-rounded">event</span>Linked visit</button>` : ''}
           ${order.customerId ? `<button class="btn btn-outline btn-sm" data-close="1" data-action="App.navigate" data-args='${JSON.stringify(["customer", {id: (order.customerId)}])}'><span class="material-symbols-rounded">person</span>Customer 360</button>` : ''}

@@ -272,7 +272,7 @@ Web Crypto requires a secure context. Production must be served over HTTPS. Loop
 
 ## 7. Data model
 
-The database contains twenty tables.
+The database contains twenty-five tables.
 
 ### 7.1 `customers`
 
@@ -427,7 +427,20 @@ Photos may link directly to a job and appointment, while measurements remain
 linked through their appointment so existing customer and visit views continue
 to work.
 
-### 7.14 Relationships
+### 7.14 Finance ledger and formal documents
+
+`payments` is the append-only authority for cleared incoming money, refunds,
+reversals, and unambiguous migrated opening payments. Existing order
+`depositPaid` and `balanceDue` fields remain derived compatibility projections.
+Corrections append linked entries and never rewrite or delete history.
+
+`invoices` and `invoiceItems` provide locally generated, sequentially numbered
+documents with domain-derived totals. Drafts are editable; issued invoices are
+immutable. `creditNotes` are separately numbered, immutable corrections that
+reduce invoice amount due without pretending cash moved. `documents` stores
+generated invoice/receipt/job metadata and hashes, never binary payloads.
+
+### 7.15 Relationships
 
 ```text
 Customer
@@ -439,10 +452,15 @@ Customer
  │   ├─ Quote Items
  │   └─ Order (zero or one, only after explicit acceptance)
  ├─ Orders
- │   └─ Jobs
- │       ├─ Linked Visits
- │       ├─ Checklist Responses
- │       └─ Job Issues
+ │   ├─ Jobs
+ │   │   ├─ Linked Visits
+ │   │   ├─ Checklist Responses
+ │   │   └─ Job Issues
+ │   ├─ Payments
+ │   └─ Invoices
+ │       ├─ Invoice Items
+ │       ├─ Credit Notes
+ │       └─ Document Metadata
  ├─ Leads and Tasks
  ├─ Communications
  └─ Photos
@@ -530,7 +548,7 @@ The advisor can review completed versus total visits, see earnings recorded for 
 ### 8.8 Backup and restore
 
 1. Export a full JSON backup.
-2. The backup contains all twenty tables, sanitized configuration, schema/app metadata, photos, durable work, structured quotes, jobs, checklists, responses, and issues.
+2. The backup contains all twenty-five tables, including the immutable payment ledger, invoices/items, credit notes, and document metadata.
 3. Runtime-only AI secrets are excluded.
 4. An optional backup password encrypts the file with PBKDF2/AES-GCM.
 5. Import validates version, shape, IDs, references, types, and configuration before replacing data.
