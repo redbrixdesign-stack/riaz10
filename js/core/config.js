@@ -242,10 +242,39 @@ const CONFIG = {
     running_late: "Hi {{firstName}}, running about {{delay}} minutes late due to traffic. Still on my way! — {{advisorName}}",
     // Fallback wording for the automated cadence (message-scheduler.js) when
     // Claude AI is off — the AI drafts something warmer when it's enabled.
-    evening_before: "Hi {{firstName}}, just a quick one — I'm with you tomorrow at {{time}} at {{address}}. It'd help to know how many windows you're looking at and if you have specific blinds in mind. Any parking or anything else I should know about too? See you tomorrow! — {{advisorName}}",
-    morning_of: "Hi {{firstName}}, looking forward to seeing you today at {{time}}. If you get a chance, let me know how many windows and which blinds you're thinking of — and any parking or access notes. See you shortly! — {{advisorName}}",
-    // Intro/prep for a first-time customer's booking (Follow-ups 'intro' task).
-    pre_intro: "Hi {{firstName}}, I'm {{advisorName}} and I'll be with you on {{day}} at {{time}} for your {{visitType}} at {{address}}. If you can let me know about parking, access (gates, stairs, pets) and which windows you'd like me to focus on, that would help me be fully prepared. Any questions, just reply here.",
+    // Per-TYPE copy (same shape as NotificationService's confirmation asks):
+    // a fitting customer must be asked to clear the area / remove existing
+    // blinds, a measure customer asked to have windows clear for accurate
+    // sizing, a service call must reference the reported issue — never the
+    // consultation questions ("how many windows, which blinds") sent to the
+    // wrong visit, which is what the old flat strings did to every type.
+    evening_before: {
+      consultation: "Hi {{firstName}}, just a quick one — I'm with you tomorrow at {{time}} at {{address}}. It'd help to know how many windows you're looking at and if you have specific blinds in mind. Any parking or anything else I should know about too? See you tomorrow! — {{advisorName}}",
+      measure: "Hi {{firstName}}, just a quick one — I'll be with you tomorrow at {{time}} at {{address}} to measure up. If you can make sure the windows we're measuring are clear, that'll help me get accurate sizes. Any parking or access (gates, stairs, pets) I should know about? See you tomorrow! — {{advisorName}}",
+      fitting: "Hi {{firstName}}, just a quick one — I'm with you tomorrow at {{time}} at {{address}} to fit. If you could clear the area around the window(s) and remove any existing blinds or curtains beforehand, that'll help me get straight to fitting when I arrive. Let me know about parking or anything else useful. See you tomorrow! — {{advisorName}}",
+      follow_up: "Hi {{firstName}}, just a quick one — I'll be with you tomorrow at {{time}} at {{address}} to follow up on things. Let me know if anything's changed since we last spoke. See you tomorrow! — {{advisorName}}",
+      review: "Hi {{firstName}}, just a quick one — I'll be with you tomorrow at {{time}} at {{address}} to see how everything's looking. If anything's come up since the fitting, just reply here and I'll take a look. See you tomorrow! — {{advisorName}}",
+      service_call: "Hi {{firstName}}, just a quick one — I'll be with you tomorrow at {{time}} at {{address}} to sort out the issue you reported. If you can make sure the area's clear, I'll get straight to it. Let me know about parking too. See you tomorrow! — {{advisorName}}"
+    },
+    morning_of: {
+      consultation: "Hi {{firstName}}, looking forward to seeing you today at {{time}}. If you get a chance, let me know how many windows and which blinds you're thinking of — and any parking or access notes. See you shortly! — {{advisorName}}",
+      measure: "Hi {{firstName}}, looking forward to measuring up today at {{time}}. If you can make sure the windows are clear before I arrive, that's all I need — let me know about parking or access too. See you shortly! — {{advisorName}}",
+      fitting: "Hi {{firstName}}, looking forward to fitting today at {{time}}. If you can clear the area around the window(s) and take down any existing blinds or curtains, I'll get straight to it when I arrive. See you shortly! — {{advisorName}}",
+      follow_up: "Hi {{firstName}}, looking forward to seeing you today at {{time}} to follow up. Let me know if anything's changed. See you shortly! — {{advisorName}}",
+      review: "Hi {{firstName}}, looking forward to seeing you today at {{time}} to see how everything's looking. If anything's come up, just reply here. See you shortly! — {{advisorName}}",
+      service_call: "Hi {{firstName}}, looking forward to sorting out the issue for you today at {{time}}. If the area's clear, I'll get straight to it. See you shortly! — {{advisorName}}"
+    },
+    // Intro/prep for a first-time customer's booking (Follow-ups 'intro'
+    // task). Same per-type treatment — a fitting intro asks to clear the
+    // area, a service call references the reported issue.
+    pre_intro: {
+      consultation: "Hi {{firstName}}, I'm {{advisorName}} and I'll be with you on {{day}} at {{time}} for your {{visitType}} at {{address}}. If you can let me know about parking, access (gates, stairs, pets) and which windows you'd like me to focus on, that would help me be fully prepared. Any questions, just reply here.",
+      measure: "Hi {{firstName}}, I'm {{advisorName}} and I'll be with you on {{day}} at {{time}} to measure up for your window coverings at {{address}}. If you can make sure the windows we're measuring are clear, that would help me get accurate sizes. Any parking or access (gates, stairs, pets) to let me know about? Any questions, just reply here.",
+      fitting: "Hi {{firstName}}, I'm {{advisorName}} and I'll be with you on {{day}} at {{time}} to fit your new window coverings at {{address}}. If you can clear the area around the window(s) and take down any existing blinds or curtains beforehand, that'll help me get straight to it when I arrive. Any parking or access notes, just reply here.",
+      follow_up: "Hi {{firstName}}, I'm {{advisorName}} and I'll be with you on {{day}} at {{time}} at {{address}} to follow up on things. Let me know about parking or anything I should know, and just reply here with any questions.",
+      review: "Hi {{firstName}}, I'm {{advisorName}} and I'll be with you on {{day}} at {{time}} at {{address}} to see how everything's looking. If anything's come up since the fitting, just reply here and I'll take a look.",
+      service_call: "Hi {{firstName}}, I'm {{advisorName}} and I'll be with you on {{day}} at {{time}} at {{address}} to sort out the issue you reported. If you can make sure the area's clear, I'll get straight to it. Any questions, just reply here."
+    },
     // Order confirmation after an 'ordered' outcome.
     outcome_ordered: "Hi {{firstName}}, thanks again for ordering today. Your {{productType}} is now in hand — I'll keep you posted on fitting dates. Anything you need in the meantime, just reply here. — {{advisorName}}",
     // Post-fitting thank-you + review/referral ask (Follow-ups 'post_fit' task).

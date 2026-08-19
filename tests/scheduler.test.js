@@ -276,6 +276,56 @@ function appt(id, dateISO, phone = '07700123456') {
     ok('retry sets the flag', s.sandbox.localStorage.getItem(s._flag('evening_before', 1)) === '1');
   }
 
+  console.log('\nTest K: evening-before / morning-of are per-type (AI off)');
+  {
+    const s = loadScheduler({
+      uk: { year: 2026, month: 8, day: 11, hour: 18, minute: 30, second: 0 },
+      appointments: []
+    });
+    const types = ['consultation', 'measure', 'fitting', 'follow_up', 'review', 'service_call'];
+    const msgs = {};
+    for (const t of types) {
+      for (const stage of ['evening_before', 'morning_of']) {
+        const apptX = { id: 100, type: t, customerId: 1, phone: '07700123456', address: '12 Example Street, M14 7FZ', date: ukDay(2026, 8, 12) };
+        const pending = { customerId: 1, phone: '07700123456', appointmentId: 100, templateKey: stage };
+        msgs[t + ':' + stage] = await s._buildMessage(apptX, stage, pending, {});
+      }
+    }
+    // Show the fitting evening-before text so the fix is visible, not just asserted.
+    console.log('  fitting evening_before: ' + msgs['fitting:evening_before']);
+    console.log('  fitting morning_of:    ' + msgs['fitting:morning_of']);
+    console.log('  measure evening_before: ' + msgs['measure:evening_before']);
+    ok('fitting evening-before asks to clear the area + remove existing blinds', /clear the area around the window/.test(msgs['fitting:evening_before']) && /remove any existing blinds or curtains/.test(msgs['fitting:evening_before']), msgs['fitting:evening_before']);
+    ok('fitting morning-of asks to clear the area + take down blinds', /clear the area/.test(msgs['fitting:morning_of']) && /take down any existing blinds/.test(msgs['fitting:morning_of']), msgs['fitting:morning_of']);
+    ok('measure never asks which blinds (consultation question)', !/which blinds/.test(msgs['measure:evening_before'] + msgs['measure:morning_of']), msgs['measure:evening_before']);
+    ok('consultation still asks how many windows / which blinds', /how many windows/.test(msgs['consultation:evening_before']) && /which blinds/.test(msgs['consultation:morning_of']), msgs['consultation:evening_before']);
+    ok('service_call references the reported issue, not a generic compliment', /sort out the issue/.test(msgs['service_call:evening_before'] + msgs['service_call:morning_of']), msgs['service_call:evening_before']);
+    const unique = new Set(Object.values(msgs));
+    ok('all 12 type × stage combinations produce genuinely distinct copy', unique.size === 12 && Object.values(msgs).every(m => typeof m === 'string' && m.length > 0), { unique: unique.size });
+    ok('evening-before all say "tomorrow"; morning-of all say "today"', types.every(t => /tomorrow/.test(msgs[t + ':evening_before'])) && types.every(t => /today/.test(msgs[t + ':morning_of'])), msgs);
+    ok('per-type messages end with the advisor sign-off', /— Tom Advisor$/.test(msgs['fitting:evening_before']) && /— Tom Advisor$/.test(msgs['measure:morning_of']), msgs['fitting:evening_before']);
+  }
+
+  console.log('\nTest L: pre_intro resolves per-type through the same selection');
+  {
+    const s = loadScheduler({ uk: { year: 2026, month: 8, day: 11, hour: 12, minute: 0, second: 0 } });
+    const sandbox = s.sandbox;
+    // Resolve the same way TalkFeature.sendMessage now does: per-type map
+    // selected by appointment type with a consultation fallback.
+    const resolve = (templateKey, type) => {
+      const keys = templateKey.split('.');
+      let t = vm.runInContext('CONFIG.templates;', sandbox);
+      for (const k of keys) t = t?.[k];
+      if (t && typeof t === 'object' && 'consultation' in t) t = t[type] || t.consultation;
+      return t;
+    };
+    const fit = resolve('pre_intro', 'fitting');
+    ok('pre_intro fitting asks to clear the area + take down blinds', /clear the area around the window/.test(fit) && /take down any existing blinds/.test(fit), fit);
+    ok('pre_intro measure asks for clear windows, not blinds preference', !/which blinds/.test(resolve('pre_intro', 'measure')), resolve('pre_intro', 'measure'));
+    ok('pre_intro unknown type falls back to consultation', resolve('pre_intro', 'something_else').includes('which windows you'), resolve('pre_intro', 'something_else'));
+    ok('outcome-keyed maps are untouched by per-type resolution', resolve('follow_up.quote', 'quote') === vm.runInContext('CONFIG.templates.follow_up.quote;', sandbox));
+  }
+
   console.log('\nTest J: notification service reliability (popup fallback + UK-day tiers)');
   {
     const s = loadScheduler({

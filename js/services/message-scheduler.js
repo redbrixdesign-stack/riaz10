@@ -280,8 +280,16 @@ const MessageScheduler = {
       on_my_way: CONFIG.templates?.on_my_way,
       running_late: CONFIG.templates?.running_late
     };
-    const template = templates[stage];
-    if (!template) return null;
+    let template = templates[stage];
+    // Evening-before / morning-of are per-TYPE now (fitting → clear the
+    // area, measure → windows clear for sizing, service_call → the reported
+    // issue): pick the copy for THIS visit's type, consultation as the
+    // fallback — the same selection shape NotificationService's confirmation
+    // asks use (`asks[type] || asks.consultation`).
+    if (template && typeof template === 'object' && 'consultation' in template) {
+      template = template[appt?.type] || template.consultation;
+    }
+    if (typeof template !== 'string' || !template) return null;
     return NotificationService.processTemplate(template, {
       firstName: Utils.firstNameFrom(context.customer_name),
       time: context.time_start || '',

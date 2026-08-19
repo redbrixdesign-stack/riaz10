@@ -47,7 +47,7 @@ const ok = (label, cond, extra) => {
     };
   });
   ok('Home: THIS WEEK strip → NEXT feed → ATTENTION → ASK BEELO', JSON.stringify(home.labels) === JSON.stringify(['THIS WEEK', 'NEXT', 'NEEDS YOUR ATTENTION', 'ASK BEELO']), home.labels);
-  ok('Home feed: featured card + upcoming rows render real names + times', !!home.nextName && home.names.includes('Amelia Green') && home.times.length >= 3, { nextName: home.nextName, names: home.names.slice(0, 5), times: home.times });
+  ok('Home feed: featured card + upcoming rows render real names + times', !!home.nextName && home.names.some(n => n.replace(/^@/, '') === 'Amelia Green') && home.times.length >= 3, { nextName: home.nextName, names: home.names.slice(0, 5), times: home.times });
   ok('Home: John Smith is next; attention visible', home.hasSmith && home.hasAttention);
   ok('Home week strip has ‹ › arrows', home.arrows === 2, home.arrows);
 

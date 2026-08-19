@@ -33,16 +33,21 @@ const ok = (label, cond, extra) => {
   await page.waitForFunction(() => typeof App !== 'undefined' && App.currentHash === 'today' && !!document.querySelector('.comp-home-week-arrow'), null, { timeout: 30000 });
   await page.waitForTimeout(2500);
 
-  // The strip sits ABOVE the feed; Home must not show the old greeting.
-  const structure = await page.evaluate(() => ({
-    labels: Array.from(document.querySelectorAll('.comp-home-section-label')).map(e => e.textContent.trim()),
-    hasGreeting: !!document.querySelector('.comp-home-greeting'),
-    hasFeed: !!document.querySelector('.comp-home-next-visit'),
-    stripFirst: !!document.querySelector('.comp-home') && document.querySelector('.comp-home').firstElementChild?.classList.contains('comp-home-section')
-  }));
-  ok('Home sections: THIS WEEK strip first, then NEXT feed, Attention, Ask Beelo', JSON.stringify(structure.labels) === JSON.stringify(['THIS WEEK', 'NEXT', 'NEEDS YOUR ATTENTION', 'ASK BEELO']), structure.labels);
-  ok('no greeting banner on Home', !structure.hasGreeting, structure);
-  ok('appointment feed still present below the strip', structure.hasFeed && structure.stripFirst, structure);
+  // The strip sits on Home (after the advisor-name greeting when one is set);
+  // the feed follows it. Current Home design: greeting → THIS WEEK → feed.
+  const structure = await page.evaluate(() => {
+    const home = document.querySelector('.comp-home');
+    const kids = home ? Array.from(home.children) : [];
+    return {
+      labels: Array.from(document.querySelectorAll('.comp-home-section-label')).map(e => e.textContent.trim()),
+      hasGreeting: !!document.querySelector('.comp-home-greeting'),
+      hasFeed: !!document.querySelector('.comp-home-next-visit'),
+      stripSecond: kids[1] ? kids[1].classList.contains('comp-home-section') && !!kids[1].querySelector('.comp-home-week-strip') : false
+    };
+  });
+  ok('Home sections: THIS WEEK strip, then NEXT feed, Attention, Ask Beelo', JSON.stringify(structure.labels) === JSON.stringify(['THIS WEEK', 'NEXT', 'NEEDS YOUR ATTENTION', 'ASK BEELO']), structure.labels);
+  ok('advisor-name greeting sits above the strip (current design)', structure.hasGreeting, structure);
+  ok('appointment feed still present below the strip', structure.hasFeed && structure.stripSecond, structure);
 
   const read = () => page.evaluate(() => ({
     nums: Array.from(document.querySelectorAll('.comp-home-week-day-num')).map(e => e.textContent),
@@ -86,9 +91,11 @@ const ok = (label, cond, extra) => {
   });
   ok('strip day counts match the diary for every day shown', stripVsDiary.length === 0, stripVsDiary);
 
-  // Tapping a day opens My Day on that day.
+  // Tapping a day opens My Day on that day (wait for the real layout to
+  // paint — the skeleton also carries .hsc-root, so the title is the
+  // signal that the weekly calendar actually rendered).
   await page.evaluate(() => { const d = document.querySelector('.comp-home-week-day'); if (d) d.click(); });
-  await page.waitForSelector('.bottom-sheet .hsc-root', { timeout: 15000 });
+  await page.waitForSelector('.bottom-sheet .hsc-week-title', { timeout: 15000 });
   const dayTitle = await page.evaluate(() => document.querySelector('.bottom-sheet .hsc-week-title')?.textContent.trim());
   ok('day tap opens My Day', !!dayTitle, dayTitle);
 

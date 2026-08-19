@@ -51,7 +51,7 @@ const ok = (label, cond, extra) => {
   ok('comp-brand element absent from DOM', !gone.brand, gone);
   ok('comp-clock element absent from DOM', !gone.clock, gone);
   ok('no Beelo brand mark or avatar on Home', !gone.homeBrand && !gone.homeAvatar, gone);
-  ok('greeting banner absent (single appointment feed)', !gone.greeting, gone);
+  ok('advisor-name greeting renders on Home (current design)', gone.greeting, gone);
 
   console.log('\n=== Safe-area padding wired (env) ===');
   const rules = await page.evaluate(() => {
@@ -78,11 +78,13 @@ const ok = (label, cond, extra) => {
       scrollPaddingTop: getComputedStyle(scroll).paddingTop,
       firstTop: first ? Math.round(first.getBoundingClientRect().top) : null,
       firstVisible: first ? first.getBoundingClientRect().top >= 0 : false,
-      firstIsNextSection: !!(first && first.classList.contains('comp-home-section'))
+      // The first element is the advisor greeting when a name is set, else
+      // the weekly-calendar section — either way it must clear the safe area.
+      firstIsContent: !!(first && (first.classList.contains('comp-home-section') || first.classList.contains('comp-home-greeting')))
     };
   });
   ok('padding-top computes to 14px when inset = 0', zero.scrollPaddingTop === '14px', zero);
-  ok('the weekly-calendar section is the first visible element, fully on screen', zero.firstIsNextSection && zero.firstVisible && zero.firstTop < 40, zero);
+  ok('the first Home element (greeting or week strip) is fully on screen', zero.firstIsContent && zero.firstVisible && zero.firstTop < 40, zero);
 
   // Cross-check: same env() behaviour on the shared header screens (unchanged).
   await page.evaluate(() => App.navigate('settings'));

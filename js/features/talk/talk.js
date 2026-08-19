@@ -429,6 +429,15 @@ const TalkFeature = {
       template = template?.[k];
     }
 
+    // Per-type templates (evening_before / morning_of / pre_intro /
+    // confirmation.*): an object that carries a 'consultation' key is a
+    // per-appointment-type map — select the copy for THIS visit's type,
+    // consultation as the fallback. Outcome-keyed maps (follow_up.quote,
+    // post_sale.review) never have a 'consultation' key and are left alone.
+    if (template && typeof template === 'object' && 'consultation' in template) {
+      template = template[appt?.type] || template.consultation;
+    }
+
     if (!template) {
       Toast.show('Template not found', 'error');
       return;
@@ -713,6 +722,12 @@ const TalkFeature = {
       const keys = templateKey.split('.');
       let t = CONFIG.templates;
       for (const k of keys) t = t?.[k];
+      // Per-type templates (evening_before/morning_of/pre_intro/confirmation.*):
+      // select the copy for THIS appointment's type, consultation as fallback —
+      // same selection sendMessage and the message scheduler use.
+      if (t && typeof t === 'object' && 'consultation' in t) {
+        t = t[appt?.type] || t.consultation;
+      }
       templateText = typeof t === 'string' ? t : '';
     } catch (e) { /* ignore */ }
 
