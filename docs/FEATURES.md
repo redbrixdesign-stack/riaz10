@@ -169,7 +169,7 @@ Backup.
 ## 3. How it works
 
 ### Storage
-- **IndexedDB** via bundled Dexie 4 (`advisoros_v6` database) with 32
+- **IndexedDB** via bundled Dexie 4 (`advisoros_v6` database) with 38
   tables: customers, appointments, orders, expenses, trips, measurements,
   communications, settings, sequences, photos, leads, tasks, taskEvents,
   quotes, quoteItems, jobs, checklistTemplates, checklistItems,

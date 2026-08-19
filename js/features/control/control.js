@@ -98,6 +98,10 @@ const ControlFeature = {
           `)}
 
           ${card('Data & Settings', `
+            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["communications"])}'>
+              <span class="material-symbols-rounded">hub</span>
+              <span>Integrations</span>
+            </button>
             <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["settings"])}'>
               <span class="material-symbols-rounded">settings</span>
               <span>Settings</span>

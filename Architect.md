@@ -1526,6 +1526,8 @@ Exit criteria:
 **Goal:** complete the post-job relationship and add external connectivity only
 where it materially reduces solo-advisor administration.
 
+**Implementation status (19 August 2026): phase gate passed (schema 8).** Explicit aftercare records, append-only channel consent history, evidence-based communication lifecycle events, and an optional integration boundary now provide durable identity links, visible conflicts, and an offline outbox. No handoff is treated as delivery and disconnecting an integration preserves local records. See `docs/PHASE6-CONTRACTS.md`.
+
 Behavior:
 
 - model satisfaction checks, review requests, referrals, warranty/service dates, maintenance reminders, and repeat-work opportunities;

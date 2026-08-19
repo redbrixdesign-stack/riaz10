@@ -921,24 +921,41 @@ const TalkFeature = {
       return;
     }
     const { customerId, phone, appointmentId, templateKey } = pending;
+    if (customerId > 0 && typeof CommunicationService !== 'undefined') {
+      const preference = await CommunicationService.preference(customerId, 'whatsapp');
+      if (!CommunicationService.canContact(preference)) {
+        Toast.show('WhatsApp is blocked by this customer’s contact preference', 'warning');
+        return;
+      }
+    }
     const opened = NotificationService.sendWhatsApp(phone, message);
     if (!opened) return;
     // Record the attempt honestly. We can't confirm WhatsApp actually loaded
     // (window.open only tells us the call was made), so log it as an attempt,
     // not a confirmed send — the user verifies in WhatsApp itself.
-    if (customerId > 0) {
-      DB.addCommunication({ customerId, type: 'whatsapp_attempted', template: null, content: message });
-    }
-    // Same-template send flags: each automated follow-up kind marks the
-    // appointment so it drops out of the Follow-ups queue. (day_before
-    // predates the others — kept for the Talk tomorrow-reminders.)
-    const SENT_FLAGS = { day_before: 'dayBeforeSent', pre_intro: 'introSent', post_fit_followup: 'postFitSent', service_or_issue_followup: 'serviceSent' };
-    const flag = SENT_FLAGS[templateKey];
-    if (flag && appointmentId) {
-      try { await DB.db.appointments.update(appointmentId, { [flag]: true }); } catch (e) {}
-    }
+    let communication = null;
+    if (customerId > 0) communication = typeof CommunicationService !== 'undefined'
+      ? await CommunicationService.recordHandoff({ customerId, appointmentId, type: 'whatsapp_handoff', template: templateKey || null, content: message })
+      : await DB.addCommunication({ customerId, type: 'whatsapp_attempted', template: templateKey || null, content: message });
+    this.pendingSentConfirmation = { communicationId: communication?.id || null, customerId, appointmentId, templateKey };
     App.closeModal();
-    Toast.show('Opened WhatsApp — check it sent', 'info');
+    App.openModal(`<div class="sheet-handle"></div><div class="sheet-header"><h3>Did the message send?</h3></div><div class="sheet-body"><p class="text-secondary">Opening WhatsApp is only a hand-off. Confirm only after you can see the message was sent.</p><button class="btn btn-primary btn-block" data-action="TalkFeature.confirmHandoffSent">Yes, I sent it</button><button class="btn btn-outline btn-block mt-sm" data-action="TalkFeature.leaveHandoffUnconfirmed">Not sure yet</button></div>`);
+  },
+
+  async confirmHandoffSent() {
+    const pending = this.pendingSentConfirmation;
+    if (!pending) return;
+    if (pending.communicationId && typeof CommunicationService !== 'undefined') await CommunicationService.advisorConfirmSent(pending.communicationId, pending.customerId);
+    const SENT_FLAGS = { day_before: 'dayBeforeSent', pre_intro: 'introSent', post_fit_followup: 'postFitSent', service_or_issue_followup: 'serviceSent' };
+    const flag = SENT_FLAGS[pending.templateKey];
+    if (flag && pending.appointmentId) {
+      try { await DB.db.appointments.update(pending.appointmentId, { [flag]: true }); } catch (e) {}
+    }
+    this.pendingSentConfirmation = null; App.closeModal(); Toast.show('Message marked as sent by you', 'success');
+  },
+
+  leaveHandoffUnconfirmed() {
+    this.pendingSentConfirmation = null; App.closeModal(); Toast.show('Kept as handed off — delivery not assumed', 'info');
   },
 
   sendDayBefore(appointmentId) {

@@ -304,7 +304,7 @@ async function runDbJs(engine, tag) {
   await DB.addPhoto({ customerId: c.id, data: photoData, caption: 'Back yard' });
 
   const exported = await DB.exportAll();
-  ok(engine + ': exportAll shape', Object.keys(exported).length === 32 && exported.customers.length === 3 && exported.photos.length === 1, Object.keys(exported));
+  ok(engine + ': exportAll shape', Object.keys(exported).length === 38 && exported.customers.length === 3 && exported.photos.length === 1, Object.keys(exported));
 
   // Import: corrupt payload must throw and leave data untouched.
   const beforeExport = await DB.exportAll();
@@ -609,7 +609,7 @@ async function runBackupRoundtrip(engine, tag) {
   await DB.setSetting('pitchDemoSeeded', true);
 
   const exported = await DB.exportAll();
-  ok(engine + ': backup exports all 32 tables', Object.keys(exported).length === 32, Object.keys(exported));
+  ok(engine + ': backup exports all 38 tables', Object.keys(exported).length === 38, Object.keys(exported));
   ok(engine + ': backup carries photos', exported.photos.length === 3, exported.photos.length);
   ok(engine + ': backup drops runtime-only settings', exported.settings.length === 1 && exported.settings[0].key === 'config', exported.settings);
   ok(engine + ': backup carries sequences', exported.sequences.length === 5, exported.sequences);
@@ -842,14 +842,14 @@ async function runBackupEnvelope() {
 
   const backup = await ExportService.exportBackup();
   const storageContract = DB.storageContract();
-  ok('envelope: authoritative storage contract is schema 7 / format 1',
-    storageContract.databaseSchemaVersion === 7 && storageContract.backupFormatVersion === 1, storageContract);
+  ok('envelope: authoritative storage contract is schema 8 / format 1',
+    storageContract.databaseSchemaVersion === 8 && storageContract.backupFormatVersion === 1, storageContract);
   ok('envelope: backupFormatVersion present', backup.backupFormatVersion === 1, backup.backupFormatVersion);
-  ok('envelope: databaseSchemaVersion present', backup.databaseSchemaVersion === 7, backup.databaseSchemaVersion);
+  ok('envelope: databaseSchemaVersion present', backup.databaseSchemaVersion === 8, backup.databaseSchemaVersion);
   ok('envelope: appVersion present', backup.appVersion === '5.0', backup.appVersion);
   ok('envelope: legacy version field kept', backup.version === '5.0');
   ok('envelope: exportedAt timestamp', typeof backup.exportedAt === 'string' && !isNaN(Date.parse(backup.exportedAt)));
-  ok('envelope: carries all 32 data tables', Object.keys(backup.data).length === 32, Object.keys(backup.data));
+  ok('envelope: carries all 38 data tables', Object.keys(backup.data).length === 38, Object.keys(backup.data));
   ok('envelope: photos in backup', backup.data.photos.length === 1 && backup.data.photos[0].data === photo);
   ok('envelope: no proxy secret in backup config', backup.config.ai && backup.config.ai.secret === undefined);
   ok('envelope: secret absent from serialized file', JSON.stringify(backup).indexOf('super-secret-key') === -1);
@@ -1244,6 +1244,19 @@ async function runPhase5ProfitabilityStorage(engine) {
   const exported=await DB.exportAll();await DB.deleteAllData();await DB.importAll(JSON.parse(JSON.stringify(exported)));ok(engine+': Phase 5 profitability graph restores',(await DB.db.jobCosts.count())===1&&(await DB.db.financialPolicies.count())===2&&(await DB.calculateJobProfitability(job.id,5)).grossProfit===474.44);
 }
 
+async function runPhase6RetentionStorage(engine) {
+  const sandbox=baseSandbox();if(engine==='dexie'){const Dexie=require('dexie');Dexie.dependencies.indexedDB=indexedDB;Dexie.dependencies.IDBKeyRange=IDBKeyRange;sandbox.Dexie=Dexie;}else sandbox.Dexie=loadShim(sandbox);const DB=loadDbJs(sandbox,`advisoros_v8_phase6_${engine}_${Date.now()}`);await DB.init();await sandbox.initEncryption('phase6-pass');
+  const c=await DB.addCustomer({firstName:'Retain',lastName:'Customer'}),o=await DB.addOrder({customerId:c.id,total:500}),j=(await DB.createJobFromOrder(o.id,{},'retain-job')).job;
+  const retention=await DB.addRetentionRecord({customerId:c.id,orderId:o.id,jobId:j.id,type:'warranty',dueAt:'2027-01-01T10:00:00Z',notes:'Private warranty details',operationId:'ret-1'}),retry=await DB.addRetentionRecord({customerId:c.id,type:'warranty',operationId:'ret-1'});await DB.updateRetentionRecord(retention.id,{status:'completed',outcome:'Customer contacted',completedAt:'2027-01-02T10:00:00Z'});
+  ok(engine+': retention records are linked, retry-safe and lifecycle-aware',retention.id===retry.id&&(await DB.getRetentionRecords({customerId:c.id,status:'completed'})).length===1);
+  await DB.setContactPreference({customerId:c.id,channel:'whatsapp',status:'opted_in',consentSource:'Verbal',notes:'At visit'},'consent-1');await DB.setContactPreference({customerId:c.id,channel:'whatsapp',status:'opted_out',effectiveAt:'2027-02-01T00:00:00Z'},'consent-2');const preferences=await DB.getContactPreferences(c.id);ok(engine+': consent history retains current preference',preferences.history.length===2&&preferences.whatsapp.status==='opted_out');
+  const communication=await DB.addCommunication({customerId:c.id,type:'whatsapp_attempted',content:'Hi'});await DB.recordCommunicationEvent(communication.id,'attempted',{detail:'Opened handoff'},'comm-1');await DB.recordCommunicationEvent(communication.id,'attempted',{},'comm-1');ok(engine+': communication lifecycle events are append-only and idempotent',(await DB.getCommunicationEvents(communication.id)).length===1);
+  const link=await DB.upsertIntegrationLink({provider:'calendar',entityType:'appointment',localId:99,remoteId:'remote-1'});const conflict=await DB.addIntegrationConflict({integrationLinkId:link.id,localSnapshot:'private local',remoteSnapshot:'private remote'},'conflict-1');await DB.resolveIntegrationConflict(conflict.id,'keep_local',{notes:'Checked'});const queued=await DB.enqueueIntegrationOutbox({provider:'calendar',entityType:'appointment',localId:99,action:'upsert',payload:'private payload'},'outbox-1'),claimed=await DB.claimIntegrationOutbox('calendar');await DB.failIntegrationOutbox(claimed.id,'temporary','2027-01-01T00:00:00Z');ok(engine+': integration provenance, conflicts and outbox retain state',queued.id===claimed.id&&(await DB.getIntegrationConflicts({status:'resolved'})).length===1&&(await DB.getIntegrationOutbox({status:'retry'})).length===1);
+  const raw=await DB.db.retentionRecords.get(retention.id),rawPreference=(await DB.db.contactPreferences.toArray())[0],rawOutbox=await DB.db.integrationOutbox.get(queued.id);ok(engine+': Phase 6 sensitive metadata encrypted',typeof raw.notes==='object'&&typeof rawPreference.consentSource==='object'&&typeof rawOutbox.payload==='object');
+  const exported=await DB.exportAll();await DB.deleteAllData();await DB.importAll(JSON.parse(JSON.stringify(exported)));ok(engine+': Phase 6 graph backup restores',(await DB.db.retentionRecords.count())===1&&(await DB.db.contactPreferences.count())===2&&(await DB.db.communicationEvents.count())===1&&(await DB.db.integrationLinks.count())===1&&(await DB.db.integrationConflicts.count())===1&&(await DB.db.integrationOutbox.count())===1);
+  await DB.deleteCustomer(c.id);ok(engine+': customer deletion removes retention and consent graph',(await DB.db.retentionRecords.count())===0&&(await DB.db.contactPreferences.count())===0&&(await DB.db.communicationEvents.count())===0);
+}
+
 // ---------- runner ----------
 
 (async () => {
@@ -1307,6 +1320,8 @@ async function runPhase5ProfitabilityStorage(engine) {
   console.log('\nTest 22: Phase 4 finance storage — bundled shim');await runPhase4FinanceStorage('shim');
   console.log('\nTest 23: Phase 5 profitability storage — real Dexie');await runPhase5ProfitabilityStorage('dexie');
   console.log('\nTest 24: Phase 5 profitability storage — bundled shim');await runPhase5ProfitabilityStorage('shim');
+  console.log('\nTest 25: Phase 6 retention storage — real Dexie');await runPhase6RetentionStorage('dexie');
+  console.log('\nTest 26: Phase 6 retention storage — bundled shim');await runPhase6RetentionStorage('shim');
   console.log('\n' + (failures === 0 ? 'ALL TESTS PASSED' : failures + ' TEST(S) FAILED'));
   process.exit(failures === 0 ? 0 : 1);
 })().catch(e => { console.error('UNEXPECTED ERROR:', e); process.exit(1); });

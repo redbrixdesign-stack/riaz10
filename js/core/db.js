@@ -6,9 +6,9 @@
 // Every table a backup can carry. exportAll() and importAll() speak this
 // exact list; adding a table here is a backup-format change and must be
 // mirrored in the backup envelope's versioning (js/services/export.js).
-const DATABASE_SCHEMA_VERSION = 7;
+const DATABASE_SCHEMA_VERSION = 8;
 const BACKUP_FORMAT_VERSION = 1;
-const BACKUP_TABLES = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'photos', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems', 'jobs', 'checklistTemplates', 'checklistItems', 'checklistResponses', 'jobIssues', 'payments', 'invoices', 'invoiceItems', 'creditNotes', 'documents', 'suppliers', 'products', 'purchaseOrders', 'purchaseOrderItems', 'jobCosts', 'availabilityBlocks', 'financialPolicies', 'settings', 'sequences'];
+const BACKUP_TABLES = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'photos', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems', 'jobs', 'checklistTemplates', 'checklistItems', 'checklistResponses', 'jobIssues', 'payments', 'invoices', 'invoiceItems', 'creditNotes', 'documents', 'suppliers', 'products', 'purchaseOrders', 'purchaseOrderItems', 'jobCosts', 'availabilityBlocks', 'financialPolicies', 'retentionRecords', 'contactPreferences', 'communicationEvents', 'integrationLinks', 'integrationConflicts', 'integrationOutbox', 'settings', 'sequences'];
 
 // ============================================
 // Field-level encryption (AES-GCM 256-bit, key from passphrase via PBKDF2)
@@ -34,6 +34,11 @@ const CREDIT_PII_FIELDS = ['reason', 'itemSnapshot'];
 const DOCUMENT_PII_FIELDS = ['filename'];
 const JOB_COST_PII_FIELDS = ['description', 'supplier', 'reference'];
 const AVAILABILITY_PII_FIELDS = ['label'];
+const RETENTION_PII_FIELDS = ['notes', 'outcome'];
+const CONTACT_PREFERENCE_PII_FIELDS = ['notes', 'consentSource'];
+const COMMUNICATION_EVENT_PII_FIELDS = ['detail', 'error'];
+const INTEGRATION_CONFLICT_PII_FIELDS = ['localSnapshot', 'remoteSnapshot', 'resolutionNotes'];
+const INTEGRATION_OUTBOX_PII_FIELDS = ['payload', 'lastError'];
 const PBKDF2_ITERATIONS = 100000;
 const KEY_LENGTH = 256;
 const IV_LENGTH = 12;
@@ -298,6 +303,16 @@ const encryptJobCost = row => encryptStringFields(row, JOB_COST_PII_FIELDS);
 const decryptJobCost = row => decryptStringFields(row, JOB_COST_PII_FIELDS);
 const encryptAvailabilityBlock = row => encryptStringFields(row, AVAILABILITY_PII_FIELDS);
 const decryptAvailabilityBlock = row => decryptStringFields(row, AVAILABILITY_PII_FIELDS);
+const encryptRetentionRecord = row => encryptStringFields(row, RETENTION_PII_FIELDS);
+const decryptRetentionRecord = row => decryptStringFields(row, RETENTION_PII_FIELDS);
+const encryptContactPreference = row => encryptStringFields(row, CONTACT_PREFERENCE_PII_FIELDS);
+const decryptContactPreference = row => decryptStringFields(row, CONTACT_PREFERENCE_PII_FIELDS);
+const encryptCommunicationEvent = row => encryptStringFields(row, COMMUNICATION_EVENT_PII_FIELDS);
+const decryptCommunicationEvent = row => decryptStringFields(row, COMMUNICATION_EVENT_PII_FIELDS);
+async function encryptIntegrationConflict(row) { const copy={...row};for(const field of ['localSnapshot','remoteSnapshot'])if(copy[field]&&typeof copy[field]==='object')copy[field]=JSON.stringify(copy[field]);return encryptStringFields(copy,INTEGRATION_CONFLICT_PII_FIELDS); }
+async function decryptIntegrationConflict(row) { const out=await decryptStringFields(row,INTEGRATION_CONFLICT_PII_FIELDS);for(const field of ['localSnapshot','remoteSnapshot'])if(typeof out?.[field]==='string'&&/^[\[{]/.test(out[field]))try{out[field]=JSON.parse(out[field]);}catch(e){}return out; }
+async function encryptIntegrationOutbox(row) { const copy={...row};if(copy.payload&&typeof copy.payload==='object')copy.payload=JSON.stringify(copy.payload);return encryptStringFields(copy,INTEGRATION_OUTBOX_PII_FIELDS); }
+async function decryptIntegrationOutbox(row) { const out=await decryptStringFields(row,INTEGRATION_OUTBOX_PII_FIELDS);if(typeof out?.payload==='string'&&/^[\[{]/.test(out.payload))try{out.payload=JSON.parse(out.payload);}catch(e){}return out; }
 
 async function migratePlaintextWorkItems() {
   if (!encryptionKey) return;
@@ -316,6 +331,11 @@ async function migratePlaintextWorkItems() {
     ,['documents', DOCUMENT_PII_FIELDS, encryptDocument]
     ,['jobCosts', JOB_COST_PII_FIELDS, encryptJobCost]
     ,['availabilityBlocks', AVAILABILITY_PII_FIELDS, encryptAvailabilityBlock]
+    ,['retentionRecords', RETENTION_PII_FIELDS, encryptRetentionRecord]
+    ,['contactPreferences', CONTACT_PREFERENCE_PII_FIELDS, encryptContactPreference]
+    ,['communicationEvents', COMMUNICATION_EVENT_PII_FIELDS, encryptCommunicationEvent]
+    ,['integrationConflicts', INTEGRATION_CONFLICT_PII_FIELDS, encryptIntegrationConflict]
+    ,['integrationOutbox', INTEGRATION_OUTBOX_PII_FIELDS, encryptIntegrationOutbox]
   ]) {
     const rows = await DB.db[table].toArray();
     for (const row of rows) {
@@ -399,6 +419,12 @@ const DB = {
       ,jobCosts: '++id, customerId, orderId, jobId, category, incurredAt, operationId, createdAt'
       ,availabilityBlocks: '++id, type, startAt, endAt, recurringDay, createdAt'
       ,financialPolicies: '++id, effectiveFrom, mode, createdAt'
+      ,retentionRecords: '++id, customerId, orderId, jobId, type, status, dueAt, operationId, createdAt'
+      ,contactPreferences: '++id, customerId, channel, status, effectiveAt, operationId, createdAt'
+      ,communicationEvents: '++id, communicationId, customerId, state, occurredAt, operationId, createdAt'
+      ,integrationLinks: '++id, provider, entityType, localId, remoteId, updatedAt'
+      ,integrationConflicts: '++id, integrationLinkId, status, detectedAt, operationId, createdAt'
+      ,integrationOutbox: '++id, provider, entityType, localId, action, status, nextAttemptAt, operationId, createdAt'
     });
 
     if (typeof this.db.open === 'function') {
@@ -717,7 +743,7 @@ const DB = {
   // what actually happened, not just "done".
   async deleteCustomer(customerId) {
     return this._runWrite(
-      ['customers', 'appointments', 'orders', 'communications', 'photos', 'measurements', 'trips', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems', 'jobs', 'checklistResponses', 'jobIssues', 'payments', 'invoices', 'invoiceItems', 'creditNotes', 'documents', 'purchaseOrders', 'purchaseOrderItems', 'jobCosts'],
+      ['customers', 'appointments', 'orders', 'communications', 'photos', 'measurements', 'trips', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems', 'jobs', 'checklistResponses', 'jobIssues', 'payments', 'invoices', 'invoiceItems', 'creditNotes', 'documents', 'purchaseOrders', 'purchaseOrderItems', 'jobCosts', 'retentionRecords', 'contactPreferences', 'communicationEvents'],
       async () => {
         const [appts, orders, comms] = await Promise.all([
           this.db.appointments.where('customerId').equals(customerId).toArray(),
@@ -752,6 +778,9 @@ const DB = {
         if (purchaseOrderIds.length) await this.db.purchaseOrderItems.where('purchaseOrderId').anyOf(purchaseOrderIds).delete();
         for (const row of purchaseOrders) await this.db.purchaseOrders.delete(row.id);
         await this.db.jobCosts.where('customerId').equals(customerId).delete();
+        await this.db.retentionRecords.where('customerId').equals(customerId).delete();
+        await this.db.contactPreferences.where('customerId').equals(customerId).delete();
+        await this.db.communicationEvents.where('customerId').equals(customerId).delete();
         if(invoiceIds.length)await this.db.invoiceItems.where('invoiceId').anyOf(invoiceIds).delete();
         await this.db.payments.where('customerId').equals(customerId).delete(); await this.db.creditNotes.where('customerId').equals(customerId).delete(); await this.db.documents.where('customerId').equals(customerId).delete(); await this.db.invoices.where('customerId').equals(customerId).delete();
         const measurementCount = apptIds.length ? await this.db.measurements.where('appointmentId').anyOf(apptIds).delete() : 0;
@@ -1887,6 +1916,40 @@ const DB = {
   async calculateQuoteProfitability(quoteId, hours = 0) { const result = await this.getQuote(quoteId); if (!result) throw new Error('Quote not found'); const quote = result.quote, asOf = quote.issueDate || quote.createdAt, policy = await this.getEffectiveFinancialPolicy(asOf); const cost = result.items.reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.cost || 0), 0); return this._profitabilityMetrics(this._effectiveRevenue(quote.total, policy), cost, hours, policy, { quoteId, saleValue: quote.total, basis: 'quoted_estimate', asOf }); },
   async calculateJobProfitability(jobId, hours = 0) { const job = await this.getJob(jobId); if (!job) throw new Error('Job not found'); const order = await this.db.orders.get(job.orderId); if (!order) throw new Error('Order not found'); const costs = await this.getJobCosts({ jobId }), asOf = order.createdAt || job.createdAt, policy = await this.getEffectiveFinancialPolicy(asOf); return this._profitabilityMetrics(this._effectiveRevenue(order.total, policy), costs.reduce((sum, row) => sum + Number(row.amount || 0), 0), hours, policy, { jobId, orderId: order.id, saleValue: order.total, basis: 'actual_job_costs', asOf }); },
 
+  // Phase 6 retention, consent, communication state, and offline sync -----
+  async addRetentionRecord(data) {
+    const types=['satisfaction_check','review_request','referral','warranty','service','repeat_opportunity'];
+    if(!data||!Number.isInteger(data.customerId)||!await this.db.customers.get(data.customerId))throw new Error('Retention customer is required');
+    if(!types.includes(data.type))throw new Error('Retention type is invalid');
+    if(data.orderId!=null){const order=await this.db.orders.get(data.orderId);if(!order||order.customerId!==data.customerId)throw new Error('Retention order is invalid');}
+    if(data.jobId!=null){const job=await this.db.jobs.get(data.jobId);if(!job||job.customerId!==data.customerId)throw new Error('Retention job is invalid');}
+    if(data.operationId){const existing=await this.db.retentionRecords.where('operationId').equals(data.operationId).first();if(existing)return decryptRetentionRecord(existing);}
+    if(data.score!=null&&(!Number.isInteger(data.score)||data.score<1||data.score>5))throw new Error('Satisfaction score must be from 1 to 5');
+    const dueAt=data.dueAt?new Date(data.dueAt):null;if(dueAt&&isNaN(dueAt.getTime()))throw new Error('Retention due date is invalid');
+    const now=new Date().toISOString(),row=await encryptRetentionRecord({...data,status:data.status||'planned',dueAt:dueAt?.toISOString()||null,createdAt:now,updatedAt:now});row.id=await this.db.retentionRecords.add(row);return decryptRetentionRecord(row);
+  },
+  async getRetentionRecords(filters={}){let rows=await this.db.retentionRecords.toArray();for(const field of ['customerId','orderId','jobId','type','status'])if(filters[field]!=null)rows=rows.filter(r=>r[field]===filters[field]);if(filters.dueBefore){const end=new Date(filters.dueBefore);rows=rows.filter(r=>r.dueAt&&new Date(r.dueAt)<=end);}rows.sort((a,b)=>new Date(a.dueAt||a.createdAt)-new Date(b.dueAt||b.createdAt));return Promise.all(rows.map(decryptRetentionRecord));},
+  async updateRetentionRecord(id,patch={}){const current=await this.db.retentionRecords.get(id);if(!current)throw new Error('Retention record not found');const allowed={};for(const field of ['status','dueAt','completedAt','score','notes','outcome'])if(patch[field]!==undefined)allowed[field]=patch[field];if(allowed.status&&!['planned','due','completed','cancelled'].includes(allowed.status))throw new Error('Retention status is invalid');if(allowed.score!=null&&(!Number.isInteger(allowed.score)||allowed.score<1||allowed.score>5))throw new Error('Satisfaction score must be from 1 to 5');for(const field of ['dueAt','completedAt'])if(allowed[field]!=null){const date=new Date(allowed[field]);if(isNaN(date.getTime()))throw new Error('Retention date is invalid');allowed[field]=date.toISOString();}const encrypted=await encryptRetentionRecord({...allowed,updatedAt:new Date().toISOString()});await this.db.retentionRecords.update(id,encrypted);return decryptRetentionRecord({...current,...encrypted,id});},
+
+  async setContactPreference(data,operationId=null){const channels=['phone','email','sms','whatsapp','post'],statuses=['opted_in','opted_out','unknown','blocked'];if(!data||!Number.isInteger(data.customerId)||!await this.db.customers.get(data.customerId))throw new Error('Preference customer is required');if(!channels.includes(data.channel)||!statuses.includes(data.status))throw new Error('Contact preference is invalid');const op=operationId||data.operationId||null;if(op){const existing=await this.db.contactPreferences.where('operationId').equals(op).first();if(existing)return decryptContactPreference(existing);}const effectiveAt=new Date(data.effectiveAt||new Date());if(isNaN(effectiveAt.getTime()))throw new Error('Preference effective date is invalid');const now=new Date().toISOString(),row=await encryptContactPreference({...data,operationId:op,effectiveAt:effectiveAt.toISOString(),createdAt:now});row.id=await this.db.contactPreferences.add(row);return decryptContactPreference(row);},
+  async setContactPreferences(data){return this.setContactPreference(data,data?.operationId||null);},
+  async recordConsentEvent(data,operationId=null){return this.setContactPreference(data,operationId);},
+  async getContactPreferences(input){const filters=Number.isInteger(input)?{customerId:input}:(input||{});if(!Number.isInteger(filters.customerId))throw new Error('Customer is required');let rows=await this.db.contactPreferences.where('customerId').equals(filters.customerId).toArray();rows.sort((a,b)=>new Date(a.effectiveAt)-new Date(b.effectiveAt));const history=await Promise.all(rows.map(decryptContactPreference)),current={};for(const row of history)current[row.channel]=row;if(filters.channel)return current[filters.channel]?[current[filters.channel]]:[];current.history=history;return current;},
+
+  async recordCommunicationEvent(communicationId,state,data={},operationId=null){if(communicationId&&typeof communicationId==='object'){const input=communicationId;communicationId=input.communicationId;state=input.state;data=input;operationId=input.operationId||null;}const states=['drafted','queued','handed_off','attempted','sent','advisor_confirmed_sent','delivered','read','replied','failed','cancelled'];const communication=await this.db.communications.get(communicationId);if(!communication)throw new Error('Communication not found');if(!states.includes(state))throw new Error('Communication state is invalid');if(operationId){const existing=await this.db.communicationEvents.where('operationId').equals(operationId).first();if(existing)return decryptCommunicationEvent(existing);}const occurredAt=new Date(data.occurredAt||new Date());if(isNaN(occurredAt.getTime()))throw new Error('Communication event date is invalid');const now=new Date().toISOString(),row=await encryptCommunicationEvent({...data,communicationId,customerId:communication.customerId||null,state,operationId:operationId||null,occurredAt:occurredAt.toISOString(),createdAt:now});row.id=await this.db.communicationEvents.add(row);return decryptCommunicationEvent(row);},
+  async getCommunicationEvents(input){const communicationId=Number.isInteger(input)?input:input?.communicationId;if(!Number.isInteger(communicationId))throw new Error('Communication is required');const rows=await this.db.communicationEvents.where('communicationId').equals(communicationId).toArray();rows.sort((a,b)=>new Date(a.occurredAt)-new Date(b.occurredAt));return Promise.all(rows.map(decryptCommunicationEvent));},
+
+  async upsertIntegrationLink(data){if(!data||!String(data.provider||'').trim()||!String(data.entityType||'').trim()||!Number.isInteger(data.localId)||!String(data.remoteId||'').trim())throw new Error('Integration link is invalid');const rows=await this.db.integrationLinks.where('provider').equals(data.provider).toArray();const existing=rows.find(r=>r.entityType===data.entityType&&r.localId===data.localId);const now=new Date().toISOString();if(existing){await this.db.integrationLinks.update(existing.id,{remoteId:String(data.remoteId),remoteVersion:data.remoteVersion||null,updatedAt:now});return this.db.integrationLinks.get(existing.id);}const row={...data,remoteId:String(data.remoteId),createdAt:now,updatedAt:now};row.id=await this.db.integrationLinks.add(row);return row;},
+  async getIntegrationLinks(filters={}){let rows=await this.db.integrationLinks.toArray();for(const field of ['provider','entityType','localId','remoteId'])if(filters[field]!=null)rows=rows.filter(r=>r[field]===filters[field]);return rows;},
+  async addIntegrationConflict(data,operationId=null){if(!data||!Number.isInteger(data.integrationLinkId)||!await this.db.integrationLinks.get(data.integrationLinkId))throw new Error('Integration link is required');if(operationId){const existing=await this.db.integrationConflicts.where('operationId').equals(operationId).first();if(existing)return decryptIntegrationConflict(existing);}const now=new Date().toISOString(),row=await encryptIntegrationConflict({...data,status:'open',operationId:operationId||null,detectedAt:data.detectedAt||now,createdAt:now});row.id=await this.db.integrationConflicts.add(row);return decryptIntegrationConflict(row);},
+  async resolveIntegrationConflict(id,resolution,data={}){const current=await this.db.integrationConflicts.get(id);if(!current)throw new Error('Integration conflict not found');if(!['keep_local','accept_remote','merged'].includes(resolution))throw new Error('Conflict resolution is invalid');const fields=await encryptIntegrationConflict({status:'resolved',resolution,resolutionNotes:data.notes||'',resolvedAt:new Date().toISOString()});await this.db.integrationConflicts.update(id,fields);return decryptIntegrationConflict({...current,...fields,id});},
+  async getIntegrationConflicts(filters={}){let rows=await this.db.integrationConflicts.toArray();for(const field of ['integrationLinkId','status'])if(filters[field]!=null)rows=rows.filter(r=>r[field]===filters[field]);return Promise.all(rows.map(decryptIntegrationConflict));},
+  async enqueueIntegrationOutbox(data,operationId=null){if(!data||!String(data.provider||'')||!String(data.entityType||'')||!Number.isInteger(data.localId)||!String(data.action||''))throw new Error('Outbox item is invalid');const op=operationId||data.operationId||null;if(op){const existing=await this.db.integrationOutbox.where('operationId').equals(op).first();if(existing)return decryptIntegrationOutbox(existing);}const now=new Date().toISOString(),row=await encryptIntegrationOutbox({...data,status:'pending',attempts:0,operationId:op,nextAttemptAt:data.nextAttemptAt||now,createdAt:now,updatedAt:now});row.id=await this.db.integrationOutbox.add(row);return decryptIntegrationOutbox(row);},
+  async claimIntegrationOutbox(provider,now=new Date().toISOString()){const rows=(await this.db.integrationOutbox.where('provider').equals(provider).toArray()).filter(r=>['pending','retry'].includes(r.status)&&new Date(r.nextAttemptAt)<=new Date(now)).sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt));const row=rows[0];if(!row)return null;await this.db.integrationOutbox.update(row.id,{status:'processing',attempts:(row.attempts||0)+1,updatedAt:new Date().toISOString()});return decryptIntegrationOutbox({...row,status:'processing',attempts:(row.attempts||0)+1});},
+  async completeIntegrationOutbox(id,metadata={}){const row=await this.db.integrationOutbox.get(id);if(!row)throw new Error('Outbox item not found');await this.db.integrationOutbox.update(id,{status:'completed',remoteId:metadata.remoteId||row.remoteId||null,completedAt:new Date().toISOString(),updatedAt:new Date().toISOString()});return decryptIntegrationOutbox({...row,status:'completed'});},
+  async failIntegrationOutbox(id,error,retryAt=null){const row=await this.db.integrationOutbox.get(id);if(!row)throw new Error('Outbox item not found');const fields=await encryptIntegrationOutbox({status:retryAt?'retry':'failed',lastError:String(error||'Integration failed'),nextAttemptAt:retryAt?new Date(retryAt).toISOString():null,updatedAt:new Date().toISOString()});await this.db.integrationOutbox.update(id,fields);return decryptIntegrationOutbox({...row,...fields,id});},
+  async getIntegrationOutbox(filters={}){let rows=await this.db.integrationOutbox.toArray();for(const field of ['provider','entityType','localId','status'])if(filters[field]!=null)rows=rows.filter(r=>r[field]===filters[field]);return Promise.all(rows.map(decryptIntegrationOutbox));},
+
   async getTaskEvents(taskId) {
     const rows = await this.db.taskEvents.where('taskId').equals(taskId).toArray();
     return rows.sort((a, b) => new Date(a.occurredAt) - new Date(b.occurredAt));
@@ -1904,7 +1967,7 @@ const DB = {
 
   // Schema version of the current database. Real Dexie reports it as `verno`
   // once opened; the bundled shim keeps it internally without exposing it, so
-  // fall back to the current schema constant (7 = Phase 5 operations added).
+  // fall back to the current schema constant (8 = Phase 6 retention added).
   schemaVersion() {
     return typeof this.db.verno === 'number' ? this.db.verno : DATABASE_SCHEMA_VERSION;
   },
@@ -1958,6 +2021,11 @@ const DB = {
     if(data.documents?.length)data.documents=await Promise.all(data.documents.map(decryptDocument));
     if(data.jobCosts?.length)data.jobCosts=await Promise.all(data.jobCosts.map(decryptJobCost));
     if(data.availabilityBlocks?.length)data.availabilityBlocks=await Promise.all(data.availabilityBlocks.map(decryptAvailabilityBlock));
+    if(data.retentionRecords?.length)data.retentionRecords=await Promise.all(data.retentionRecords.map(decryptRetentionRecord));
+    if(data.contactPreferences?.length)data.contactPreferences=await Promise.all(data.contactPreferences.map(decryptContactPreference));
+    if(data.communicationEvents?.length)data.communicationEvents=await Promise.all(data.communicationEvents.map(decryptCommunicationEvent));
+    if(data.integrationConflicts?.length)data.integrationConflicts=await Promise.all(data.integrationConflicts.map(decryptIntegrationConflict));
+    if(data.integrationOutbox?.length)data.integrationOutbox=await Promise.all(data.integrationOutbox.map(decryptIntegrationOutbox));
     const RUNTIME_SETTING_KEYS = ['__v6_legacy_migrated__', '__storage_probe__', 'pitchDemoSeeded'];
     data.settings = (await this.db.settings.toArray()).filter(s => !RUNTIME_SETTING_KEYS.includes(s.key));
     data.sequences = await this.db.sequences.toArray();
@@ -2012,6 +2080,11 @@ const DB = {
     if(encryptionKey&&importData.documents){importData={...importData};importData.documents=await Promise.all(importData.documents.map(encryptDocument));}
     if(encryptionKey&&importData.jobCosts){importData={...importData};importData.jobCosts=await Promise.all(importData.jobCosts.map(encryptJobCost));}
     if(encryptionKey&&importData.availabilityBlocks){importData={...importData};importData.availabilityBlocks=await Promise.all(importData.availabilityBlocks.map(encryptAvailabilityBlock));}
+    if(encryptionKey&&importData.retentionRecords){importData={...importData};importData.retentionRecords=await Promise.all(importData.retentionRecords.map(encryptRetentionRecord));}
+    if(encryptionKey&&importData.contactPreferences){importData={...importData};importData.contactPreferences=await Promise.all(importData.contactPreferences.map(encryptContactPreference));}
+    if(encryptionKey&&importData.communicationEvents){importData={...importData};importData.communicationEvents=await Promise.all(importData.communicationEvents.map(encryptCommunicationEvent));}
+    if(encryptionKey&&importData.integrationConflicts){importData={...importData};importData.integrationConflicts=await Promise.all(importData.integrationConflicts.map(encryptIntegrationConflict));}
+    if(encryptionKey&&importData.integrationOutbox){importData={...importData};importData.integrationOutbox=await Promise.all(importData.integrationOutbox.map(encryptIntegrationOutbox));}
 
     // On the real engine this is a single atomic readwrite transaction
     // across every table: a failure anywhere aborts the whole import and
@@ -2158,6 +2231,8 @@ const DB = {
     const supplierIds = new Set((data.suppliers || []).map(r => r.id));
     const productIds = new Set((data.products || []).map(r => r.id));
     const purchaseOrderIds = new Set((data.purchaseOrders || []).map(r => r.id));
+    const communicationIds = new Set((data.communications || []).map(r => r.id));
+    const integrationLinkIds = new Set((data.integrationLinks || []).map(r => r.id));
     const checkRef = (table, record, field, validIds) => {
       const v = record[field];
       if (v === null || v === undefined) {
@@ -2283,6 +2358,12 @@ const DB = {
     for(const r of data.jobCosts||[]){checkRef('jobCosts',r,'customerId',customerIds);checkRef('jobCosts',r,'orderId',orderIds);checkRef('jobCosts',r,'jobId',jobIds);if(!(r.amount>0)||!['materials','subcontractor','travel','payment_fee','labour','other'].includes(r.category))throw new Error('Backup file is corrupt: job cost is invalid');}
     for(const r of data.availabilityBlocks||[]){if(!['working','leave','unavailable'].includes(r.type)||isNaN(new Date(r.startAt).getTime())||isNaN(new Date(r.endAt).getTime())||new Date(r.startAt)>=new Date(r.endAt))throw new Error('Backup file is corrupt: availability block is invalid');}
     let lastPolicyTime=-Infinity;for(const r of data.financialPolicies||[]){const time=new Date(r.effectiveFrom).getTime();if(!['commission_advisor','sole_trader','hybrid'].includes(r.mode)||!Number.isFinite(time)||time<=lastPolicyTime)throw new Error('Backup file is corrupt: financial policy is invalid');for(const field of ['commissionRate','paymentFeeRate','mileageRate','labourHourlyCost'])if(!Number.isFinite(r[field])||r[field]<0)throw new Error('Backup file is corrupt: financial policy rate is invalid');lastPolicyTime=time;}
+    for(const r of data.retentionRecords||[]){checkRef('retentionRecords',r,'customerId',customerIds);if(r.orderId!=null)checkRef('retentionRecords',r,'orderId',orderIds);if(r.jobId!=null)checkRef('retentionRecords',r,'jobId',jobIds);if(!['satisfaction_check','review_request','referral','warranty','service','repeat_opportunity'].includes(r.type)||!['planned','due','completed','cancelled'].includes(r.status))throw new Error('Backup file is corrupt: retention record is invalid');}
+    for(const r of data.contactPreferences||[]){checkRef('contactPreferences',r,'customerId',customerIds);if(!['phone','email','sms','whatsapp','post'].includes(r.channel)||!['opted_in','opted_out','unknown','blocked'].includes(r.status))throw new Error('Backup file is corrupt: contact preference is invalid');}
+    for(const r of data.communicationEvents||[]){checkRef('communicationEvents',r,'communicationId',communicationIds);if(r.customerId!=null)checkRef('communicationEvents',r,'customerId',customerIds);if(!['drafted','queued','handed_off','attempted','sent','advisor_confirmed_sent','delivered','read','replied','failed','cancelled'].includes(r.state))throw new Error('Backup file is corrupt: communication event is invalid');}
+    for(const r of data.integrationLinks||[]){if(typeof r.provider!=='string'||!r.provider||typeof r.entityType!=='string'||!r.entityType||!Number.isInteger(r.localId)||typeof r.remoteId!=='string'||!r.remoteId)throw new Error('Backup file is corrupt: integration link is invalid');}
+    for(const r of data.integrationConflicts||[]){checkRef('integrationConflicts',r,'integrationLinkId',integrationLinkIds);if(!['open','resolved'].includes(r.status))throw new Error('Backup file is corrupt: integration conflict is invalid');}
+    for(const r of data.integrationOutbox||[]){if(typeof r.provider!=='string'||!r.provider||!['pending','processing','retry','failed','completed'].includes(r.status)||!Number.isInteger(r.localId))throw new Error('Backup file is corrupt: integration outbox item is invalid');}
 
     // 4. Dates. Appointment dates drive the diary, trips and expenses drive
     // mileage/money — those must parse. The remaining date-bearing fields
@@ -2314,6 +2395,11 @@ const DB = {
       ,['jobCosts',['incurredAt']]
       ,['availabilityBlocks',['startAt','endAt']]
       ,['financialPolicies',['effectiveFrom']]
+      ,['retentionRecords',['dueAt','completedAt']]
+      ,['contactPreferences',['effectiveAt']]
+      ,['communicationEvents',['occurredAt']]
+      ,['integrationConflicts',['detectedAt','resolvedAt']]
+      ,['integrationOutbox',['nextAttemptAt','completedAt']]
     ]) {
       for (const record of data[table] || []) {
         for (const field of fields) {

@@ -253,7 +253,8 @@ const FollowupsFeature = {
     const jobTasks = await this.loadJobTasks(derived);
     const invoiceTasks = await this.loadInvoiceTasks(derived);
     const supplierTasks = await this.loadSupplierTasks();
-    const combined = [...derived, ...structured, ...jobTasks, ...invoiceTasks, ...supplierTasks];
+    const retentionTasks = await this.loadRetentionTasks();
+    const combined = [...derived, ...structured, ...jobTasks, ...invoiceTasks, ...supplierTasks, ...retentionTasks];
     return typeof TaskService !== 'undefined' ? TaskService.merge(combined) : combined;
   },
 
@@ -394,6 +395,26 @@ const FollowupsFeature = {
     return ({ shortage: 'Shortage', damage: 'Damage', returned: 'Return pending', note: 'Follow-up needed' })[type] || 'Supplier issue';
   },
 
+  async loadRetentionTasks() {
+    if (typeof DB.getRetentionRecords !== 'function') return [];
+    let records = [];
+    try { records = await DB.getRetentionRecords({}); } catch (e) { return []; }
+    const today = new Date();
+    const dueRecords = records.filter(record => !['completed', 'cancelled'].includes(record.status) && record.dueAt && new Date(record.dueAt) <= today);
+    const customerIds = [...new Set(dueRecords.map(record => record.customerId).filter(Boolean))];
+    const customers = new Map();
+    try { for (const customer of await DB.getCustomersByIds(customerIds)) customers.set(customer.id, customer); } catch (e) {}
+    return dueRecords.map(record => ({
+      kind: 'retention', derivedKey: `retention:due:${record.id}`, retentionRecord: record,
+      customer: customers.get(record.customerId) || null, due: true, inDays: 0,
+      daysLabel: Utils.formatDate(record.dueAt, 'short'), action: this.retentionActionLabel(record.type), priority: 'normal'
+    }));
+  },
+
+  retentionActionLabel(type) {
+    return ({ satisfaction_check: 'Check customer satisfaction', review_request: 'Request a review', referral: 'Follow up a referral', warranty: 'Warranty action due', service: 'Service reminder due', repeat_opportunity: 'Repeat-work opportunity due' })[type] || 'Aftercare action due';
+  },
+
   async getDueCount() {
     try {
       const tasks = (await this.loadTasks()).filter(t => t.due);
@@ -474,7 +495,7 @@ const FollowupsFeature = {
       ? `${Utils.formatDate(task.appointment.date, 'short')} · ${task.daysLabel}${dueIn}`
       : (task.order ? `${Utils.escapeHtml(task.order.orderNumber || 'Order')} · ${task.daysLabel}${dueIn}` : `${task.daysLabel || ''}${dueIn}`);
 
-    const icons = { quote: 'receipt_long', structured_quote: 'request_quote', quote_expiring: 'event_busy', quote_accepted: 'task_alt', job_issue: 'construction', supplier_issue: 'local_shipping', invoice_overdue: 'request_quote', payment: 'payments', visit_today: 'event_available', visit_tomorrow: 'event', intro: 'waving_hand', post_fit: 'handyman', service: 'build', };
+    const icons = { quote: 'receipt_long', structured_quote: 'request_quote', quote_expiring: 'event_busy', quote_accepted: 'task_alt', job_issue: 'construction', supplier_issue: 'local_shipping', retention: 'handshake', invoice_overdue: 'request_quote', payment: 'payments', visit_today: 'event_available', visit_tomorrow: 'event', intro: 'waving_hand', post_fit: 'handyman', service: 'build', };
     // Border colour = what the task needs from you. Payment and service issues
     // are urgent (warning/danger); today's visits and intros are primary
     // actions; everything else (quote chases, post-fit thank-yous,
@@ -514,6 +535,9 @@ const FollowupsFeature = {
   },
 
   renderPrimaryAction(task) {
+    if (task.retentionRecord) {
+      return `<button class="btn btn-sm btn-primary flex-1" data-action="App.navigate" data-args='${JSON.stringify(["retention", {customerId: task.retentionRecord.customerId}])}'><span class="material-symbols-rounded fs-16">handshake</span>Open aftercare</button>`;
+    }
     if (task.purchaseOrder) {
       return `<button class="btn btn-sm btn-primary flex-1" data-action="App.navigate" data-args='${JSON.stringify(["suppliers", {id: task.purchaseOrder.id}])}'><span class="material-symbols-rounded fs-16">local_shipping</span>Open supplier order</button>`;
     }
