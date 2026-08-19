@@ -6,9 +6,9 @@
 // Every table a backup can carry. exportAll() and importAll() speak this
 // exact list; adding a table here is a backup-format change and must be
 // mirrored in the backup envelope's versioning (js/services/export.js).
-const DATABASE_SCHEMA_VERSION = 6;
+const DATABASE_SCHEMA_VERSION = 7;
 const BACKUP_FORMAT_VERSION = 1;
-const BACKUP_TABLES = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'photos', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems', 'jobs', 'checklistTemplates', 'checklistItems', 'checklistResponses', 'jobIssues', 'payments', 'invoices', 'invoiceItems', 'creditNotes', 'documents', 'settings', 'sequences'];
+const BACKUP_TABLES = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'photos', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems', 'jobs', 'checklistTemplates', 'checklistItems', 'checklistResponses', 'jobIssues', 'payments', 'invoices', 'invoiceItems', 'creditNotes', 'documents', 'suppliers', 'products', 'purchaseOrders', 'purchaseOrderItems', 'jobCosts', 'availabilityBlocks', 'financialPolicies', 'settings', 'sequences'];
 
 // ============================================
 // Field-level encryption (AES-GCM 256-bit, key from passphrase via PBKDF2)
@@ -32,6 +32,8 @@ const INVOICE_PII_FIELDS = ['customerSnapshot', 'terms', 'notes'];
 const INVOICE_ITEM_PII_FIELDS = ['description'];
 const CREDIT_PII_FIELDS = ['reason', 'itemSnapshot'];
 const DOCUMENT_PII_FIELDS = ['filename'];
+const JOB_COST_PII_FIELDS = ['description', 'supplier', 'reference'];
+const AVAILABILITY_PII_FIELDS = ['label'];
 const PBKDF2_ITERATIONS = 100000;
 const KEY_LENGTH = 256;
 const IV_LENGTH = 12;
@@ -292,6 +294,10 @@ async function encryptCreditNote(row) { const out = await encryptStringFields(ro
 async function decryptCreditNote(row) { const out = await decryptStringFields(row, CREDIT_PII_FIELDS); if (typeof out?.itemSnapshot === 'string' && out.itemSnapshot.startsWith('[')) try { out.itemSnapshot = JSON.parse(out.itemSnapshot); } catch (e) {} return out; }
 const encryptDocument = row => encryptStringFields(row, DOCUMENT_PII_FIELDS);
 const decryptDocument = row => decryptStringFields(row, DOCUMENT_PII_FIELDS);
+const encryptJobCost = row => encryptStringFields(row, JOB_COST_PII_FIELDS);
+const decryptJobCost = row => decryptStringFields(row, JOB_COST_PII_FIELDS);
+const encryptAvailabilityBlock = row => encryptStringFields(row, AVAILABILITY_PII_FIELDS);
+const decryptAvailabilityBlock = row => decryptStringFields(row, AVAILABILITY_PII_FIELDS);
 
 async function migratePlaintextWorkItems() {
   if (!encryptionKey) return;
@@ -308,6 +314,8 @@ async function migratePlaintextWorkItems() {
     ,['invoiceItems', INVOICE_ITEM_PII_FIELDS, encryptInvoiceItem]
     ,['creditNotes', CREDIT_PII_FIELDS, encryptCreditNote]
     ,['documents', DOCUMENT_PII_FIELDS, encryptDocument]
+    ,['jobCosts', JOB_COST_PII_FIELDS, encryptJobCost]
+    ,['availabilityBlocks', AVAILABILITY_PII_FIELDS, encryptAvailabilityBlock]
   ]) {
     const rows = await DB.db[table].toArray();
     for (const row of rows) {
@@ -384,6 +392,13 @@ const DB = {
       ,invoiceItems: '++id, invoiceId, displayOrder, createdAt'
       ,creditNotes: '++id, customerId, invoiceId, creditNumber, status, issueDate, createdAt'
       ,documents: '++id, customerId, type, invoiceId, paymentId, jobId, generatedAt, createdAt'
+      ,suppliers: '++id, name, status, createdAt'
+      ,products: '++id, supplierId, sku, active, createdAt'
+      ,purchaseOrders: '++id, supplierId, orderId, jobId, status, expectedAt, operationId, createdAt'
+      ,purchaseOrderItems: '++id, purchaseOrderId, productId, createdAt'
+      ,jobCosts: '++id, customerId, orderId, jobId, category, incurredAt, operationId, createdAt'
+      ,availabilityBlocks: '++id, type, startAt, endAt, recurringDay, createdAt'
+      ,financialPolicies: '++id, effectiveFrom, mode, createdAt'
     });
 
     if (typeof this.db.open === 'function') {
@@ -702,7 +717,7 @@ const DB = {
   // what actually happened, not just "done".
   async deleteCustomer(customerId) {
     return this._runWrite(
-      ['customers', 'appointments', 'orders', 'communications', 'photos', 'measurements', 'trips', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems', 'jobs', 'checklistResponses', 'jobIssues', 'payments', 'invoices', 'invoiceItems', 'creditNotes', 'documents'],
+      ['customers', 'appointments', 'orders', 'communications', 'photos', 'measurements', 'trips', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems', 'jobs', 'checklistResponses', 'jobIssues', 'payments', 'invoices', 'invoiceItems', 'creditNotes', 'documents', 'purchaseOrders', 'purchaseOrderItems', 'jobCosts'],
       async () => {
         const [appts, orders, comms] = await Promise.all([
           this.db.appointments.where('customerId').equals(customerId).toArray(),
@@ -716,6 +731,8 @@ const DB = {
         const quoteIds = quotes.map(q => q.id);
         const jobs = await this.db.jobs.where('customerId').equals(customerId).toArray();
         const jobIds = jobs.map(j => j.id);
+        const purchaseOrders = (await this.db.purchaseOrders.toArray()).filter(row => orderIds.includes(row.orderId) || jobIds.includes(row.jobId));
+        const purchaseOrderIds = purchaseOrders.map(row => row.id);
         const invoices = await this.db.invoices.where('customerId').equals(customerId).toArray(); const invoiceIds=invoices.map(i=>i.id);
         const leads = await this.db.leads.where('customerId').equals(customerId).toArray();
         const leadIds = leads.map(l => l.id);
@@ -732,6 +749,9 @@ const DB = {
           await this.db.jobIssues.where('jobId').anyOf(jobIds).delete();
         }
         await this.db.jobs.where('customerId').equals(customerId).delete();
+        if (purchaseOrderIds.length) await this.db.purchaseOrderItems.where('purchaseOrderId').anyOf(purchaseOrderIds).delete();
+        for (const row of purchaseOrders) await this.db.purchaseOrders.delete(row.id);
+        await this.db.jobCosts.where('customerId').equals(customerId).delete();
         if(invoiceIds.length)await this.db.invoiceItems.where('invoiceId').anyOf(invoiceIds).delete();
         await this.db.payments.where('customerId').equals(customerId).delete(); await this.db.creditNotes.where('customerId').equals(customerId).delete(); await this.db.documents.where('customerId').equals(customerId).delete(); await this.db.invoices.where('customerId').equals(customerId).delete();
         const measurementCount = apptIds.length ? await this.db.measurements.where('appointmentId').anyOf(apptIds).delete() : 0;
@@ -1818,6 +1838,55 @@ const DB = {
     return this._transitionTask(taskId, 'reopened', { status: 'open', completedAt: null }, operationId);
   },
 
+  async addSupplier(data) { if (!data || !String(data.name || '').trim()) throw new Error('Supplier name is required'); const status=data.status||'active';if(!['active','inactive'].includes(status))throw new Error('Supplier status is invalid');const now=new Date().toISOString(),row={...data,name:String(data.name).trim(),status,createdAt:now,updatedAt:now};row.id=await this.db.suppliers.add(row);return row; },
+  async getSuppliers(filters={}) { let rows=await this.db.suppliers.toArray();if(filters.status)rows=rows.filter(r=>r.status===filters.status);return rows.sort((a,b)=>a.name.localeCompare(b.name)); },
+  async addProduct(data) { if(!data||!Number.isInteger(data.supplierId)||!await this.db.suppliers.get(data.supplierId))throw new Error('Product supplier is required');if(!String(data.name||'').trim())throw new Error('Product name is required');const now=new Date().toISOString(),row={...data,name:String(data.name).trim(),sku:String(data.sku||'').trim(),active:data.active!==false,createdAt:now,updatedAt:now};row.id=await this.db.products.add(row);return row; },
+  async getProducts(filters={}) { let rows=await this.db.products.toArray();for(const field of ['supplierId','active'])if(filters[field]!=null)rows=rows.filter(r=>r[field]===filters[field]);return rows.sort((a,b)=>a.name.localeCompare(b.name)); },
+  async _hydratePurchaseOrder(row) { if(!row)return null;const supplier=await this.db.suppliers.get(row.supplierId),items=await this.db.purchaseOrderItems.where('purchaseOrderId').equals(row.id).toArray(),events=(Array.isArray(row.events)?row.events:[]).slice().sort((a,b)=>new Date(a.occurredAt)-new Date(b.occurredAt)),resolved=new Set(events.filter(e=>e.type==='issue_resolved'&&e.resolvesEventId).map(e=>e.resolvesEventId));return{...row,supplierName:supplier?.name||'Unknown supplier',items,events,openIssueCount:events.filter(e=>['shortage','damage'].includes(e.type)&&!resolved.has(e.id)).length}; },
+  async getPurchaseOrder(id){return this._hydratePurchaseOrder(await this.db.purchaseOrders.get(id));},
+  async getPurchaseOrders(filters={}){let rows=await this.db.purchaseOrders.toArray();for(const field of ['supplierId','orderId','jobId','status'])if(filters[field]!=null)rows=rows.filter(r=>r[field]===filters[field]);rows.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));return Promise.all(rows.map(r=>this._hydratePurchaseOrder(r)));},
+  async createPurchaseOrder(data,items=[],operationId=null){if(!data||!Number.isInteger(data.supplierId)||!await this.db.suppliers.get(data.supplierId))throw new Error('Purchase order supplier is required');if(!Number.isInteger(data.orderId)||!await this.db.orders.get(data.orderId))throw new Error('Commercial order is required');if(data.jobId!=null){const job=await this.db.jobs.get(data.jobId);if(!job||job.orderId!==data.orderId)throw new Error('Purchase order job is invalid');}if(operationId){const existing=await this.db.purchaseOrders.where('operationId').equals(operationId).first();if(existing)return{purchaseOrder:await this._hydratePurchaseOrder(existing),created:false};}const statuses=['draft','submitted','acknowledged','part_received','received','issue','returned','cancelled'],status=data.status||'draft';if(!statuses.includes(status))throw new Error('Purchase order status is invalid');if(!Array.isArray(items)||!items.length)throw new Error('At least one purchase order item is required');const now=new Date().toISOString();let id;await this._runWrite(['purchaseOrders','purchaseOrderItems'],async()=>{id=await this.db.purchaseOrders.add({...data,status,operationId:operationId||null,events:[],createdAt:now,updatedAt:now});for(const item of items){const quantity=Number(item.quantity);if(!(quantity>0))throw new Error('Purchase order quantity must be positive');if(item.productId!=null){const product=await this.db.products.get(item.productId);if(!product||product.supplierId!==data.supplierId)throw new Error('Purchase order product is invalid');}await this.db.purchaseOrderItems.add({...item,purchaseOrderId:id,quantity,unitCost:Math.max(0,Number(item.unitCost)||0),createdAt:now});}});return{purchaseOrder:await this.getPurchaseOrder(id),created:true};},
+  async updatePurchaseOrder(id,patch={}){const row=await this.db.purchaseOrders.get(id);if(!row)throw new Error('Purchase order not found');const allowed={};for(const field of ['reference','expectedAt'])if(patch[field]!==undefined)allowed[field]=patch[field];await this.db.purchaseOrders.update(id,{...allowed,updatedAt:new Date().toISOString()});return this.getPurchaseOrder(id);},
+  async recordPurchaseOrderEvent(id,type,data={},operationId=null){const allowed=['submitted','acknowledged','received','shortage','damage','returned','issue_resolved','note'];if(!allowed.includes(type))throw new Error('Purchase order event is invalid');const row=await this.db.purchaseOrders.get(id);if(!row)throw new Error('Purchase order not found');const events=Array.isArray(row.events)?row.events.slice():[];if(operationId&&events.some(e=>e.operationId===operationId))return this.getPurchaseOrder(id);const occurredAt=new Date(data.occurredAt||new Date());if(isNaN(occurredAt.getTime()))throw new Error('Purchase order event date is invalid');events.push({...data,id:`${id}:${events.length+1}`,type,operationId:operationId||null,occurredAt:occurredAt.toISOString()});const statusMap={submitted:'submitted',acknowledged:'acknowledged',received:'received',shortage:'issue',damage:'issue',returned:'returned'};await this.db.purchaseOrders.update(id,{events,status:statusMap[type]||row.status,updatedAt:new Date().toISOString()});return this.getPurchaseOrder(id);},
+
+  async addAvailabilityBlock(data){const types=['working','leave','unavailable'];if(!data||!types.includes(data.type))throw new Error('Availability type is invalid');const start=new Date(data.startAt),end=new Date(data.endAt);if(isNaN(start.getTime())||isNaN(end.getTime())||start>=end)throw new Error('Availability start must be before end');if(data.recurringDay!=null&&(data.type!=='working'||!Number.isInteger(data.recurringDay)||data.recurringDay<0||data.recurringDay>6))throw new Error('Recurring day is invalid');const now=new Date().toISOString(),row=await encryptAvailabilityBlock({...data,startAt:start.toISOString(),endAt:end.toISOString(),createdAt:now,updatedAt:now});row.id=await this.db.availabilityBlocks.add(row);return decryptAvailabilityBlock(row);},
+  async updateAvailabilityBlock(id,data={}){const current=await this.db.availabilityBlocks.get(id);if(!current)throw new Error('Availability block not found');const plain=await decryptAvailabilityBlock(current),merged={...plain,...data},start=new Date(merged.startAt),end=new Date(merged.endAt);if(isNaN(start.getTime())||isNaN(end.getTime())||start>=end)throw new Error('Availability start must be before end');const encrypted=await encryptAvailabilityBlock({...data,startAt:start.toISOString(),endAt:end.toISOString(),updatedAt:new Date().toISOString()});await this.db.availabilityBlocks.update(id,encrypted);return decryptAvailabilityBlock({...current,...encrypted,id});},
+  async deleteAvailabilityBlock(id){return this.db.availabilityBlocks.delete(id);},
+  async getAvailabilityBlocks(filters={}){let rows=await this.db.availabilityBlocks.toArray();if(filters.type)rows=rows.filter(r=>r.type===filters.type);if(filters.from){const from=new Date(filters.from);rows=rows.filter(r=>new Date(r.endAt)>from);}if(filters.to){const to=new Date(filters.to);rows=rows.filter(r=>new Date(r.startAt)<to);}rows.sort((a,b)=>new Date(a.startAt)-new Date(b.startAt));return Promise.all(rows.map(decryptAvailabilityBlock));},
+
+  // Phase 5: immutable policy selection and explicit, idempotent job costs.
+  async createFinancialPolicy(data) {
+    const modes = ['commission_advisor', 'sole_trader', 'hybrid'];
+    if (!data || !modes.includes(data.mode)) throw new Error('Financial mode is invalid');
+    const effectiveFrom = new Date(data.effectiveFrom);
+    if (isNaN(effectiveFrom.getTime())) throw new Error('Policy effective date is invalid');
+    const rows = await this.db.financialPolicies.toArray();
+    const latest = rows.sort((a, b) => new Date(b.effectiveFrom) - new Date(a.effectiveFrom))[0];
+    if (latest && effectiveFrom <= new Date(latest.effectiveFrom)) throw new Error('A new policy must start after the current policy');
+    const percent = (value, name) => { const n = Number(value || 0); if (!Number.isFinite(n) || n < 0 || n > 100) throw new Error(`${name} must be between 0 and 100`); return Math.round(n * 10000) / 10000; };
+    const money = (value, name) => { const n = Number(value || 0); if (!Number.isFinite(n) || n < 0) throw new Error(`${name} cannot be negative`); return Math.round(n * 100) / 100; };
+    const row = { mode: data.mode, effectiveFrom: effectiveFrom.toISOString(), commissionRate: percent(data.commissionRate, 'Commission rate'), paymentFeeRate: percent(data.paymentFeeRate, 'Payment fee rate'), mileageRate: money(data.mileageRate, 'Mileage rate'), labourHourlyCost: money(data.labourHourlyCost, 'Hourly labour cost'), createdAt: new Date().toISOString() };
+    row.id = await this.db.financialPolicies.add(row); return row;
+  },
+  async getFinancialPolicies() { const rows = await this.db.financialPolicies.toArray(); return rows.sort((a, b) => new Date(a.effectiveFrom) - new Date(b.effectiveFrom)); },
+  async getEffectiveFinancialPolicy(at) { const date = new Date(at || new Date()); if (isNaN(date.getTime())) throw new Error('Policy date is invalid'); const rows = (await this.getFinancialPolicies()).filter(row => new Date(row.effectiveFrom) <= date); return rows[rows.length - 1] || null; },
+  async addJobCost(data) {
+    const categories = ['materials', 'subcontractor', 'travel', 'payment_fee', 'labour', 'other'];
+    if (!data || !Number.isInteger(data.jobId) || !Number.isInteger(data.orderId)) throw new Error('Job and order are required');
+    const job = await this.db.jobs.get(data.jobId), order = await this.db.orders.get(data.orderId);
+    if (!job || !order || job.orderId !== order.id || job.customerId !== order.customerId) throw new Error('Job cost relationships are invalid');
+    if (!categories.includes(data.category)) throw new Error('Job cost category is invalid');
+    const amount = Math.round(Number(data.amount) * 100) / 100; if (!(amount > 0) || !Number.isFinite(amount)) throw new Error('Job cost amount must be positive');
+    if (data.operationId) { const existing = await this.db.jobCosts.where('operationId').equals(data.operationId).first(); if (existing) return decryptJobCost(existing); }
+    const incurredAt = new Date(data.incurredAt || new Date()); if (isNaN(incurredAt.getTime())) throw new Error('Job cost date is invalid');
+    const row = await encryptJobCost({ ...data, customerId: job.customerId, amount, incurredAt: incurredAt.toISOString(), createdAt: new Date().toISOString() }); row.id = await this.db.jobCosts.add(row); return decryptJobCost(row);
+  },
+  async getJobCosts(filters = {}) { let rows = await this.db.jobCosts.toArray(); for (const field of ['customerId', 'orderId', 'jobId', 'category']) if (filters[field] != null) rows = rows.filter(row => row[field] === filters[field]); rows.sort((a, b) => new Date(a.incurredAt) - new Date(b.incurredAt)); return Promise.all(rows.map(decryptJobCost)); },
+  _effectiveRevenue(saleValue, policy) { const gross = Math.round((Number(saleValue) || 0) * 100) / 100; if (policy?.mode === 'commission_advisor') return Math.round(gross * (Number(policy.commissionRate) || 0)) / 100; return gross; },
+  _profitabilityMetrics(revenue, directCost, hours, policy, context = {}) { const money = value => Math.round((Number(value) || 0) * 100) / 100; revenue = money(revenue); directCost = money(directCost); hours = Math.max(0, Number(hours) || 0); const grossProfit = money(revenue - directCost); return { ...context, revenue, directCost, grossProfit, marginPercent: revenue > 0 ? Math.round(grossProfit / revenue * 10000) / 100 : 0, effectiveHourlyValue: hours > 0 ? money(grossProfit / hours) : null, hours: Math.round(hours * 100) / 100, policyId: policy?.id || null, financialMode: policy?.mode || null }; },
+  async calculateQuoteProfitability(quoteId, hours = 0) { const result = await this.getQuote(quoteId); if (!result) throw new Error('Quote not found'); const quote = result.quote, asOf = quote.issueDate || quote.createdAt, policy = await this.getEffectiveFinancialPolicy(asOf); const cost = result.items.reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.cost || 0), 0); return this._profitabilityMetrics(this._effectiveRevenue(quote.total, policy), cost, hours, policy, { quoteId, saleValue: quote.total, basis: 'quoted_estimate', asOf }); },
+  async calculateJobProfitability(jobId, hours = 0) { const job = await this.getJob(jobId); if (!job) throw new Error('Job not found'); const order = await this.db.orders.get(job.orderId); if (!order) throw new Error('Order not found'); const costs = await this.getJobCosts({ jobId }), asOf = order.createdAt || job.createdAt, policy = await this.getEffectiveFinancialPolicy(asOf); return this._profitabilityMetrics(this._effectiveRevenue(order.total, policy), costs.reduce((sum, row) => sum + Number(row.amount || 0), 0), hours, policy, { jobId, orderId: order.id, saleValue: order.total, basis: 'actual_job_costs', asOf }); },
+
   async getTaskEvents(taskId) {
     const rows = await this.db.taskEvents.where('taskId').equals(taskId).toArray();
     return rows.sort((a, b) => new Date(a.occurredAt) - new Date(b.occurredAt));
@@ -1835,7 +1904,7 @@ const DB = {
 
   // Schema version of the current database. Real Dexie reports it as `verno`
   // once opened; the bundled shim keeps it internally without exposing it, so
-  // fall back to the current schema constant (6 = finance ledger tables added).
+  // fall back to the current schema constant (7 = Phase 5 operations added).
   schemaVersion() {
     return typeof this.db.verno === 'number' ? this.db.verno : DATABASE_SCHEMA_VERSION;
   },
@@ -1860,7 +1929,7 @@ const DB = {
   // travel inside a backup.
   async exportAll() {
     const data = {};
-    const tables = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'photos', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems', 'jobs', 'checklistTemplates', 'checklistItems', 'checklistResponses', 'jobIssues', 'payments', 'invoices', 'invoiceItems', 'creditNotes', 'documents'];
+    const tables = BACKUP_TABLES.filter(table => table !== 'settings' && table !== 'sequences');
     for (const table of tables) {
       data[table] = await this.db[table].toArray();
     }
@@ -1887,6 +1956,8 @@ const DB = {
     if (data.jobIssues && data.jobIssues.length) data.jobIssues = await Promise.all(data.jobIssues.map(row => decryptJobIssue(row)));
     if(data.payments?.length)data.payments=await Promise.all(data.payments.map(decryptPayment));if(data.invoices?.length)data.invoices=await Promise.all(data.invoices.map(decryptInvoice));if(data.invoiceItems?.length)data.invoiceItems=await Promise.all(data.invoiceItems.map(decryptInvoiceItem));if(data.creditNotes?.length)data.creditNotes=await Promise.all(data.creditNotes.map(decryptCreditNote));
     if(data.documents?.length)data.documents=await Promise.all(data.documents.map(decryptDocument));
+    if(data.jobCosts?.length)data.jobCosts=await Promise.all(data.jobCosts.map(decryptJobCost));
+    if(data.availabilityBlocks?.length)data.availabilityBlocks=await Promise.all(data.availabilityBlocks.map(decryptAvailabilityBlock));
     const RUNTIME_SETTING_KEYS = ['__v6_legacy_migrated__', '__storage_probe__', 'pitchDemoSeeded'];
     data.settings = (await this.db.settings.toArray()).filter(s => !RUNTIME_SETTING_KEYS.includes(s.key));
     data.sequences = await this.db.sequences.toArray();
@@ -1939,6 +2010,8 @@ const DB = {
     }
     if(encryptionKey&&importData.payments){importData={...importData};importData.payments=await Promise.all(importData.payments.map(encryptPayment));}if(encryptionKey&&importData.invoices){importData={...importData};importData.invoices=await Promise.all(importData.invoices.map(encryptInvoice));}if(encryptionKey&&importData.invoiceItems){importData={...importData};importData.invoiceItems=await Promise.all(importData.invoiceItems.map(encryptInvoiceItem));}if(encryptionKey&&importData.creditNotes){importData={...importData};importData.creditNotes=await Promise.all(importData.creditNotes.map(encryptCreditNote));}
     if(encryptionKey&&importData.documents){importData={...importData};importData.documents=await Promise.all(importData.documents.map(encryptDocument));}
+    if(encryptionKey&&importData.jobCosts){importData={...importData};importData.jobCosts=await Promise.all(importData.jobCosts.map(encryptJobCost));}
+    if(encryptionKey&&importData.availabilityBlocks){importData={...importData};importData.availabilityBlocks=await Promise.all(importData.availabilityBlocks.map(encryptAvailabilityBlock));}
 
     // On the real engine this is a single atomic readwrite transaction
     // across every table: a failure anywhere aborts the whole import and
@@ -2082,6 +2155,9 @@ const DB = {
     const checklistItemIds = new Set((data.checklistItems || []).map(i => i.id));
     const invoiceIds = new Set((data.invoices || []).map(i => i.id));
     const paymentIds = new Set((data.payments || []).map(p => p.id));
+    const supplierIds = new Set((data.suppliers || []).map(r => r.id));
+    const productIds = new Set((data.products || []).map(r => r.id));
+    const purchaseOrderIds = new Set((data.purchaseOrders || []).map(r => r.id));
     const checkRef = (table, record, field, validIds) => {
       const v = record[field];
       if (v === null || v === undefined) {
@@ -2200,6 +2276,13 @@ const DB = {
     for(const r of data.payments||[]){checkRef('payments',r,'customerId',customerIds);if(r.orderId!=null)checkRef('payments',r,'orderId',orderIds);if(r.invoiceId!=null)checkRef('payments',r,'invoiceId',invoiceIds);if(r.reversesPaymentId!=null)checkRef('payments',r,'reversesPaymentId',paymentIds);if(!(r.amount>0)||!['in','out'].includes(r.direction)||!['pending','cleared','void'].includes(r.status))throw new Error('Backup file is corrupt: payment is invalid');}
     for(const r of data.creditNotes||[]){checkRef('creditNotes',r,'customerId',customerIds);checkRef('creditNotes',r,'invoiceId',invoiceIds);if(!(r.amount>0)||!['issued','void'].includes(r.status)||typeof r.creditNumber!=='string')throw new Error('Backup file is corrupt: credit note is invalid');}
     for(const r of data.documents||[]){checkRef('documents',r,'customerId',customerIds);if(r.invoiceId!=null)checkRef('documents',r,'invoiceId',invoiceIds);if(r.paymentId!=null)checkRef('documents',r,'paymentId',paymentIds);if(r.jobId!=null)checkRef('documents',r,'jobId',jobIds);if(typeof r.type!=='string'||!r.type)throw new Error('Backup file is corrupt: document metadata is invalid');}
+    for(const r of data.suppliers||[]){if(typeof r.name!=='string'||!r.name||!['active','inactive'].includes(r.status))throw new Error('Backup file is corrupt: supplier is invalid');}
+    for(const r of data.products||[]){checkRef('products',r,'supplierId',supplierIds);if(typeof r.name!=='string'||!r.name)throw new Error('Backup file is corrupt: product is invalid');}
+    for(const r of data.purchaseOrders||[]){checkRef('purchaseOrders',r,'supplierId',supplierIds);checkRef('purchaseOrders',r,'orderId',orderIds);if(r.jobId!=null)checkRef('purchaseOrders',r,'jobId',jobIds);if(!['draft','submitted','acknowledged','part_received','received','issue','returned','cancelled'].includes(r.status))throw new Error('Backup file is corrupt: purchase order is invalid');}
+    for(const r of data.purchaseOrderItems||[]){checkRef('purchaseOrderItems',r,'purchaseOrderId',purchaseOrderIds);if(r.productId!=null)checkRef('purchaseOrderItems',r,'productId',productIds);if(!(Number(r.quantity)>0)||Number(r.unitCost)<0)throw new Error('Backup file is corrupt: purchase order item is invalid');}
+    for(const r of data.jobCosts||[]){checkRef('jobCosts',r,'customerId',customerIds);checkRef('jobCosts',r,'orderId',orderIds);checkRef('jobCosts',r,'jobId',jobIds);if(!(r.amount>0)||!['materials','subcontractor','travel','payment_fee','labour','other'].includes(r.category))throw new Error('Backup file is corrupt: job cost is invalid');}
+    for(const r of data.availabilityBlocks||[]){if(!['working','leave','unavailable'].includes(r.type)||isNaN(new Date(r.startAt).getTime())||isNaN(new Date(r.endAt).getTime())||new Date(r.startAt)>=new Date(r.endAt))throw new Error('Backup file is corrupt: availability block is invalid');}
+    let lastPolicyTime=-Infinity;for(const r of data.financialPolicies||[]){const time=new Date(r.effectiveFrom).getTime();if(!['commission_advisor','sole_trader','hybrid'].includes(r.mode)||!Number.isFinite(time)||time<=lastPolicyTime)throw new Error('Backup file is corrupt: financial policy is invalid');for(const field of ['commissionRate','paymentFeeRate','mileageRate','labourHourlyCost'])if(!Number.isFinite(r[field])||r[field]<0)throw new Error('Backup file is corrupt: financial policy rate is invalid');lastPolicyTime=time;}
 
     // 4. Dates. Appointment dates drive the diary, trips and expenses drive
     // mileage/money — those must parse. The remaining date-bearing fields
@@ -2227,6 +2310,10 @@ const DB = {
       ,['invoices',['issueDate','dueDate']]
       ,['creditNotes',['issueDate']]
       ,['documents',['generatedAt']]
+      ,['purchaseOrders',['expectedAt']]
+      ,['jobCosts',['incurredAt']]
+      ,['availabilityBlocks',['startAt','endAt']]
+      ,['financialPolicies',['effectiveFrom']]
     ]) {
       for (const record of data[table] || []) {
         for (const field of fields) {

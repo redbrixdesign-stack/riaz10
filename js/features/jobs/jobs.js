@@ -92,6 +92,8 @@ const JobsFeature = {
         ${fieldWorkspace ? JobFieldService.render(fieldWorkspace) : ''}
         <div class="grid-2 gap-sm">
           ${job.orderId ? `<button class="btn btn-outline btn-sm" data-action="OrdersFeature.openOrderSheet" data-args='${JSON.stringify([job.orderId])}'><span class="material-symbols-rounded">receipt</span>Order</button>` : ''}
+          <button class="btn btn-outline btn-sm" data-action="ProfitabilityFeature.openJob" data-args='${JSON.stringify([job.id])}'><span class="material-symbols-rounded">monitoring</span>Profitability</button>
+          <button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='${JSON.stringify(['suppliers', { jobId: job.id, orderId: job.orderId }])}'><span class="material-symbols-rounded">local_shipping</span>Supplier orders</button>
           ${job.customerId ? `<button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='${JSON.stringify(['customer', { id: job.customerId }])}'><span class="material-symbols-rounded">person</span>Customer 360</button>` : ''}
         </div>
       </div>

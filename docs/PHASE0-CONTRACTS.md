@@ -43,6 +43,7 @@ Database schema version and backup file-format version are independent:
 | Backup format 1 / database schema 4 | Validate and restore all fifteen tables, quote versions/items, order links, and quote sequence floors | Both-engine Phase 2 roundtrip, conversion, and compatibility tests |
 | Backup format 1 / database schema 5 | Validate and restore all twenty tables and every job/checklist/issue/appointment relationship | Both-engine Phase 3 roundtrip, completion, cascade, and compatibility tests |
 | Backup format 1 / database schema 6 | Validate and restore all twenty-five tables, immutable ledger links, invoice relationships, credits, documents, and numbering floors | Both-engine Phase 4 reconciliation and restore tests |
+| Backup format 1 / database schema 7 | Validate and restore all thirty-two tables, including supplier purchasing, explicit job costs, capacity blocks, and immutable effective-dated financial policies | Both-engine Phase 5 storage, historical-policy, and restore tests |
 | Future backup format | Reject before confirmation or writes | Database and device config remain unchanged |
 
 Before every future schema change, extend this matrix and commit an immutable

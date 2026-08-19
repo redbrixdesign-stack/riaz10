@@ -252,7 +252,8 @@ const FollowupsFeature = {
     const structured = await this.loadStructuredQuoteTasks(derived);
     const jobTasks = await this.loadJobTasks(derived);
     const invoiceTasks = await this.loadInvoiceTasks(derived);
-    const combined = [...derived, ...structured, ...jobTasks, ...invoiceTasks];
+    const supplierTasks = await this.loadSupplierTasks();
+    const combined = [...derived, ...structured, ...jobTasks, ...invoiceTasks, ...supplierTasks];
     return typeof TaskService !== 'undefined' ? TaskService.merge(combined) : combined;
   },
 
@@ -364,6 +365,35 @@ const FollowupsFeature = {
     return tasks;
   },
 
+  async loadSupplierTasks() {
+    if (typeof DB.getPurchaseOrders !== 'function') return [];
+    let records = [];
+    try { records = await DB.getPurchaseOrders({}); } catch (e) { return []; }
+    const now = new Date();
+    const tasks = [];
+    for (const summary of records) {
+      let record = summary;
+      try { if (typeof DB.getPurchaseOrder === 'function') record = await DB.getPurchaseOrder(summary.id) || summary; } catch (e) {}
+      const openEvents = (record.events || []).filter(event => (['shortage', 'damage', 'returned'].includes(event.type) || (event.type === 'note' && event.followUp)) && event.open !== false && !event.resolvedAt);
+      if (record.status === 'cancelled' || (record.status === 'received' && !openEvents.length)) continue;
+      const expectedAt = record.expectedAt || record.expectedDelivery;
+      const lateDays = expectedAt ? Utils.daysBetween(now, new Date(expectedAt)) : 0;
+      if (!openEvents.length && lateDays <= 0) continue;
+      const latest = openEvents[openEvents.length - 1];
+      tasks.push({
+        kind: 'supplier_issue', derivedKey: `supplier:attention:${record.id}`, purchaseOrder: record,
+        due: true, inDays: 0, daysLabel: latest ? this.supplierIssueLabel(latest.type) : `${lateDays}d late`,
+        action: latest ? `${record.supplierName || 'Supplier'}: ${latest.notes || this.supplierIssueLabel(latest.type)}` : `Chase ${record.supplierName || 'supplier'} for overdue delivery`,
+        priority: 'high'
+      });
+    }
+    return tasks;
+  },
+
+  supplierIssueLabel(type) {
+    return ({ shortage: 'Shortage', damage: 'Damage', returned: 'Return pending', note: 'Follow-up needed' })[type] || 'Supplier issue';
+  },
+
   async getDueCount() {
     try {
       const tasks = (await this.loadTasks()).filter(t => t.due);
@@ -444,7 +474,7 @@ const FollowupsFeature = {
       ? `${Utils.formatDate(task.appointment.date, 'short')} · ${task.daysLabel}${dueIn}`
       : (task.order ? `${Utils.escapeHtml(task.order.orderNumber || 'Order')} · ${task.daysLabel}${dueIn}` : `${task.daysLabel || ''}${dueIn}`);
 
-    const icons = { quote: 'receipt_long', structured_quote: 'request_quote', quote_expiring: 'event_busy', quote_accepted: 'task_alt', job_issue: 'construction', invoice_overdue: 'request_quote', payment: 'payments', visit_today: 'event_available', visit_tomorrow: 'event', intro: 'waving_hand', post_fit: 'handyman', service: 'build', };
+    const icons = { quote: 'receipt_long', structured_quote: 'request_quote', quote_expiring: 'event_busy', quote_accepted: 'task_alt', job_issue: 'construction', supplier_issue: 'local_shipping', invoice_overdue: 'request_quote', payment: 'payments', visit_today: 'event_available', visit_tomorrow: 'event', intro: 'waving_hand', post_fit: 'handyman', service: 'build', };
     // Border colour = what the task needs from you. Payment and service issues
     // are urgent (warning/danger); today's visits and intros are primary
     // actions; everything else (quote chases, post-fit thank-yous,
@@ -484,6 +514,9 @@ const FollowupsFeature = {
   },
 
   renderPrimaryAction(task) {
+    if (task.purchaseOrder) {
+      return `<button class="btn btn-sm btn-primary flex-1" data-action="App.navigate" data-args='${JSON.stringify(["suppliers", {id: task.purchaseOrder.id}])}'><span class="material-symbols-rounded fs-16">local_shipping</span>Open supplier order</button>`;
+    }
     if (task.invoice) {
       return `<button class="btn btn-sm btn-primary flex-1" data-action="App.navigate" data-args='${JSON.stringify(["invoices", {id: task.invoice.id}])}'><span class="material-symbols-rounded fs-16">request_quote</span>Open invoice</button>`;
     }

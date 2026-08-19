@@ -2187,7 +2187,13 @@ const AppointmentsFeature = {
       }
 
       if (!forceDuplicate) {
-        const travelWarnings = this.findTravelWarnings({ address, date, time, durationSlots }, existingToday);
+        const capacityWarnings = typeof CapacityService !== 'undefined'
+          ? await CapacityService.analyse({ date: dateTime.toISOString(), durationSlots }, existingToday)
+          : [];
+        const travelWarnings = [
+          ...capacityWarnings.filter(w => w.code !== 'overlap').map(w => w.message),
+          ...this.findTravelWarnings({ address, date, time, durationSlots }, existingToday)
+        ];
         if (travelWarnings.length > 0) {
           this.setSaveButtonState('idle');
           this.pendingTravelAction = { kind: 'saveAppointment', draft: data };
@@ -2351,9 +2357,12 @@ const AppointmentsFeature = {
     }
     const existingToday = await DB.getAppointmentsForDate(new Date(draft.date + 'T00:00:00').toISOString());
     const warnings = this.findTravelWarnings(draft, existingToday);
+    const suggestions = typeof CapacityService !== 'undefined'
+      ? await CapacityService.suggest({ date: `${draft.date}T${draft.time}`, durationSlots: draft.durationSlots }, existingToday)
+      : [];
     if (advice) {
       advice.textContent = warnings.length > 0
-        ? warnings[0]
+        ? `${warnings[0]}${suggestions.length ? ` Possible diary gaps: ${suggestions.map(s => s.label).join(', ')} (advice only).` : ''}`
         : 'The gap around this visit looks workable from the diary.';
     }
   },
@@ -2362,14 +2371,14 @@ const AppointmentsFeature = {
     const content = `
       <div class="sheet-handle"></div>
       <div class="sheet-header">
-        <h3>Tight travel gap</h3>
+        <h3>Check this diary slot</h3>
         <button class="btn btn-ghost btn-sm" data-action="App.closeModal">
           <span class="material-symbols-rounded">close</span>
         </button>
       </div>
       <div class="sheet-body">
         <div class="fs-14 text-secondary lh-150 mb-14" >
-          This may still work, but I would check the driving time before committing it.
+          This may still work, but the day has a capacity or travel warning worth reviewing.
         </div>
         <div class="flex flex-col gap-sm mb-18" >
           ${warnings.map(text => `
@@ -2626,7 +2635,14 @@ const AppointmentsFeature = {
     }
 
     if (!forceTravel) {
-      const travelWarnings = this.findTravelWarnings(data, existingToday, id);
+      const candidateDate = new Date(data.date + 'T' + data.time).toISOString();
+      const capacityWarnings = typeof CapacityService !== 'undefined'
+        ? await CapacityService.analyse({ date: candidateDate, durationSlots: data.durationSlots }, existingToday, id)
+        : [];
+      const travelWarnings = [
+        ...capacityWarnings.filter(w => w.code !== 'overlap').map(w => w.message),
+        ...this.findTravelWarnings(data, existingToday, id)
+      ];
       if (travelWarnings.length > 0) {
         this.pendingTravelAction = { kind: 'reschedule', id, draft: data };
         this.showTravelWarning(travelWarnings);
@@ -2777,7 +2793,14 @@ const AppointmentsFeature = {
     }
 
     if (!forceTravel) {
-      const travelWarnings = this.findTravelWarnings(data, existingToday, id);
+      const candidateDate = new Date(data.date + 'T' + data.time).toISOString();
+      const capacityWarnings = typeof CapacityService !== 'undefined'
+        ? await CapacityService.analyse({ date: candidateDate, durationSlots: data.durationSlots }, existingToday, id)
+        : [];
+      const travelWarnings = [
+        ...capacityWarnings.filter(w => w.code !== 'overlap').map(w => w.message),
+        ...this.findTravelWarnings(data, existingToday, id)
+      ];
       if (travelWarnings.length > 0) {
         this.pendingTravelAction = { kind: 'editDetails', id, draft: data };
         this.showTravelWarning(travelWarnings);

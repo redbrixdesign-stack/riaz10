@@ -67,6 +67,18 @@ const ControlFeature = {
           `)}
 
           ${card('Money & Route', `
+            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["suppliers"])}'>
+              <span class="material-symbols-rounded">local_shipping</span>
+              <span>Suppliers</span>
+            </button>
+            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["capacity"])}'>
+              <span class="material-symbols-rounded">event_busy</span>
+              <span>Availability</span>
+            </button>
+            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["profitability"])}'>
+              <span class="material-symbols-rounded">monitoring</span>
+              <span>Profitability</span>
+            </button>
             <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["invoices"])}'>
               <span class="material-symbols-rounded">receipt_long</span>
               <span>Invoices</span>

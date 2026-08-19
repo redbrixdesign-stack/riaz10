@@ -169,7 +169,7 @@ Backup.
 ## 3. How it works
 
 ### Storage
-- **IndexedDB** via bundled Dexie 4 (`advisoros_v6` database) with 25
+- **IndexedDB** via bundled Dexie 4 (`advisoros_v6` database) with 32
   tables: customers, appointments, orders, expenses, trips, measurements,
   communications, settings, sequences, photos, leads, tasks, taskEvents,
   quotes, quoteItems, jobs, checklistTemplates, checklistItems,
@@ -332,3 +332,10 @@ backup/restore journey F) via `node tests/browser/run-journeys.js`.
 - AI drafting needs connectivity (proxy); the app itself works offline —
   shell + data + cached geocodes + stale weather serve the day.
 - Scheduler timers run while the app is open, with catch-up on boot.
+
+## 11. Phase 5 operations
+
+- Job profitability reconciles revenue against explicit direct costs and shows gross profit, margin, and profit per hour.
+- Financial modes and rates are effective-dated; a later policy does not rewrite historic quotes or jobs.
+- Suppliers and purchase orders track submission, acknowledgement, expected delivery, receipt/checking, shortage, damage, and return history separately from sales stages.
+- Availability records leave and unavailable periods. New/moved visits retain their arrival windows while receiving deterministic, overrideable capacity and travel advice; Beelo never silently reschedules them.

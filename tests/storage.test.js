@@ -304,7 +304,7 @@ async function runDbJs(engine, tag) {
   await DB.addPhoto({ customerId: c.id, data: photoData, caption: 'Back yard' });
 
   const exported = await DB.exportAll();
-  ok(engine + ': exportAll shape', Object.keys(exported).length === 25 && exported.customers.length === 3 && exported.photos.length === 1, Object.keys(exported));
+  ok(engine + ': exportAll shape', Object.keys(exported).length === 32 && exported.customers.length === 3 && exported.photos.length === 1, Object.keys(exported));
 
   // Import: corrupt payload must throw and leave data untouched.
   const beforeExport = await DB.exportAll();
@@ -609,7 +609,7 @@ async function runBackupRoundtrip(engine, tag) {
   await DB.setSetting('pitchDemoSeeded', true);
 
   const exported = await DB.exportAll();
-  ok(engine + ': backup exports all 25 tables', Object.keys(exported).length === 25, Object.keys(exported));
+  ok(engine + ': backup exports all 32 tables', Object.keys(exported).length === 32, Object.keys(exported));
   ok(engine + ': backup carries photos', exported.photos.length === 3, exported.photos.length);
   ok(engine + ': backup drops runtime-only settings', exported.settings.length === 1 && exported.settings[0].key === 'config', exported.settings);
   ok(engine + ': backup carries sequences', exported.sequences.length === 5, exported.sequences);
@@ -842,14 +842,14 @@ async function runBackupEnvelope() {
 
   const backup = await ExportService.exportBackup();
   const storageContract = DB.storageContract();
-  ok('envelope: authoritative storage contract is schema 6 / format 1',
-    storageContract.databaseSchemaVersion === 6 && storageContract.backupFormatVersion === 1, storageContract);
+  ok('envelope: authoritative storage contract is schema 7 / format 1',
+    storageContract.databaseSchemaVersion === 7 && storageContract.backupFormatVersion === 1, storageContract);
   ok('envelope: backupFormatVersion present', backup.backupFormatVersion === 1, backup.backupFormatVersion);
-  ok('envelope: databaseSchemaVersion present', backup.databaseSchemaVersion === 6, backup.databaseSchemaVersion);
+  ok('envelope: databaseSchemaVersion present', backup.databaseSchemaVersion === 7, backup.databaseSchemaVersion);
   ok('envelope: appVersion present', backup.appVersion === '5.0', backup.appVersion);
   ok('envelope: legacy version field kept', backup.version === '5.0');
   ok('envelope: exportedAt timestamp', typeof backup.exportedAt === 'string' && !isNaN(Date.parse(backup.exportedAt)));
-  ok('envelope: carries all 25 data tables', Object.keys(backup.data).length === 25, Object.keys(backup.data));
+  ok('envelope: carries all 32 data tables', Object.keys(backup.data).length === 32, Object.keys(backup.data));
   ok('envelope: photos in backup', backup.data.photos.length === 1 && backup.data.photos[0].data === photo);
   ok('envelope: no proxy secret in backup config', backup.config.ai && backup.config.ai.secret === undefined);
   ok('envelope: secret absent from serialized file', JSON.stringify(backup).indexOf('super-secret-key') === -1);
@@ -1229,6 +1229,21 @@ async function runPhase4FinanceStorage(engine){
  const exported=await DB.exportAll();await DB.deleteAllData();await DB.importAll(JSON.parse(JSON.stringify(exported)));ok(engine+': finance graph backup restores',(await DB.db.payments.count())===4&&(await DB.db.invoices.count())===1&&(await DB.db.invoiceItems.count())===1&&(await DB.db.creditNotes.count())===1&&(await DB.db.documents.count())===1);const inv2=await DB.createInvoice({customerId:c.id},[{description:'Next',quantity:1,unitPrice:1}]);ok(engine+': invoice numbering continues after restore',inv2.invoice.invoiceNumber!==invoice.invoice.invoiceNumber);
 }
 
+async function runPhase5ProfitabilityStorage(engine) {
+  const sandbox=baseSandbox();if(engine==='dexie'){const Dexie=require('dexie');Dexie.dependencies.indexedDB=indexedDB;Dexie.dependencies.IDBKeyRange=IDBKeyRange;sandbox.Dexie=Dexie;}else sandbox.Dexie=loadShim(sandbox);const DB=loadDbJs(sandbox,`advisoros_v7_phase5_${engine}_${Date.now()}`);await DB.init();await sandbox.initEncryption('phase5-pass');
+  const oldPolicy=await DB.createFinancialPolicy({mode:'sole_trader',effectiveFrom:'2026-01-01T00:00:00.000Z',commissionRate:10,paymentFeeRate:1.5,mileageRate:.45,labourHourlyCost:20});
+  const c=await DB.addCustomer({firstName:'Profit',lastName:'Customer'});const q=await DB.createQuote({customerId:c.id,items:[{description:'Supply',quantity:2,unitPrice:300,cost:100}],createdAt:'2026-02-01T00:00:00.000Z'});const quoted=await DB.calculateQuoteProfitability(q.quote.id,4);
+  ok(engine+': quote profitability is deterministic',quoted.revenue===600&&quoted.directCost===200&&quoted.grossProfit===400&&quoted.marginPercent===66.67&&quoted.effectiveHourlyValue===100&&quoted.policyId===oldPolicy.id);
+  ok(engine+': financial mode changes revenue basis',DB._effectiveRevenue(1000,{mode:'commission_advisor',commissionRate:12.2})===122&&DB._effectiveRevenue(1000,{mode:'sole_trader'})===1000);
+  await DB.acceptQuote(q.quote.id).catch(async()=>{await DB.issueQuote(q.quote.id);await DB.acceptQuote(q.quote.id);});const converted=await DB.convertAcceptedQuoteToOrder(q.quote.id);const job=(await DB.createJobFromOrder(converted.order.id,{},'profit-job')).job;
+  const cost=await DB.addJobCost({jobId:job.id,orderId:converted.order.id,category:'materials',amount:125.555,description:'Private supplier detail',operationId:'cost-1'});const retry=await DB.addJobCost({jobId:job.id,orderId:converted.order.id,category:'materials',amount:999,operationId:'cost-1'});const actual=await DB.calculateJobProfitability(job.id,5);
+  ok(engine+': actual costs are explicit, rounded and idempotent',cost.id===retry.id&&actual.directCost===125.56&&actual.grossProfit===474.44&&actual.effectiveHourlyValue===94.89);
+  await DB.createFinancialPolicy({mode:'sole_trader',effectiveFrom:'2027-01-01T00:00:00.000Z',commissionRate:0,paymentFeeRate:2,mileageRate:.5,labourHourlyCost:25});const historic=await DB.calculateJobProfitability(job.id,5);let backdateBlocked=false;try{await DB.createFinancialPolicy({mode:'hybrid',effectiveFrom:'2026-06-01T00:00:00.000Z'});}catch(e){backdateBlocked=true;}
+  ok(engine+': later policy does not rewrite historic result',historic.policyId===oldPolicy.id&&historic.grossProfit===actual.grossProfit&&backdateBlocked);
+  ok(engine+': job cost PII encrypted at rest',typeof (await DB.db.jobCosts.get(cost.id)).description==='object');
+  const exported=await DB.exportAll();await DB.deleteAllData();await DB.importAll(JSON.parse(JSON.stringify(exported)));ok(engine+': Phase 5 profitability graph restores',(await DB.db.jobCosts.count())===1&&(await DB.db.financialPolicies.count())===2&&(await DB.calculateJobProfitability(job.id,5)).grossProfit===474.44);
+}
+
 // ---------- runner ----------
 
 (async () => {
@@ -1290,6 +1305,8 @@ async function runPhase4FinanceStorage(engine){
   await runPhase3JobStorage('shim');
   console.log('\nTest 21: Phase 4 finance storage — real Dexie');await runPhase4FinanceStorage('dexie');
   console.log('\nTest 22: Phase 4 finance storage — bundled shim');await runPhase4FinanceStorage('shim');
+  console.log('\nTest 23: Phase 5 profitability storage — real Dexie');await runPhase5ProfitabilityStorage('dexie');
+  console.log('\nTest 24: Phase 5 profitability storage — bundled shim');await runPhase5ProfitabilityStorage('shim');
   console.log('\n' + (failures === 0 ? 'ALL TESTS PASSED' : failures + ' TEST(S) FAILED'));
   process.exit(failures === 0 ? 0 : 1);
 })().catch(e => { console.error('UNEXPECTED ERROR:', e); process.exit(1); });

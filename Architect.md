@@ -1496,6 +1496,8 @@ Exit criteria:
 **Goal:** help a genuinely self-employed advisor choose profitable work and plan
 days that can actually be delivered.
 
+**Implementation status (19 August 2026): phase gate passed (schema 7).** Explicit job-cost records drive deterministic quote/job profitability; immutable effective-dated financial modes and costing inputs preserve historic calculations; supplier/product/purchase-order records retain delivery and exception history; and working/leave/unavailable capacity blocks feed overrideable diary advice. These remain additive to the Phase 4 payment ledger. See `docs/PHASE5-CONTRACTS.md` for the calculation and storage boundaries.
+
 Additive domain objects:
 
 - `suppliers`, `products`, and optionally `purchaseOrders`/`purchaseOrderItems`;
