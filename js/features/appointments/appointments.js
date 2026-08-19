@@ -1695,6 +1695,7 @@ const AppointmentsFeature = {
           <div class="px-md mb-md" >
             <div class="divider-text">Manage</div>
             <div class="grid-3 gap-sm mb-10" >
+              ${appt.customerId ? `<button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='${JSON.stringify(['quotes', { action: 'add', customerId: appt.customerId, appointmentId: appt.id }])}'><span class="material-symbols-rounded">request_quote</span>Quote</button>` : ''}
               ${appt.address ? `
                 <button class="btn btn-outline btn-sm" data-action="AppointmentsFeature.navigateToVisit" data-args='${JSON.stringify([Utils.escapeJsString(appt.address), (appt.id)])}'>
                   <span class="material-symbols-rounded">navigation</span>

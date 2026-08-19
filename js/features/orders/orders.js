@@ -28,8 +28,10 @@ const OrdersFeature = {
   async renderAsync() {
     let pipeline = [];
     let orders = [];
+    let structuredQuotes = [];
     try { pipeline = await DB.getPipeline(); } catch (e) {}
     try { orders = await DB.db.orders.toArray(); } catch (e) {}
+    try { if (typeof DB.getQuotes === 'function') structuredQuotes = await DB.getQuotes({}); } catch (e) {}
 
     const now = new Date();
     const orderAppointmentIds = new Set(orders.map(o => o.appointmentId).filter(Boolean));
@@ -54,11 +56,12 @@ const OrdersFeature = {
       orderByStage[bucket].push(o);
     }
 
-    const quotedValue = quoteCards.reduce((s, a) => s + (a.value || 0), 0);
+    const liveStructuredQuotes = structuredQuotes.filter(q => ['draft', 'issued', 'accepted'].includes(q.status));
+    const quotedValue = quoteCards.reduce((s, a) => s + (a.value || 0), 0) + liveStructuredQuotes.reduce((s, q) => s + (q.total || 0), 0);
     const orderValue = stage => orderByStage[stage].reduce((s, o) => s + (o.total || 0), 0);
 
     const columns = [
-      { id: 'quoted', name: 'Quoted', icon: 'receipt_long', count: quoteCards.length, total: quotedValue },
+      { id: 'quoted', name: 'Quoted', icon: 'receipt_long', count: quoteCards.length + liveStructuredQuotes.length, total: quotedValue },
       { id: 'ordered', name: 'Ordered', icon: 'shopping_cart', count: orderByStage.ordered.length, total: orderValue('ordered') },
       { id: 'delivered', name: 'Delivered', icon: 'local_shipping', count: orderByStage.delivered.length, total: orderValue('delivered') },
       { id: 'fitted', name: 'Fitted', icon: 'handyman', count: orderByStage.fitted.length, total: orderValue('fitted') },
@@ -70,7 +73,7 @@ const OrdersFeature = {
 
     return `
       <div class="fade-in">
-        ${App.renderTopHeader({ title: 'Orders' })}
+        ${App.renderTopHeader({ title: 'Orders', actions: `<button class="btn btn-sm btn-outline" data-action="App.navigate" data-args='["quotes"]'><span class="material-symbols-rounded">request_quote</span>Quotes</button>` })}
 
         <div class="kanban-summary">
           <div class="kanban-summary-item">
@@ -91,7 +94,7 @@ const OrdersFeature = {
           </div>
         </div>
 
-        ${quoteCards.length === 0 && orders.length === 0 ? `
+        ${quoteCards.length === 0 && liveStructuredQuotes.length === 0 && orders.length === 0 ? `
           <div class="empty-state empty-state-lg" >
             <span class="material-symbols-rounded">view_kanban</span>
             <div class="fw-600 mb-xs" >No orders yet.</div>
@@ -109,7 +112,7 @@ const OrdersFeature = {
                 </div>
                 <div class="kanban-col-body">
                   ${col.id === 'quoted'
-                    ? (quoteCards.length ? quoteCards.sort((a, b) => new Date(a.date) - new Date(b.date)).map(a => this.renderQuoteCard(a, customerMap, now)).join('') : `<div class="kanban-empty">Nothing quoted</div>`)
+                    ? ((liveStructuredQuotes.length || quoteCards.length) ? `${liveStructuredQuotes.map(q => this.renderStructuredQuoteCard(q)).join('')}${quoteCards.sort((a, b) => new Date(a.date) - new Date(b.date)).map(a => this.renderQuoteCard(a, customerMap, now)).join('')}` : `<div class="kanban-empty">Nothing quoted</div>`)
                     : (orderByStage[col.id].length ? orderByStage[col.id].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).map(o => this.renderOrderCard(o, customerMap)).join('') : `<div class="kanban-empty">Nothing here</div>`)}
                 </div>
               </div>
@@ -140,6 +143,14 @@ const OrdersFeature = {
         </div>
       </div>
     `;
+  },
+
+  renderStructuredQuoteCard(quote) {
+    return `<button class="kanban-card" type="button" data-action="App.navigate" data-args='${JSON.stringify(['quotes', { id: quote.id }])}'>
+      <div class="kanban-card-top"><span class="kanban-card-name">${Utils.escapeHtml(quote.quoteNumber || 'Draft quote')} · v${quote.version || 1}</span><span class="kanban-card-value">${Utils.formatCurrency(quote.total || 0)}</span></div>
+      <div class="kanban-card-sub">Structured quote · ${Utils.escapeHtml(quote.status || 'draft')}</div>
+      <div class="kanban-card-actions"><span class="kanban-card-action"><span class="material-symbols-rounded">open_in_new</span>Open quote</span></div>
+    </button>`;
   },
 
   renderOrderCard(order, customerMap) {

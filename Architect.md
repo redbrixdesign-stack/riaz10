@@ -272,7 +272,7 @@ Web Crypto requires a secure context. Production must be served over HTTPS. Loop
 
 ## 7. Data model
 
-The database contains thirteen tables.
+The database contains fifteen tables.
 
 ### 7.1 `customers`
 
@@ -390,7 +390,23 @@ second transition. Real Dexie writes task state and its event atomically; the
 mini-Dexie fallback is deterministic and retry-safe but does not claim
 multi-table transaction equivalence.
 
-### 7.12 Relationships
+### 7.12 `quotes` and `quoteItems`
+
+`quotes` stores numbered, versioned commercial proposals linked to a customer
+and optionally their source appointment. Draft, issued, accepted, rejected,
+superseded, and expired are explicit states. Totals are derived from line items;
+historic appointment values are never reinterpreted as structured quote data.
+
+`quoteItems` stores description, quantity, unit, price, optional cost and
+product/supplier references, and display order. Descriptions plus quote notes,
+terms and customer acceptance/rejection text are encrypted at rest. An accepted
+quote can link to exactly one order through `order.quoteId`.
+
+Documents are not a schema-4 table: current printable previews can be generated
+from the immutable issued quote version, and no independent binary artifact is
+required yet.
+
+### 7.13 Relationships
 
 ```text
 Customer
@@ -398,7 +414,11 @@ Customer
  │   ├─ Measurements
  │   ├─ Trips
  │   └─ Order (normally one commercial order per ordered visit)
+ ├─ Quotes
+ │   ├─ Quote Items
+ │   └─ Order (zero or one, only after explicit acceptance)
  ├─ Orders
+ ├─ Leads and Tasks
  ├─ Communications
  └─ Photos
 ```
@@ -485,7 +505,7 @@ The advisor can review completed versus total visits, see earnings recorded for 
 ### 8.8 Backup and restore
 
 1. Export a full JSON backup.
-2. The backup contains all thirteen tables, sanitized configuration, schema/app metadata, photos, leads, tasks, and task events.
+2. The backup contains all fifteen tables, sanitized configuration, schema/app metadata, photos, durable work, structured quotes, and quote items.
 3. Runtime-only AI secrets are excluded.
 4. An optional backup password encrypts the file with PBKDF2/AES-GCM.
 5. Import validates version, shape, IDs, references, types, and configuration before replacing data.

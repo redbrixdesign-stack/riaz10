@@ -6,9 +6,9 @@
 // Every table a backup can carry. exportAll() and importAll() speak this
 // exact list; adding a table here is a backup-format change and must be
 // mirrored in the backup envelope's versioning (js/services/export.js).
-const DATABASE_SCHEMA_VERSION = 3;
+const DATABASE_SCHEMA_VERSION = 4;
 const BACKUP_FORMAT_VERSION = 1;
-const BACKUP_TABLES = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'photos', 'leads', 'tasks', 'taskEvents', 'settings', 'sequences'];
+const BACKUP_TABLES = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'photos', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems', 'settings', 'sequences'];
 
 // ============================================
 // Field-level encryption (AES-GCM 256-bit, key from passphrase via PBKDF2)
@@ -22,6 +22,8 @@ const ADDRESS_PII_FIELDS = ['line1', 'town', 'city', 'postcode', 'postcodeNormal
 const APPT_PII_FIELDS = ['clientName', 'phone', 'address', 'notes'];
 const LEAD_PII_FIELDS = ['name', 'firstName', 'lastName', 'phone', 'email', 'address', 'notes', 'lossReason'];
 const TASK_PII_FIELDS = ['title', 'notes'];
+const QUOTE_PII_FIELDS = ['notes', 'termsSnapshot', 'acceptanceName', 'rejectionReason'];
+const QUOTE_ITEM_PII_FIELDS = ['description'];
 const PBKDF2_ITERATIONS = 100000;
 const KEY_LENGTH = 256;
 const IV_LENGTH = 12;
@@ -262,12 +264,18 @@ async function decryptLead(lead) {
 }
 const encryptTask = task => encryptStringFields(task, TASK_PII_FIELDS);
 const decryptTask = task => decryptStringFields(task, TASK_PII_FIELDS);
+const encryptQuote = quote => encryptStringFields(quote, QUOTE_PII_FIELDS);
+const decryptQuote = quote => decryptStringFields(quote, QUOTE_PII_FIELDS);
+const encryptQuoteItem = item => encryptStringFields(item, QUOTE_ITEM_PII_FIELDS);
+const decryptQuoteItem = item => decryptStringFields(item, QUOTE_ITEM_PII_FIELDS);
 
 async function migratePlaintextWorkItems() {
   if (!encryptionKey) return;
   for (const [table, fields, encrypt] of [
     ['leads', LEAD_PII_FIELDS, encryptLead],
-    ['tasks', TASK_PII_FIELDS, encryptTask]
+    ['tasks', TASK_PII_FIELDS, encryptTask],
+    ['quotes', QUOTE_PII_FIELDS, encryptQuote],
+    ['quoteItems', QUOTE_ITEM_PII_FIELDS, encryptQuoteItem]
   ]) {
     const rows = await DB.db[table].toArray();
     for (const row of rows) {
@@ -327,9 +335,12 @@ const DB = {
     // existing databases keep their data and simply gain the new table.
     this.db.version(DATABASE_SCHEMA_VERSION).stores({
       photos: '++id, customerId, createdAt',
+      orders: '++id, customerId, appointmentId, quoteId, orderNumber, supplierOrderNumber, status, createdAt',
       leads: '++id, customerId, appointmentId, status, source, receivedAt, nextActionAt, createdAt',
       tasks: '++id, status, type, dueAt, snoozedUntil, priority, leadId, customerId, appointmentId, orderId, sourceKey, createdAt',
-      taskEvents: '++id, taskId, type, occurredAt, idempotencyKey, createdAt'
+      taskEvents: '++id, taskId, type, occurredAt, idempotencyKey, createdAt',
+      quotes: '++id, customerId, appointmentId, quoteNumber, version, status, issueDate, expiryDate, createdAt',
+      quoteItems: '++id, quoteId, displayOrder, createdAt'
     });
 
     if (typeof this.db.open === 'function') {
@@ -567,7 +578,7 @@ const DB = {
   },
 
   async initSequences() {
-    const sequences = ['customer', 'order'];
+    const sequences = ['customer', 'order', 'quote'];
     for (const name of sequences) {
       const exists = await this.db.sequences.get(name);
       if (!exists) {
@@ -648,7 +659,7 @@ const DB = {
   // what actually happened, not just "done".
   async deleteCustomer(customerId) {
     return this._runWrite(
-      ['customers', 'appointments', 'orders', 'communications', 'photos', 'measurements', 'trips', 'leads', 'tasks', 'taskEvents'],
+      ['customers', 'appointments', 'orders', 'communications', 'photos', 'measurements', 'trips', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems'],
       async () => {
         const [appts, orders, comms] = await Promise.all([
           this.db.appointments.where('customerId').equals(customerId).toArray(),
@@ -658,6 +669,8 @@ const DB = {
         const photoCount = await this.db.photos.where('customerId').equals(customerId).count();
         const apptIds = appts.map(a => a.id);
         const orderIds = orders.map(o => o.id);
+        const quotes = await this.db.quotes.where('customerId').equals(customerId).toArray();
+        const quoteIds = quotes.map(q => q.id);
         const leads = await this.db.leads.where('customerId').equals(customerId).toArray();
         const leadIds = leads.map(l => l.id);
         const allTasks = await this.db.tasks.toArray();
@@ -666,6 +679,8 @@ const DB = {
         if (taskIds.length) await this.db.taskEvents.where('taskId').anyOf(taskIds).delete();
         for (const task of tasks) await this.db.tasks.delete(task.id);
         await this.db.leads.where('customerId').equals(customerId).delete();
+        if (quoteIds.length) await this.db.quoteItems.where('quoteId').anyOf(quoteIds).delete();
+        await this.db.quotes.where('customerId').equals(customerId).delete();
         const measurementCount = apptIds.length ? await this.db.measurements.where('appointmentId').anyOf(apptIds).delete() : 0;
         const tripCount = apptIds.length ? await this.db.trips.where('appointmentId').anyOf(apptIds).delete() : 0;
         await this.db.appointments.where('customerId').equals(customerId).delete();
@@ -673,7 +688,7 @@ const DB = {
         await this.db.communications.where('customerId').equals(customerId).delete();
         await this.db.photos.where('customerId').equals(customerId).delete();
         await this.db.customers.delete(customerId);
-        return { appointments: appts.length, orders: orders.length, communications: comms.length, photos: photoCount, measurements: measurementCount, trips: tripCount, leads: leads.length, tasks: tasks.length, taskEvents: taskIds.length };
+        return { appointments: appts.length, orders: orders.length, communications: comms.length, photos: photoCount, measurements: measurementCount, trips: tripCount, leads: leads.length, tasks: tasks.length, taskEvents: taskIds.length, quotes: quotes.length };
       }
     );
   },
@@ -1185,6 +1200,177 @@ const DB = {
     return { ...comm, id };
   },
 
+  // Phase 2 structured quotes -------------------------------------------
+  _quoteTotals(items, fields = {}) {
+    const money = value => Math.round((Number(value) || 0) * 100) / 100;
+    const subtotal = money((items || []).reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0), 0));
+    const percent = Math.max(0, Math.min(100, Number(fields.discountPercent) || 0));
+    const discountAmount = money(fields.discountAmount !== undefined ? fields.discountAmount : subtotal * percent / 100);
+    const discounted = money(Math.max(0, subtotal - discountAmount));
+    const taxTreatment = fields.taxTreatment || 'none';
+    const taxRate = Math.max(0, Number(fields.taxRate) || 0);
+    const taxAmount = taxTreatment === 'exclusive' ? money(discounted * taxRate / 100) : 0;
+    const total = taxTreatment === 'inclusive' ? discounted : money(discounted + taxAmount);
+    const totalCost = money((items || []).reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.cost) || 0), 0));
+    return { subtotal, discountAmount, discountPercent: percent, taxTreatment, taxRate, taxAmount, total, totalCost };
+  },
+
+  async _prepareQuoteItems(items, quoteId = null) {
+    if (!Array.isArray(items) || !items.length) throw new Error('At least one quote item is required');
+    return Promise.all(items.map(async (item, index) => {
+      if (!String(item.description || '').trim()) throw new Error('Quote item description is required');
+      const quantity = Number(item.quantity);
+      const unitPrice = Number(item.unitPrice);
+      if (!(quantity > 0) || unitPrice < 0 || !Number.isFinite(unitPrice)) throw new Error('Quote item quantity and price are invalid');
+      return encryptQuoteItem({ ...item, quoteId, description: String(item.description).trim(), quantity, unitPrice, cost: Math.max(0, Number(item.cost) || 0), displayOrder: item.displayOrder ?? index, createdAt: item.createdAt || new Date().toISOString() });
+    }));
+  },
+
+  async createQuote(data) {
+    if (!data || !Number.isInteger(data.customerId) || data.customerId < 1) throw new Error('Quote customer is required');
+    if (!await this.db.customers.get(data.customerId)) throw new Error('Customer not found');
+    const plainItems = data.items || [];
+    const encryptedItems = await this._prepareQuoteItems(plainItems);
+    const totals = this._quoteTotals(plainItems, data);
+    const now = new Date().toISOString();
+    const quoteBase = await encryptQuote({ ...data, items: undefined, ...totals, version: 1, status: 'draft', createdAt: now, updatedAt: now });
+    let result;
+    await this._runWrite(['quotes', 'quoteItems', 'sequences'], async () => {
+      const seq = await this._nextSequenceUnsafe('quote');
+      const quote = { ...quoteBase, quoteNumber: `QUO-${new Date().getFullYear()}-${String(seq).padStart(4, '0')}` };
+      const quoteId = await this.db.quotes.add(quote);
+      for (const item of encryptedItems) await this.db.quoteItems.add({ ...item, quoteId });
+      result = quoteId;
+    });
+    return this.getQuote(result);
+  },
+
+  async getQuoteItems(quoteId) {
+    const rows = await this.db.quoteItems.where('quoteId').equals(quoteId).toArray();
+    rows.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+    return Promise.all(rows.map(row => decryptQuoteItem(row)));
+  },
+
+  async getQuote(id) {
+    const row = await this.db.quotes.get(id);
+    if (!row) return null;
+    return { quote: await decryptQuote(row), items: await this.getQuoteItems(id) };
+  },
+
+  async getQuotes(filters = {}) {
+    let rows = await this.db.quotes.toArray();
+    for (const field of ['customerId', 'appointmentId', 'status', 'quoteNumber']) {
+      if (filters[field] !== undefined && filters[field] !== null) rows = rows.filter(row => row[field] === filters[field]);
+    }
+    rows.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return Promise.all(rows.map(row => decryptQuote(row)));
+  },
+
+  async updateQuote(id, changes = {}, items = null) {
+    const current = await this.getQuote(id);
+    if (!current) throw new Error('Quote not found');
+    if (current.quote.status !== 'draft') throw new Error('Only draft quotes can be edited');
+    const plainItems = items || current.items;
+    const encryptedItems = items ? await this._prepareQuoteItems(items, id) : null;
+    const totals = this._quoteTotals(plainItems, { ...current.quote, ...changes });
+    const allowedChanges = { ...changes };
+    delete allowedChanges.quoteNumber; delete allowedChanges.version; delete allowedChanges.status; delete allowedChanges.id; delete allowedChanges.customerId;
+    const encryptedChanges = await encryptQuote({ ...allowedChanges, ...totals, updatedAt: new Date().toISOString() });
+    await this._runWrite(['quotes', 'quoteItems'], async () => {
+      await this.db.quotes.update(id, encryptedChanges);
+      if (encryptedItems) {
+        await this.db.quoteItems.where('quoteId').equals(id).delete();
+        for (const item of encryptedItems) await this.db.quoteItems.add(item);
+      }
+    });
+    return this.getQuote(id);
+  },
+
+  async issueQuote(id) {
+    const current = await this.getQuote(id);
+    if (!current || current.quote.status !== 'draft') throw new Error('Only a draft quote can be issued');
+    const now = new Date().toISOString();
+    await this.db.quotes.update(id, { status: 'issued', issueDate: current.quote.issueDate || now, updatedAt: now });
+    return (await this.getQuote(id)).quote;
+  },
+
+  async acceptQuote(id, metadata = {}) {
+    const current = await this.getQuote(id);
+    if (!current || !['issued', 'accepted'].includes(current.quote.status)) throw new Error('Only an issued quote can be accepted');
+    if (current.quote.status === 'accepted') return current.quote;
+    const now = new Date().toISOString();
+    await this.db.quotes.update(id, await encryptQuote({ status: 'accepted', acceptedAt: now, acceptanceName: metadata.acceptanceName || '', acceptanceMethod: metadata.acceptanceMethod || 'advisor_recorded', updatedAt: now }));
+    return (await this.getQuote(id)).quote;
+  },
+
+  async rejectQuote(id, reason = '') {
+    const current = await this.getQuote(id);
+    if (!current || !['issued', 'rejected'].includes(current.quote.status)) throw new Error('Only an issued quote can be rejected');
+    if (current.quote.status === 'rejected') return current.quote;
+    const now = new Date().toISOString();
+    await this.db.quotes.update(id, await encryptQuote({ status: 'rejected', rejectedAt: now, rejectionReason: reason, updatedAt: now }));
+    return (await this.getQuote(id)).quote;
+  },
+
+  async expireQuote(id) {
+    const current = await this.getQuote(id);
+    if (!current || !['issued', 'expired'].includes(current.quote.status)) throw new Error('Only an issued quote can be expired');
+    if (current.quote.status === 'expired') return current.quote;
+    const now = new Date().toISOString();
+    await this.db.quotes.update(id, { status: 'expired', expiredAt: now, updatedAt: now });
+    return (await this.getQuote(id)).quote;
+  },
+
+  async createQuoteVersion(id, changes = {}, items = null) {
+    const current = await this.getQuote(id);
+    if (!current) throw new Error('Quote not found');
+    if (current.quote.status === 'accepted') throw new Error('Accepted quotes cannot be superseded');
+    const plainItems = items || current.items;
+    const encryptedItems = await this._prepareQuoteItems(plainItems);
+    const totals = this._quoteTotals(plainItems, { ...current.quote, ...changes });
+    const now = new Date().toISOString();
+    const quoteBase = await encryptQuote({ ...current.quote, ...changes, ...totals, id: undefined, version: (current.quote.version || 1) + 1, status: 'draft', supersedesQuoteId: id, issueDate: null, acceptedAt: null, rejectedAt: null, createdAt: now, updatedAt: now });
+    let newId;
+    await this._runWrite(['quotes', 'quoteItems'], async () => {
+      newId = await this.db.quotes.add(quoteBase);
+      for (const item of encryptedItems) await this.db.quoteItems.add({ ...item, quoteId: newId, id: undefined });
+      await this.db.quotes.update(id, { status: 'superseded', supersededByQuoteId: newId, updatedAt: now });
+    });
+    return this.getQuote(newId);
+  },
+
+  async convertAcceptedQuoteToOrder(id, operationId = null) {
+    const run = async () => {
+      const quote = await this.db.quotes.get(id);
+      if (!quote) throw new Error('Quote not found');
+      if (quote.status !== 'accepted') throw new Error('Quote must be accepted before conversion');
+      let order = await this.db.orders.where('quoteId').equals(id).first();
+      if (order) return { quote, order, created: false };
+      const seq = await this._nextSequenceUnsafe('order');
+      const total = Number(quote.total) || 0;
+      order = { customerId: quote.customerId, appointmentId: quote.appointmentId || null, quoteId: id, orderNumber: `ORD-${new Date().getFullYear()}-${String(seq).padStart(4, '0')}`, total, depositRequired: App.calculateDeposit(total).amount, depositPaid: 0, balanceDue: total, status: 'deposit_pending', stage: 'ordered', quoteConversionOperationId: operationId || null, reviewRequested: false, referralRequested: false, createdAt: new Date().toISOString() };
+      order.id = await this.db.orders.add(order);
+      await this.db.quotes.update(id, { convertedOrderId: order.id, convertedAt: new Date().toISOString() });
+      await this._refreshCustomerTotalsUnsafe(quote.customerId);
+      return { quote: { ...quote, convertedOrderId: order.id }, order, created: true };
+    };
+    let result;
+    if (typeof this.db.transaction === 'function') {
+      result = await this._runWrite(['quotes', 'orders', 'customers', 'sequences'], run);
+    } else {
+      if (!this._quoteConversionLocks) this._quoteConversionLocks = new Map();
+      const pending = this._quoteConversionLocks.get(id);
+      if (pending) result = { ...(await pending), created: false };
+      else {
+        const promise = run().finally(() => this._quoteConversionLocks.delete(id));
+        this._quoteConversionLocks.set(id, promise);
+        result = await promise;
+      }
+    }
+    result.quote = await decryptQuote(result.quote);
+    return result;
+  },
+
   // Phase 1 durable work management ------------------------------------
   async addLead(data) {
     const now = new Date().toISOString();
@@ -1372,7 +1558,7 @@ const DB = {
 
   // Schema version of the current database. Real Dexie reports it as `verno`
   // once opened; the bundled shim keeps it internally without exposing it, so
-  // fall back to the current schema constant (3 = durable work tables added).
+  // fall back to the current schema constant (4 = structured quote tables added).
   schemaVersion() {
     return typeof this.db.verno === 'number' ? this.db.verno : DATABASE_SCHEMA_VERSION;
   },
@@ -1397,7 +1583,7 @@ const DB = {
   // travel inside a backup.
   async exportAll() {
     const data = {};
-    const tables = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'photos', 'leads', 'tasks', 'taskEvents'];
+    const tables = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'photos', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems'];
     for (const table of tables) {
       data[table] = await this.db[table].toArray();
     }
@@ -1417,6 +1603,8 @@ const DB = {
     }
     if (data.leads && data.leads.length) data.leads = await Promise.all(data.leads.map(row => decryptLead(row)));
     if (data.tasks && data.tasks.length) data.tasks = await Promise.all(data.tasks.map(row => decryptTask(row)));
+    if (data.quotes && data.quotes.length) data.quotes = await Promise.all(data.quotes.map(row => decryptQuote(row)));
+    if (data.quoteItems && data.quoteItems.length) data.quoteItems = await Promise.all(data.quoteItems.map(row => decryptQuoteItem(row)));
     const RUNTIME_SETTING_KEYS = ['__v6_legacy_migrated__', '__storage_probe__', 'pitchDemoSeeded'];
     data.settings = (await this.db.settings.toArray()).filter(s => !RUNTIME_SETTING_KEYS.includes(s.key));
     data.sequences = await this.db.sequences.toArray();
@@ -1449,6 +1637,14 @@ const DB = {
     if (encryptionKey && importData.tasks) {
       importData = { ...importData };
       importData.tasks = await Promise.all(importData.tasks.map(row => encryptTask(row)));
+    }
+    if (encryptionKey && importData.quotes) {
+      importData = { ...importData };
+      importData.quotes = await Promise.all(importData.quotes.map(row => encryptQuote(row)));
+    }
+    if (encryptionKey && importData.quoteItems) {
+      importData = { ...importData };
+      importData.quoteItems = await Promise.all(importData.quoteItems.map(row => encryptQuoteItem(row)));
     }
 
     // On the real engine this is a single atomic readwrite transaction
@@ -1587,6 +1783,7 @@ const DB = {
     const orderIds = new Set((data.orders || []).map(o => o.id));
     const leadIds = new Set((data.leads || []).map(l => l.id));
     const taskIds = new Set((data.tasks || []).map(t => t.id));
+    const quoteIds = new Set((data.quotes || []).map(q => q.id));
     const checkRef = (table, record, field, validIds) => {
       const v = record[field];
       if (v === null || v === undefined) {
@@ -1655,6 +1852,26 @@ const DB = {
       checkRef('taskEvents', record, 'taskId', taskIds);
       if (typeof record.type !== 'string' || !record.type) throw new Error('Backup file is corrupt: task event has an invalid type');
     }
+    const quoteStatuses = ['draft', 'issued', 'accepted', 'rejected', 'superseded', 'expired'];
+    const quoteNumbers = new Set();
+    for (const record of data.quotes || []) {
+      checkRef('quotes', record, 'customerId', customerIds);
+      if (record.appointmentId !== null && record.appointmentId !== undefined) checkRef('quotes', record, 'appointmentId', appointmentIds);
+      if (!quoteStatuses.includes(record.status)) throw new Error('Backup file is corrupt: quote has an invalid status');
+      if (typeof record.quoteNumber !== 'string' || !record.quoteNumber || !Number.isInteger(record.version) || record.version < 1) throw new Error('Backup file is corrupt: quote identity is invalid');
+      const versionKey = `${record.quoteNumber}:${record.version}`;
+      if (quoteNumbers.has(versionKey)) throw new Error('Backup file is corrupt: duplicate quote version');
+      quoteNumbers.add(versionKey);
+      for (const field of ['subtotal', 'discountAmount', 'taxAmount', 'total']) if (!Number.isFinite(record[field]) || record[field] < 0) throw new Error(`Backup file is corrupt: quote has an invalid ${field}`);
+      if (record.convertedOrderId !== null && record.convertedOrderId !== undefined) checkRef('quotes', record, 'convertedOrderId', orderIds);
+    }
+    for (const record of data.quoteItems || []) {
+      checkRef('quoteItems', record, 'quoteId', quoteIds);
+      if (typeof record.description !== 'string' || !record.description.trim() || !(Number(record.quantity) > 0) || !Number.isFinite(Number(record.unitPrice)) || Number(record.unitPrice) < 0) throw new Error('Backup file is corrupt: quote item is invalid');
+    }
+    for (const record of data.orders || []) {
+      if (record.quoteId !== null && record.quoteId !== undefined) checkRef('orders', record, 'quoteId', quoteIds);
+    }
 
     // 4. Dates. Appointment dates drive the diary, trips and expenses drive
     // mileage/money — those must parse. The remaining date-bearing fields
@@ -1675,6 +1892,7 @@ const DB = {
       ['leads', ['receivedAt', 'nextActionAt', 'convertedAt']],
       ['tasks', ['dueAt', 'snoozedUntil', 'completedAt']],
       ['taskEvents', ['occurredAt']]
+      ,['quotes', ['issueDate', 'expiryDate', 'acceptedAt', 'rejectedAt', 'convertedAt']]
     ]) {
       for (const record of data[table] || []) {
         for (const field of fields) {
@@ -1695,12 +1913,14 @@ const DB = {
   // found in the imported records (same CUS-/ORD-YYYY-#### pattern and year
   // scoping the legacy migration uses). Never lowers an existing counter.
   async _guardSequences(data) {
-    for (const name of ['customer', 'order']) {
-      const prefix = name === 'customer' ? 'CUS-' : 'ORD-';
+    for (const name of ['customer', 'order', 'quote']) {
+      const prefix = name === 'customer' ? 'CUS-' : name === 'order' ? 'ORD-' : 'QUO-';
       const year = new Date().getFullYear();
       const re = new RegExp(`^${prefix}\\d{4}-(\\d+)$`);
-      const maxSeq = (data[name + 's'] || []).reduce((max, r) => {
-        const m = String(r[name + 'Number'] || '').match(re);
+      const table = name === 'quote' ? 'quotes' : name + 's';
+      const numberField = name === 'quote' ? 'quoteNumber' : name + 'Number';
+      const maxSeq = (data[table] || []).reduce((max, r) => {
+        const m = String(r[numberField] || '').match(re);
         return Math.max(max, m ? parseInt(m[1], 10) : 0);
       }, 0);
       if (!maxSeq) continue;

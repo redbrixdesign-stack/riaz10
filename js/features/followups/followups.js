@@ -249,7 +249,55 @@ const FollowupsFeature = {
 
   async loadTasks() {
     const derived = await this.loadDerivedTasks();
-    return typeof TaskService !== 'undefined' ? TaskService.merge(derived) : derived;
+    const structured = await this.loadStructuredQuoteTasks(derived);
+    const combined = [...derived, ...structured];
+    return typeof TaskService !== 'undefined' ? TaskService.merge(combined) : combined;
+  },
+
+  async loadStructuredQuoteTasks(existing = []) {
+    if (typeof DB.getQuotes !== 'function') return [];
+    let quotes = [];
+    try { quotes = await DB.getQuotes(); } catch (e) { return []; }
+    const appointmentQuoteIds = new Set(existing.filter(t => t.kind === 'quote').map(t => t.appointment?.id).filter(Boolean));
+    const customerIds = [...new Set(quotes.map(q => q.customerId).filter(Boolean))];
+    const customers = new Map();
+    try {
+      const rows = customerIds.length && typeof DB.getCustomersByIds === 'function' ? await DB.getCustomersByIds(customerIds) : [];
+      for (const customer of rows) customers.set(customer.id, customer);
+    } catch (e) {}
+    const now = new Date();
+    const tasks = [];
+    for (const quote of quotes) {
+      if (quote.status === 'accepted' && !quote.convertedOrderId) {
+        tasks.push({
+          kind: 'quote_accepted', derivedKey: `structured-quote:accepted:${quote.id}`, quote,
+          customer: customers.get(quote.customerId) || null, due: true, inDays: 0,
+          daysLabel: quote.acceptedAt ? Utils.formatDate(quote.acceptedAt, 'short') : 'Accepted',
+          action: `Accepted ${quote.quoteNumber || 'quote'} — create order`, priority: 'high'
+        });
+        continue;
+      }
+      if (quote.status !== 'issued' || (quote.appointmentId && appointmentQuoteIds.has(quote.appointmentId))) continue;
+      const expiry = quote.expiryDate ? new Date(quote.expiryDate) : null;
+      const daysToExpiry = expiry && !isNaN(expiry) ? Utils.daysBetween(expiry, now) : null;
+      const issued = quote.issueDate || quote.createdAt;
+      const daysSinceIssue = issued ? Utils.daysBetween(now, new Date(issued)) : 0;
+      if (daysToExpiry !== null && daysToExpiry <= 3) {
+        tasks.push({
+          kind: 'quote_expiring', derivedKey: `structured-quote:expiry:${quote.id}`, quote,
+          customer: customers.get(quote.customerId) || null, due: true, inDays: 0,
+          daysLabel: daysToExpiry < 0 ? 'Expired' : (daysToExpiry === 0 ? 'Expires today' : `Expires in ${daysToExpiry}d`),
+          action: `${quote.quoteNumber || 'Quote'} needs attention before expiry`, priority: daysToExpiry <= 0 ? 'high' : 'normal'
+        });
+      } else if (daysSinceIssue >= 3) {
+        tasks.push({
+          kind: 'structured_quote', derivedKey: `structured-quote:issued:${quote.id}`, quote,
+          customer: customers.get(quote.customerId) || null, due: true, inDays: 0,
+          daysLabel: `${daysSinceIssue}d since issue`, action: `Follow up ${quote.quoteNumber || 'issued quote'}`, priority: 'normal'
+        });
+      }
+    }
+    return tasks;
   },
 
   async getDueCount() {
@@ -332,7 +380,7 @@ const FollowupsFeature = {
       ? `${Utils.formatDate(task.appointment.date, 'short')} · ${task.daysLabel}${dueIn}`
       : (task.order ? `${Utils.escapeHtml(task.order.orderNumber || 'Order')} · ${task.daysLabel}${dueIn}` : `${task.daysLabel || ''}${dueIn}`);
 
-    const icons = { quote: 'receipt_long', payment: 'payments', visit_today: 'event_available', visit_tomorrow: 'event', intro: 'waving_hand', post_fit: 'handyman', service: 'build', };
+    const icons = { quote: 'receipt_long', structured_quote: 'request_quote', quote_expiring: 'event_busy', quote_accepted: 'task_alt', payment: 'payments', visit_today: 'event_available', visit_tomorrow: 'event', intro: 'waving_hand', post_fit: 'handyman', service: 'build', };
     // Border colour = what the task needs from you. Payment and service issues
     // are urgent (warning/danger); today's visits and intros are primary
     // actions; everything else (quote chases, post-fit thank-yous,
@@ -372,6 +420,9 @@ const FollowupsFeature = {
   },
 
   renderPrimaryAction(task) {
+    if (task.quote) {
+      return `<button class="btn btn-sm btn-primary flex-1" data-action="App.navigate" data-args='${JSON.stringify(["quotes", {id: task.quote.id}])}'><span class="material-symbols-rounded fs-16">${task.kind === 'quote_accepted' ? 'shopping_cart' : 'visibility'}</span>${task.kind === 'quote_accepted' ? 'Review & convert' : 'Review quote'}</button>`;
+    }
     if (task.kind === 'quote') {
       return `
         <button class="btn btn-sm btn-primary flex-1"  data-action="TalkFeature.sendMessage" data-args='${JSON.stringify([(task.appointment.id), Utils.escapeJsString(task.template)])}'>

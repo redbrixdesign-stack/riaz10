@@ -304,7 +304,7 @@ async function runDbJs(engine, tag) {
   await DB.addPhoto({ customerId: c.id, data: photoData, caption: 'Back yard' });
 
   const exported = await DB.exportAll();
-  ok(engine + ': exportAll shape', Object.keys(exported).length === 13 && exported.customers.length === 3 && exported.photos.length === 1, Object.keys(exported));
+  ok(engine + ': exportAll shape', Object.keys(exported).length === 15 && exported.customers.length === 3 && exported.photos.length === 1, Object.keys(exported));
 
   // Import: corrupt payload must throw and leave data untouched.
   const beforeExport = await DB.exportAll();
@@ -609,10 +609,10 @@ async function runBackupRoundtrip(engine, tag) {
   await DB.setSetting('pitchDemoSeeded', true);
 
   const exported = await DB.exportAll();
-  ok(engine + ': backup exports all 13 tables', Object.keys(exported).length === 13, Object.keys(exported));
+  ok(engine + ': backup exports all 15 tables', Object.keys(exported).length === 15, Object.keys(exported));
   ok(engine + ': backup carries photos', exported.photos.length === 3, exported.photos.length);
   ok(engine + ': backup drops runtime-only settings', exported.settings.length === 1 && exported.settings[0].key === 'config', exported.settings);
-  ok(engine + ': backup carries sequences', exported.sequences.length === 2, exported.sequences);
+  ok(engine + ': backup carries sequences', exported.sequences.length === 3, exported.sequences);
   ok(engine + ': backup photo payloads exact', exported.photos.some(p => p.data === photoB) && exported.photos.some(p => p.data === photoA));
 
   // Wipe (simulating a lost/cleared device) then restore from the dump.
@@ -842,14 +842,14 @@ async function runBackupEnvelope() {
 
   const backup = await ExportService.exportBackup();
   const storageContract = DB.storageContract();
-  ok('envelope: authoritative storage contract is schema 3 / format 1',
-    storageContract.databaseSchemaVersion === 3 && storageContract.backupFormatVersion === 1, storageContract);
+  ok('envelope: authoritative storage contract is schema 4 / format 1',
+    storageContract.databaseSchemaVersion === 4 && storageContract.backupFormatVersion === 1, storageContract);
   ok('envelope: backupFormatVersion present', backup.backupFormatVersion === 1, backup.backupFormatVersion);
-  ok('envelope: databaseSchemaVersion present', backup.databaseSchemaVersion === 3, backup.databaseSchemaVersion);
+  ok('envelope: databaseSchemaVersion present', backup.databaseSchemaVersion === 4, backup.databaseSchemaVersion);
   ok('envelope: appVersion present', backup.appVersion === '5.0', backup.appVersion);
   ok('envelope: legacy version field kept', backup.version === '5.0');
   ok('envelope: exportedAt timestamp', typeof backup.exportedAt === 'string' && !isNaN(Date.parse(backup.exportedAt)));
-  ok('envelope: carries all 13 data tables', Object.keys(backup.data).length === 13, Object.keys(backup.data));
+  ok('envelope: carries all 15 data tables', Object.keys(backup.data).length === 15, Object.keys(backup.data));
   ok('envelope: photos in backup', backup.data.photos.length === 1 && backup.data.photos[0].data === photo);
   ok('envelope: no proxy secret in backup config', backup.config.ai && backup.config.ai.secret === undefined);
   ok('envelope: secret absent from serialized file', JSON.stringify(backup).indexOf('super-secret-key') === -1);
@@ -1132,6 +1132,45 @@ async function runPhase1WorkStorage(engine) {
   ok(engine + ': customer deletion removes linked Phase 1 graph', (await DB.db.leads.count()) === 0 && (await DB.db.tasks.count()) === 1 && (await DB.db.taskEvents.count()) === 0);
 }
 
+async function runPhase2QuoteStorage(engine) {
+  const sandbox = baseSandbox();
+  if (engine === 'dexie') {
+    const Dexie = require('dexie'); Dexie.dependencies.indexedDB = indexedDB; Dexie.dependencies.IDBKeyRange = IDBKeyRange; sandbox.Dexie = Dexie;
+  } else sandbox.Dexie = loadShim(sandbox);
+  const DB = loadDbJs(sandbox, `advisoros_v6_phase2_${engine}_${Date.now()}`);
+  await DB.init(); await sandbox.initEncryption('phase2-passphrase');
+  const customer = await DB.addCustomer({ firstName: 'Quote', lastName: 'Customer' });
+  const appointment = await DB.addAppointment({ customerId: customer.id, date: new Date().toISOString(), outcome: 'quoted', value: 999 });
+  const created = await DB.createQuote({ customerId: customer.id, appointmentId: appointment.id, notes: 'Private quote note', termsSnapshot: 'Payment terms', discountPercent: 10, taxTreatment: 'exclusive', taxRate: 20, items: [
+    { description: 'Blind supply', quantity: 2, unit: 'each', unitPrice: 100, cost: 40 },
+    { description: 'Fitting', quantity: 1, unit: 'service', unitPrice: 50, cost: 10 }
+  ] });
+  ok(engine + ': quote totals derive from line items', created.quote.subtotal === 250 && created.quote.discountAmount === 25 && created.quote.taxAmount === 45 && created.quote.total === 270 && created.quote.totalCost === 90, created.quote);
+  ok(engine + ': historic appointment value is untouched', (await DB.getAppointment(appointment.id)).value === 999);
+  const rawQuote = await DB.db.quotes.get(created.quote.id); const rawItems = await DB.db.quoteItems.where('quoteId').equals(created.quote.id).toArray();
+  ok(engine + ': quote content encrypted at rest', typeof rawQuote.notes === 'object' && typeof rawQuote.termsSnapshot === 'object' && typeof rawItems[0].description === 'object');
+  const updated = await DB.updateQuote(created.quote.id, { discountAmount: 20 }, [{ description: 'Revised package', quantity: 1, unitPrice: 300, cost: 120 }]);
+  ok(engine + ': draft update replaces items and recalculates', updated.items.length === 1 && updated.quote.subtotal === 300 && updated.quote.total === 336);
+  await DB.issueQuote(created.quote.id);
+  let editRejected = false; try { await DB.updateQuote(created.quote.id, { notes: 'mutate issued' }); } catch (e) { editRejected = true; }
+  ok(engine + ': issued quote is immutable', editRejected);
+  const expiring = await DB.createQuote({ customerId: customer.id, items: [{ description: 'Expiry test', quantity: 1, unitPrice: 10 }] });
+  await DB.issueQuote(expiring.quote.id);
+  const expired = await DB.expireQuote(expiring.quote.id);
+  ok(engine + ': issued quote can be explicitly expired idempotently', expired.status === 'expired' && (await DB.expireQuote(expiring.quote.id)).status === 'expired');
+  const versioned = await DB.createQuoteVersion(created.quote.id, { notes: 'Version two' });
+  ok(engine + ': version preserves number and supersedes old', versioned.quote.version === 2 && versioned.quote.quoteNumber === created.quote.quoteNumber && (await DB.getQuote(created.quote.id)).quote.status === 'superseded');
+  await DB.issueQuote(versioned.quote.id); await DB.acceptQuote(versioned.quote.id, { acceptanceName: 'Customer' });
+  const conversions = await Promise.all([DB.convertAcceptedQuoteToOrder(versioned.quote.id, 'convert-a'), DB.convertAcceptedQuoteToOrder(versioned.quote.id, 'convert-b')]);
+  const linkedOrders = await DB.db.orders.where('quoteId').equals(versioned.quote.id).toArray();
+  ok(engine + ': accepted quote converts exactly once', linkedOrders.length === 1 && conversions.filter(r => r.created).length === 1 && linkedOrders[0].total === versioned.quote.total, { count: linkedOrders.length, created: conversions.map(r => r.created) });
+  ok(engine + ': quote sequence initialized', (await DB.db.sequences.get('quote')).value >= 1);
+  const exported = await DB.exportAll(); await DB.deleteAllData(); await DB.importAll(JSON.parse(JSON.stringify(exported)));
+  ok(engine + ': quote graph backup restores', (await DB.db.quotes.count()) === 3 && (await DB.db.quoteItems.count()) === 3 && (await DB.db.orders.where('quoteId').equals(versioned.quote.id).count()) === 1);
+  const next = await DB.createQuote({ customerId: customer.id, items: [{ description: 'Next', quantity: 1, unitPrice: 1 }] });
+  ok(engine + ': quote numbering continues after restore', next.quote.quoteNumber !== created.quote.quoteNumber);
+}
+
 // ---------- runner ----------
 
 (async () => {
@@ -1183,6 +1222,10 @@ async function runPhase1WorkStorage(engine) {
   await runPhase1WorkStorage('dexie');
   console.log('\nTest 16: Phase 1 durable work storage — bundled shim');
   await runPhase1WorkStorage('shim');
+  console.log('\nTest 17: Phase 2 quote storage — real Dexie');
+  await runPhase2QuoteStorage('dexie');
+  console.log('\nTest 18: Phase 2 quote storage — bundled shim');
+  await runPhase2QuoteStorage('shim');
   console.log('\n' + (failures === 0 ? 'ALL TESTS PASSED' : failures + ' TEST(S) FAILED'));
   process.exit(failures === 0 ? 0 : 1);
 })().catch(e => { console.error('UNEXPECTED ERROR:', e); process.exit(1); });

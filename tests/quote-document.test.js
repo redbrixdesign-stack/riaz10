@@ -1,0 +1,22 @@
+'use strict';
+const fs = require('fs');
+const path = require('path');
+global.CONFIG = { companyName: 'Riaz Blinds', advisorName: 'Riaz', businessAddress: '1 High Street' };
+global.Utils = { escapeHtml: s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'), formatCurrency: n => `£${Number(n).toFixed(2)}`, formatDate: v => new Date(v).toISOString().slice(0,10) };
+global.DB = { getQuote: async () => ({ quote: { id: 1, customerId: 2, quoteNumber: 'QUO-26-001', version: 2, status: 'issued', issueDate: '2026-08-19', expiryDate: '2026-09-02', subtotal: 300, discountAmount: 20, taxAmount: 0, total: 280, notes: '<script>bad()</script>', termsSnapshot: 'Deposit required.' }, items: [{ description: 'Roman blind', quantity: 2, unit: 'each', unitPrice: 150, lineTotal: 300 }] }), getCustomer: async () => ({ firstName: 'Alice', lastName: 'Jones', fullName: 'Alice Jones', phone: '07000', address: { line1: '2 Oak Road', postcode: 'M1 1AA' } }) };
+const code = fs.readFileSync(path.join(__dirname, '..', 'js/services/quote-document.js'), 'utf8');
+(0, eval)(`${code}\nglobal.QuoteDocumentService=QuoteDocumentService;`);
+const ok=(n,c,d)=>{if(!c){console.error('FAIL:',n,d||'');process.exitCode=1}else console.log('OK:',n)};
+(async()=>{
+ const model=await QuoteDocumentService.load(1);
+ ok('loads canonical quote envelope',model.number==='QUO-26-001'&&model.rows.length===1);
+ ok('uses authoritative totals',model.subtotal===300&&model.discount===20&&model.total===280);
+ const html=QuoteDocumentService.printableHtml(model);
+ ok('customer-ready identifying fields render',html.includes('Alice Jones')&&html.includes('2 Oak Road')&&html.includes('QUO-26-001'));
+ ok('line items and totals render',html.includes('Roman blind')&&html.includes('£280.00'));
+ ok('user content is escaped',!html.includes('<script>bad()')&&html.includes('&lt;script&gt;bad()'));
+ ok('issued quote has no draft watermark',!html.includes('NOT ISSUED'));
+ const draft=QuoteDocumentService.model({id:2,status:'draft',total:10},[],null);
+ ok('draft preview is unmistakably labelled',QuoteDocumentService.printableHtml(draft).includes('DRAFT — NOT ISSUED'));
+ ok('print stylesheet works offline',html.includes('<style>')&&!/https?:\/\//.test(html));
+})();

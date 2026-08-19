@@ -36,10 +36,12 @@ const CustomerFeature = {
     let orders = [];
     let comms = [];
     let photos = [];
+    let structuredQuotes = [];
     try { appts = await DB.getAppointmentsByCustomer(customerId); } catch (e) {}
     try { orders = await DB.db.orders.where('customerId').equals(customerId).toArray(); } catch (e) {}
     try { comms = await DB.db.communications.where('customerId').equals(customerId).toArray(); } catch (e) {}
     try { photos = await DB.getPhotosForCustomer(customerId); } catch (e) {}
+    try { if (typeof DB.getQuotes === 'function') structuredQuotes = await DB.getQuotes({ customerId }); } catch (e) {}
 
     appts.sort((a, b) => new Date(a.date) - new Date(b.date));
     const firstVisit = appts[0];
@@ -152,7 +154,7 @@ const CustomerFeature = {
               <div class="hsc-stat-label">Total Ordered</div>
             </div>
             <div class="hsc-stat">
-              <div class="hsc-stat-value">${outstandingQuotes.length}</div>
+              <div class="hsc-stat-value">${outstandingQuotes.length + structuredQuotes.filter(q => ['draft', 'issued'].includes(q.status)).length}</div>
               <div class="hsc-stat-label">Open Quotes</div>
             </div>
             <div class="hsc-stat">
@@ -161,6 +163,11 @@ const CustomerFeature = {
             </div>
           </div>
           ${firstVisit ? `<div class="fs-12 text-tertiary mt-10 text-center" >Customer since ${Utils.formatDate(firstVisit.date, 'long')}${lastVisit ? ` · Last visit ${Utils.formatDate(lastVisit.date, 'short')}` : ''}</div>` : ''}
+        </div>
+
+        <div class="card card-page">
+          <div class="flex items-center justify-between mb-sm"><div class="fs-13 fw-600 text-secondary">Structured quotes (${structuredQuotes.length})</div><button class="btn btn-primary btn-sm" data-action="App.navigate" data-args='${JSON.stringify(['quotes', { action: 'add', customerId }])}'><span class="material-symbols-rounded">add</span>Quote</button></div>
+          ${structuredQuotes.length ? structuredQuotes.map(q => `<button class="area-customer-row w-full text-left mb-6" data-action="App.navigate" data-args='${JSON.stringify(['quotes', { id: q.id }])}'><span class="material-symbols-rounded">request_quote</span><span class="flex-1 min-w-0"><strong>${Utils.escapeHtml(q.quoteNumber || 'Draft quote')} · v${q.version || 1}</strong><small>${Utils.formatCurrency(q.total || 0)} · ${Utils.escapeHtml(q.status || 'draft')}</small></span><span class="material-symbols-rounded">chevron_right</span></button>`).join('') : '<div class="fs-13 text-tertiary">No itemised quotes yet.</div>'}
         </div>
 
         ${outstandingQuotes.length ? `

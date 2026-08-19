@@ -77,6 +77,10 @@ The home tab is an AI-style chat assistant, not a static dashboard.
   quotes column.
 - Auto order numbers (`ORD-2026-0001`), deposit rules (minimum, full-payment
   threshold, 50% above), balance due, payment reminders.
+- Structured, itemised quotes can be drafted from a visit or Customer 360,
+  issued as immutable numbered versions, accepted or rejected, previewed and
+  printed offline, then converted into exactly one order. Historic appointment
+  quote outcomes remain visible alongside them.
 
 ### Follow-ups (inbox)
 A "what's due today" inbox so nothing slips:
@@ -138,12 +142,15 @@ Backup.
 ## 3. How it works
 
 ### Storage
-- **IndexedDB** via bundled Dexie 4 (`advisoros_v6` database) with 13
+- **IndexedDB** via bundled Dexie 4 (`advisoros_v6` database) with 15
   tables: customers, appointments, orders, expenses, trips, measurements,
-  communications, settings, sequences, photos, leads, tasks, and taskEvents.
+  communications, settings, sequences, photos, leads, tasks, taskEvents,
+  quotes, and quoteItems.
 - Lead identity/contact data and task title/notes are encrypted at rest. The
   backup format remains version 1; older backups import with the three Phase 1
   tables empty.
+- Quote notes, terms, acceptance/rejection details, and item descriptions are
+  encrypted at rest. Older backups import with the Phase 2 tables empty.
 - If Dexie is unavailable, a **bundled mini-Dexie shim** (601 lines) serves
   the same API; if IndexedDB itself is unavailable it degrades to an
   in-memory store with a warning.

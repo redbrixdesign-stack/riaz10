@@ -123,6 +123,21 @@ const ok = (label, cond, extra) => {
   } else {
     console.log('  ! could not reach Customer 360 via search — skipping');
   }
+  const quoteCustomerId = await page.evaluate(async () => (await DB.getAllCustomers())[0]?.id || null);
+  if (quoteCustomerId) {
+    await nav('quotes', { action: 'add', customerId: quoteCustomerId });
+    ok('Structured quote editor', await runAxe('10b-quote-editor'));
+    const quoteId = await page.evaluate(async customerId => {
+      const result = await DB.createQuote({ customerId, items: [{ description: 'Accessibility test item', quantity: 1, unitPrice: 100 }] });
+      await DB.issueQuote(result.quote.id);
+      return result.quote.id;
+    }, quoteCustomerId);
+    await nav('quotes', { id: quoteId });
+    ok('Structured quote detail', await runAxe('10c-quote-detail'));
+    await click('[data-action="QuotesFeature.preview"]');
+    ok('Quote document preview', await runAxe('10d-quote-preview'));
+    await page.evaluate(() => App.closeModal({ all: true, silent: true }));
+  }
   await nav('route');
   ok('Route', await runAxe('11-route'));
   await nav('talk');
