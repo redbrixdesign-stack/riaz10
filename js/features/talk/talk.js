@@ -707,7 +707,7 @@ const TalkFeature = {
           <div class="flex gap-6 mt-10 wrap" >
             ${altKeys.map(key => {
               const label = this.OUTCOME_TEMPLATE_MAP[templateToOutcome[key]]?.action || key;
-              return `<button class="btn btn-outline btn-sm" data-action="TalkFeature.switchTemplate" data-args='${JSON.stringify([Utils.escapeJsString(key)])}'>${Utils.escapeHtml(label)}</button>`;
+              return `<button class="btn btn-outline btn-sm" data-action="TalkFeature.switchTemplate" data-args='${Utils.escapeHtml(JSON.stringify([key]))}'>${Utils.escapeHtml(label)}</button>`;
             }).join('')}
           </div>
         ` : ''}
@@ -1145,7 +1145,7 @@ const TalkFeature = {
       <div class="sheet-body">
         <div class="flex flex-col gap-sm" >
           ${visits.map(visit => `
-            <button class="list-item bordered-8 text-left"  data-close="1" data-action="TalkFeature.sendMessage" data-args='${JSON.stringify([(visit.id), Utils.escapeJsString(key)])}'>
+            <button class="list-item bordered-8 text-left"  data-close="1" data-action="TalkFeature.sendMessage" data-args='${Utils.escapeHtml(JSON.stringify([(visit.id), key]))}'>
               <span class="material-symbols-rounded text-brand mr-12" >person</span>
               <span class="flex-1 min-w-0" >
                 <span class="block fw-600 ellipsis" >${Utils.escapeHtml(visit.clientName || 'Unknown')}</span>

@@ -110,8 +110,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
   /* ---------- Phase 2: feed visibility — exactly the user's day ---------- */
   // A clean day with exactly 4 visits (3 later, 1 an hour ago). The NEXT
-  // feed must show all four, with the first FUTURE visit featured and the
-  // earlier-today one still listed in the rows below it.
+  // feed must show all four, with the EARLIEST pending visit today featured
+  // (a service call whose slot has passed is the "attend now" card) and the
+  // rest listed in the rows below it.
   await page.evaluate(async () => {
     await DB.db.appointments.clear();
     const custs = await DB.db.customers.toArray();
@@ -144,14 +145,22 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     const featured = (document.querySelector('.comp-home-next-visit-main') || { textContent: '' }).textContent || '';
     const nextCount = (document.querySelector('.comp-home-section-count') || { textContent: '' }).textContent || '';
     const names = ['Home Upcoming 0', 'Home Upcoming 1', 'Home Upcoming 2', 'Home Upcoming PAST'];
+    // The featured card must be the EARLIEST pending visit today (the one to
+    // attend/log now) — independent of the run hour (near midnight the
+    // "PAST" slot can wrap to late evening while the future slots wrap to
+    // early morning, so "earliest today" is the correct expectation).
+    const pendingToday = [...dayAppts]
+      .filter(a => !a.outcome && a.status !== 'completed')
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+    const expectedFeatured = pendingToday[0] ? (pendingToday[0].clientName || '').replace(/^@/, '') : null;
     return {
       dayCount: dayAppts.length,
       namesOnHome: names.filter(n => feedText.includes(n)).length,
       pastOnHome: feedText.includes('Home Upcoming PAST'),
-      featuredIsPast: /Home Upcoming PAST/.test(featured),
-      featuredIsFirstFuture: /Home Upcoming 0/.test(featured),
+      featuredIsEarliestToday: !!(expectedFeatured && new RegExp(expectedFeatured.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(featured)),
       featuredShowsWindow: /09:00–12:00/.test(featured) && !/Arrival window/.test(featured),
       featured: featured.replace(/\s+/g, ' ').slice(0, 120),
+      expectedFeatured,
       nextCount,
       rowCount: rows.length,
       rowsInsideSchedule: document.querySelectorAll('.comp-home-schedule .comp-home-next-visit, .comp-home-schedule .comp-home-visit').length
@@ -161,7 +170,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   console.log(`\n  Phase 2 — clean day, exactly 4 visits (diary count = ${p2.dayCount})`);
   ok('feed: all 4 visits appear on Home (was 3 before the fix)', p2.namesOnHome === 4 && p2.pastOnHome, { namesOnHome: p2.namesOnHome });
   ok('feed: the earlier-today visit is listed', p2.pastOnHome, p2);
-  ok('feed: the featured NEXT card is the first FUTURE visit (not the past one)', p2.featuredIsFirstFuture && !p2.featuredIsPast, { featured: p2.featured });
+  ok('feed: the featured NEXT card is the earliest pending visit TODAY', p2.featuredIsEarliestToday, { featured: p2.featured, expected: p2.expectedFeatured });
   ok('feed: promised time range replaces the exact time without a redundant label', p2.featuredShowsWindow, { featured: p2.featured });
   ok(`NEXT section counts ${p2.dayCount} visits`, p2.nextCount.includes(`${p2.dayCount} visit`), { nextCount: p2.nextCount });
   ok('feed rows rendered (featured + compact)', p2.rowCount >= 4, { rowCount: p2.rowCount });

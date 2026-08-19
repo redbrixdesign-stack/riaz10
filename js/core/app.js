@@ -411,9 +411,9 @@ const App = {
     const { title = '', showBack = false, backHref = '#today', actions = '' } = options;
     let leftHtml = '';
     if (showBack && title) {
-      leftHtml = `<button class="btn btn-ghost btn-sm" aria-label="Back" data-action="App.navigate" data-args='${JSON.stringify([(Utils.escapeJsString(backHref))])}'><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span></button><h1 class="page-heading">${Utils.escapeHtml(title)}</h1>`;
+      leftHtml = `<button class="btn btn-ghost btn-sm" aria-label="Back" data-action="App.navigate" data-args='${Utils.escapeHtml(JSON.stringify([(backHref)]))}'><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span></button><h1 class="page-heading">${Utils.escapeHtml(title)}</h1>`;
     } else if (showBack) {
-      leftHtml = `<button class="btn btn-ghost btn-sm" aria-label="Back" data-action="App.navigate" data-args='${JSON.stringify([(Utils.escapeJsString(backHref))])}'><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span></button>`;
+      leftHtml = `<button class="btn btn-ghost btn-sm" aria-label="Back" data-action="App.navigate" data-args='${Utils.escapeHtml(JSON.stringify([(backHref)]))}'><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span></button>`;
     } else if (title) {
       leftHtml = `<h1 class="page-heading">${Utils.escapeHtml(title)}</h1>`;
     }
@@ -554,7 +554,7 @@ const App = {
             <span class="material-symbols-rounded">error</span>
             <div>Failed to load</div>
             <div style="display:flex;gap:8px;margin-top:12px;">
-              <button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='${JSON.stringify([(Utils.escapeJsString(featureId))])}'>Try again</button>
+              <button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='${Utils.escapeHtml(JSON.stringify([(featureId)]))}'>Try again</button>
               ${featureId !== 'today' ? `<button class="btn btn-primary btn-sm" data-action="App.navigate" data-args='["today"]'>Go to Today</button>` : ''}
             </div>
           </div>`;
@@ -568,7 +568,7 @@ const App = {
         <span class="material-symbols-rounded">error</span>
         <div>Something went wrong loading this screen</div>
         <div style="display:flex;gap:8px;margin-top:12px;">
-          <button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='${JSON.stringify([(Utils.escapeJsString(featureId))])}'>Try again</button>
+          <button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='${Utils.escapeHtml(JSON.stringify([(featureId)]))}'>Try again</button>
           ${featureId !== 'today' ? `<button class="btn btn-primary btn-sm" data-action="App.navigate" data-args='["today"]'>Go to Today</button>` : ''}
         </div>
       </div>`;
@@ -847,7 +847,14 @@ const App = {
       let args = [];
       const rawArgs = el.getAttribute('data-args');
       if (rawArgs) {
-        try { args = JSON.parse(rawArgs); } catch (e) {
+        try {
+          // Historical note: data-args used to embed escapeJsString output
+          // (\' for apostrophes), which JSON rejects — and the raw '
+          // truncated the single-quoted attribute. Args are now built with
+          // Utils.escapeHtml(JSON.stringify(...)) (HTML entities decode back
+          // to plain JSON). Normalise any legacy \' defensively.
+          args = JSON.parse(rawArgs.replace(/\\'/g, "'"));
+        } catch (e) {
           console.error(`[action] bad data-args on ${action}:`, rawArgs);
           return false;
         }

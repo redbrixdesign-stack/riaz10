@@ -133,18 +133,18 @@ const CustomerFeature = {
                 <span class="material-symbols-rounded fs-18" >call</span>
                 Call
               </a>
-              <button class="btn btn-outline btn-sm flex-1 gap-6"  data-action="ContactFeature.open" data-args='${JSON.stringify([{name: (Utils.escapeJsString(name)), phone: (Utils.escapeJsString(phone))}])}'>
+              <button class="btn btn-outline btn-sm flex-1 gap-6"  data-action="ContactFeature.open" data-args='${Utils.escapeHtml(JSON.stringify([{name: (name), phone: (phone)}]))}'>
                 <span class="material-symbols-rounded fs-18" >chat</span>
                 Message
               </button>
             ` : ''}
             ${address ? `
-              <button class="btn btn-outline btn-sm flex-1 gap-6"  data-action="Geo.openNavigation" data-args='${JSON.stringify([(Utils.escapeJsString(address))])}'>
+              <button class="btn btn-outline btn-sm flex-1 gap-6"  data-action="Geo.openNavigation" data-args='${Utils.escapeHtml(JSON.stringify([(address)]))}'>
                 <span class="material-symbols-rounded fs-18" >navigation</span>
                 Navigate
               </button>
             ` : ''}
-            <button class="btn btn-outline btn-sm flex-1 gap-6"  data-action="App.navigate" data-args='${JSON.stringify(["appointments", {action: "add", name: (Utils.escapeJsString(name)), phone: (Utils.escapeJsString(phone)), address: (Utils.escapeJsString(address))}])}'>
+            <button class="btn btn-outline btn-sm flex-1 gap-6"  data-action="App.navigate" data-args='${Utils.escapeHtml(JSON.stringify(["appointments", {action: "add", name: (name), phone: (phone), address: (address)}]))}'>
               <span class="material-symbols-rounded fs-18" >add</span>
               Visit
             </button>
@@ -191,7 +191,7 @@ const CustomerFeature = {
                     <strong>${Utils.escapeHtml(a.clientName || 'Customer')} · ${Utils.formatCurrency(a.value || 0)}</strong>
                     <small>${Utils.formatDate(a.date, 'short')} · ${daysSince <= 0 ? 'today' : daysSince + 'd ago'} · ${Utils.escapeHtml(this.getOutcomeName(a.outcome))}</small>
                   </span>
-                  ${tpl ? `<button class="btn btn-outline btn-sm" data-action="TalkFeature.sendMessage" data-args='${JSON.stringify([(a.id), (Utils.escapeJsString(tpl.template))])}'><span class="material-symbols-rounded fs-16" >send</span></button>` : ''}
+                  ${tpl ? `<button class="btn btn-outline btn-sm" data-action="TalkFeature.sendMessage" data-args='${Utils.escapeHtml(JSON.stringify([(a.id), (tpl.template)]))}'><span class="material-symbols-rounded fs-16" >send</span></button>` : ''}
                   <button class="btn btn-ghost btn-sm" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: (a.id)}])}'><span class="material-symbols-rounded fs-18" >chevron_right</span></button>
                 </div>
               `;

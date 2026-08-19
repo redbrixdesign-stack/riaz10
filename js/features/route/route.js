@@ -236,7 +236,7 @@ const RouteFeature = {
                 <div class="fw-500 fs-14 ellipsis" >${Utils.escapeHtml(a.clientName || 'Unknown')}</div>
                 <div class="fs-12 text-tertiary" >${Utils.formatTime(a.date)} · ${Utils.escapeHtml(this.getAreaLabel(a))} · ${Utils.escapeHtml(Utils.truncate(a.address || '', 24))}</div>
               </div>
-              <button class="btn btn-sm btn-ghost" data-stop="1" data-action="Geo.openNavigation" data-args='${JSON.stringify([(Utils.escapeJsString(a.address || '')), (Utils.escapeJsString(CONFIG.businessAddress || ''))])}'>
+              <button class="btn btn-sm btn-ghost" data-stop="1" data-action="RouteFeature.navigateToStop" data-args='${Utils.escapeHtml(JSON.stringify([(a.address || ''), (a.id)]))}'>
                 <span class="material-symbols-rounded fs-18" >navigation</span>
               </button>
             </div>
@@ -1257,6 +1257,30 @@ const RouteFeature = {
       return;
     }
     window.open(Geo.buildNavigationUrl(destination, origin), '_blank');
+    // Same as the Home/Today "Navigate" flow: opening directions from the
+    // Route screen must ALSO start the GPS-tracked mileage trip for that
+    // stop (it previously opened maps without tracking, so mileage was
+    // captured from Home but silently missed from Route).
+    await this.startTripForStop(destination, leg.to.appointment);
+  },
+
+  // Open directions for a single route stop and start the live mileage trip
+  // for it (per-stop Navigate button on the route list).
+  async navigateToStop(address, appointmentId) {
+    window.open(Geo.buildNavigationUrl(address || ''), '_blank');
+    await this.startTripForStop(address, { id: appointmentId });
+  },
+
+  async startTripForStop(destinationAddress, appointment) {
+    const appointmentId = appointment && appointment.id;
+    try {
+      await Geo.startTrip({ destinationAddress: destinationAddress || '', appointmentId });
+      if (appointmentId && typeof MessageScheduler !== 'undefined' && typeof MessageScheduler.onDeparture === 'function') {
+        try { MessageScheduler.onDeparture(appointmentId); } catch (e) { /* scheduler optional */ }
+      }
+    } catch (e) {
+      console.log('Trip start from Route skipped:', e);
+    }
   },
 
   focusMarker(index) {

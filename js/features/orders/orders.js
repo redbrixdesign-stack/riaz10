@@ -138,7 +138,7 @@ const OrdersFeature = {
           <div class="kanban-card-sub">${Utils.escapeHtml(this.outcomeLabel(appt.outcome))} · ${daysSince <= 0 ? 'today' : daysSince + 'd ago'}</div>
         </button>
         <div class="kanban-card-actions">
-          ${tpl ? `<button type="button" class="kanban-card-action" data-action="TalkFeature.sendMessage" data-args='${JSON.stringify([appt.id, Utils.escapeJsString(tpl.template)])}'><span class="material-symbols-rounded">send</span>Follow up</button>` : ''}
+          ${tpl ? `<button type="button" class="kanban-card-action" data-action="TalkFeature.sendMessage" data-args='${Utils.escapeHtml(JSON.stringify([appt.id, tpl.template]))}'><span class="material-symbols-rounded">send</span>Follow up</button>` : ''}
           <button type="button" class="kanban-card-action" data-action="App.navigate" data-args='${navArgs}'><span class="material-symbols-rounded">open_in_new</span>Visit</button>
         </div>
       </div>

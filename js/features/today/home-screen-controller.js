@@ -255,10 +255,10 @@ const HomeScreenController = {
         </button>
         ${!isDone ? `
         <div class="hsc-week-row-actions">
-          <button class="btn btn-outline btn-sm" type="button" data-action="AppointmentsFeature.navigateToVisit" data-args='${JSON.stringify([(Utils.escapeJsString(appt.address || '')), (appt.id)])}'>
+          <button class="btn btn-outline btn-sm" type="button" data-action="AppointmentsFeature.navigateToVisit" data-args='${Utils.escapeHtml(JSON.stringify([(appt.address || ''), (appt.id)]))}'>
             <span class="material-symbols-rounded">navigation</span>Navigate
           </button>
-          <button class="btn btn-outline btn-sm" type="button" ${phone ? '' : 'disabled'} data-action="ContactFeature.open" data-args='${JSON.stringify([{name: (Utils.escapeJsString(appt.clientName || 'Customer')), phone: (Utils.escapeJsString(phone))}])}'>
+          <button class="btn btn-outline btn-sm" type="button" ${phone ? '' : 'disabled'} data-action="ContactFeature.open" data-args='${Utils.escapeHtml(JSON.stringify([{name: (appt.clientName || 'Customer'), phone: (phone)}]))}'>
             <span class="material-symbols-rounded">chat</span>Talk
           </button>
         </div>

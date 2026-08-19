@@ -397,11 +397,11 @@ const CompanionFeature = {
               ${nv.parkingNotes ? `<div class="comp-home-next-visit-journey">${Utils.escapeHtml(nv.parkingNotes)}</div>` : ''}
             </button>
             <div class="comp-home-next-visit-actions">
-              <button class="comp-home-cta comp-home-cta--primary" type="button" data-action="AppointmentsFeature.navigateToVisit" data-args='${JSON.stringify([Utils.escapeJsString(nv.address || ''), (nv.id)])}'>
+              <button class="comp-home-cta comp-home-cta--primary" type="button" data-action="AppointmentsFeature.navigateToVisit" data-args='${Utils.escapeHtml(JSON.stringify([nv.address || '', (nv.id)]))}'>
                 <span class="material-symbols-rounded" aria-hidden="true">navigation</span>
                 <span>Navigate</span>
               </button>
-              <button class="comp-home-cta comp-home-cta--ghost" type="button"${phoneDisabled} data-action="ContactFeature.open" data-args='${JSON.stringify([{name: Utils.escapeJsString(nv.name), phone: Utils.escapeJsString(nv.phone || '')}])}'>
+              <button class="comp-home-cta comp-home-cta--ghost" type="button"${phoneDisabled} data-action="ContactFeature.open" data-args='${Utils.escapeHtml(JSON.stringify([{name: nv.name, phone: nv.phone || ''}]))}'>
                 <span class="material-symbols-rounded" aria-hidden="true">call</span>
                 <span>Call</span>
               </button>
@@ -495,7 +495,7 @@ const CompanionFeature = {
           <span class="comp-home-section-label">ASK BEELO</span>
         </div>
         <div class="comp-home-suggestions">
-          ${suggestions.map(s => `<button class="comp-suggestion-chip" type="button" data-action="CompanionFeature.send" data-args='${JSON.stringify([Utils.escapeJsString(s)])}'>${Utils.escapeHtml(this.CHIP_LABELS[s] || s)}</button>`).join('')}
+          ${suggestions.map(s => `<button class="comp-suggestion-chip" type="button" data-action="CompanionFeature.send" data-args='${Utils.escapeHtml(JSON.stringify([s]))}'>${Utils.escapeHtml(this.CHIP_LABELS[s] || s)}</button>`).join('')}
         </div>
       </div>` : '';
 
@@ -562,12 +562,16 @@ const CompanionFeature = {
       }
     }
 
-    // Next visit (the most urgent pending one — prefer a visit that hasn't
-    // happened yet, so the featured card never points at a time already
-    // past; earlier-today visits still appear in the feed rows below, which
-    // is where the day-count consistency the Home report was about lives).
+    // Next visit (the most urgent pending one). The featured card leads with
+    // the earliest pending visit TODAY — even one whose slot has already
+    // passed (a service call booked for 14:00 at 14:30 is the thing to
+    // attend/log NOW, not the visit tomorrow). Only when nothing is pending
+    // today does it fall to the next future visit.
     const now = new Date();
-    const next = upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && new Date(a.date) >= now && (a.phone || a.customerId))
+    const isToday = a => Utils.isSameDay(new Date(a.date), Utils.getToday());
+    const next = upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && isToday(a) && (a.phone || a.customerId))
+      || upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && isToday(a))
+      || upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && new Date(a.date) >= now && (a.phone || a.customerId))
       || upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && new Date(a.date) >= now)
       || upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && (a.phone || a.customerId))
       || upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome) || null;
@@ -843,7 +847,7 @@ const CompanionFeature = {
             </div>` : ''}
           ${suggestions.length ? `
             <div class="comp-chips">
-              ${suggestions.map(k => `<button class="comp-chip" type="button" data-action="CompanionFeature.send" data-args='${JSON.stringify([Utils.escapeJsString(k)])}'>${Utils.escapeHtml(this.CHIP_LABELS[k] || k)}</button>`).join('')}
+              ${suggestions.map(k => `<button class="comp-chip" type="button" data-action="CompanionFeature.send" data-args='${Utils.escapeHtml(JSON.stringify([k]))}'>${Utils.escapeHtml(this.CHIP_LABELS[k] || k)}</button>`).join('')}
             </div>` : ''}
         </div>
       </div>`;
@@ -1253,9 +1257,14 @@ const CompanionFeature = {
 
   async answerNextVisit() {
     let upcoming = [];
-    try { upcoming = await DB.getFutureAppointmentsUntil(new Date(Date.now() + 14 * 86400000)); } catch (e) {}
+    // Same 14-day window as the Home feed (includes earlier-today visits) so
+    // the chat's "next visit" agrees with the featured card.
+    try { upcoming = await DB.getUpcomingAppointments(14); } catch (e) {}
     const now = new Date();
-    const next = upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && new Date(a.date) >= now && (a.phone || a.customerId))
+    const isToday = a => Utils.isSameDay(new Date(a.date), Utils.getToday());
+    const next = upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && isToday(a) && (a.phone || a.customerId))
+      || upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && isToday(a))
+      || upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && new Date(a.date) >= now && (a.phone || a.customerId))
       || upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && new Date(a.date) >= now)
       || upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && (a.phone || a.customerId))
       || upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome) || null;

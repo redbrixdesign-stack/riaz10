@@ -37,16 +37,16 @@ const ContactFeature = {
         <div class="contact-sheet-number">${Utils.escapeHtml(Utils.formatPhone(cleanedPhone))}</div>
         <div class="contact-sheet-actions">
           ${whatsappUrl ? `
-            <button class="btn contact-sheet-primary" data-action="ContactFeature.openWhatsApp" data-args='${JSON.stringify([(Utils.escapeJsString(whatsappUrl))])}'>
+            <button class="btn contact-sheet-primary" data-action="ContactFeature.openWhatsApp" data-args='${Utils.escapeHtml(JSON.stringify([(whatsappUrl)]))}'>
               <span class="material-symbols-rounded">chat</span>
               WhatsApp
             </button>
           ` : ''}
-          <button class="btn contact-sheet-secondary" data-action="ContactFeature.openCall" data-args='${JSON.stringify([(Utils.escapeJsString(telUrl))])}'>
+          <button class="btn contact-sheet-secondary" data-action="ContactFeature.openCall" data-args='${Utils.escapeHtml(JSON.stringify([(telUrl)]))}'>
             <span class="material-symbols-rounded">phone</span>
             Call
           </button>
-          <button class="btn contact-sheet-secondary" data-action="ContactFeature.copyNumber" data-args='${JSON.stringify([(Utils.escapeJsString(cleanedPhone))])}'>
+          <button class="btn contact-sheet-secondary" data-action="ContactFeature.copyNumber" data-args='${Utils.escapeHtml(JSON.stringify([(cleanedPhone)]))}'>
             <span class="material-symbols-rounded">content_copy</span>
             Copy Number
           </button>

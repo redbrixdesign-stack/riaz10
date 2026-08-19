@@ -1590,7 +1590,7 @@ const AppointmentsFeature = {
 
           ${contactPhone ? `
             <div class="flex gap-sm mt-md" >
-              <button class="btn btn-outline btn-sm flex-1 gap-6"  data-action="ContactFeature.open" data-args='${JSON.stringify([{name: Utils.escapeJsString(appt.clientName || 'Customer'), phone: Utils.escapeJsString(contactPhone)}])}'>
+              <button class="btn btn-outline btn-sm flex-1 gap-6"  data-action="ContactFeature.open" data-args='${Utils.escapeHtml(JSON.stringify([{name: appt.clientName || 'Customer', phone: contactPhone}]))}'>
                 <span class="material-symbols-rounded fs-18" >chat</span>
                 Contact
               </button>
@@ -1598,7 +1598,7 @@ const AppointmentsFeature = {
                 const match = (typeof TalkFeature !== 'undefined') ? TalkFeature.getTemplateForOutcome(appt.outcome) : null;
                 if (!match) return '';
                 return `
-                  <button class="btn btn-outline btn-sm flex-1 gap-6"  data-action="TalkFeature.sendMessage" data-args='${JSON.stringify([(appt.id), Utils.escapeJsString(match.template)])}'>
+                  <button class="btn btn-outline btn-sm flex-1 gap-6"  data-action="TalkFeature.sendMessage" data-args='${Utils.escapeHtml(JSON.stringify([(appt.id), match.template]))}'>
                     <span class="material-symbols-rounded fs-18" >forward_to_inbox</span>
                     ${Utils.escapeHtml(match.action)}
                   </button>
@@ -1697,7 +1697,7 @@ const AppointmentsFeature = {
             <div class="grid-3 gap-sm mb-10" >
               ${appt.customerId ? `<button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='${JSON.stringify(['quotes', { action: 'add', customerId: appt.customerId, appointmentId: appt.id }])}'><span class="material-symbols-rounded">request_quote</span>Quote</button>` : ''}
               ${appt.address ? `
-                <button class="btn btn-outline btn-sm" data-action="AppointmentsFeature.navigateToVisit" data-args='${JSON.stringify([Utils.escapeJsString(appt.address), (appt.id)])}'>
+                <button class="btn btn-outline btn-sm" data-action="AppointmentsFeature.navigateToVisit" data-args='${Utils.escapeHtml(JSON.stringify([appt.address, (appt.id)]))}'>
                   <span class="material-symbols-rounded">navigation</span>
                   Navigate
                 </button>
@@ -2094,7 +2094,7 @@ const AppointmentsFeature = {
         <textarea class="textarea" id="booking-confirm-message" style="min-height:130px;">${Utils.escapeHtml(message)}</textarea>
         <div class="flex gap-sm mt-14" >
           <button class="btn btn-outline btn-block" data-action="AppointmentsFeature.skipBookingConfirmation">Not Now</button>
-          <button class="btn btn-primary btn-block" data-action="AppointmentsFeature.sendBookingConfirmation" data-args='${JSON.stringify([(Utils.escapeJsString(Utils.toWhatsAppPhone(phone) || ''))])}'>
+          <button class="btn btn-primary btn-block" data-action="AppointmentsFeature.sendBookingConfirmation" data-args='${Utils.escapeHtml(JSON.stringify([(Utils.toWhatsAppPhone(phone) || '')]))}'>
             <span class="material-symbols-rounded">chat</span>Send
           </button>
         </div>

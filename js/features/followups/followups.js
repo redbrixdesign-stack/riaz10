@@ -552,7 +552,7 @@ const FollowupsFeature = {
     }
     if (task.kind === 'quote') {
       return `
-        <button class="btn btn-sm btn-primary flex-1"  data-action="TalkFeature.sendMessage" data-args='${JSON.stringify([(task.appointment.id), Utils.escapeJsString(task.template)])}'>
+        <button class="btn btn-sm btn-primary flex-1"  data-action="TalkFeature.sendMessage" data-args='${Utils.escapeHtml(JSON.stringify([(task.appointment.id), task.template]))}'>
           <span class="material-symbols-rounded fs-16" >send</span>Follow up
         </button>
         <button class="btn btn-sm btn-outline flex-1"  data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: (task.appointment.id)}])}'>Visit</button>
@@ -581,7 +581,7 @@ const FollowupsFeature = {
     if (task.kind === 'intro' || task.kind === 'post_fit' || task.kind === 'service') {
       const labels = { intro: 'Send intro', post_fit: 'Send thank-you', service: 'Acknowledge' };
       return `
-        <button class="btn btn-sm btn-primary flex-1"  data-action="TalkFeature.sendMessage" data-args='${JSON.stringify([(task.appointment.id), Utils.escapeJsString(task.template)])}'>
+        <button class="btn btn-sm btn-primary flex-1"  data-action="TalkFeature.sendMessage" data-args='${Utils.escapeHtml(JSON.stringify([(task.appointment.id), task.template]))}'>
           <span class="material-symbols-rounded fs-16" >send</span>${labels[task.kind]}
         </button>
         <button class="btn btn-sm btn-outline flex-1"  data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: (task.appointment.id)}])}'>Visit</button>
