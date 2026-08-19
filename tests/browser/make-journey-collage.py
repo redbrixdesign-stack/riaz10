@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import json, os, glob
+import json, os
 from PIL import Image, ImageDraw, ImageFont
 
 BASE = '/Users/muhammadasifriaz/riaz10/screenshots/audit-journey'
@@ -7,11 +7,10 @@ OUT = os.path.join(BASE, 'collage')
 os.makedirs(OUT, exist_ok=True)
 
 manifest = json.load(open(os.path.join(BASE, 'manifest.json')))
-shots = manifest['shots']  # [{file, description}]
+shots = manifest['shots']
 by_num = {}
 for s in shots:
-    n = int(s['file'].split('-')[0])
-    by_num[n] = s
+    by_num[int(s['file'].split('-')[0])] = s
 
 def font(size, bold=False):
     for p in ['/System/Library/Fonts/Supplemental/Arial Bold.ttf', '/System/Library/Fonts/Supplemental/Arial.ttf',
@@ -20,56 +19,56 @@ def font(size, bold=False):
             return ImageFont.truetype(p, size)
     return ImageFont.load_default()
 
-def wrap(draw, text, font, maxw):
-    words = text.split()
-    lines, cur = [], ''
+def wrap(draw, text, f, maxw):
+    words, lines, cur = text.split(), [], ''
     for w in words:
         t = (cur + ' ' + w).strip()
-        if draw.textlength(t, font=font) <= maxw:
-            cur = t
-        else:
-            lines.append(cur); cur = w
+        if draw.textlength(t, font=f) <= maxw: cur = t
+        else: lines.append(cur); cur = w
     if cur: lines.append(cur)
     return lines
 
 def canvas(title, nums, outfile):
-    BG = (10, 10, 10)
-    GAP = 18
-    TITLE_H = 72
-    CAP_H = 44
-    scale = 0.34
+    # NATIVE resolution — every screenshot at 1:1 (crisp phone-size shots)
+    SCALE = 1.0
+    GAP = 26
+    TITLE_H = 92
+    CAP_H = 96
+    COL_W = 780
     imgs = [Image.open(os.path.join(BASE, by_num[n]['file'])).convert('RGB') for n in nums]
-    W = 780
-    for im in imgs:
-        w, h = im.size
-        W = max(W, int(w * scale))
-    H = int(imgs[0].size[1] * scale)
-    cols = 2 if len(imgs) > 2 else len(imgs)
+    W = int(COL_W * SCALE)
+    H = int(imgs[0].size[1] * SCALE)
+    cols = 2
     rows = (len(imgs) + cols - 1) // cols
-    cw = W * cols + GAP * (cols + 1)
+    cw = cols * W + GAP * (cols + 1)
     ch = TITLE_H + rows * (H + CAP_H) + GAP * (rows + 1)
-    canvas_img = Image.new('RGB', (cw, ch), BG)
-    d = ImageDraw.Draw(canvas_img)
-    f_title = font(34, bold=True)
-    f_cap = font(20)
-    d.text((GAP, 16), title, font=f_title, fill=(232, 184, 84))
-    d.line([(GAP, TITLE_H - 8), (cw - GAP, TITLE_H - 8)], fill=(60, 60, 60), width=2)
+    c = Image.new('RGB', (cw, ch), (10, 10, 10))
+    d = ImageDraw.Draw(c)
+    ft = font(42, bold=True)
+    fc = font(26)
+    fi = font(24, bold=True)
+    d.text((GAP, 20), title, font=ft, fill=(232, 184, 84))
+    d.line([(GAP, TITLE_H - 14), (cw - GAP, TITLE_H - 14)], fill=(70, 70, 70), width=3)
     for i, im in enumerate(imgs):
-        r, c = divmod(i, cols)
-        x = GAP + c * (W + GAP)
+        r, cc = divmod(i, cols)
+        x = GAP + cc * (W + GAP)
         y = TITLE_H + GAP + r * (H + CAP_H + GAP)
-        thumb = im.resize((W, H), Image.LANCZOS)
-        canvas_img.paste(thumb, (x, y))
-        cap = by_num[nums[i]]['description']
-        lines = wrap(d, cap, f_cap, W)
-        ty = y + H + 8
+        thumb = im.resize((W, H), Image.LANCZOS) if SCALE != 1.0 else im
+        c.paste(thumb, (x, y))
+        num = nums[i]
+        # index badge
+        d.ellipse([x + 10, y + 10, x + 54, y + 54], fill=(232, 184, 84))
+        d.text((x + 22, y + 14), str(num), font=fi, fill=(10, 10, 10))
+        cap = f"{num}. {by_num[num]['description']}"
+        lines = wrap(d, cap, fc, W)
+        ty = y + H + 14
         for ln in lines[:2]:
-            d.text((x, ty), ln, font=f_cap, fill=(200, 200, 200))
-            ty += 24
-    canvas_img.save(os.path.join(OUT, outfile))
-    print('  ✓', outfile, f'({cw}x{ch}, {len(nums)} shots)')
+            d.text((x, ty), ln, font=fc, fill=(220, 220, 220))
+            ty += 32
+    c.save(os.path.join(OUT, outfile))
+    print(f'  ✓ {outfile} ({cw}x{ch}, {len(nums)} shots, 1:1 native)')
 
-print('Collage from', len(shots), 'screenshots:')
+print('Regenerating collages at NATIVE resolution:')
 canvas('HOME — feed, weekly calendar, attention', [1, 2, 3], 'canvas-1-home.png')
 canvas('VISIT DETAIL + CUSTOMER 360', [4, 5], 'canvas-2-visit-customer.png')
 canvas('CONTACT SHEET — WhatsApp / Call / Copy', [6, 7, 8, 9], 'canvas-3-contact.png')
