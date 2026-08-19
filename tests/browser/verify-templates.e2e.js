@@ -53,7 +53,16 @@ const ok = (label, cond, extra) => {
     out.fitting = (await DB.addAppointment({ customerId: byName('Tom Hardcastle').id, clientName: 'Tom Hardcastle', type: 'fitting', date: at(10), status: 'confirmed', phone: '07900 555666', address: '3 Cypress Close, Stockport SK7 5AA', notes: 'Parking: visitors bay only. Access: key safe on the right of the main door.' })).id;
     out.measure = (await DB.addAppointment({ customerId: byName('Sarah Johnson').id, clientName: 'Sarah Johnson', type: 'measure', date: at(11), status: 'confirmed', phone: '07700 900123', address: '14 Beechwood Avenue, Stockport SK1 4AA' })).id;
     out.service = (await DB.addAppointment({ customerId: byName("David O'Leary").id, clientName: "David O'Leary", type: 'service_call', date: at(12), status: 'confirmed', phone: '07900 333444', address: "St Mary's Court, Altrincham M22 2AA", notes: 'Access: key safe on the right of the main door. Blinds jammed after install — bracket bolt sheared.' })).id;
-    out.consultation = (await DB.addAppointment({ customerId: byName('Amelia Green').id, clientName: 'Amelia Green', type: 'consultation', date: at(13), status: 'confirmed', phone: '07711 223344', address: '9 Birch Lane, Wilmslow SK9 5AA' })).id;
+    out.consultation = (await DB.addAppointment({ customerId: byName('Amelia Green').id, clientName: 'Amelia Green', type: 'consultation', date: at(13), status: 'confirmed', phone: '07711 223344', address: '9 Birch Lane, Wilmslow SK9 5AA', notes: 'Parking: on-street, free after 6pm.' })).id;
+    // The fitting customer's JOB (the delivery note): a quote with line
+    // items → the order, so the known-customer message can name the blinds
+    // and timing (2 roman + 3 vertical = 5 blinds × 33 min ≈ 2h45).
+    const tomId = byName('Tom Hardcastle').id;
+    const quote = await DB.createQuote({ customerId: tomId, items: [
+      { description: 'Roman blind', quantity: 2, unit: 'each', unitPrice: 150 },
+      { description: 'Vertical blind', quantity: 3, unit: 'each', unitPrice: 120 }
+    ] });
+    await DB.addOrder({ customerId: tomId, quoteId: quote.quote.id, total: 660 });
     return out;
   });
 
@@ -74,7 +83,7 @@ const ok = (label, cond, extra) => {
   const fitMo = await draft(ids.fitting, 'morning_of');
   console.log('  evening_before: ' + fitEb);
   ok('fitting evening-before asks to clear the area around the window(s)', /clear the area around the window/.test(fitEb), fitEb);
-  ok('fitting evening-before asks to remove existing blinds/curtains', /remove any existing blinds or curtains/.test(fitEb), fitEb);
+  ok('fitting evening-before asks to remove existing blinds/curtains', /(remove|take down) any existing blinds or curtains/.test(fitEb), fitEb);
   ok('fitting morning-of asks to take down existing blinds', /take down any existing blinds/.test(fitMo), fitMo);
   ok('fitting reminders never ask "how many windows"', !/how many windows/.test(fitEb + fitMo), fitEb);
 
@@ -93,15 +102,20 @@ const ok = (label, cond, extra) => {
   const cEb = await draft(ids.consultation, 'evening_before');
   ok('consultation still asks how many windows + blinds', /how many windows/.test(cEb) && /blinds in mind/.test(cEb), cEb);
 
-  console.log('\n=== pre_intro (first-visit intro) per-type + profile-aware ===');
+  console.log('\n=== pre_intro (first-visit intro): known-customer vs new-customer ===');
   const pFit = await draft(ids.fitting, 'pre_intro');
-  console.log('  pre_intro fitting: ' + pFit);
-  ok('pre_intro introduces the advisor with their title (Independent Hillarys Window Coverings Expert)', /an Independent Hillarys Window Coverings Expert/.test(pFit), pFit);
-  ok('pre_intro fitting asks to clear the area + take down blinds', /clear the area around the window/.test(pFit) && /take down any existing blinds/.test(pFit), pFit);
-  ok('pre_intro is profile-aware: acknowledges the parking note (visitors bay)', /visitors bay/.test(pFit), pFit);
-  ok('pre_intro is profile-aware: acknowledges the access note (key safe)', /key safe/.test(pFit), pFit);
-  ok('pre_intro does not re-ask parking/access already in the profile', !/Any parking or access \(gates, stairs, pets\)/.test(pFit), pFit);
-  ok('pre_intro uses a real date/time (no literal {{day}} braces)', !/\{\{day\}\}/.test(pFit) && /\d{1,2} [A-Z][a-z]{2}/.test(pFit), pFit);
+  console.log('  pre_intro fitting (known customer): ' + pFit);
+  ok('fitting pre_intro does NOT re-introduce the advisor (no title)', !/Independent Hillarys Window Coverings Expert/.test(pFit), pFit);
+  ok('fitting pre_intro names the JOB from the delivery note (2 roman, 3 vertical)', /2 roman/.test(pFit) && /3 vertical/.test(pFit), pFit);
+  ok('fitting pre_intro gives the timing (5 blinds × ~33 min ≈ 2h45)', /33 minutes each/.test(pFit) && /2h45/.test(pFit), pFit);
+  ok('fitting pre_intro keeps the practical prep instruction', /clear the area around the window/.test(pFit) && /take down any existing blinds/.test(pFit), pFit);
+  ok('fitting pre_intro does NOT ask parking/access/basics', !/parking/i.test(pFit) && !/gates, stairs, pets/.test(pFit), pFit);
+
+  const pCon = await draft(ids.consultation, 'pre_intro');
+  console.log('  pre_intro consultation (new customer): ' + pCon);
+  ok('consultation pre_intro introduces with the title (Independent Hillarys Window Coverings Expert)', /an Independent Hillarys Window Coverings Expert/.test(pCon), pCon);
+  ok('consultation pre_intro is profile-aware: acknowledges the parking note (on-street)', /on-street/.test(pCon) && !/Any parking or access/.test(pCon), pCon);
+  ok('pre_intro uses a real date/time (no literal {{day}} braces)', !/\{\{day\}\}/.test(pFit + pCon) && /\d{1,2} [A-Z][a-z]{2}/.test(pCon), pCon);
 
   ok('no console errors', errs.length === 0, errs);
 

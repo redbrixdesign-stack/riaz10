@@ -295,7 +295,7 @@ function appt(id, dateISO, phone = '07700123456') {
     console.log('  fitting evening_before: ' + msgs['fitting:evening_before']);
     console.log('  fitting morning_of:    ' + msgs['fitting:morning_of']);
     console.log('  measure evening_before: ' + msgs['measure:evening_before']);
-    ok('fitting evening-before asks to clear the area + remove existing blinds', /clear the area around the window/.test(msgs['fitting:evening_before']) && /remove any existing blinds or curtains/.test(msgs['fitting:evening_before']), msgs['fitting:evening_before']);
+    ok('fitting evening-before asks to clear the area + remove existing blinds', /clear the area around the window/.test(msgs['fitting:evening_before']) && /(remove|take down) any existing blinds or curtains/.test(msgs['fitting:evening_before']), msgs['fitting:evening_before']);
     ok('fitting morning-of asks to clear the area + take down blinds', /clear the area/.test(msgs['fitting:morning_of']) && /take down any existing blinds/.test(msgs['fitting:morning_of']), msgs['fitting:morning_of']);
     ok('measure never asks which blinds (consultation question)', !/which blinds/.test(msgs['measure:evening_before'] + msgs['measure:morning_of']), msgs['measure:evening_before']);
     ok('consultation still asks how many windows / which blinds', /how many windows/.test(msgs['consultation:evening_before']) && /which blinds/.test(msgs['consultation:morning_of']), msgs['consultation:evening_before']);
@@ -321,7 +321,8 @@ function appt(id, dateISO, phone = '07700123456') {
     };
     const fit = resolve('pre_intro', 'fitting');
     ok('pre_intro fitting asks to clear the area + take down blinds', /clear the area around the window/.test(fit) && /take down any existing blinds/.test(fit), fit);
-    ok('pre_intro introduces with the advisor title placeholder', /an \{\{advisorTitle\}\}/.test(fit), fit);
+    ok('pre_intro introduces with the advisor title placeholder (consultation)', /an \{\{advisorTitle\}\}/.test(resolve('pre_intro', 'consultation')), resolve('pre_intro', 'consultation'));
+    ok('pre_intro known-customer stages do NOT carry the title (fitting)', !/\{\{advisorTitle\}\}/.test(fit), fit);
     ok('pre_intro measure asks for clear windows, not blinds preference', !/which blinds/.test(resolve('pre_intro', 'measure')), resolve('pre_intro', 'measure'));
     ok('pre_intro unknown type falls back to consultation', resolve('pre_intro', 'something_else').includes('which windows you'), resolve('pre_intro', 'something_else'));
     ok('outcome-keyed maps are untouched by per-type resolution', resolve('follow_up.quote', 'quote') === vm.runInContext('CONFIG.templates.follow_up.quote;', sandbox));

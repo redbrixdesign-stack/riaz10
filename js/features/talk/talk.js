@@ -102,20 +102,85 @@ const TalkFeature = {
     return appt?.date ? Utils.formatTime(appt.date) : '';
   },
 
-  // First-visit intro message, built from the customer 360 profile. The
-  // advisor is introduced with their title ("an Independent Hillarys Window
-  // Coverings Expert"), the prep ask adapts to the visit type, and the
-  // profile is respected: parking/access already noted on the visit are
-  // acknowledged instead of re-asked, so the intro never demands answers
-  // the app already holds.
+  // The actual job for a customer, from their order → quote line items
+  // (the delivery note): "5 blinds — 2 roman, 3 vertical — about 33 minutes
+  // each (around 2h45 in total)". Falls back to the number of windows
+  // measured. Returns '' when nothing is known (callers must not invent a
+  // job). Used by the fitting/service messages and the AI's job_summary so
+  // the advisor sounds like they know the customer's job before contacting.
+  async buildJobSummary(customerId) {
+    if (!customerId) return '';
+    try {
+      const orders = (await DB.db.orders.where('customerId').equals(customerId).toArray())
+        .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+      const order = orders.find(o => o.quoteId) || orders[0];
+      if (order && order.quoteId) {
+        let quote = null;
+        try { quote = await DB.getQuote(order.quoteId); } catch (e) { /* ignore */ }
+        if (quote && quote.items && quote.items.length) {
+          const total = quote.items.reduce((s, i) => s + (i.quantity || 0), 0);
+          const labels = quote.items.map(i => {
+            const qty = i.quantity || 0;
+            const label = String(i.description || '').toLowerCase().replace(/\s*blind(s)?\b/g, '').trim();
+            return `${qty} ${label || 'blind'}`;
+          });
+          const perMin = CONFIG.jobEstimates?.minutesPerBlind || 33;
+          const totalMin = Math.round(total * perMin);
+          const hrs = Math.floor(totalMin / 60);
+          const mins = totalMin % 60;
+          const duration = hrs > 0 ? (mins ? `${hrs}h${String(mins).padStart(2, '0')}` : `${hrs}h`) : `${mins} min`;
+          const plural = total === 1 ? 'blind' : 'blinds';
+          return `You've got ${total} ${plural} to install — ${labels.join(', ')} — about ${perMin} minutes each${total > 1 ? ` (around ${duration} in total)` : ''}.`;
+        }
+      }
+      // Fallback: windows measured for this customer.
+      try {
+        const appts = await DB.getAppointmentsByCustomer(customerId);
+        const ids = appts.map(a => a.id).filter(Boolean);
+        const measurements = ids.length ? await DB.db.measurements.where('appointmentId').anyOf(ids).toArray() : [];
+        if (measurements.length) {
+          return `You've got ${measurements.length} window${measurements.length === 1 ? '' : 's'} to cover.`;
+        }
+      } catch (e) { /* ignore */ }
+    } catch (e) { /* no job data */ }
+    return '';
+  },
+
+  // First-visit intro message, built from the customer 360 profile. For
+  // consultation / measure the advisor introduces themselves with their
+  // title ("an Independent Hillarys Window Coverings Expert") and asks only
+  // what the profile doesn't already hold. For fitting / service / review /
+  // follow-up the advisor ALREADY KNOWS the customer: no introduction, no
+  // parking/basic questions — the message confirms the actual job (blinds,
+  // types, timing from the order/delivery note) so the customer feels known.
   async buildIntroMessage(appt, customer) {
     try {
       const name = Utils.firstNameFrom(customer?.firstName || appt?.clientName || '') || 'there';
-      const advisor = CONFIG.advisorName || 'Your Advisor';
-      const title = CONFIG.advisorTitle || 'independent window coverings expert';
       const dayPart = `${Utils.formatDateUK(appt.date, 'weekday-short')} ${Utils.formatDateUK(appt.date, 'short')}`;
       const timePart = this.apptTimeText(appt);
       const addressPart = appt?.address ? ` at ${appt.address}` : '';
+      const when = timePart ? ` on ${dayPart} at ${timePart}` : ` on ${dayPart}`;
+
+      // Known-customer stages: the advisor knows this customer and their
+      // property — confirm the job, never re-introduce or re-ask basics.
+      if (['fitting', 'service_call', 'review', 'follow_up'].includes(appt?.type)) {
+        const job = (await this.buildJobSummary(appt.customerId) || '').replace(/\.+$/, '');
+        const jobLine = job ? ` ${job}.` : '';
+        if (appt.type === 'fitting') {
+          return `Hi ${name}, just to confirm — I'll be with you${when}${addressPart} to fit your new blinds.${jobLine} If you can clear the area around the window(s) and take down any existing blinds or curtains beforehand, I'll get straight to it when I arrive. If anything's changed, just reply here.`;
+        }
+        if (appt.type === 'service_call') {
+          return `Hi ${name}, just to confirm — I'll be with you${when}${addressPart} to sort out the issue you reported.${jobLine} If anything's changed, just reply here.`;
+        }
+        if (appt.type === 'review') {
+          return `Hi ${name}, just to confirm — I'll be with you${when}${addressPart} to see how everything's looking.${jobLine} If anything's come up since the fitting, just reply here and I'll take a look.`;
+        }
+        return `Hi ${name}, just to confirm — I'll be with you${when}${addressPart} to follow up.${jobLine} If anything's changed since we last spoke, just reply here.`;
+      }
+
+      // New-customer stages: introduction with the title + profile-aware asks.
+      const advisor = CONFIG.advisorName || 'Your Advisor';
+      const title = CONFIG.advisorTitle || 'independent window coverings expert';
       const TYPE = {
         consultation: {
           verb: 'for a consultation',
@@ -124,22 +189,6 @@ const TalkFeature = {
         measure: {
           verb: 'to measure up',
           ask: 'If you can make sure the windows we\'re measuring are clear, that will help me get accurate sizes.'
-        },
-        fitting: {
-          verb: 'to fit',
-          ask: 'If you can clear the area around the window(s) and take down any existing blinds or curtains beforehand, I\'ll get straight to it when I arrive.'
-        },
-        follow_up: {
-          verb: 'to follow up',
-          ask: 'Let me know if anything has changed since we last spoke.'
-        },
-        review: {
-          verb: 'to see how everything\'s looking',
-          ask: 'If anything has come up since the fitting, just reply here and I\'ll take a look.'
-        },
-        service_call: {
-          verb: 'to sort out the issue you reported',
-          ask: 'If you can make sure the area\'s clear, I\'ll get straight to it.'
         }
       };
       const t = TYPE[appt?.type] || TYPE.consultation;
@@ -153,7 +202,6 @@ const TalkFeature = {
       else if (parking) profile = ` I can see parking is ${parking}.`;
       else if (access) profile = ` I've noted ${access} for access.`;
       else profile = ' Any parking or access (gates, stairs, pets) I should know about?';
-      const when = timePart ? ` on ${dayPart} at ${timePart}` : ` on ${dayPart}`;
       return `Hi ${name}, I'm ${advisor}, an ${title}, and I'll be with you${when}${addressPart} ${t.verb}. ${t.ask}${profile} Any questions, just reply here.`;
     } catch (e) {
       return null; // caller falls back to the static template
@@ -527,6 +575,14 @@ const TalkFeature = {
       message = await this.buildIntroMessage(appt, customer);
     }
     if (!message) {
+      // {{jobSummary}} names the actual job (blinds, types, timing) for
+      // fitting/service reminders — leading space so the sentence reads the
+      // same when the profile has no order data yet.
+      let jobSummary = '';
+      if (['fitting', 'service_call'].includes(appt?.type) && appt?.customerId) {
+        try { jobSummary = (await this.buildJobSummary(appt.customerId) || '').replace(/\.+$/, ''); } catch (e) {}
+        jobSummary = jobSummary ? ' ' + jobSummary : '';
+      }
       message = NotificationService.processTemplate(template, {
         firstName: Utils.firstNameFrom(customer?.firstName || appt?.clientName),
         productType: 'window coverings',
@@ -534,6 +590,7 @@ const TalkFeature = {
         address: appt?.address || '',
         advisorName: CONFIG.advisorName || 'Your Advisor',
         advisorTitle: CONFIG.advisorTitle || '',
+        jobSummary,
         eta,
         delay,
         ...extraVars
@@ -998,6 +1055,7 @@ const TalkFeature = {
         : 'Order history: none.',
       notes_from_last_visit: lastVisitNotes,
       visit_notes: notes,
+      job_summary: await this.buildJobSummary(customerId),
       template_key: templateKey,
       // Interpolated so the AI never sees literal "{{firstName}}" braces.
       template_text: this._interpolateTemplateText(templateText, customer, appt, advisorName, visitTypeLabel),

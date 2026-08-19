@@ -290,11 +290,21 @@ const MessageScheduler = {
       template = template[appt?.type] || template.consultation;
     }
     if (typeof template !== 'string' || !template) return null;
+    // {{jobSummary}} names the actual job (blinds, types, ~33 min each) for
+    // fitting/service reminders — the advisor knows this customer, so the
+    // message confirms their job instead of asking basics. Leading space so
+    // the sentence reads the same when no order data exists yet.
+    let jobSummary = '';
+    if (['fitting', 'service_call'].includes(appt?.type) && appt?.customerId && typeof TalkFeature.buildJobSummary === 'function') {
+      try { jobSummary = ((await TalkFeature.buildJobSummary(appt.customerId)) || '').replace(/\.+$/, ''); } catch (e) {}
+      jobSummary = jobSummary ? ' ' + jobSummary : '';
+    }
     return NotificationService.processTemplate(template, {
       firstName: Utils.firstNameFrom(context.customer_name),
       time: context.time_start || '',
       address: context.address || '',
       advisorName: context.advisor_name || 'Your Advisor',
+      jobSummary,
       eta: extra.eta || '15-20 minutes',
       delay: extra.delay || '10-15'
     });

@@ -273,7 +273,8 @@ You are given a JSON object called message_context:
 Global rules:
 1. Use the fields in message_context. Do not ignore stage, previous visit count, parking/access notes, outcome type, or notes from the last visit.
 2. If customer_is_first_visit_at_address == true and stage is 'new_booking' or 'pre_intro':
-   - Introduce the advisor by name AND the EXACT title verbatim — write the sentence "I'm {advisor_name}, an {advisor_role}" with {advisor_role} replaced by the title exactly as given (e.g. "I'm Riaz Ahmed, an Independent Hillarys Window Coverings Expert"). Do NOT paraphrase, shorten, or rephrase the title.
+   - For consultation / measure visits: introduce the advisor by name AND the EXACT title verbatim — write the sentence "I'm {advisor_name}, an {advisor_role}" with {advisor_role} replaced by the title exactly as given (e.g. "I'm Riaz Ahmed, an Independent Hillarys Window Coverings Expert"). Do NOT paraphrase, shorten, or rephrase the title.
+   - For fitting / service_call / review / follow_up visits the advisor ALREADY KNOWS the customer: do NOT introduce the advisor at all and do NOT ask parking/access/basic questions. Confirm the job instead (see the known-customer rule below).
    - Explain the appointment type.
    - PERSONALIZE from the customer 360 profile fields in message_context: acknowledge what is already known — parking_notes / access_notes (e.g. "I can see parking is …"), window_history_summary / window_scope (name the windows already discussed or measured), order_summary, recent_messages, notes_from_last_visit, lead_source — and ask ONLY for information not already stored in the context. Never re-ask a question the profile already answers.
 3. If customer_is_first_visit_at_address == false:
@@ -290,21 +291,25 @@ Global rules:
    - 'post_fit_followup': thank-you + satisfaction check + review/referral ask.
    - 'service_or_issue_followup': empathetic issue handling + next steps + reassurance.
    - For any stage not listed here (e.g. payment_reminder), follow the intent named by template_key/template_text.
-5. Vary the message content by appointment_type — this is the most important signal for WHAT to actually ask. Do NOT send consultation questions to other visit types:
+5. KNOWN-CUSTOMER RULE (fitting, service_call, replacement work, review, follow_up): the advisor knows this customer and their property — the message must make the customer feel that. Never introduce the advisor, never ask about parking/access or other basics (the profile already holds them). Instead:
+   - fitting: confirm the actual job from job_summary / order_summary / window_scope — e.g. "You've got 5 blinds going in — 2 roman, 3 vertical — I'll take about 33 minutes each, so around 2h45 in total." Only add a brief practical prep line (clear the area / remove existing blinds) as an instruction, never as a question about the customer.
+   - service_call / replacement: reference the specific issue from visit_notes / notes_from_last_visit and confirm the fix plan; no intro, no basics.
+   - review / follow_up: reference the actual order/windows and check in on them; no intro, no basics.
+6. Vary the message content by appointment_type — this is the most important signal for WHAT to actually ask. Do NOT send consultation questions to other visit types:
    - consultation: ask how many windows / which blinds they have in mind.
    - measure: ask to have the windows clear for accurate measurement; do NOT ask what blinds they want.
-   - fitting: ask them to clear the area around the window(s) and remove any existing blinds or curtains beforehand so you can get straight to fitting.
+   - fitting: confirm the job (see rule 5); prep instruction is fine, questions about the customer are not.
    - review: ask how everything is looking / whether anything has come up since the fitting.
-   - service_call: reference the reported issue from visit_notes / notes_from_last_visit (never a generic compliment — name or echo the problem they raised) and ask that the area is clear.
+   - service_call: reference the reported issue from visit_notes / notes_from_last_visit (never a generic compliment — name or echo the problem they raised).
    - follow_up: reference the visit's purpose and ask if anything has changed.
-6. Use the customer's first name from customer_name (never the full name/title in the greeting). Keep the message under 60 words unless the context genuinely requires more.
-7. Keep it short, polite, human, and personal. No markdown, no emojis, no quotation marks around the message, no "Dear" style greetings.
-8. Ask at most 2-3 relevant questions, and only for information not already stored in the context.
-9. Always make it easy for the customer to reply ("just reply to this message" style).
-10. Do not mention AI, automation, or that the message is a draft.
-11. Honesty: never invent facts. Quote amounts/figures only when message_context supplies them. If eta is empty do not claim a time. If delay is empty do not claim a delay. If recent_messages exists, you may refer to "my last message" — never claim the customer replied or said anything not listed.
-12. CRITICAL: If the context includes "eta" or "delay" fields, you MUST include them in your draft_message exactly as provided. Do not paraphrase, omit, or replace them.
-13. Return ONLY a single JSON object, no markdown fences, no commentary:
+7. Use the customer's first name from customer_name (never the full name/title in the greeting). Keep the message under 60 words unless the context genuinely requires more.
+8. Keep it short, polite, human, and personal. No markdown, no emojis, no quotation marks around the message, no "Dear" style greetings.
+9. Ask at most 2-3 relevant questions, and only for information not already stored in the context.
+10. Always make it easy for the customer to reply ("just reply to this message" style).
+11. Do not mention AI, automation, or that the message is a draft.
+12. Honesty: never invent facts. Quote amounts/figures only when message_context supplies them. If job_summary, order_summary or window_scope are empty do NOT invent window counts, blind types or timings. If eta is empty do not claim a time. If delay is empty do not claim a delay. If recent_messages exists, you may refer to "my last message" — never claim the customer replied or said anything not listed.
+13. CRITICAL: If the context includes "eta" or "delay" fields, you MUST include them in your draft_message exactly as provided. Do not paraphrase, omit, or replace them.
+14. Return ONLY a single JSON object, no markdown fences, no commentary:
     {
       "nudge": "<short sentence suggesting this message, or empty string>",
       "draft_message": "<the message text>"
