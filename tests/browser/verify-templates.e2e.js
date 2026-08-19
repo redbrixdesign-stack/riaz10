@@ -50,7 +50,7 @@ const ok = (label, cond, extra) => {
     const today = Utils.getToday();
     const at = (h, type) => { const d = new Date(today); d.setHours(h, 0, 0, 0); return d.toISOString(); };
     const out = {};
-    out.fitting = (await DB.addAppointment({ customerId: byName('Tom Hardcastle').id, clientName: 'Tom Hardcastle', type: 'fitting', date: at(10), status: 'confirmed', phone: '07900 555666', address: '3 Cypress Close, Stockport SK7 5AA' })).id;
+    out.fitting = (await DB.addAppointment({ customerId: byName('Tom Hardcastle').id, clientName: 'Tom Hardcastle', type: 'fitting', date: at(10), status: 'confirmed', phone: '07900 555666', address: '3 Cypress Close, Stockport SK7 5AA', notes: 'Parking: visitors bay only. Access: key safe on the right of the main door.' })).id;
     out.measure = (await DB.addAppointment({ customerId: byName('Sarah Johnson').id, clientName: 'Sarah Johnson', type: 'measure', date: at(11), status: 'confirmed', phone: '07700 900123', address: '14 Beechwood Avenue, Stockport SK1 4AA' })).id;
     out.service = (await DB.addAppointment({ customerId: byName("David O'Leary").id, clientName: "David O'Leary", type: 'service_call', date: at(12), status: 'confirmed', phone: '07900 333444', address: "St Mary's Court, Altrincham M22 2AA", notes: 'Access: key safe on the right of the main door. Blinds jammed after install — bracket bolt sheared.' })).id;
     out.consultation = (await DB.addAppointment({ customerId: byName('Amelia Green').id, clientName: 'Amelia Green', type: 'consultation', date: at(13), status: 'confirmed', phone: '07711 223344', address: '9 Birch Lane, Wilmslow SK9 5AA' })).id;
@@ -93,10 +93,15 @@ const ok = (label, cond, extra) => {
   const cEb = await draft(ids.consultation, 'evening_before');
   ok('consultation still asks how many windows + blinds', /how many windows/.test(cEb) && /blinds in mind/.test(cEb), cEb);
 
-  console.log('\n=== pre_intro (first-visit intro) per-type ===');
+  console.log('\n=== pre_intro (first-visit intro) per-type + profile-aware ===');
   const pFit = await draft(ids.fitting, 'pre_intro');
   console.log('  pre_intro fitting: ' + pFit);
+  ok('pre_intro introduces the advisor with their title (Independent Hillarys Window Coverings Expert)', /an Independent Hillarys Window Coverings Expert/.test(pFit), pFit);
   ok('pre_intro fitting asks to clear the area + take down blinds', /clear the area around the window/.test(pFit) && /take down any existing blinds/.test(pFit), pFit);
+  ok('pre_intro is profile-aware: acknowledges the parking note (visitors bay)', /visitors bay/.test(pFit), pFit);
+  ok('pre_intro is profile-aware: acknowledges the access note (key safe)', /key safe/.test(pFit), pFit);
+  ok('pre_intro does not re-ask parking/access already in the profile', !/Any parking or access \(gates, stairs, pets\)/.test(pFit), pFit);
+  ok('pre_intro uses a real date/time (no literal {{day}} braces)', !/\{\{day\}\}/.test(pFit) && /\d{1,2} [A-Z][a-z]{2}/.test(pFit), pFit);
 
   ok('no console errors', errs.length === 0, errs);
 

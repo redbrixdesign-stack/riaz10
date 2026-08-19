@@ -17,6 +17,10 @@ const CONFIG = {
 
   // Advisor identity & targets (set during onboarding)
   advisorName: '',
+  // How the advisor is introduced to customers (used in the first-visit
+  // intro message and the AI's message context). The user's phrasing:
+  // "Independent Hillarys Window Coverings Expert".
+  advisorTitle: 'Independent Hillarys Window Coverings Expert',
   companyName: '', // White-label: shown in place of "AdvisorOS" wherever set, editable in Settings
   businessAddress: '',
   businessLatLng: null,
@@ -266,14 +270,20 @@ const CONFIG = {
     },
     // Intro/prep for a first-time customer's booking (Follow-ups 'intro'
     // task). Same per-type treatment — a fitting intro asks to clear the
-    // area, a service call references the reported issue.
+    // area, a service call references the reported issue. The advisor is
+    // introduced with their title ({{advisorTitle}}, e.g. "Independent
+    // Hillarys Window Coverings Expert"); the message-scheduler's static
+    // fallback stays generic, but the real intro sent via TalkFeature is
+    // built dynamically by TalkFeature.buildIntroMessage, which reads the
+    // customer 360 profile (parking/access notes, window history) and only
+    // asks for what isn't already known.
     pre_intro: {
-      consultation: "Hi {{firstName}}, I'm {{advisorName}} and I'll be with you on {{day}} at {{time}} for your {{visitType}} at {{address}}. If you can let me know about parking, access (gates, stairs, pets) and which windows you'd like me to focus on, that would help me be fully prepared. Any questions, just reply here.",
-      measure: "Hi {{firstName}}, I'm {{advisorName}} and I'll be with you on {{day}} at {{time}} to measure up for your window coverings at {{address}}. If you can make sure the windows we're measuring are clear, that would help me get accurate sizes. Any parking or access (gates, stairs, pets) to let me know about? Any questions, just reply here.",
-      fitting: "Hi {{firstName}}, I'm {{advisorName}} and I'll be with you on {{day}} at {{time}} to fit your new window coverings at {{address}}. If you can clear the area around the window(s) and take down any existing blinds or curtains beforehand, that'll help me get straight to it when I arrive. Any parking or access notes, just reply here.",
-      follow_up: "Hi {{firstName}}, I'm {{advisorName}} and I'll be with you on {{day}} at {{time}} at {{address}} to follow up on things. Let me know about parking or anything I should know, and just reply here with any questions.",
-      review: "Hi {{firstName}}, I'm {{advisorName}} and I'll be with you on {{day}} at {{time}} at {{address}} to see how everything's looking. If anything's come up since the fitting, just reply here and I'll take a look.",
-      service_call: "Hi {{firstName}}, I'm {{advisorName}} and I'll be with you on {{day}} at {{time}} at {{address}} to sort out the issue you reported. If you can make sure the area's clear, I'll get straight to it. Any questions, just reply here."
+      consultation: "Hi {{firstName}}, I'm {{advisorName}}, an {{advisorTitle}}, and I'll be with you on {{day}} at {{time}} for your {{visitType}} at {{address}}. If you can let me know about parking, access (gates, stairs, pets) and which windows you'd like me to focus on, that would help me be fully prepared. Any questions, just reply here.",
+      measure: "Hi {{firstName}}, I'm {{advisorName}}, an {{advisorTitle}}, and I'll be with you on {{day}} at {{time}} to measure up for your window coverings at {{address}}. If you can make sure the windows we're measuring are clear, that would help me get accurate sizes. Any parking or access (gates, stairs, pets) to let me know about? Any questions, just reply here.",
+      fitting: "Hi {{firstName}}, I'm {{advisorName}}, an {{advisorTitle}}, and I'll be with you on {{day}} at {{time}} to fit your new window coverings at {{address}}. If you can clear the area around the window(s) and take down any existing blinds or curtains beforehand, that'll help me get straight to it when I arrive. Any parking or access notes, just reply here.",
+      follow_up: "Hi {{firstName}}, I'm {{advisorName}}, an {{advisorTitle}}, and I'll be with you on {{day}} at {{time}} at {{address}} to follow up on things. Let me know about parking or anything I should know, and just reply here with any questions.",
+      review: "Hi {{firstName}}, I'm {{advisorName}}, an {{advisorTitle}}, and I'll be with you on {{day}} at {{time}} at {{address}} to see how everything's looking. If anything's come up since the fitting, just reply here and I'll take a look.",
+      service_call: "Hi {{firstName}}, I'm {{advisorName}}, an {{advisorTitle}}, and I'll be with you on {{day}} at {{time}} at {{address}} to sort out the issue you reported. If you can make sure the area's clear, I'll get straight to it. Any questions, just reply here."
     },
     // Order confirmation after an 'ordered' outcome.
     outcome_ordered: "Hi {{firstName}}, thanks again for ordering today. Your {{productType}} is now in hand — I'll keep you posted on fitting dates. Anything you need in the meantime, just reply here. — {{advisorName}}",

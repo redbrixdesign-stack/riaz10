@@ -321,6 +321,7 @@ function appt(id, dateISO, phone = '07700123456') {
     };
     const fit = resolve('pre_intro', 'fitting');
     ok('pre_intro fitting asks to clear the area + take down blinds', /clear the area around the window/.test(fit) && /take down any existing blinds/.test(fit), fit);
+    ok('pre_intro introduces with the advisor title placeholder', /an \{\{advisorTitle\}\}/.test(fit), fit);
     ok('pre_intro measure asks for clear windows, not blinds preference', !/which blinds/.test(resolve('pre_intro', 'measure')), resolve('pre_intro', 'measure'));
     ok('pre_intro unknown type falls back to consultation', resolve('pre_intro', 'something_else').includes('which windows you'), resolve('pre_intro', 'something_else'));
     ok('outcome-keyed maps are untouched by per-type resolution', resolve('follow_up.quote', 'quote') === vm.runInContext('CONFIG.templates.follow_up.quote;', sandbox));

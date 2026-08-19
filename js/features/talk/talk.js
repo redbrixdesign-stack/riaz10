@@ -102,6 +102,64 @@ const TalkFeature = {
     return appt?.date ? Utils.formatTime(appt.date) : '';
   },
 
+  // First-visit intro message, built from the customer 360 profile. The
+  // advisor is introduced with their title ("an Independent Hillarys Window
+  // Coverings Expert"), the prep ask adapts to the visit type, and the
+  // profile is respected: parking/access already noted on the visit are
+  // acknowledged instead of re-asked, so the intro never demands answers
+  // the app already holds.
+  async buildIntroMessage(appt, customer) {
+    try {
+      const name = Utils.firstNameFrom(customer?.firstName || appt?.clientName || '') || 'there';
+      const advisor = CONFIG.advisorName || 'Your Advisor';
+      const title = CONFIG.advisorTitle || 'independent window coverings expert';
+      const dayPart = `${Utils.formatDateUK(appt.date, 'weekday-short')} ${Utils.formatDateUK(appt.date, 'short')}`;
+      const timePart = this.apptTimeText(appt);
+      const addressPart = appt?.address ? ` at ${appt.address}` : '';
+      const TYPE = {
+        consultation: {
+          verb: 'for a consultation',
+          ask: 'If you can let me know which windows you\'d like me to focus on, that would help me be fully prepared.'
+        },
+        measure: {
+          verb: 'to measure up',
+          ask: 'If you can make sure the windows we\'re measuring are clear, that will help me get accurate sizes.'
+        },
+        fitting: {
+          verb: 'to fit',
+          ask: 'If you can clear the area around the window(s) and take down any existing blinds or curtains beforehand, I\'ll get straight to it when I arrive.'
+        },
+        follow_up: {
+          verb: 'to follow up',
+          ask: 'Let me know if anything has changed since we last spoke.'
+        },
+        review: {
+          verb: 'to see how everything\'s looking',
+          ask: 'If anything has come up since the fitting, just reply here and I\'ll take a look.'
+        },
+        service_call: {
+          verb: 'to sort out the issue you reported',
+          ask: 'If you can make sure the area\'s clear, I\'ll get straight to it.'
+        }
+      };
+      const t = TYPE[appt?.type] || TYPE.consultation;
+      // Customer 360 awareness — the notes convention ("Parking: …" /
+      // "Access: …" lines): acknowledge what's known, ask only for gaps.
+      // Strip trailing periods so a note ending in "." never produces "..".
+      const parking = (this._parseNoteField(appt?.notes || '', 'parking') || '').replace(/\.+$/, '');
+      const access = (this._parseNoteField(appt?.notes || '', 'access') || '').replace(/\.+$/, '');
+      let profile = '';
+      if (parking && access) profile = ` I can see parking is ${parking} and I've noted ${access} for access.`;
+      else if (parking) profile = ` I can see parking is ${parking}.`;
+      else if (access) profile = ` I've noted ${access} for access.`;
+      else profile = ' Any parking or access (gates, stairs, pets) I should know about?';
+      const when = timePart ? ` on ${dayPart} at ${timePart}` : ` on ${dayPart}`;
+      return `Hi ${name}, I'm ${advisor}, an ${title}, and I'll be with you${when}${addressPart} ${t.verb}. ${t.ask}${profile} Any questions, just reply here.`;
+    } catch (e) {
+      return null; // caller falls back to the static template
+    }
+  },
+
   // Real signal available from existing data: every appointment is linked to
   // a customerId, so for any customer who had a "needs follow-up" outcome
   // (quoted, thinking, partner, etc.), we can check whether that SAME
@@ -461,16 +519,26 @@ const TalkFeature = {
       }
     }
 
-    const message = NotificationService.processTemplate(template, {
-      firstName: Utils.firstNameFrom(customer?.firstName || appt?.clientName),
-      productType: 'window coverings',
-      time: this.apptTimeText(appt),
-      address: appt?.address || '',
-      advisorName: CONFIG.advisorName || 'Your Advisor',
-      eta,
-      delay,
-      ...extraVars
-    });
+    // The first-visit intro is built dynamically from the customer 360
+    // profile (title + type-aware prep + known parking/access acknowledged)
+    // — falls back to the static pre_intro template if that ever fails.
+    let message = null;
+    if (templateKey === 'pre_intro') {
+      message = await this.buildIntroMessage(appt, customer);
+    }
+    if (!message) {
+      message = NotificationService.processTemplate(template, {
+        firstName: Utils.firstNameFrom(customer?.firstName || appt?.clientName),
+        productType: 'window coverings',
+        time: this.apptTimeText(appt),
+        address: appt?.address || '',
+        advisorName: CONFIG.advisorName || 'Your Advisor',
+        advisorTitle: CONFIG.advisorTitle || '',
+        eta,
+        delay,
+        ...extraVars
+      });
+    }
     this.pendingMessage = {
       customerId: customer?.id || 0,
       phone: whatsappPhone,
@@ -793,6 +861,24 @@ const TalkFeature = {
     };
   },
 
+  // Interpolate a resolved template for the AI's template_text — guarded so
+  // sandboxed tests without NotificationService still get the raw string.
+  _interpolateTemplateText(templateText, customer, appt, advisorName, visitTypeLabel) {
+    if (!templateText) return '';
+    try {
+      return NotificationService.processTemplate(templateText, {
+        firstName: Utils.firstNameFrom(customer?.firstName || appt?.clientName),
+        time: this.apptTimeText(appt),
+        address: appt?.address || '',
+        advisorName,
+        advisorTitle: CONFIG.advisorTitle || '',
+        visitType: visitTypeLabel || 'visit'
+      });
+    } catch (e) {
+      return templateText;
+    }
+  },
+
   // Spec-shaped snake_case context sent to Claude (docs/Communication.md §3):
   // this is the JSON the proxy prompt calls message_context. Same real-data
   // sources as buildAiContext (which stays for the preview UI's fact chips),
@@ -885,7 +971,7 @@ const TalkFeature = {
 
     return {
       advisor_name: advisorName,
-      advisor_role: 'window coverings advisor',
+      advisor_role: CONFIG.advisorTitle || 'window coverings advisor',
       customer_name: customer ? customer.firstName || customer.lastName : (appt?.clientName || 'there'),
       customer_is_first_visit_at_address: pastVisits.length === 0,
       customer_visit_count: pastVisits.length,
@@ -913,7 +999,8 @@ const TalkFeature = {
       notes_from_last_visit: lastVisitNotes,
       visit_notes: notes,
       template_key: templateKey,
-      template_text: templateText,
+      // Interpolated so the AI never sees literal "{{firstName}}" braces.
+      template_text: this._interpolateTemplateText(templateText, customer, appt, advisorName, visitTypeLabel),
       days_since_last_visit: daysSince,
       lead_source: customer?.source || '',
       recent_messages: recentMessages.map(m => `[${m.sentAt ? Utils.formatDate(m.sentAt, 'short') : 'sometime'}] "${m.content}"`),
