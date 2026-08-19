@@ -86,6 +86,11 @@ A "what's due today" inbox so nothing slips:
   day-before message,
 - Intro messages for first-time customers, post-fit thank-yous, service
   issue follow-ups.
+- Durable advisor tasks can be created, completed, or snoozed. They survive
+  reloads and offline use, and a linked reminder does not duplicate its
+  derived follow-up.
+- A secondary **Lead Inbox** captures an enquiry before a customer or visit
+  exists, then converts it atomically into a customer or booked visit.
 
 ### Talk (messages)
 - Tap-to-send WhatsApp message templates for every stage of the customer
@@ -121,7 +126,8 @@ A "what's due today" inbox so nothing slips:
 
 ### Tools
 A quiet control centre: Add Visit, Log Mileage, Log Expense, End of Day,
-Orders, Follow-ups, Find Customer, Route, Measure, Scan, Settings, Backup.
+Orders, Follow-ups, Lead Inbox, Find Customer, Route, Measure, Scan, Settings,
+Backup.
 
 ### Settings / Onboarding
 - Onboarding (first run): name, trade, weekly target, business address,
@@ -132,9 +138,12 @@ Orders, Follow-ups, Find Customer, Route, Measure, Scan, Settings, Backup.
 ## 3. How it works
 
 ### Storage
-- **IndexedDB** via bundled Dexie 4 (`advisoros_v6` database) with 10
+- **IndexedDB** via bundled Dexie 4 (`advisoros_v6` database) with 13
   tables: customers, appointments, orders, expenses, trips, measurements,
-  communications, settings, sequences, photos.
+  communications, settings, sequences, photos, leads, tasks, and taskEvents.
+- Lead identity/contact data and task title/notes are encrypted at rest. The
+  backup format remains version 1; older backups import with the three Phase 1
+  tables empty.
 - If Dexie is unavailable, a **bundled mini-Dexie shim** (601 lines) serves
   the same API; if IndexedDB itself is unavailable it degrades to an
   in-memory store with a warning.

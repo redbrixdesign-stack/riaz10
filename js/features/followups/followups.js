@@ -23,7 +23,7 @@ const FollowupsFeature = {
     return (CONFIG.followups && CONFIG.followups.paymentReminderDays) || 3;
   },
 
-  async loadTasks() {
+  async loadDerivedTasks() {
     const now = new Date();
     let pipeline = [];
     let orders = [];
@@ -247,6 +247,11 @@ const FollowupsFeature = {
     return tasks;
   },
 
+  async loadTasks() {
+    const derived = await this.loadDerivedTasks();
+    return typeof TaskService !== 'undefined' ? TaskService.merge(derived) : derived;
+  },
+
   async getDueCount() {
     try {
       const tasks = (await this.loadTasks()).filter(t => t.due);
@@ -265,15 +270,16 @@ const FollowupsFeature = {
   async renderAsync() {
     const tasks = await this.loadTasks();
     const due = tasks.filter(t => t.due);
-    const later = tasks.filter(t => !t.due);
+    const snoozed = tasks.filter(t => t.snoozed);
+    const later = tasks.filter(t => !t.due && !t.snoozed);
 
     due.sort((a, b) => (a.priority === 'high' ? 0 : 1) - (b.priority === 'high' ? 0 : 1));
 
     return `
       <div class="fade-in">
-        ${App.renderTopHeader({ title: 'Follow-ups' })}
+        ${App.renderTopHeader({ title: 'Follow-ups', actions: `<button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='${JSON.stringify(["leads"])}'><span class="material-symbols-rounded fs-18">inbox</span>Leads</button><button class="btn btn-primary btn-sm" data-action="FollowupsFeature.openNewTask"><span class="material-symbols-rounded fs-18">add</span>New task</button>` })}
         <div class="px-md pb-lg" >
-          ${due.length === 0 && later.length === 0 ? `
+          ${due.length === 0 && later.length === 0 && snoozed.length === 0 ? `
             <div class="empty-state empty-state-lg" >
               <span class="material-symbols-rounded">mark_email_read</span>
               <div class="fw-600 mb-xs" >All caught up.</div>
@@ -291,6 +297,11 @@ const FollowupsFeature = {
             ${later.map(t => this.renderTaskCard(t, true)).join('')}
           ` : ''}
 
+          ${snoozed.length ? `
+            <div class="section-label" >Snoozed (${snoozed.length})</div>
+            ${snoozed.map(t => this.renderTaskCard(t, true)).join('')}
+          ` : ''}
+
           <div class="mt-20" >
             <div class="divider-text">Quick opens</div>
             <div class="grid-2 gap-sm" >
@@ -306,10 +317,11 @@ const FollowupsFeature = {
   renderTaskCard(task, muted = false) {
     const customer = task.customer;
     const name = Utils.escapeHtml(
+      (task.durable && !task.sourceSuggestion ? task.title : '') ||
       customer?.fullName ||
       (customer ? `${customer.firstName || ''} ${customer.lastName || ''}`.trim() : '') ||
       (task.appointment?.clientName ? String(task.appointment.clientName) : '') ||
-      'Unknown'
+      (task.durable ? 'Task' : 'Unknown')
     );
 
     // When a task isn't due yet, say when it becomes due - the muted list
@@ -318,7 +330,7 @@ const FollowupsFeature = {
     const dueIn = (muted && task.inDays > 0) ? ` · due in ${task.inDays}d` : '';
     const meta = task.appointment
       ? `${Utils.formatDate(task.appointment.date, 'short')} · ${task.daysLabel}${dueIn}`
-      : (task.order ? `${Utils.escapeHtml(task.order.orderNumber || 'Order')} · ${task.daysLabel}${dueIn}` : task.daysLabel);
+      : (task.order ? `${Utils.escapeHtml(task.order.orderNumber || 'Order')} · ${task.daysLabel}${dueIn}` : `${task.daysLabel || ''}${dueIn}`);
 
     const icons = { quote: 'receipt_long', payment: 'payments', visit_today: 'event_available', visit_tomorrow: 'event', intro: 'waving_hand', post_fit: 'handyman', service: 'build', };
     // Border colour = what the task needs from you. Payment and service issues
@@ -345,12 +357,14 @@ const FollowupsFeature = {
               ${task.kind === 'service' ? '<span class="badge badge-danger fs-10 shrink-0" >Service</span>' : ''}
               ${task.priority === 'high' ? '<span class="badge badge-danger fs-10 shrink-0" >High</span>' : ''}
             </div>
-            <div class="fs-13 text-secondary mt-2" >${Utils.escapeHtml(task.action)}</div>
+            <div class="fs-13 text-secondary mt-2" >${Utils.escapeHtml(task.durable && !task.sourceSuggestion ? (task.notes || 'Personal reminder') : task.action)}</div>
             <div class="fs-12 text-tertiary mt-2" >${meta}</div>
           </div>
         </div>
         <div class="flex gap-sm mt-10" >
-          ${this.renderPrimaryAction(task)}
+          ${task.durable && !task.sourceSuggestion ? '' : this.renderPrimaryAction(task.sourceSuggestion || task)}
+          ${task.durable ? `<button class="btn btn-sm btn-outline" aria-label="Complete ${name}" data-action="FollowupsFeature.completeDurableTask" data-args='${JSON.stringify([task.id])}'><span class="material-symbols-rounded fs-16">done</span>Done</button>` : ''}
+          <button class="btn btn-sm btn-outline" aria-label="Snooze ${name}" data-action="FollowupsFeature.openSnooze" data-args='${JSON.stringify([task.durable ? task.id : null, task.derivedKey])}'><span class="material-symbols-rounded fs-16">snooze</span>Snooze</button>
           ${task.customer ? `<button class="btn btn-ghost btn-sm" aria-label="Open customer profile" data-action="App.navigate" data-args='${JSON.stringify(["customer", {id: (task.customer.id)}])}'><span class="material-symbols-rounded fs-18" >person</span></button>` : ''}
         </div>
       </div>
@@ -400,6 +414,72 @@ const FollowupsFeature = {
         <span class="material-symbols-rounded fs-16" >send</span>Send reminder
       </button>
     `;
+  },
+
+  openNewTask() {
+    const tomorrow = new Date(Date.now() + 86400000);
+    tomorrow.setMinutes(tomorrow.getMinutes() - tomorrow.getTimezoneOffset());
+    App.openModal(`
+      <div class="sheet-handle"></div>
+      <div class="sheet-header"><h3>New task</h3><button class="btn btn-ghost btn-sm" aria-label="Close" data-action="App.closeModal"><span class="material-symbols-rounded">close</span></button></div>
+      <div class="sheet-body">
+        <div class="form-group"><label for="task-title">What needs doing?</label><input class="input" id="task-title" maxlength="160" autocomplete="off" required></div>
+        <div class="form-group"><label for="task-due">Due</label><input class="input" id="task-due" type="datetime-local" value="${tomorrow.toISOString().slice(0, 16)}" required></div>
+        <div class="form-group"><label for="task-priority">Priority</label><select class="select" id="task-priority"><option value="normal">Normal</option><option value="high">High</option><option value="low">Low</option></select></div>
+        <div class="form-group"><label for="task-notes">Notes (optional)</label><textarea class="textarea" id="task-notes" maxlength="500"></textarea></div>
+        <button class="btn btn-primary btn-block" data-action="FollowupsFeature.saveNewTask">Save task</button>
+      </div>`);
+  },
+
+  async saveNewTask() {
+    const button = document.querySelector('[data-action="FollowupsFeature.saveNewTask"]');
+    if (button?.disabled) return;
+    if (button) button.disabled = true;
+    try {
+      await TaskService.create({
+        title: document.getElementById('task-title')?.value,
+        dueAt: document.getElementById('task-due')?.value,
+        priority: document.getElementById('task-priority')?.value,
+        notes: document.getElementById('task-notes')?.value || '',
+        type: 'other'
+      });
+      App.closeModal(); Toast.show('Task saved', 'success'); App.navigate('followups');
+    } catch (e) { Toast.show(e.message || 'Could not save task', 'error'); if (button) button.disabled = false; }
+  },
+
+  async completeDurableTask(id) {
+    this.pendingMutations = this.pendingMutations || new Set();
+    if (this.pendingMutations.has(`complete:${id}`)) return;
+    this.pendingMutations.add(`complete:${id}`);
+    try { await TaskService.complete(id); Toast.show('Task completed', 'success'); App.navigate('followups'); }
+    catch (e) { Toast.show(e.message || 'Could not complete task', 'error'); }
+    finally { this.pendingMutations.delete(`complete:${id}`); }
+  },
+
+  async openSnooze(id, derivedKey) {
+    const tasks = await this.loadTasks();
+    const task = id ? tasks.find(t => t.id === id && t.durable) : tasks.find(t => t.derivedKey === derivedKey && !t.durable);
+    if (!task) return Toast.show('Task is no longer available', 'info');
+    this.pendingSnoozeTask = task;
+    const tomorrow = new Date(Date.now() + 86400000);
+    tomorrow.setMinutes(tomorrow.getMinutes() - tomorrow.getTimezoneOffset());
+    App.openModal(`
+      <div class="sheet-handle"></div><div class="sheet-header"><h3>Snooze task</h3><button class="btn btn-ghost btn-sm" aria-label="Close" data-action="App.closeModal"><span class="material-symbols-rounded">close</span></button></div>
+      <div class="sheet-body"><div class="form-group"><label for="task-snooze-until">Remind me</label><input class="input" id="task-snooze-until" type="datetime-local" value="${tomorrow.toISOString().slice(0, 16)}" required></div><button class="btn btn-primary btn-block" data-action="FollowupsFeature.confirmSnooze">Snooze</button></div>`);
+  },
+
+  async confirmSnooze() {
+    const task = this.pendingSnoozeTask;
+    if (!task) return;
+    this.pendingMutations = this.pendingMutations || new Set();
+    const key = `snooze:${task.id || task.derivedKey}`;
+    if (this.pendingMutations.has(key)) return;
+    this.pendingMutations.add(key);
+    try {
+      await TaskService.snooze(task, document.getElementById('task-snooze-until')?.value);
+      this.pendingSnoozeTask = null; App.closeModal(); Toast.show('Task snoozed', 'success'); App.navigate('followups');
+    } catch (e) { Toast.show(e.message || 'Could not snooze task', 'error'); }
+    finally { this.pendingMutations.delete(key); }
   },
 
   renderStylesOnce() {

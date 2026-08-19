@@ -6,9 +6,9 @@
 // Every table a backup can carry. exportAll() and importAll() speak this
 // exact list; adding a table here is a backup-format change and must be
 // mirrored in the backup envelope's versioning (js/services/export.js).
-const DATABASE_SCHEMA_VERSION = 2;
+const DATABASE_SCHEMA_VERSION = 3;
 const BACKUP_FORMAT_VERSION = 1;
-const BACKUP_TABLES = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'photos', 'settings', 'sequences'];
+const BACKUP_TABLES = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'photos', 'leads', 'tasks', 'taskEvents', 'settings', 'sequences'];
 
 // ============================================
 // Field-level encryption (AES-GCM 256-bit, key from passphrase via PBKDF2)
@@ -20,6 +20,8 @@ const ADDRESS_PII_FIELDS = ['line1', 'town', 'city', 'postcode', 'postcodeNormal
 // notes that routinely hold Access:/Parking: details. Encrypt them at rest
 // like customer PII, so a copied IndexedDB file doesn't leak who/where/when.
 const APPT_PII_FIELDS = ['clientName', 'phone', 'address', 'notes'];
+const LEAD_PII_FIELDS = ['name', 'firstName', 'lastName', 'phone', 'email', 'address', 'notes', 'lossReason'];
+const TASK_PII_FIELDS = ['title', 'notes'];
 const PBKDF2_ITERATIONS = 100000;
 const KEY_LENGTH = 256;
 const IV_LENGTH = 12;
@@ -224,6 +226,58 @@ async function migratePlaintextAppointments() {
   }
 }
 
+async function encryptStringFields(record, fields) {
+  const encrypted = { ...record };
+  for (const field of fields) {
+    const value = encrypted[field];
+    if (typeof value === 'string' && value.length > 0 && !isEncrypted(value)) {
+      encrypted[field] = await encryptField(value);
+    }
+  }
+  return encrypted;
+}
+
+async function decryptStringFields(record, fields) {
+  if (!record) return record;
+  const decrypted = { ...record };
+  for (const field of fields) {
+    if (isEncrypted(decrypted[field])) decrypted[field] = await decryptField(decrypted[field]);
+  }
+  return decrypted;
+}
+
+async function encryptLead(lead) {
+  const encrypted = await encryptStringFields(lead, LEAD_PII_FIELDS);
+  if (lead && lead.address && typeof lead.address === 'object' && !isEncrypted(lead.address)) {
+    encrypted.address = await encryptField(JSON.stringify(lead.address));
+  }
+  return encrypted;
+}
+async function decryptLead(lead) {
+  const decrypted = await decryptStringFields(lead, LEAD_PII_FIELDS);
+  if (decrypted && typeof decrypted.address === 'string' && decrypted.address.startsWith('{')) {
+    try { decrypted.address = JSON.parse(decrypted.address); } catch (e) { /* legacy free-text address */ }
+  }
+  return decrypted;
+}
+const encryptTask = task => encryptStringFields(task, TASK_PII_FIELDS);
+const decryptTask = task => decryptStringFields(task, TASK_PII_FIELDS);
+
+async function migratePlaintextWorkItems() {
+  if (!encryptionKey) return;
+  for (const [table, fields, encrypt] of [
+    ['leads', LEAD_PII_FIELDS, encryptLead],
+    ['tasks', TASK_PII_FIELDS, encryptTask]
+  ]) {
+    const rows = await DB.db[table].toArray();
+    for (const row of rows) {
+      if (fields.some(field => (typeof row[field] === 'string' && row[field].length > 0) || (field === 'address' && row[field] && typeof row[field] === 'object' && !isEncrypted(row[field])))) {
+        await DB.db[table].put(await encrypt(row));
+      }
+    }
+  }
+}
+
 const DB = {
   db: null,
 
@@ -272,7 +326,10 @@ const DB = {
     // Photos were added after the original v6 store — additive migration, so
     // existing databases keep their data and simply gain the new table.
     this.db.version(DATABASE_SCHEMA_VERSION).stores({
-      photos: '++id, customerId, createdAt'
+      photos: '++id, customerId, createdAt',
+      leads: '++id, customerId, appointmentId, status, source, receivedAt, nextActionAt, createdAt',
+      tasks: '++id, status, type, dueAt, snoozedUntil, priority, leadId, customerId, appointmentId, orderId, sourceKey, createdAt',
+      taskEvents: '++id, taskId, type, occurredAt, idempotencyKey, createdAt'
     });
 
     if (typeof this.db.open === 'function') {
@@ -309,6 +366,8 @@ const DB = {
 
     // One-time migration: encrypt any plaintext appointment PII fields
     await migratePlaintextAppointments();
+
+    await migratePlaintextWorkItems();
 
     console.log('Database initialized');
   },
@@ -589,7 +648,7 @@ const DB = {
   // what actually happened, not just "done".
   async deleteCustomer(customerId) {
     return this._runWrite(
-      ['customers', 'appointments', 'orders', 'communications', 'photos', 'measurements', 'trips'],
+      ['customers', 'appointments', 'orders', 'communications', 'photos', 'measurements', 'trips', 'leads', 'tasks', 'taskEvents'],
       async () => {
         const [appts, orders, comms] = await Promise.all([
           this.db.appointments.where('customerId').equals(customerId).toArray(),
@@ -598,6 +657,15 @@ const DB = {
         ]);
         const photoCount = await this.db.photos.where('customerId').equals(customerId).count();
         const apptIds = appts.map(a => a.id);
+        const orderIds = orders.map(o => o.id);
+        const leads = await this.db.leads.where('customerId').equals(customerId).toArray();
+        const leadIds = leads.map(l => l.id);
+        const allTasks = await this.db.tasks.toArray();
+        const tasks = allTasks.filter(t => t.customerId === customerId || leadIds.includes(t.leadId) || apptIds.includes(t.appointmentId) || orderIds.includes(t.orderId));
+        const taskIds = tasks.map(t => t.id);
+        if (taskIds.length) await this.db.taskEvents.where('taskId').anyOf(taskIds).delete();
+        for (const task of tasks) await this.db.tasks.delete(task.id);
+        await this.db.leads.where('customerId').equals(customerId).delete();
         const measurementCount = apptIds.length ? await this.db.measurements.where('appointmentId').anyOf(apptIds).delete() : 0;
         const tripCount = apptIds.length ? await this.db.trips.where('appointmentId').anyOf(apptIds).delete() : 0;
         await this.db.appointments.where('customerId').equals(customerId).delete();
@@ -605,7 +673,7 @@ const DB = {
         await this.db.communications.where('customerId').equals(customerId).delete();
         await this.db.photos.where('customerId').equals(customerId).delete();
         await this.db.customers.delete(customerId);
-        return { appointments: appts.length, orders: orders.length, communications: comms.length, photos: photoCount, measurements: measurementCount, trips: tripCount };
+        return { appointments: appts.length, orders: orders.length, communications: comms.length, photos: photoCount, measurements: measurementCount, trips: tripCount, leads: leads.length, tasks: tasks.length, taskEvents: taskIds.length };
       }
     );
   },
@@ -616,7 +684,7 @@ const DB = {
   // trip), so the next page load boots back into onboarding. No undo —
   // callers must confirm first.
   async deleteAllData() {
-    const tables = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'photos', 'settings', 'sequences'];
+    const tables = BACKUP_TABLES;
     await Promise.all(tables.map(t => this.db[t] ? this.db[t].clear() : Promise.resolve()));
     const doomed = [];
     for (let i = 0; i < localStorage.length; i++) {
@@ -1117,6 +1185,181 @@ const DB = {
     return { ...comm, id };
   },
 
+  // Phase 1 durable work management ------------------------------------
+  async addLead(data) {
+    const now = new Date().toISOString();
+    if (data.status && !['new', 'contacted', 'qualified', 'converted', 'lost'].includes(data.status)) throw new Error('Invalid lead status');
+    if (data.status === 'lost' && !data.lossReason) throw new Error('A loss reason is required');
+    const lead = {
+      ...data,
+      status: data.status || 'new',
+      receivedAt: data.receivedAt || now,
+      createdAt: now,
+      updatedAt: now
+    };
+    const id = await this.db.leads.add(await encryptLead(lead));
+    return { ...lead, id };
+  },
+
+  async getLead(id) {
+    const row = await this.db.leads.get(id);
+    return row ? decryptLead(row) : null;
+  },
+
+  async getLeads(filters = {}) {
+    let rows = await this.db.leads.toArray();
+    if (filters.status) rows = rows.filter(row => row.status === filters.status);
+    if (filters.customerId) rows = rows.filter(row => row.customerId === filters.customerId);
+    rows.sort((a, b) => new Date(b.receivedAt || b.createdAt) - new Date(a.receivedAt || a.createdAt));
+    return Promise.all(rows.map(row => decryptLead(row)));
+  },
+
+  async updateLead(id, fields) {
+    const existing = await this.getLead(id);
+    if (!existing) throw new Error('Lead not found');
+    const status = fields.status || existing.status;
+    if (!['new', 'contacted', 'qualified', 'converted', 'lost'].includes(status)) throw new Error('Invalid lead status');
+    if (status === 'lost' && !(fields.lossReason || existing.lossReason)) throw new Error('A loss reason is required');
+    const changes = { ...fields, updatedAt: new Date().toISOString() };
+    await this.db.leads.update(id, await encryptLead(changes));
+    return this.getLead(id);
+  },
+
+  async convertLeadToCustomer(leadId) {
+    let lead = await this.getLead(leadId);
+    if (!lead) throw new Error('Lead not found');
+    let customer = lead.customerId ? await this.getCustomer(lead.customerId) : null;
+    if (!customer) {
+      customer = await this.addCustomer({
+        firstName: lead.firstName || lead.name || 'Enquiry',
+        lastName: lead.lastName || '',
+        phone: lead.phone || '', email: lead.email || '', address: lead.address || '',
+        source: lead.source || 'lead'
+      });
+      lead = await this.updateLead(leadId, { customerId: customer.id });
+    }
+    return { lead, customer };
+  },
+
+  async convertLeadToVisit(leadId, appointmentData = {}) {
+    let { lead, customer } = await this.convertLeadToCustomer(leadId);
+    let appointment = lead.appointmentId ? await this.getAppointment(lead.appointmentId) : null;
+    if (!appointment) {
+      if (!appointmentData.date) throw new Error('Visit date is required');
+      appointment = await this.addAppointment({ ...appointmentData, customerId: customer.id });
+      lead = await this.updateLead(leadId, { appointmentId: appointment.id, customerId: customer.id, status: 'converted', convertedAt: new Date().toISOString() });
+    } else if (lead.status !== 'converted') {
+      lead = await this.updateLead(leadId, { status: 'converted', convertedAt: new Date().toISOString() });
+    }
+    return { lead, customer, appointment };
+  },
+
+  async addTask(data) {
+    if (!data || !String(data.title || '').trim()) throw new Error('Task title is required');
+    if (data.status && !['open', 'completed', 'cancelled'].includes(data.status)) throw new Error('Invalid task status');
+    const now = new Date().toISOString();
+    const task = { ...data, title: String(data.title).trim(), status: data.status || 'open', priority: data.priority || 'normal', createdAt: now, updatedAt: now };
+    const id = await this.db.tasks.add(await encryptTask(task));
+    return { ...task, id };
+  },
+
+  async getTask(id) {
+    const row = await this.db.tasks.get(id);
+    return row ? decryptTask(row) : null;
+  },
+
+  async getTasks(filters = {}) {
+    let rows = await this.db.tasks.toArray();
+    if (filters.status) rows = rows.filter(row => row.status === filters.status);
+    if (filters.leadId) rows = rows.filter(row => row.leadId === filters.leadId);
+    if (filters.customerId) rows = rows.filter(row => row.customerId === filters.customerId);
+    rows.sort((a, b) => new Date(a.snoozedUntil || a.dueAt || a.createdAt) - new Date(b.snoozedUntil || b.dueAt || b.createdAt));
+    return Promise.all(rows.map(row => decryptTask(row)));
+  },
+
+  async updateTask(id, fields) {
+    const existing = await this.getTask(id);
+    if (!existing) throw new Error('Task not found');
+    if (fields.status && !['open', 'completed', 'cancelled'].includes(fields.status)) throw new Error('Invalid task status');
+    const changes = { ...fields, updatedAt: new Date().toISOString() };
+    await this.db.tasks.update(id, await encryptTask(changes));
+    return this.getTask(id);
+  },
+
+  async createTaskFromSuggestion(sourceKey, data) {
+    if (!sourceKey || typeof sourceKey !== 'string') throw new Error('Suggestion key is required');
+    if (!data || !String(data.title || '').trim()) throw new Error('Task title is required');
+    const now = new Date().toISOString();
+    const task = { ...data, title: String(data.title).trim(), sourceKey, status: data.status || 'open', priority: data.priority || 'normal', createdAt: now, updatedAt: now };
+    const encrypted = await encryptTask(task);
+    let row;
+    if (typeof this.db.transaction === 'function') {
+      await this.db.transaction('rw', this.db.tasks, async () => {
+        row = await this.db.tasks.where('sourceKey').equals(sourceKey).first();
+        if (!row) {
+          const id = await this.db.tasks.add(encrypted);
+          row = { ...encrypted, id };
+        }
+      });
+    } else {
+      row = await this.db.tasks.where('sourceKey').equals(sourceKey).first();
+      if (!row) {
+        const id = await this.db.tasks.add(encrypted);
+        row = { ...encrypted, id };
+      }
+    }
+    return decryptTask(row);
+  },
+
+  async _transitionTask(taskId, type, changes, operationId) {
+    if (!operationId || typeof operationId !== 'string') throw new Error('Operation id is required');
+    if (typeof this.db.transaction === 'function') {
+      await this.db.transaction('rw', [this.db.tasks, this.db.taskEvents], async () => {
+        const prior = await this.db.taskEvents.where('idempotencyKey').equals(operationId).first();
+        if (prior) return;
+        const rawTask = await this.db.tasks.get(taskId);
+        if (!rawTask) throw new Error('Task not found');
+        const now = new Date().toISOString();
+        await this.db.tasks.update(taskId, { ...changes, updatedAt: now });
+        await this.db.taskEvents.add({ taskId, type, occurredAt: now, idempotencyKey: operationId, createdAt: now, details: changes });
+      });
+      return this.getTask(taskId);
+    }
+    const run = async () => {
+      const prior = await this.db.taskEvents.where('idempotencyKey').equals(operationId).first();
+      if (prior) return this.getTask(taskId);
+      const task = await this.getTask(taskId);
+      if (!task) throw new Error('Task not found');
+      const now = new Date().toISOString();
+      await this.db.tasks.update(taskId, { ...changes, updatedAt: now });
+      await this.db.taskEvents.add({ taskId, type, occurredAt: now, idempotencyKey: operationId, createdAt: now, details: changes });
+      return this.getTask(taskId);
+    };
+    return run();
+  },
+
+  async completeTask(taskId, operationId) {
+    const task = await this.getTask(taskId);
+    if (!task) throw new Error('Task not found');
+    if (task.status === 'completed') return task;
+    return this._transitionTask(taskId, 'completed', { status: 'completed', completedAt: new Date().toISOString() }, operationId);
+  },
+
+  async snoozeTask(taskId, snoozedUntil, operationId) {
+    const until = new Date(snoozedUntil);
+    if (isNaN(until.getTime())) throw new Error('Invalid snooze date');
+    return this._transitionTask(taskId, 'snoozed', { status: 'open', snoozedUntil: until.toISOString() }, operationId);
+  },
+
+  async reopenTask(taskId, operationId) {
+    return this._transitionTask(taskId, 'reopened', { status: 'open', completedAt: null }, operationId);
+  },
+
+  async getTaskEvents(taskId) {
+    const rows = await this.db.taskEvents.where('taskId').equals(taskId).toArray();
+    return rows.sort((a, b) => new Date(a.occurredAt) - new Date(b.occurredAt));
+  },
+
   // Settings
   async getSetting(key, defaultValue = null) {
     const setting = await this.db.settings.get(key);
@@ -1129,7 +1372,7 @@ const DB = {
 
   // Schema version of the current database. Real Dexie reports it as `verno`
   // once opened; the bundled shim keeps it internally without exposing it, so
-  // fall back to the current schema constant (2 = photos table added).
+  // fall back to the current schema constant (3 = durable work tables added).
   schemaVersion() {
     return typeof this.db.verno === 'number' ? this.db.verno : DATABASE_SCHEMA_VERSION;
   },
@@ -1154,7 +1397,7 @@ const DB = {
   // travel inside a backup.
   async exportAll() {
     const data = {};
-    const tables = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'photos'];
+    const tables = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'photos', 'leads', 'tasks', 'taskEvents'];
     for (const table of tables) {
       data[table] = await this.db[table].toArray();
     }
@@ -1172,6 +1415,8 @@ const DB = {
     if (data.appointments && data.appointments.length) {
       data.appointments = await Promise.all(data.appointments.map(a => decryptAppointment(a)));
     }
+    if (data.leads && data.leads.length) data.leads = await Promise.all(data.leads.map(row => decryptLead(row)));
+    if (data.tasks && data.tasks.length) data.tasks = await Promise.all(data.tasks.map(row => decryptTask(row)));
     const RUNTIME_SETTING_KEYS = ['__v6_legacy_migrated__', '__storage_probe__', 'pitchDemoSeeded'];
     data.settings = (await this.db.settings.toArray()).filter(s => !RUNTIME_SETTING_KEYS.includes(s.key));
     data.sequences = await this.db.sequences.toArray();
@@ -1196,6 +1441,14 @@ const DB = {
     if (encryptionKey && importData.appointments) {
       importData = { ...importData };
       importData.appointments = await Promise.all(importData.appointments.map(a => encryptAppointment(a)));
+    }
+    if (encryptionKey && importData.leads) {
+      importData = { ...importData };
+      importData.leads = await Promise.all(importData.leads.map(row => encryptLead(row)));
+    }
+    if (encryptionKey && importData.tasks) {
+      importData = { ...importData };
+      importData.tasks = await Promise.all(importData.tasks.map(row => encryptTask(row)));
     }
 
     // On the real engine this is a single atomic readwrite transaction
@@ -1331,6 +1584,9 @@ const DB = {
     // relationship field are rejected outright.
     const customerIds = new Set((data.customers || []).map(c => c.id));
     const appointmentIds = new Set((data.appointments || []).map(a => a.id));
+    const orderIds = new Set((data.orders || []).map(o => o.id));
+    const leadIds = new Set((data.leads || []).map(l => l.id));
+    const taskIds = new Set((data.tasks || []).map(t => t.id));
     const checkRef = (table, record, field, validIds) => {
       const v = record[field];
       if (v === null || v === undefined) {
@@ -1383,6 +1639,22 @@ const DB = {
         throw new Error('Backup file is corrupt: a photo record is missing its image data');
       }
     }
+    for (const record of data.leads || []) {
+      if (record.customerId !== null && record.customerId !== undefined) checkRef('leads', record, 'customerId', customerIds);
+      if (record.appointmentId !== null && record.appointmentId !== undefined) checkRef('leads', record, 'appointmentId', appointmentIds);
+      if (!['new', 'contacted', 'qualified', 'converted', 'lost'].includes(record.status)) throw new Error('Backup file is corrupt: lead has an invalid status');
+    }
+    for (const record of data.tasks || []) {
+      if (!['open', 'completed', 'cancelled'].includes(record.status)) throw new Error('Backup file is corrupt: task has an invalid status');
+      if (typeof record.title !== 'string' || !record.title.trim()) throw new Error('Backup file is corrupt: task is missing its title');
+      for (const [field, ids] of [['leadId', leadIds], ['customerId', customerIds], ['appointmentId', appointmentIds], ['orderId', orderIds]]) {
+        if (record[field] !== null && record[field] !== undefined) checkRef('tasks', record, field, ids);
+      }
+    }
+    for (const record of data.taskEvents || []) {
+      checkRef('taskEvents', record, 'taskId', taskIds);
+      if (typeof record.type !== 'string' || !record.type) throw new Error('Backup file is corrupt: task event has an invalid type');
+    }
 
     // 4. Dates. Appointment dates drive the diary, trips and expenses drive
     // mileage/money — those must parse. The remaining date-bearing fields
@@ -1396,6 +1668,17 @@ const DB = {
       for (const record of data[table] || []) {
         if (record[field] !== undefined && record[field] !== null && !isValidDate(record[field])) {
           throw new Error(`Backup file is corrupt: "${table}" record has an invalid ${field}`);
+        }
+      }
+    }
+    for (const [table, fields] of [
+      ['leads', ['receivedAt', 'nextActionAt', 'convertedAt']],
+      ['tasks', ['dueAt', 'snoozedUntil', 'completedAt']],
+      ['taskEvents', ['occurredAt']]
+    ]) {
+      for (const record of data[table] || []) {
+        for (const field of fields) {
+          if (record[field] !== undefined && record[field] !== null && !isValidDate(record[field])) throw new Error(`Backup file is corrupt: "${table}" record has an invalid ${field}`);
         }
       }
     }

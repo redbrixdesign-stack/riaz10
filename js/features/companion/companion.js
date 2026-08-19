@@ -638,37 +638,41 @@ const CompanionFeature = {
     // Follow-ups due — name who's first so the advisor knows who to call
     // without opening the inbox.
     const followUpsDue = (await FollowupsFeature.loadTasks()).filter(t => t.due);
-    if (followUpsDue.length > 0) {
-      const firstTask = followUpsDue[0];
+    const startToday = Utils.getToday();
+    const overdueTasks = followUpsDue.filter(t => t.durable && t.effectiveDue && new Date(t.effectiveDue) < startToday);
+    const dueNow = followUpsDue.filter(t => !overdueTasks.includes(t));
+    if (overdueTasks.length > 0) {
+      attention.push({
+        icon: 'assignment_late',
+        label: 'Tasks overdue',
+        value: `${overdueTasks.length} task${overdueTasks.length === 1 ? '' : 's'} need attention`,
+        action: "App.navigate('followups')",
+        actionLabel: 'Open Follow-ups'
+      });
+    }
+    if (dueNow.length > 0) {
+      const firstTask = dueNow[0];
       const firstName = (firstTask.customer && (firstTask.customer.firstName || firstTask.customer.fullName)) ||
         (firstTask.appointment && firstTask.appointment.clientName) ||
         (firstTask.order && firstTask.order.orderNumber) || null;
       attention.push({
         icon: 'campaign',
         label: 'Follow-ups due',
-        value: `${followUpsDue.length} task${followUpsDue.length === 1 ? '' : 's'} due${firstName ? ` — ${String(firstName).split(' ')[0]} first` : ''}`,
+        value: `${dueNow.length} task${dueNow.length === 1 ? '' : 's'} due${firstName ? ` — ${String(firstName).split(' ')[0]} first` : ''}`,
         action: "App.navigate('followups')",
         actionLabel: 'Open Follow-ups'
       });
     }
 
-    // Unsent messages (intro, day-before, morning-of)
+    // Morning-of messages are not part of the derived Follow-ups inbox.
+    // Intro and day-before reminders are already counted above, so counting
+    // them here too would make Home report the same work twice.
     let messagesDue = 0;
-    const pastFirstVisit = new Set();
-    for (const a of (await DB.getAllAppointments())) {
-      if (!a.customerId || a.status === 'cancelled') continue;
-      if (new Date(a.date) >= new Date()) continue;
-      pastFirstVisit.add(a.customerId);
-    }
     const upcomingAll = await DB.getUpcomingAppointments(7);
     for (const a of upcomingAll) {
       if (a.status !== 'confirmed' || !a.phone && !a.customerId) continue;
       if (new Date(a.date).toDateString() === Utils.getToday().toDateString()) {
         if (!localStorage.getItem(`advisoros_auto_morning_of_${a.id}`)) messagesDue++;
-      } else if (new Date(a.date).toDateString() === new Date(Date.now() + 86400000).toDateString()) {
-        if (!a.dayBeforeSent && !localStorage.getItem(`advisoros_auto_evening_before_${a.id}`)) messagesDue++;
-      } else if (!a.introSent && (!a.customerId || !pastFirstVisit.has(a.customerId))) {
-        messagesDue++;
       }
     }
     if (messagesDue > 0) {

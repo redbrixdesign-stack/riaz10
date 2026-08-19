@@ -304,7 +304,7 @@ async function runDbJs(engine, tag) {
   await DB.addPhoto({ customerId: c.id, data: photoData, caption: 'Back yard' });
 
   const exported = await DB.exportAll();
-  ok(engine + ': exportAll shape', Object.keys(exported).length === 10 && exported.customers.length === 3 && exported.photos.length === 1, Object.keys(exported));
+  ok(engine + ': exportAll shape', Object.keys(exported).length === 13 && exported.customers.length === 3 && exported.photos.length === 1, Object.keys(exported));
 
   // Import: corrupt payload must throw and leave data untouched.
   const beforeExport = await DB.exportAll();
@@ -609,7 +609,7 @@ async function runBackupRoundtrip(engine, tag) {
   await DB.setSetting('pitchDemoSeeded', true);
 
   const exported = await DB.exportAll();
-  ok(engine + ': backup exports all 10 tables', Object.keys(exported).length === 10, Object.keys(exported));
+  ok(engine + ': backup exports all 13 tables', Object.keys(exported).length === 13, Object.keys(exported));
   ok(engine + ': backup carries photos', exported.photos.length === 3, exported.photos.length);
   ok(engine + ': backup drops runtime-only settings', exported.settings.length === 1 && exported.settings[0].key === 'config', exported.settings);
   ok(engine + ': backup carries sequences', exported.sequences.length === 2, exported.sequences);
@@ -842,14 +842,14 @@ async function runBackupEnvelope() {
 
   const backup = await ExportService.exportBackup();
   const storageContract = DB.storageContract();
-  ok('envelope: authoritative storage contract is schema 2 / format 1',
-    storageContract.databaseSchemaVersion === 2 && storageContract.backupFormatVersion === 1, storageContract);
+  ok('envelope: authoritative storage contract is schema 3 / format 1',
+    storageContract.databaseSchemaVersion === 3 && storageContract.backupFormatVersion === 1, storageContract);
   ok('envelope: backupFormatVersion present', backup.backupFormatVersion === 1, backup.backupFormatVersion);
-  ok('envelope: databaseSchemaVersion present', backup.databaseSchemaVersion === 2, backup.databaseSchemaVersion);
+  ok('envelope: databaseSchemaVersion present', backup.databaseSchemaVersion === 3, backup.databaseSchemaVersion);
   ok('envelope: appVersion present', backup.appVersion === '5.0', backup.appVersion);
   ok('envelope: legacy version field kept', backup.version === '5.0');
   ok('envelope: exportedAt timestamp', typeof backup.exportedAt === 'string' && !isNaN(Date.parse(backup.exportedAt)));
-  ok('envelope: carries all 10 data tables', Object.keys(backup.data).length === 10, Object.keys(backup.data));
+  ok('envelope: carries all 13 data tables', Object.keys(backup.data).length === 13, Object.keys(backup.data));
   ok('envelope: photos in backup', backup.data.photos.length === 1 && backup.data.photos[0].data === photo);
   ok('envelope: no proxy secret in backup config', backup.config.ai && backup.config.ai.secret === undefined);
   ok('envelope: secret absent from serialized file', JSON.stringify(backup).indexOf('super-secret-key') === -1);
@@ -969,11 +969,12 @@ async function runPhase0Fixtures(engine) {
     await DB.importAll(JSON.parse(JSON.stringify(data)));
     const restored = await DB.exportAll();
     const inputCounts = Object.fromEntries(DB.storageContract().backupTables.map(table => [table, (data[table] || []).length]));
+    const expectedCounts = Object.fromEntries(DB.storageContract().backupTables.map(table => [table, entry.expectedCounts[table] || 0]));
     ok(`${engine}: ${entry.kind} fixture source counts match manifest`,
-      JSON.stringify(inputCounts) === JSON.stringify(entry.expectedCounts), { inputCounts, expected: entry.expectedCounts });
+      JSON.stringify(inputCounts) === JSON.stringify(expectedCounts), { inputCounts, expected: expectedCounts });
     const recordsPreserved = DB.storageContract().backupTables
       .filter(table => table !== 'sequences')
-      .every(table => restored[table].length === entry.expectedCounts[table]);
+      .every(table => restored[table].length === expectedCounts[table]);
     ok(`${engine}: ${entry.kind} fixture restores expected records`, recordsPreserved);
     const sequences = Object.fromEntries(restored.sequences.map(row => [row.name, row.value]));
     ok(`${engine}: ${entry.kind} fixture enforces sequence floors`,
@@ -1087,6 +1088,50 @@ async function runMutationBoundaries(engine) {
   }
 }
 
+async function runPhase1WorkStorage(engine) {
+  const sandbox = baseSandbox();
+  if (engine === 'dexie') {
+    const Dexie = require('dexie');
+    Dexie.dependencies.indexedDB = indexedDB;
+    Dexie.dependencies.IDBKeyRange = IDBKeyRange;
+    sandbox.Dexie = Dexie;
+  } else sandbox.Dexie = loadShim(sandbox);
+  const DB = loadDbJs(sandbox, `advisoros_v6_phase1_${engine}_${Date.now()}`);
+  await DB.init();
+  await sandbox.initEncryption('phase1-passphrase');
+
+  const lead = await DB.addLead({ firstName: 'Priya', lastName: 'Shah', phone: '07700 900444', address: { line1: '1 High Street', postcode: 'M1 1AA' }, source: 'website', notes: 'Call evenings' });
+  const rawLead = await DB.db.leads.get(lead.id);
+  ok(engine + ': lead PII encrypted at rest', typeof rawLead.firstName === 'object' && typeof rawLead.notes === 'object' && typeof rawLead.address === 'object');
+  const readLead = await DB.getLead(lead.id);
+  ok(engine + ': lead PII decrypts', readLead.firstName === 'Priya' && readLead.address.postcode === 'M1 1AA');
+
+  const task = await DB.addTask({ title: 'Call Priya', notes: 'Discuss access', leadId: lead.id, dueAt: new Date(Date.now() + 3600000).toISOString() });
+  const rawTask = await DB.db.tasks.get(task.id);
+  ok(engine + ': task PII encrypted at rest', typeof rawTask.title === 'object' && typeof rawTask.notes === 'object');
+  await DB.completeTask(task.id, 'complete-once');
+  await DB.completeTask(task.id, 'complete-once');
+  ok(engine + ': completion is idempotent', (await DB.getTaskEvents(task.id)).length === 1 && (await DB.getTask(task.id)).status === 'completed');
+  await DB.snoozeTask(task.id, new Date(Date.now() + 86400000), 'snooze-once');
+  await DB.snoozeTask(task.id, new Date(Date.now() + 86400000), 'snooze-once');
+  ok(engine + ': snooze is idempotent', (await DB.getTaskEvents(task.id)).length === 2 && (await DB.getTask(task.id)).status === 'open');
+  const derivedA = await DB.createTaskFromSuggestion('quote:42', { title: 'Follow up quote' });
+  const derivedB = await DB.createTaskFromSuggestion('quote:42', { title: 'Duplicate ignored' });
+  ok(engine + ': derived suggestion deduplicates', derivedA.id === derivedB.id);
+
+  const converted = await DB.convertLeadToVisit(lead.id, { date: new Date().toISOString(), type: 'consultation' });
+  const retry = await DB.convertLeadToVisit(lead.id, { date: new Date().toISOString(), type: 'consultation' });
+  ok(engine + ': lead conversion is retry-safe', converted.customer.id === retry.customer.id && converted.appointment.id === retry.appointment.id && retry.lead.status === 'converted');
+
+  const exported = await DB.exportAll();
+  ok(engine + ': Phase 1 tables exported readable', exported.leads[0].firstName === 'Priya' && exported.tasks.some(t => t.title === 'Call Priya') && exported.taskEvents.length === 2);
+  await DB.deleteAllData();
+  await DB.importAll(JSON.parse(JSON.stringify(exported)));
+  ok(engine + ': Phase 1 graph restores', (await DB.db.leads.count()) === 1 && (await DB.db.tasks.count()) === 2 && (await DB.db.taskEvents.count()) === 2);
+  await DB.deleteCustomer(converted.customer.id);
+  ok(engine + ': customer deletion removes linked Phase 1 graph', (await DB.db.leads.count()) === 0 && (await DB.db.tasks.count()) === 1 && (await DB.db.taskEvents.count()) === 0);
+}
+
 // ---------- runner ----------
 
 (async () => {
@@ -1134,6 +1179,10 @@ async function runMutationBoundaries(engine) {
   await runPhase0Fixtures('dexie');
   console.log('\nTest 14: Phase 0 fixtures — bundled shim');
   await runPhase0Fixtures('shim');
+  console.log('\nTest 15: Phase 1 durable work storage — real Dexie');
+  await runPhase1WorkStorage('dexie');
+  console.log('\nTest 16: Phase 1 durable work storage — bundled shim');
+  await runPhase1WorkStorage('shim');
   console.log('\n' + (failures === 0 ? 'ALL TESTS PASSED' : failures + ' TEST(S) FAILED'));
   process.exit(failures === 0 ? 0 : 1);
 })().catch(e => { console.error('UNEXPECTED ERROR:', e); process.exit(1); });

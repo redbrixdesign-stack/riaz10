@@ -1791,6 +1791,7 @@ const AppointmentsFeature = {
     const scannedName = params.name || '';
     const scannedPhone = params.phone || '';
     const scannedAddress = params.address || '';
+    const leadId = Number.isInteger(Number(params.leadId)) && Number(params.leadId) > 0 ? Number(params.leadId) : null;
     return `
       <div class="fade-in">
         ${App.renderTopHeader({ 
@@ -1800,6 +1801,8 @@ const AppointmentsFeature = {
         })}
 
         <div class="p-md" >
+          ${leadId ? `<input type="hidden" id="appt-lead-id" value="${leadId}">` : ''}
+          ${leadId ? '<div class="card inset-dark mb-md" id="lead-booking-banner"><span class="material-symbols-rounded fs-18">person_add</span> Booking from enquiry…</div>' : ''}
           <div class="form-group">
             <label>Customer Name *</label>
             <input type="text" class="input" id="appt-name" autocomplete="name" placeholder="e.g. Sarah Johnson" value="${Utils.escapeHtml(scannedName)}">
@@ -1994,8 +1997,36 @@ const AppointmentsFeature = {
       notes: document.getElementById('appt-notes')?.value.trim() || '',
       arrivalStart: windowData.arrivalStart || '',
       arrivalEnd: windowData.arrivalEnd || '',
-      arrivalError: windowData.error || ''
+      arrivalError: windowData.error || '',
+      leadId: parseInt(document.getElementById('appt-lead-id')?.value, 10) || null
     };
+  },
+
+  async hydrateLeadBooking(leadId) {
+    if (!leadId || typeof DB.getLead !== 'function') return;
+    try {
+      const lead = await DB.getLead(leadId);
+      if (!lead || String(document.getElementById('appt-lead-id')?.value) !== String(leadId)) return;
+      if (lead.appointmentId) {
+        Toast.show('This enquiry already has a visit', 'info');
+        App.navigate('appointments', { id: lead.appointmentId });
+        return;
+      }
+      const name = lead.name || lead.fullName || [lead.firstName, lead.lastName].filter(Boolean).join(' ');
+      const address = typeof lead.address === 'string' ? lead.address : lead.address?.line1 || '';
+      const values = { 'appt-name': name, 'appt-phone': lead.phone || '', 'appt-address': address, 'appt-notes': lead.notes || '' };
+      for (const [id, value] of Object.entries(values)) {
+        const input = document.getElementById(id);
+        if (input && !input.value) input.value = value;
+      }
+      const source = document.getElementById('appt-source');
+      if (source && lead.source && [...source.options].some(option => option.value === lead.source)) source.value = lead.source;
+      const banner = document.getElementById('lead-booking-banner');
+      if (banner) banner.innerHTML = '<span class="material-symbols-rounded fs-18">person_add</span> Booking visit from saved enquiry';
+    } catch (error) {
+      console.error('Lead booking load failed:', error);
+      Toast.show('Could not load the enquiry', 'error');
+    }
   },
 
   // Toggle the Save button between its normal and "working" states so the user
@@ -2078,7 +2109,7 @@ const AppointmentsFeature = {
       Toast.show('Visit form is no longer open. Please check details and try again.', 'error');
       return;
     }
-    const { name, phone, address, date, time, durationSlots, type, source, access, notes, arrivalStart, arrivalEnd, arrivalError } = data;
+    const { name, phone, address, date, time, durationSlots, type, source, access, notes, arrivalStart, arrivalEnd, arrivalError, leadId } = data;
 
 	    if (!name || !address || !date) {
 	      Toast.show('Please fill in required fields', 'error');
@@ -2148,6 +2179,37 @@ const AppointmentsFeature = {
         }
       }
 
+      const appointmentData = {
+        clientName: name,
+        phone,
+        address,
+        date: dateTime.toISOString(),
+        durationSlots,
+        type,
+        source,
+        arrivalStart: arrivalStart || null,
+        arrivalEnd: arrivalEnd || null,
+        notes: [access ? `Access: ${access}` : '', notes].filter(Boolean).join('\n\n'),
+        status: 'confirmed'
+      };
+
+      // Lead conversion owns customer resolution, visit creation and lead
+      // linking in one retry-safe domain operation. Only leadId travelled in
+      // the URL; contact details were loaded from the encrypted local store.
+      if (leadId && typeof DB.convertLeadToVisit === 'function') {
+        const result = await DB.convertLeadToVisit(leadId, appointmentData);
+        const newAppt = result.appointment;
+        Toast.show('Enquiry converted and visit saved', 'success');
+        if (typeof MessageScheduler !== 'undefined') MessageScheduler.reschedule();
+        const bookingAskTypes = ['consultation', 'measure', 'fitting', 'review', 'service_call'];
+        if (phone && bookingAskTypes.includes(type)) {
+          this.offerBookingConfirmation(newAppt.id);
+          return;
+        }
+        App.navigate('appointments', { id: newAppt.id });
+        return;
+      }
+
       // Create or find customer
       let customerId = null;
       if (phone) {
@@ -2179,17 +2241,7 @@ const AppointmentsFeature = {
 
       const newAppt = await DB.addAppointment({
         customerId,
-        clientName: name,
-        phone,
-        address,
-        date: dateTime.toISOString(),
-        durationSlots,
-        type,
-        source,
-        arrivalStart: arrivalStart || null,
-        arrivalEnd: arrivalEnd || null,
-        notes: [access ? `Access: ${access}` : '', notes].filter(Boolean).join('\n\n'),
-        status: 'confirmed'
+        ...appointmentData
       });
 
       Toast.show('Visit saved', 'success');
@@ -3351,6 +3403,7 @@ const AppointmentsFeature = {
     if (params.tab) {
       this.switchTab(params.tab);
     }
+    if (params.leadId) this.hydrateLeadBooking(parseInt(params.leadId, 10));
   }
 };
 

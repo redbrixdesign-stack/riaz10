@@ -174,7 +174,9 @@ Feature → reviewed WhatsApp/SMS/maps hand-off
 - **Beelo:** the name displayed to users in the manifest, onboarding, headings, and brand language.
 - **AdvisorOS:** the internal application/runtime name retained in database names, storage keys, console output, source headers, and compatibility code.
 - **Visit:** the principal scheduled customer interaction. The implementation calls these `appointments` in storage and code.
-- **Follow-up:** an item derived from visit, order, communication, or timing state. It is not a separate persisted task table.
+- **Follow-up:** an item derived from visit, order, communication, or timing state. Phase 1 retains these suggestions and can link one to a separately persisted durable task without duplicating it.
+- **Lead:** a persisted enquiry that may exist before a customer or visit and can later link to both.
+- **Task:** a persisted advisor action with due/snooze/completion state; `taskEvents` records its transition history.
 - **Order:** a persisted commercial record normally created when a visit outcome becomes `ordered`.
 - **Communication:** a record of a prepared/sent message stage or an operational note.
 - **Customer 360:** the aggregated customer profile built from customer, visit, order, measurement, photo, and communication records.
@@ -270,7 +272,7 @@ Web Crypto requires a secure context. Production must be served over HTTPS. Loop
 
 ## 7. Data model
 
-The database contains ten tables.
+The database contains thirteen tables.
 
 ### 7.1 `customers`
 
@@ -371,7 +373,24 @@ Purpose: collision-resistant customer and order numbering.
 
 The sequence floor is recalculated after legacy migration and restore so newly generated identifiers cannot collide with imported records.
 
-### 7.11 Relationships
+### 7.11 `leads`, `tasks`, and `taskEvents`
+
+`leads` stores enquiries before they become customers or visits. Customer and
+appointment links are nullable. Lead identity, contact details, address, notes,
+and loss reason use the same field-level encryption boundary as customer PII.
+
+`tasks` stores durable advisor actions with open/completed/cancelled state,
+priority, due and snooze instants, and nullable links to leads, customers,
+appointments, and orders. A derived follow-up uses `sourceKey` to create at
+most one durable task. Titles and notes are encrypted at rest.
+
+`taskEvents` records completion, snooze, and reopen transitions. Each user
+operation carries an idempotency key, so a repeated activation cannot create a
+second transition. Real Dexie writes task state and its event atomically; the
+mini-Dexie fallback is deterministic and retry-safe but does not claim
+multi-table transaction equivalence.
+
+### 7.12 Relationships
 
 ```text
 Customer
@@ -466,7 +485,7 @@ The advisor can review completed versus total visits, see earnings recorded for 
 ### 8.8 Backup and restore
 
 1. Export a full JSON backup.
-2. The backup contains all ten tables, sanitized configuration, schema/app metadata, and photos.
+2. The backup contains all thirteen tables, sanitized configuration, schema/app metadata, photos, leads, tasks, and task events.
 3. Runtime-only AI secrets are excluded.
 4. An optional backup password encrypts the file with PBKDF2/AES-GCM.
 5. Import validates version, shape, IDs, references, types, and configuration before replacing data.

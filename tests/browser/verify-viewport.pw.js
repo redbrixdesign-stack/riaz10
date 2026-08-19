@@ -48,7 +48,7 @@ const ok = (label, cond, extra) => {
     });
     const p = w + 'px';
     ok(`${p}: no horizontal overflow`, r.overflowX <= 0, r.overflowX);
-    ok(`${p}: no greeting banner; weekly calendar strip present`, !r.hasGreeting && r.hasWeekStrip, r.labels);
+    ok(`${p}: advisor greeting and weekly calendar strip present`, r.hasGreeting && r.hasWeekStrip, r.labels);
     // THIS WEEK strip → NEXT (featured card + upcoming rows) → ATTENTION → ASK BEELO
     const iWeek = r.labels.indexOf('THIS WEEK');
     const iNext = r.labels.indexOf('NEXT');

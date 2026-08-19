@@ -32,9 +32,11 @@ Database schema version and backup file-format version are independent:
 |---|---|---|
 | Legacy `advisoros_v5` shim/IndexedDB installation | One-time copy into `advisoros_v6`, outcome normalization, order backfill, sequence guarding, then encryption | Legacy browser fixture; first and second boot are idempotent |
 | `advisoros_v6` schema 1 | Dexie additive upgrade creates `photos` | Existing records unchanged; empty photo store available |
-| `advisoros_v6` schema 2 | Open without structural migration; idempotent repair/encryption may run | Current-install fixture; repeated boot is stable |
+| `advisoros_v6` schema 2 | Additively upgrade to schema 3 by creating leads, tasks, and taskEvents; existing stores and records remain intact | Current-install fixture plus both-engine storage suite; repeated boot is stable |
+| `advisoros_v6` schema 3 | Open without structural migration; idempotent PII repair/encryption may run | Phase 1 storage tests; repeated boot is stable |
 | Legacy backup envelope `version: 4.0` or `5.0` | Treat as backup format 1 with absent newer tables empty | Seven-table immutable fixture restores; sequence floors advance |
-| Backup format 1 / database schema 2 | Validate complete payload, replace supported tables, re-encrypt PII, guard sequences | Pre-Phase-0 immutable fixture restores on real Dexie and mini-Dexie |
+| Backup format 1 / database schema 2 | Treat absent Phase 1 tables as empty, validate supplied data, re-encrypt PII, and guard sequences | Pre-Phase-0 immutable fixture restores on real Dexie and mini-Dexie |
+| Backup format 1 / database schema 3 | Validate and restore all thirteen tables, including lead/task links and task-event history | Both-engine Phase 1 roundtrip and rollback tests |
 | Future backup format | Reject before confirmation or writes | Database and device config remain unchanged |
 
 Before adding schema 3, extend this matrix with schema 2 -> 3 and backup

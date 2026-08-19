@@ -279,9 +279,10 @@ assert(norm('random gibberish 123') === 'default', 'unknown routes to default');
   const tomorrowRange = Companion.extractDayRange('something tomorrow?');
   assert(tomorrowRange && /^Tomorrow/.test(tomorrowRange.label), 'Day extractor finds "tomorrow"', tomorrowRange);
 
-  // Messages rule: the 10-day-out booking owes an intro and must surface.
+  // The 10-day-out booking owes an intro. Home counts it once through the
+  // unified Follow-ups inbox, while the Messages rule can still explain it.
   const chipsWarm = await Companion.buildWelcomeChips();
-  assert(chipsWarm.some(c => c[3] === 'next visit') && chipsWarm.some(c => c[3] === 'messages'), 'Welcome chips are live: next visit + intro owed', chipsWarm);
+  assert(chipsWarm.some(c => c[3] === 'next visit') && chipsWarm.some(c => c[3] === 'follow-ups'), 'Welcome chips are live: next visit + intro follow-up', chipsWarm);
   const msgs = await Companion.answerMessages();
   assert(msgs.text.includes('owe a message'), 'Messages rule names the owed booking', msgs.text);
   assert(msgs.facts.some(f => f.label.includes('Amelia Green') && f.value === 'Intro — not sent'), 'Messages rule reports intro-not-sent with the date', msgs.facts);
