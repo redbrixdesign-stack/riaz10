@@ -511,7 +511,8 @@ body.trip-active .toast-container {
   border: none;
   background: none;
   font-family: var(--font-body);
-  font-size: 15px;
+  /* 16px minimum: iOS Safari auto-zooms any field below 16px on focus. */
+  font-size: 16px;
   color: var(--text-primary);
   outline: none;
 }
@@ -2756,7 +2757,10 @@ body.trip-active .toast-container {
   outline: none;
   color: var(--comp-text);
   font: inherit;
-  font-size: 14.5px;
+  /* 16px minimum so iOS Safari does not auto-zoom into the composer on
+     focus (the Ask Beelo input was 14.5px — typing on an iPhone zoomed
+     the page; same guard as .input). */
+  font-size: 16px;
 }
 .comp-input:focus-visible {
   outline: 2px solid var(--comp-bee);
