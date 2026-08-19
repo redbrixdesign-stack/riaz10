@@ -28,35 +28,34 @@ def wrap(draw, text, f, maxw):
     if cur: lines.append(cur)
     return lines
 
-def canvas(title, nums, outfile):
-    # NATIVE resolution — every screenshot at 1:1 (crisp phone-size shots)
-    SCALE = 1.0
+def canvas(title, subtitle, nums, outfile):
+    SCALE = 1.0   # native resolution — every shot crisp and readable
     GAP = 26
-    TITLE_H = 92
+    TITLE_H = 150
     CAP_H = 96
-    COL_W = 780
+    W = 780
     imgs = [Image.open(os.path.join(BASE, by_num[n]['file'])).convert('RGB') for n in nums]
-    W = int(COL_W * SCALE)
-    H = int(imgs[0].size[1] * SCALE)
+    H = imgs[0].size[1]
     cols = 2
     rows = (len(imgs) + cols - 1) // cols
     cw = cols * W + GAP * (cols + 1)
     ch = TITLE_H + rows * (H + CAP_H) + GAP * (rows + 1)
     c = Image.new('RGB', (cw, ch), (10, 10, 10))
     d = ImageDraw.Draw(c)
-    ft = font(42, bold=True)
+    ft = font(46, bold=True)
+    fs = font(26)
     fc = font(26)
     fi = font(24, bold=True)
-    d.text((GAP, 20), title, font=ft, fill=(232, 184, 84))
-    d.line([(GAP, TITLE_H - 14), (cw - GAP, TITLE_H - 14)], fill=(70, 70, 70), width=3)
+    d.text((GAP, 18), title, font=ft, fill=(232, 184, 84))
+    if subtitle:
+        d.text((GAP, 84), subtitle, font=fs, fill=(190, 190, 190))
+    d.line([(GAP, TITLE_H - 18), (cw - GAP, TITLE_H - 18)], fill=(70, 70, 70), width=3)
     for i, im in enumerate(imgs):
         r, cc = divmod(i, cols)
         x = GAP + cc * (W + GAP)
         y = TITLE_H + GAP + r * (H + CAP_H + GAP)
-        thumb = im.resize((W, H), Image.LANCZOS) if SCALE != 1.0 else im
-        c.paste(thumb, (x, y))
+        c.paste(im, (x, y))
         num = nums[i]
-        # index badge
         d.ellipse([x + 10, y + 10, x + 54, y + 54], fill=(232, 184, 84))
         d.text((x + 22, y + 14), str(num), font=fi, fill=(10, 10, 10))
         cap = f"{num}. {by_num[num]['description']}"
@@ -66,14 +65,15 @@ def canvas(title, nums, outfile):
             d.text((x, ty), ln, font=fc, fill=(220, 220, 220))
             ty += 32
     c.save(os.path.join(OUT, outfile))
-    print(f'  ✓ {outfile} ({cw}x{ch}, {len(nums)} shots, 1:1 native)')
+    print(f'  ✓ {outfile} ({cw}x{ch}, shots {nums[0]}-{nums[-1]})')
 
-print('Regenerating collages at NATIVE resolution:')
-canvas('HOME — feed, weekly calendar, attention', [1, 2, 3], 'canvas-1-home.png')
-canvas('VISIT DETAIL + CUSTOMER 360', [4, 5], 'canvas-2-visit-customer.png')
-canvas('CONTACT SHEET — WhatsApp / Call / Copy', [6, 7, 8, 9], 'canvas-3-contact.png')
-canvas('OUTCOMES — quoted → ordered + deposit', [10, 11, 12], 'canvas-4-outcomes.png')
-canvas('ORDERS + MONEY + MILEAGE MODAL', [13, 14, 15], 'canvas-5-orders-money.png')
-canvas('FOLLOW-UPS + MESSAGE PREVIEW', [16, 17], 'canvas-6-followups-messages.png')
-canvas('LIVE MILEAGE TRIP — start → arrival', [18, 19], 'canvas-7-trip.png')
-canvas('MY DAY + ASK BEELO', [20, 21, 22], 'canvas-8-myyday-beelo.png')
+print('Regenerating into 3 canvases (native 1:1):')
+canvas('BEELO — THE JOURNEY  ·  PART 1: DISCOVER & CONNECT',
+       'Home feed · visit detail · customer 360 · contact sheet (WhatsApp / Call / Copy)',
+       [1, 2, 3, 4, 5, 6, 7, 8, 9], 'canvas-1-discover-connect.png')
+canvas('BEELO — THE JOURNEY  ·  PART 2: SELL & DELIVER',
+       'Outcomes (quoted → ordered + deposit) · kanban · money · mileage modal · follow-ups · message preview',
+       [10, 11, 12, 13, 14, 15, 16, 17], 'canvas-2-sell-deliver.png')
+canvas('BEELO — THE JOURNEY  ·  PART 3: ON THE ROAD & WRAP-UP',
+       'Live mileage trip · My Day · Ask Beelo · back to home',
+       [18, 19, 20, 21, 22], 'canvas-3-road-wrapup.png')
