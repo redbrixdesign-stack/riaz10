@@ -270,6 +270,19 @@ async function proxyTests() {
   const asstBody = JSON.parse(r.body);
   ok('proxy: assistant 200 forwards text', r.status === 200 && asstBody.ok && asstBody.text.includes('reply'), asstBody);
 
+  r = await req('POST', {}, { type: 'customer_brief', facts: [] });
+  ok('proxy: customer brief rejects an empty fact list', r.status === 400);
+  r = await req('POST', {}, { type: 'customer_brief', facts: ['x'.repeat(201)] });
+  ok('proxy: customer brief caps each fact', r.status === 400);
+  stubbedAnthropic = o => {
+    const parsed = JSON.parse(o.body);
+    ok('proxy: customer brief uses dedicated restrictive prompt', parsed.system.includes('add absolutely nothing') && parsed.system.includes('{"brief":"..."}'));
+    ok('proxy: customer brief forwards only the fact array', parsed.messages[0].content[0].text === '["Parking: visitor bay","Pets: dog"]');
+    return anthropicOk('{"brief":"Visitor bay; dog present."}');
+  };
+  r = await req('POST', {}, { type: 'customer_brief', facts: ['Parking: visitor bay', 'Pets: dog'] });
+  ok('proxy: customer brief happy path', r.status === 200 && JSON.parse(r.body).type === 'customer_brief');
+
   // Route type: input validation, prompt, forwarding.
   r = await req('POST', {}, { type: 'route' });
   ok('proxy: route without text 400', r.status === 400);
@@ -541,6 +554,17 @@ async function clientTests() {
   });
   const ds = await svcDraftSpec.draftMessage({ customerName: 'Sarah' });
   ok('client: draft parses nudge + draft_message', ds.ok && ds.text === 'Hi Sarah, just checking in on your quote.' && ds.nudge === 'Mrs Smith is waiting for her quote follow-up.', ds);
+
+  const svcBrief = loadAiClient({
+    responder: async payload => {
+      ok('client: customer brief uses dedicated request type', payload.type === 'customer_brief');
+      ok('client: customer brief sends only allowlisted facts', JSON.stringify(payload.facts) === JSON.stringify(['Parking: visitor bay', 'Pets: dog']));
+      return responseLike({ text: '{"brief":"Use the visitor bay; the customer has a dog."}', type: 'customer_brief' });
+    }
+  });
+  const cb = await svcBrief.customerBrief({ facts: ['Parking: visitor bay', 'Pets: dog'] });
+  ok('client: customer brief parses strict JSON shape', cb.ok && cb.text === 'Use the visitor bay; the customer has a dog.', cb);
+  ok('client: customer brief rejects non-JSON model output', !svcBrief._parseCustomerBrief('invented prose'));
 
   // _parseDraft ladder: fenced JSON, bracketed JSON, plain text.
   const svcEmpty = loadAiClient({ responder: async () => responseLike({ text: '' }) });

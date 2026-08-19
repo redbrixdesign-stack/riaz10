@@ -699,7 +699,7 @@ const AppointmentsFeature = {
   // pickers for any other range.
   renderArrivalWindowOptions(selectedId = 'none') {
     const blocks = CONFIG.workingWeek?.blocks || [];
-    const labels = { none: 'No window — exact time only', custom: 'Custom window…' };
+    const labels = { none: 'Exact time — no arrival window', custom: 'Custom window…' };
     const ids = ['none', ...blocks.map(b => b.id), 'custom'];
     return ids.map(id => {
       const block = blocks.find(b => b.id === id);
@@ -738,6 +738,15 @@ const AppointmentsFeature = {
     if (!start || !end) return 'none';
     const block = (CONFIG.workingWeek?.blocks || []).find(b => b.start === start && b.end === end);
     return block ? block.id : 'custom';
+  },
+
+  validateArrivalWindowContainsTime(time, start, end) {
+    if (!start && !end) return '';
+    if (!start || !end) return 'Choose both ends of the arrival window, or use Exact time.';
+    if (time < start || time >= end) {
+      return `Diary time ${time} must sit inside the arrival window ${start}–${end}. Change the diary time or choose a different window.`;
+    }
+    return '';
   },
 
   toggleArrivalWindowCustom(value) {
@@ -1132,7 +1141,7 @@ const AppointmentsFeature = {
       </div>
       <div class="sheet-body">
         <input type="search" class="input" id="customer-search-input" placeholder="Name, postcode, phone, or product..."
-               data-action="AppointmentsFeature.debouncedCustomerSearch" data-args='${JSON.stringify(["__value__"])}' autocomplete="off">
+               data-event="input" data-action="AppointmentsFeature.debouncedCustomerSearch" data-args='${JSON.stringify(["__value__"])}' autocomplete="off">
         <div class="mt-12" id="customer-search-results" >
           <div class="fs-13 text-tertiary text-center py-24" >
             Try a name, postcode (e.g. M14), phone number, or product (e.g. "roman blinds")
@@ -1818,8 +1827,9 @@ const AppointmentsFeature = {
 	              <input type="date" class="input" id="appt-date" value="${today}" data-action="AppointmentsFeature.updateVisitDayAdvice" data-args='${JSON.stringify(["__value__"])}'>
 	            </div>
 	            <div class="form-group">
-	              <label>Visit time *</label>
+	              <label>Diary time *</label>
 	              <input type="time" class="input" id="appt-time" value="${selectedTime}" step="900" data-action="AppointmentsFeature.updateScheduleAdvice">
+	              <div class="hint">Used for diary order, route planning and travel gaps.</div>
 	            </div>
 	          </div>
 
@@ -1841,7 +1851,7 @@ const AppointmentsFeature = {
 	          <div class="hint mt-neg-8 mb-sm" id="visit-day-advice" >${Utils.escapeHtml(mode.friendLine)}</div>
 	          <div class="hint mb-md" id="travel-room-advice" >Rough area-based check of the gap before and after this visit.</div>
 
-          ${this.renderArrivalWindowFields()}
+          ${this.renderArrivalWindowFields(this.getBlockForTime(selectedTime)?.id || 'none')}
 
           <div class="form-group">
             <label>Parking / Access</label>
@@ -2056,6 +2066,13 @@ const AppointmentsFeature = {
   },
 
   async saveAppointment(forceDuplicate = false, draft = null) {
+    // A single user gesture can be dispatched more than once when event
+    // listeners are accidentally rebound (or when assistive input emits a
+    // second activation while the first async save is still pending). The
+    // disabled button cannot protect against two handlers already running for
+    // the same event, so keep the write path itself single-flight.
+    if (this._saveAppointmentInFlight) return;
+
     const data = draft || this.readAppointmentDraft();
     if (!data) {
       Toast.show('Visit form is no longer open. Please check details and try again.', 'error');
@@ -2070,6 +2087,12 @@ const AppointmentsFeature = {
 
     if (arrivalError) {
       Toast.show(arrivalError, 'warning');
+      return;
+    }
+
+    const windowTimeError = this.validateArrivalWindowContainsTime(time, arrivalStart, arrivalEnd);
+    if (windowTimeError) {
+      Toast.show(windowTimeError, 'warning');
       return;
     }
 
@@ -2091,6 +2114,7 @@ const AppointmentsFeature = {
       return;
     }
 
+    this._saveAppointmentInFlight = true;
     this.setSaveButtonState('working');
     try {
       const dateTime = new Date(date + 'T' + time);
@@ -2180,6 +2204,8 @@ const AppointmentsFeature = {
       console.error('Save visit error:', e);
       this.setSaveButtonState('idle');
       Toast.show('Failed to save visit', 'error');
+    } finally {
+      this._saveAppointmentInFlight = false;
     }
 	  },
 
@@ -2331,7 +2357,7 @@ const AppointmentsFeature = {
 
     if (normalizedPhone || normalizedAddress) {
       try {
-        const upcoming = await DB.getUpcomingAppointments(180);
+        const upcoming = await DB.getFutureAppointmentsUntil(new Date(Date.now() + 180 * 86400000));
         const matchingFuture = upcoming
           .filter(a => a.status !== 'cancelled' && !Utils.isSameDay(a.date, requestedStart))
           .filter(a => {
@@ -2440,6 +2466,12 @@ const AppointmentsFeature = {
             ${this.renderDurationOptions(appt.durationSlots || 1)}
           </select>
         </div>
+        <div class="form-group">
+          <label>Type</label>
+          <select class="select" id="move-type">
+            ${this.renderTypeOptions(CONFIG.appointmentTypes.map(type => type.id), appt.type)}
+          </select>
+        </div>
         ${this.renderArrivalWindowFields(windowPreset, appt.arrivalStart || '', appt.arrivalEnd || '')}
         <div class="form-group">
           <label>Reason / note</label>
@@ -2459,6 +2491,7 @@ const AppointmentsFeature = {
       date: document.getElementById('move-date')?.value || Utils.formatDate(appt.date, 'iso'),
       time: document.getElementById('move-time')?.value || this.getTimeKey(appt.date),
       durationSlots: Math.max(1, parseInt(document.getElementById('move-duration')?.value, 10) || appt.durationSlots || 1),
+      type: document.getElementById('move-type')?.value || appt.type,
       reason: document.getElementById('move-note')?.value.trim() || '',
       address: appt.address || '',
       arrivalStart: windowData.arrivalStart || '',
@@ -2473,14 +2506,26 @@ const AppointmentsFeature = {
       Toast.show('Visit not found', 'error');
       return;
     }
-    const data = draft || this.readRescheduleDraft(appt);
+    const rawData = draft || this.readRescheduleDraft(appt);
+    // Older queued travel-warning drafts predate editable visit types. Keep
+    // those compatible by retaining the appointment's current type.
+    const data = { ...rawData, type: rawData.type || appt.type };
 
     if (!data.date || !data.time) {
       Toast.show('Pick a date and time first', 'error');
       return;
     }
+    if (!CONFIG.appointmentTypes.some(type => type.id === data.type)) {
+      Toast.show('Pick a valid visit type', 'error');
+      return;
+    }
     if (data.arrivalError) {
       Toast.show(data.arrivalError, 'warning');
+      return;
+    }
+    const windowTimeError = this.validateArrivalWindowContainsTime(data.time, data.arrivalStart, data.arrivalEnd);
+    if (windowTimeError) {
+      Toast.show(windowTimeError, 'warning');
       return;
     }
     if (!this.isQuarterHour(data.time)) {
@@ -2510,6 +2555,7 @@ const AppointmentsFeature = {
     await DB.updateAppointment(id, {
       date: newDate,
       durationSlots: data.durationSlots,
+      type: data.type,
       arrivalStart: data.arrivalStart || null,
       arrivalEnd: data.arrivalEnd || null,
       status: 'confirmed',
@@ -2555,6 +2601,12 @@ const AppointmentsFeature = {
             ${this.renderDurationOptions(appt.durationSlots || 1)}
           </select>
         </div>
+        <div class="form-group">
+          <label>Type</label>
+          <select class="select" id="edit-detail-type">
+            ${this.renderTypeOptions(CONFIG.appointmentTypes.map(type => type.id), appt.type)}
+          </select>
+        </div>
         ${this.renderArrivalWindowFields(windowPreset, appt.arrivalStart || '', appt.arrivalEnd || '')}
         <div class="divider-text">Customer details</div>
         <div class="form-group">
@@ -2585,7 +2637,7 @@ const AppointmentsFeature = {
       return;
     }
 
-    const data = draft || (() => {
+    const rawData = draft || (() => {
       const windowData = this.readArrivalWindow() || {};
       return {
         name: document.getElementById('edit-detail-name')?.value.trim() || '',
@@ -2594,18 +2646,31 @@ const AppointmentsFeature = {
         date: document.getElementById('edit-detail-date')?.value || '',
         time: document.getElementById('edit-detail-time')?.value || '',
         durationSlots: Math.max(1, parseInt(document.getElementById('edit-detail-duration')?.value, 10) || appt.durationSlots || 1),
+        type: document.getElementById('edit-detail-type')?.value || appt.type,
         arrivalStart: windowData.arrivalStart || '',
         arrivalEnd: windowData.arrivalEnd || '',
         arrivalError: windowData.error || ''
       };
     })();
+    // Retain compatibility with a pending travel-warning draft created by an
+    // older build, where type was not part of the edit payload.
+    const data = { ...rawData, type: rawData.type || appt.type };
 
     if (!data.name || !data.address || !data.date || !data.time) {
       Toast.show('Name, address, date and time are required', 'error');
       return;
     }
+    if (!CONFIG.appointmentTypes.some(type => type.id === data.type)) {
+      Toast.show('Pick a valid visit type', 'error');
+      return;
+    }
     if (data.arrivalError) {
       Toast.show(data.arrivalError, 'warning');
+      return;
+    }
+    const windowTimeError = this.validateArrivalWindowContainsTime(data.time, data.arrivalStart, data.arrivalEnd);
+    if (windowTimeError) {
+      Toast.show(windowTimeError, 'warning');
       return;
     }
     if (!this.isQuarterHour(data.time)) {
@@ -2641,6 +2706,7 @@ const AppointmentsFeature = {
         address: data.address,
         date: new Date(data.date + 'T' + data.time).toISOString(),
         durationSlots: data.durationSlots,
+        type: data.type,
         arrivalStart: data.arrivalStart || null,
         arrivalEnd: data.arrivalEnd || null
       });
@@ -3051,7 +3117,11 @@ const AppointmentsFeature = {
       const discountText = discountPct > 0 ? `Discount: ${discountPct}% off ${Utils.formatCurrency(grossValue)}` : '';
       const outcomeNote = [reasonText, discountText, notes ? `Outcome: ${notes}` : ''].filter(Boolean).join('\n');
 
-      await DB.updateAppointment(id, {
+      const result = await DB.completeVisitOutcome({
+        appointmentId: id,
+        paymentAmount: parseFloat(document.getElementById('outcome-payment')?.value || 0),
+        paymentOperationId: Utils.generateId('payment'),
+        appointmentFields: {
         status: 'completed',
         outcome: outcomeId,
         // Fields that are being "cleared" use `null`, NOT `undefined` - the
@@ -3071,73 +3141,11 @@ const AppointmentsFeature = {
         // completed" - the home screen's closeout window reads this.
         completedAt: appt.completedAt || Date.now(),
         travelStatus: null
+        }
       });
-
-      // Order reconciliation: EXACTLY ONE order may exist per sale. Saving
-      // an 'ordered' outcome upserts the order keyed by appointmentId (so
-      // re-saving or correcting the value updates the existing order instead
-      // of creating a duplicate), and moving the outcome away from 'ordered'
-      // deletes the linked order so a reversed sale stops counting toward
-      // customer totals and the pipeline.
-      const linkedOrder = await DB.db.orders
-        .where('appointmentId')
-        .equals(id)
-        .first()
-        .catch(() => null);
-
-      if (outcomeId === 'ordered') {
-        if (value > 0) {
-          if (linkedOrder) {
-            const deposit = App.calculateDeposit(value);
-            await DB.db.orders.update(linkedOrder.id, {
-              total: value,
-              depositRequired: deposit.amount,
-              balanceDue: value,
-              status: 'deposit_pending'
-            });
-            await DB.refreshCustomerTotals(appt.customerId);
-          } else {
-            await DB.addOrder({
-              customerId: appt.customerId,
-              appointmentId: id,
-              total: value,
-              status: 'deposit_pending'
-            });
-          }
-        }
-      } else if (linkedOrder && appt.outcome === 'ordered') {
-        // Reversal: this visit WAS a sale; moving away from 'ordered' deletes
-        // the linked order so a reversed sale stops counting toward customer
-        // totals and the pipeline. Any OTHER outcome on an appointment that
-        // happens to have a linked order (e.g. 'completed' on a fitting) must
-        // keep the order - finishing the job does not cancel the sale.
-        await DB.removeOrder(linkedOrder.id);
-      }
-
-      // Door-money: a deposit recorded when the sale was logged, or the final
-      // payment when the fitting completed. Paid against the customer's most
-      // recent open order (a fitting visit's order lives on the sale visit,
-      // so the balance to collect is found by customer, not appointment).
-      // Never exceeds what's actually owed.
-      const paymentAmount = parseFloat(document.getElementById('outcome-payment')?.value || 0);
-      let paymentNote = '';
-      if (paymentAmount > 0 && appt.customerId) {
-        const openOrders = (await DB.db.orders.where('customerId').equals(appt.customerId).toArray())
-          .filter(o => (o.balanceDue || 0) > 0)
-          .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
-        const target = openOrders[0];
-        if (target) {
-          const add = Math.min(paymentAmount, target.balanceDue || 0);
-          const depositPaid = Math.min((target.depositPaid || 0) + add, target.total || 0);
-          const balanceDue = Math.max(0, (target.balanceDue || 0) - add);
-          await DB.db.orders.update(target.id, {
-            depositPaid,
-            balanceDue,
-            stage: balanceDue <= 0 ? 'paid' : (target.stage || 'ordered')
-          });
-          paymentNote = ` · ${Utils.formatCurrency(add)} payment recorded`;
-        }
-      }
+      const paymentNote = result.payment?.applied > 0
+        ? ` · ${Utils.formatCurrency(result.payment.applied)} payment recorded`
+        : '';
 
       App.closeModal();
       Toast.show('Outcome saved' + paymentNote, 'success');

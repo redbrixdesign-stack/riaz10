@@ -95,7 +95,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
       labels,
       todayCell,
       hasGreeting: !!document.querySelector('.comp-home-greeting'),
-      hasWeekStrip: !!document.querySelector('.comp-home-week-strip')
+      hasWeekStrip: !!document.querySelector('.comp-home-week-strip'),
+      schedulePanels: document.querySelectorAll('.comp-home-schedule').length
     };
   });
 
@@ -104,7 +105,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   ok('query: the earlier-today visit is included', p1.pastInUpcoming === true, p1);
   ok('Home: weekly calendar strip is back, above the feed', p1.labels[0] === 'THIS WEEK' && p1.hasWeekStrip, p1.labels);
   ok(`weekly strip today cell shows ${p1.dayCount} (matches the diary)`, p1.todayCell === String(p1.dayCount), { todayCell: p1.todayCell });
-  ok('no greeting banner on Home', !p1.hasGreeting, p1);
+  ok('advisor greeting remains above the weekly strip', p1.hasGreeting, p1);
+  ok('appointments share one schedule panel', p1.schedulePanels === 1, p1);
 
   /* ---------- Phase 2: feed visibility — exactly the user's day ---------- */
   // A clean day with exactly 4 visits (3 later, 1 an hour ago). The NEXT
@@ -117,7 +119,14 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     const at = (h, m) => { const d = new Date(today); d.setHours(h, m, 0, 0); return d.toISOString(); };
     const nowH = new Date().getHours();
     for (let i = 0; i < 3; i++) {
-      await DB.addAppointment({ customerId: custs[i].id, clientName: 'Home Upcoming ' + i, type: 'consultation', date: at((nowH + 2 + i) % 24, 0), status: 'confirmed' });
+      await DB.addAppointment({
+        customerId: custs[i].id,
+        clientName: 'Home Upcoming ' + i,
+        type: 'consultation',
+        date: at((nowH + 2 + i) % 24, 0),
+        status: 'confirmed',
+        ...(i === 0 ? { arrivalStart: '09:00', arrivalEnd: '12:00' } : {})
+      });
     }
     await DB.addAppointment({ customerId: custs[3].id, clientName: 'Home Upcoming PAST', type: 'consultation', date: at(Math.max(0, nowH - 1), 0), status: 'confirmed' });
   });
@@ -141,9 +150,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
       pastOnHome: feedText.includes('Home Upcoming PAST'),
       featuredIsPast: /Home Upcoming PAST/.test(featured),
       featuredIsFirstFuture: /Home Upcoming 0/.test(featured),
+      featuredShowsWindow: /09:00–12:00/.test(featured) && !/Arrival window/.test(featured),
       featured: featured.replace(/\s+/g, ' ').slice(0, 120),
       nextCount,
-      rowCount: rows.length
+      rowCount: rows.length,
+      rowsInsideSchedule: document.querySelectorAll('.comp-home-schedule .comp-home-next-visit, .comp-home-schedule .comp-home-visit').length
     };
   });
 
@@ -151,8 +162,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   ok('feed: all 4 visits appear on Home (was 3 before the fix)', p2.namesOnHome === 4 && p2.pastOnHome, { namesOnHome: p2.namesOnHome });
   ok('feed: the earlier-today visit is listed', p2.pastOnHome, p2);
   ok('feed: the featured NEXT card is the first FUTURE visit (not the past one)', p2.featuredIsFirstFuture && !p2.featuredIsPast, { featured: p2.featured });
+  ok('feed: promised time range replaces the exact time without a redundant label', p2.featuredShowsWindow, { featured: p2.featured });
   ok(`NEXT section counts ${p2.dayCount} visits`, p2.nextCount.includes(`${p2.dayCount} visit`), { nextCount: p2.nextCount });
   ok('feed rows rendered (featured + compact)', p2.rowCount >= 4, { rowCount: p2.rowCount });
+  ok('featured visit and compact rows stay inside one schedule', p2.rowsInsideSchedule === p2.rowCount, p2);
 
   ok('no console errors', errs.length === 0, errs);
 

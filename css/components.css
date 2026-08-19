@@ -2845,6 +2845,40 @@ body.trip-active .toast-container {
   color: var(--comp-text);
 }
 
+/* One continuous diary surface: the expanded next visit and every compact
+   appointment row belong to the same schedule, rather than looking like
+   separate activity sessions. */
+.comp-home-schedule {
+  gap: 0;
+  padding: 16px;
+  background: var(--comp-card);
+  border: 1px solid var(--comp-border);
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.comp-home-schedule-header {
+  margin: 0 0 14px;
+}
+
+.comp-home-schedule-title {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.comp-home-schedule-range {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--comp-muted);
+}
+
+.comp-home-schedule-list {
+  min-width: 0;
+}
+
 /* A. NAME — advisor's first name with the golden full stop */
 .comp-home-greeting {
   padding: 8px 0 4px;
@@ -2999,7 +3033,7 @@ body.trip-active .toast-container {
    Hierarchy: time → customer → context → address → journey → actions →
    "More about this visit". */
 .comp-home-next-visit {
-  background: var(--comp-card);
+  background: var(--comp-bg);
   border: 1px solid var(--comp-border);
   border-radius: 14px;
   padding: 16px;
@@ -3040,13 +3074,13 @@ body.trip-active .toast-container {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
 }
-.comp-home-next-visit-time::before {
-  content: '';
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--comp-bee);
-  flex-shrink: 0;
+
+.comp-home-next-visit-headline {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
 }
 
 .comp-home-next-visit-name {
@@ -3055,6 +3089,14 @@ body.trip-active .toast-container {
   color: var(--comp-text);
   line-height: 1.25;
   letter-spacing: -0.01em;
+}
+
+.comp-home-next-visit-eta {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--comp-muted);
+  white-space: nowrap;
 }
 
 .comp-home-next-visit-context {
@@ -3104,9 +3146,8 @@ body.trip-active .toast-container {
 
 /* Actions — Navigate is the primary (subtle gold border), Call secondary. */
 .comp-home-next-visit-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin-top: 12px;
 }
@@ -3122,13 +3163,14 @@ body.trip-active .toast-container {
   font-size: 12px;
   font-weight: 600;
   min-height: 44px;
-  padding: 0 18px;
+  padding: 0 10px;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 .comp-home-cta:focus-visible { outline: 2px solid var(--comp-bee); outline-offset: 2px; }
 .comp-home-cta:active { transform: scale(0.98); }
 .comp-home-cta .material-symbols-rounded { font-size: 17px; }
+.comp-home-cta:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .comp-home-cta--primary {
   background: var(--comp-bg);
@@ -3190,18 +3232,33 @@ body.trip-active .toast-container {
 .comp-home-visits {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
+  margin-top: 14px;
 }
 
 .comp-home-visit {
-  background: var(--comp-card);
-  border: 1px solid var(--comp-border);
-  border-radius: 12px;
-  padding: 12px 14px;
-  display: flex;
+  appearance: none;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--comp-border);
+  border-radius: 0;
+  padding: 16px 8px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: minmax(88px, auto) minmax(0, 1fr);
   align-items: center;
-  gap: 10px;
+  gap: 16px;
   transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.comp-home-visit:focus-visible {
+  outline: 2px solid var(--comp-bee);
+  outline-offset: -2px;
+  border-radius: 8px;
 }
 
 .comp-home-visit:active {
@@ -3266,13 +3323,14 @@ body.trip-active .toast-container {
 
 .comp-home-visit-time {
   font-size: 14px;
-  font-weight: 600;
-  color: var(--comp-text);
+  font-weight: 500;
+  color: var(--comp-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .comp-home-visit-name {
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 700;
   color: var(--comp-text);
   white-space: nowrap;
   overflow: hidden;
@@ -3296,6 +3354,11 @@ body.trip-active .toast-container {
   border-radius: 100px;
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+@media (max-width: 380px) {
+  .comp-home-next-visit-actions { grid-template-columns: 1fr; }
+  .comp-home-visit { grid-template-columns: minmax(78px, auto) minmax(0, 1fr); gap: 10px; }
 }
 
 .comp-home-empty {

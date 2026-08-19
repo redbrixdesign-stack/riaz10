@@ -184,12 +184,14 @@ console.log('normalizeDateField');
 
 console.log('rollStaleYearForward');
 {
+  const recent = new Date(Date.now() - 30 * 86400000);
+  const recentIso = `${recent.getFullYear()}-${String(recent.getMonth() + 1).padStart(2, '0')}-${String(recent.getDate()).padStart(2, '0')}`;
   const cases = {
     '': '',
     'garbage': 'garbage',
     '2026-08-11': '2026-08-11',          // today — untouched
     '2026-08-25': '2026-08-25',          // future — untouched
-    '2026-06-20': '2026-06-20',          // ~52 days back — within 60, untouched
+    [recentIso]: recentIso,               // within 60 days — untouched
     '2025-08-11': '2026-08-11',          // exactly one year stale → rolled
     '2024-08-11': '2026-08-11',          // two years stale → rolled
     '2020-01-01': '2025-01-01'           // five+ years stale → capped at 5 rolls

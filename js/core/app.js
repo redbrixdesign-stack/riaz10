@@ -718,6 +718,19 @@ const App = {
   },
 
   // Event setup
+  shouldDispatchActionEvent(el, type) {
+    const expectedEvent = el.getAttribute('data-event');
+    if (expectedEvent) return type === expectedEvent;
+    if (type === 'keydown' || type === 'keyup') {
+      return type === 'keydown' && !!el.getAttribute('data-key');
+    }
+    const tag = String(el.tagName || '').toUpperCase();
+    const formControl = tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA';
+    if (type === 'click') return !formControl;
+    if (type === 'change') return formControl;
+    return false;
+  },
+
   setupEvents() {
     // Back button handling
     document.addEventListener('keydown', (e) => {
@@ -862,6 +875,10 @@ const App = {
       document.addEventListener(type, (e) => {
         let el = e.target && e.target.closest ? e.target.closest('[data-action], [data-file]') : null;
         if (!el) return;
+        // Native controls already synthesize exactly one click for keyboard
+        // activation. Non-native keyboard targets opt in with data-key and
+        // dispatch on keydown only, keeping every gesture single-shot.
+        if (!this.shouldDispatchActionEvent(el, type)) return;
         runAction(el, e);
       }, true);
     });

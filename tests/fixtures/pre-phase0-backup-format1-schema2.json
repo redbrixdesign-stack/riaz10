@@ -1,0 +1,51 @@
+{
+  "backupFormatVersion": 1,
+  "databaseSchemaVersion": 2,
+  "appVersion": "5.0",
+  "version": "5.0",
+  "exportedAt": "2026-08-01T09:00:00.000Z",
+  "config": {
+    "advisorName": "Sample Advisor",
+    "weeklyTarget": 600,
+    "weeklySalesTarget": 4,
+    "advisorMode": "independent",
+    "trade": "Field service",
+    "country": "GB",
+    "currency": "GBP",
+    "distanceUnit": "miles",
+    "measurementUnit": "mm"
+  },
+  "data": {
+    "customers": [
+      { "id": 1, "firstName": "Sample", "lastName": "Customer", "customerNumber": "CUS-2026-0012", "phone": "07000 000001", "status": "active", "createdAt": "2026-08-01T08:00:00.000Z" }
+    ],
+    "appointments": [
+      { "id": 1, "customerId": 1, "clientName": "Sample Customer", "date": "2026-08-02T10:00:00.000Z", "type": "consultation", "status": "completed", "outcome": "ordered", "value": 750, "createdAt": "2026-08-01T08:10:00.000Z" }
+    ],
+    "orders": [
+      { "id": 1, "customerId": 1, "appointmentId": 1, "orderNumber": "ORD-2026-0008", "total": 750, "depositPaid": 100, "balanceDue": 650, "status": "deposit_paid", "createdAt": "2026-08-02T11:00:00.000Z" }
+    ],
+    "expenses": [
+      { "id": 1, "date": "2026-08-02T00:00:00.000Z", "category": "fuel", "amount": 25, "createdAt": "2026-08-02T18:00:00.000Z" }
+    ],
+    "trips": [
+      { "id": 1, "date": "2026-08-02T09:00:00.000Z", "appointmentId": 1, "purpose": "business", "distanceKm": 16, "confirmed": true, "createdAt": "2026-08-02T09:00:00.000Z" }
+    ],
+    "measurements": [
+      { "id": 1, "appointmentId": 1, "windowName": "Sample window", "createdAt": "2026-08-02T10:30:00.000Z" }
+    ],
+    "communications": [
+      { "id": 1, "customerId": 1, "type": "whatsapp_attempted", "template": "outcome_ordered", "sentAt": "2026-08-02T11:05:00.000Z" }
+    ],
+    "photos": [
+      { "id": 1, "customerId": 1, "data": "c2FuaXRpemVkLXNhbXBsZS1pbWFnZQ==", "mimeType": "image/png", "caption": "Sanitized sample", "createdAt": "2026-08-02T10:35:00.000Z" }
+    ],
+    "settings": [
+      { "key": "config", "value": { "advisorName": "Sample Advisor", "weeklyTarget": 600 } }
+    ],
+    "sequences": [
+      { "name": "customer", "value": 12 },
+      { "name": "order", "value": 8 }
+    ]
+  }
+}

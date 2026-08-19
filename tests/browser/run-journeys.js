@@ -26,7 +26,9 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const CDP_PORT = 9222;
+// Use a runner-specific port so sequential suites cannot attach to a Chrome
+// process that is still shutting down from the preceding suite.
+const CDP_PORT = 10000 + (process.pid % 40000);
 const BASE = 'http://localhost:8000';
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 

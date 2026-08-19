@@ -124,10 +124,12 @@ window.addEventListener("load", async () => {
   const afact = l => (after.facts.find(f => f.label === l) || {}).value;
   step('no outcomes outstanding after logging', afact('Outcomes not logged') === undefined, { got: afact('Outcomes not logged') });
   step('unpaid order still reported', afact('Outstanding') === Utils.formatCurrency(1200) + ' over 1 order', { got: afact('Outstanding') });
-  step('only the quote follow-up remains due', afact('Follow-ups due') === '1 task', { got: afact('Follow-ups due') });
+  step('quote and post-fit follow-ups remain due', afact('Follow-ups due') === '2 tasks', { got: afact('Follow-ups due') });
 
   // 6. Task inbox reflects production payment logic (3-day reminder).
   const tasks = await FollowupsFeature.loadTasks();
+  const postFit = tasks.find(t => t.kind === 'post_fit' && t.appointment && t.appointment.id === fitting.id);
+  step('completed fitting has a due post-fit follow-up', !!postFit && postFit.due === true, { got: postFit && postFit.due });
   const payment = tasks.find(t => t.kind === 'payment' && t.order && t.order.id === unpaid.id);
   step('unpaid order has a payment reminder task', !!payment);
   step('payment reminder is not due before production reminder day', payment && payment.due === false, { got: payment && payment.due });

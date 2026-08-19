@@ -6,6 +6,8 @@
 // Every table a backup can carry. exportAll() and importAll() speak this
 // exact list; adding a table here is a backup-format change and must be
 // mirrored in the backup envelope's versioning (js/services/export.js).
+const DATABASE_SCHEMA_VERSION = 2;
+const BACKUP_FORMAT_VERSION = 1;
 const BACKUP_TABLES = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'photos', 'settings', 'sequences'];
 
 // ============================================
@@ -269,7 +271,7 @@ const DB = {
 
     // Photos were added after the original v6 store — additive migration, so
     // existing databases keep their data and simply gain the new table.
-    this.db.version(2).stores({
+    this.db.version(DATABASE_SCHEMA_VERSION).stores({
       photos: '++id, customerId, createdAt'
     });
 
@@ -535,6 +537,21 @@ const DB = {
     return seq.value;
   },
 
+  async _runWrite(tables, operation) {
+    const resolved = tables.map(name => this.db[name]);
+    if (typeof this.db.transaction === 'function') {
+      return this.db.transaction('rw', resolved, operation);
+    }
+    return operation();
+  },
+
+  async _nextSequenceUnsafe(name) {
+    const seq = await this.db.sequences.get(name);
+    const next = (seq ? seq.value : 0) + 1;
+    await this.db.sequences.put({ name, value: next });
+    return next;
+  },
+
   // Customer operations
   async addCustomer(data) {
     const seq = await this.getNextSequence('customer');
@@ -571,25 +588,26 @@ const DB = {
   // Returns how many of each were removed so the caller can tell the person
   // what actually happened, not just "done".
   async deleteCustomer(customerId) {
-    const [appts, orders, comms] = await Promise.all([
-      this.db.appointments.where('customerId').equals(customerId).toArray(),
-      this.db.orders.where('customerId').equals(customerId).toArray(),
-      this.db.communications.where('customerId').equals(customerId).toArray()
-    ]);
-    const photoCount = await this.db.photos.where('customerId').equals(customerId).count();
-    const apptIds = appts.map(a => a.id);
-    const [measurementCount, tripCount] = await Promise.all([
-      this.db.measurements.where('appointmentId').anyOf(apptIds).delete(),
-      this.db.trips.where('appointmentId').anyOf(apptIds).delete()
-    ]);
-    await Promise.all([
-      this.db.appointments.where('customerId').equals(customerId).delete(),
-      this.db.orders.where('customerId').equals(customerId).delete(),
-      this.db.communications.where('customerId').equals(customerId).delete(),
-      this.db.photos.where('customerId').equals(customerId).delete()
-    ]);
-    await this.db.customers.delete(customerId);
-    return { appointments: appts.length, orders: orders.length, communications: comms.length, photos: photoCount, measurements: measurementCount, trips: tripCount };
+    return this._runWrite(
+      ['customers', 'appointments', 'orders', 'communications', 'photos', 'measurements', 'trips'],
+      async () => {
+        const [appts, orders, comms] = await Promise.all([
+          this.db.appointments.where('customerId').equals(customerId).toArray(),
+          this.db.orders.where('customerId').equals(customerId).toArray(),
+          this.db.communications.where('customerId').equals(customerId).toArray()
+        ]);
+        const photoCount = await this.db.photos.where('customerId').equals(customerId).count();
+        const apptIds = appts.map(a => a.id);
+        const measurementCount = apptIds.length ? await this.db.measurements.where('appointmentId').anyOf(apptIds).delete() : 0;
+        const tripCount = apptIds.length ? await this.db.trips.where('appointmentId').anyOf(apptIds).delete() : 0;
+        await this.db.appointments.where('customerId').equals(customerId).delete();
+        await this.db.orders.where('customerId').equals(customerId).delete();
+        await this.db.communications.where('customerId').equals(customerId).delete();
+        await this.db.photos.where('customerId').equals(customerId).delete();
+        await this.db.customers.delete(customerId);
+        return { appointments: appts.length, orders: orders.length, communications: comms.length, photos: photoCount, measurements: measurementCount, trips: tripCount };
+      }
+    );
   },
 
   // ---- Full factory reset ----
@@ -759,22 +777,50 @@ const DB = {
   // lands in the right day/range.
   _inDateWindow(value, start, end) {
     const d = value instanceof Date ? value : new Date(value);
-    return !isNaN(d.getTime()) && d >= start && d <= end;
+    return !isNaN(d.getTime()) && d >= start && d < end;
   },
 
-  async getAppointmentsForDate(date) {
-    // The day window is [UK midnight, +24h) of the instant's UK calendar
-    // day — the app's date contract everywhere else. The old version did
+  _ukCalendarBoundary(date, dayOffset = 0) {
+    const p = Utils.ukParts(new Date(date));
+    // Normalise the calendar arithmetic in UTC, then ask the UK helper for
+    // the real midnight instant. This remains correct across 23/25-hour UK
+    // days and when the device itself is in a different timezone.
+    const shifted = new Date(Date.UTC(p.year, p.month - 1, p.day + dayOffset));
+    return Utils.ukMidnightInstant(
+      shifted.getUTCFullYear(),
+      shifted.getUTCMonth() + 1,
+      shifted.getUTCDate()
+    );
+  },
+
+  async getAppointmentsBetween(startDate, endDate) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < start) {
+      throw new Error('Invalid appointment date window');
+    }
+
+    const rows = await this.db.appointments.toArray();
+    const matched = rows
+      .filter(a => a.status !== 'cancelled' && this._inDateWindow(a.date, start, end))
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+    return Promise.all(matched.map(a => decryptAppointment(a)));
+  },
+
+  async getAppointmentsForUKDate(date) {
+    // The day window is [UK midnight, next UK midnight) of the instant's
+    // UK calendar day — the app's date contract everywhere else. The old version did
     // setHours(0,0,0,0) in the DEVICE's timezone, so on any non-UK device
     // the "today" list silently started/finished hours off (early-morning
     // UK visits dropped, late-evening ones bleeding across days).
-    const p = Utils.ukParts(new Date(date));
-    const start = Utils.ukMidnightInstant(p.year, p.month, p.day);
-    const end = new Date(start.getTime() + 86400000);
+    const start = this._ukCalendarBoundary(date);
+    const end = this._ukCalendarBoundary(date, 1);
+    return this.getAppointmentsBetween(start, end);
+  },
 
-    const rows = await this.db.appointments.toArray();
-    const matched = rows.filter(a => a.status !== 'cancelled' && this._inDateWindow(a.date, start, end));
-    return Promise.all(matched.map(a => decryptAppointment(a)));
+  // Compatibility name retained for existing day-view callers.
+  async getAppointmentsForDate(date) {
+    return this.getAppointmentsForUKDate(date);
   },
 
   // Generic date-range fetch — used by the standard month calendar view.
@@ -783,35 +829,29 @@ const DB = {
     // windows); use them exactly. The old version re-mangled them through
     // device-local setHours, which on a non-UK device shrank the range to a
     // few hours and cut the week/month view to a sliver of appointments.
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-
-    const rows = await this.db.appointments.toArray();
-    const matched = rows.filter(a => a.status !== 'cancelled' && this._inDateWindow(a.date, start, end));
-    return Promise.all(matched.map(a => decryptAppointment(a)));
+    return this.getAppointmentsBetween(startDate, endDate);
   },
 
-  async getUpcomingAppointments(days = 7) {
+  async getAppointmentsForUKCalendarDays(days = 7, anchor = new Date()) {
     // Window starts at today's UK midnight (not the current instant) so
     // appointments earlier today are still "upcoming" — the Home feed and
     // "next visit" queries must count every visit for today, otherwise a
     // morning appointment vanishes from Home the moment its time passes
     // (Home showed 3 of 4 today visits while the diary showed all 4).
-    const now = new Date();
-    const p = Utils.ukParts(now);
-    const start = Utils.ukMidnightInstant(p.year, p.month, p.day);
-    const future = new Date(start);
-    future.setDate(future.getDate() + days);
+    if (!Number.isInteger(days) || days < 0) throw new Error('days must be a non-negative integer');
+    const start = this._ukCalendarBoundary(anchor);
+    const end = this._ukCalendarBoundary(anchor, days);
+    return this.getAppointmentsBetween(start, end);
+  },
 
-    const rows = await this.db.appointments.toArray();
-    // Chronological order — "next visit" everywhere is the first row after
-    // .find(), and insertion order (row id) is NOT booking date order, so an
-    // appointment booked later for an earlier date would otherwise mask the
-    // ones in between (e.g. a 24th created before two 17ths).
-    const matched = rows
-      .filter(a => a.status !== 'cancelled' && this._inDateWindow(a.date, start, future))
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
-    return Promise.all(matched.map(a => decryptAppointment(a)));
+  async getFutureAppointmentsUntil(endDate, now = new Date()) {
+    return this.getAppointmentsBetween(now, endDate);
+  },
+
+  // Compatibility name: this is a UK calendar-day window, not a rolling
+  // duration. It intentionally includes earlier-today visits for Home.
+  async getUpcomingAppointments(days = 7) {
+    return this.getAppointmentsForUKCalendarDays(days);
   },
 
   // Canonical weekly stats: sales value, earnings (commission) and order
@@ -871,65 +911,129 @@ const DB = {
 
   // Order operations
   async addOrder(data) {
-    const seq = await this.getNextSequence('order');
-    const prefix = 'ORD';
-    const orderNumber = `${prefix}-${new Date().getFullYear()}-${String(seq).padStart(4, '0')}`;
+    return this._runWrite(['orders', 'customers', 'sequences'], async () => {
+      const seq = await this._nextSequenceUnsafe('order');
+      const order = {
+        ...data,
+        orderNumber: `ORD-${new Date().getFullYear()}-${String(seq).padStart(4, '0')}`,
+        depositRequired: App.calculateDeposit(data.total || 0).amount,
+        depositPaid: 0,
+        balanceDue: data.total || 0,
+        status: 'deposit_pending',
+        reviewRequested: false,
+        referralRequested: false,
+        createdAt: new Date().toISOString()
+      };
+      const id = await this.db.orders.add(order);
+      await this._refreshCustomerTotalsUnsafe(data.customerId);
+      return { ...order, id };
+    });
+  },
 
-    // Calculate deposit
-    const deposit = App.calculateDeposit(data.total || 0);
+  async setOrderStage(orderId, stage) {
+    await this.db.orders.update(orderId, { stage });
+  },
 
-    const order = {
-      ...data,
-      orderNumber,
-      depositRequired: deposit.amount,
-      depositPaid: 0,
-      balanceDue: data.total || 0,
-      status: 'deposit_pending',
-      reviewRequested: false,
-      referralRequested: false,
-      createdAt: new Date().toISOString()
-    };
+  async setOrderSupplierNumber(orderId, supplierOrderNumber) {
+    await this.db.orders.update(orderId, { supplierOrderNumber: supplierOrderNumber || null });
+  },
 
-    const id = await this.db.orders.add(order);
-
-    // Customer totals are RECOMPUTED from the orders table rather than
-    // incremented inline here. The old increment-only approach drifted
-    // whenever an order was edited, deleted, or re-created (e.g. an outcome
-    // flipped away from 'ordered' and back), leaving customer value/count
-    // totals permanently wrong. Recompute keeps them correct for any order
-    // lifecycle - refreshCustomerTotals is the only writer of these fields.
-    if (data.customerId) {
-      await this.refreshCustomerTotals(data.customerId);
+  async _recordOrderPaymentUnsafe(orderId, amount, operationId = null) {
+    const order = await this.db.orders.get(orderId);
+    if (!order) return null;
+    if (operationId && order.lastPaymentOperationId === operationId) {
+      return { order, applied: 0, balanceDue: order.balanceDue || 0, fullyPaid: (order.balanceDue || 0) <= 0 };
     }
+    const applied = Math.max(0, Math.min(Number(amount) || 0, order.balanceDue || 0));
+    const depositPaid = Math.min((order.depositPaid || 0) + applied, order.total || 0);
+    const balanceDue = Math.max(0, (order.balanceDue || 0) - applied);
+    const fields = { depositPaid, balanceDue, stage: balanceDue <= 0 ? 'paid' : (order.stage || 'ordered') };
+    if (operationId) fields.lastPaymentOperationId = operationId;
+    await this.db.orders.update(orderId, fields);
+    return { order: { ...order, ...fields }, applied, balanceDue, fullyPaid: balanceDue <= 0 };
+  },
 
-    return { ...order, id };
+  async recordOrderPayment(orderId, amount, operationId = null) {
+    return this._runWrite(['orders'], () => this._recordOrderPaymentUnsafe(orderId, amount, operationId));
+  },
+
+  async setOrderPaid(orderId) {
+    return this._runWrite(['orders'], async () => {
+      const order = await this.db.orders.get(orderId);
+      if (!order) return null;
+      const fields = { depositPaid: order.total || 0, balanceDue: 0, stage: 'paid' };
+      await this.db.orders.update(orderId, fields);
+      return { ...order, ...fields };
+    });
+  },
+
+  async _refreshCustomerTotalsUnsafe(customerId) {
+    if (!customerId) return;
+    const orders = await this.db.orders.where('customerId').equals(customerId).toArray();
+    await this.db.customers.update(customerId, {
+      totalOrdersValue: orders.reduce((sum, o) => sum + (o.total || 0), 0),
+      orderCount: orders.length,
+      totalCommission: orders.reduce((sum, o) => sum + (o.commission || 0), 0)
+    });
+  },
+
+  async completeVisitOutcome({ appointmentId, appointmentFields, paymentAmount = 0, paymentOperationId = null }) {
+    const current = await this.getAppointment(appointmentId);
+    if (!current) throw new Error('Appointment not found');
+    const encryptedFields = await encryptAppointment(appointmentFields);
+    const customerId = current.customerId;
+    return this._runWrite(['appointments', 'orders', 'customers', 'sequences'], async () => {
+      const linked = await this.db.orders.where('appointmentId').equals(appointmentId).toArray();
+      linked.sort((a, b) => (a.id || 0) - (b.id || 0));
+      let order = linked[0] || null;
+      for (const duplicate of linked.slice(1)) await this.db.orders.delete(duplicate.id);
+      if (appointmentFields.outcome === 'ordered' && (appointmentFields.value || 0) > 0) {
+        const total = appointmentFields.value;
+        const depositRequired = App.calculateDeposit(total).amount;
+        if (order) {
+          const depositPaid = Math.min(order.depositPaid || 0, total);
+          const balanceDue = Math.max(0, total - depositPaid);
+          const fields = { total, depositRequired, depositPaid, balanceDue, status: 'deposit_pending', stage: balanceDue <= 0 ? 'paid' : (order.stage === 'paid' ? 'ordered' : (order.stage || 'ordered')) };
+          await this.db.orders.update(order.id, fields);
+          order = { ...order, ...fields };
+        } else {
+          const seq = await this._nextSequenceUnsafe('order');
+          order = { customerId, appointmentId, total, orderNumber: `ORD-${new Date().getFullYear()}-${String(seq).padStart(4, '0')}`, depositRequired, depositPaid: 0, balanceDue: total, status: 'deposit_pending', stage: 'ordered', reviewRequested: false, referralRequested: false, createdAt: new Date().toISOString() };
+          order.id = await this.db.orders.add(order);
+        }
+      } else if (order && current.outcome === 'ordered') {
+        for (const linkedOrder of linked) await this.db.orders.delete(linkedOrder.id);
+        order = null;
+      }
+      let payment = null;
+      if ((Number(paymentAmount) || 0) > 0 && customerId) {
+        const openOrders = (await this.db.orders.where('customerId').equals(customerId).toArray())
+          .filter(candidate => (candidate.balanceDue || 0) > 0)
+          .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+        if (openOrders[0]) payment = await this._recordOrderPaymentUnsafe(openOrders[0].id, paymentAmount, paymentOperationId);
+      }
+      await this._refreshCustomerTotalsUnsafe(customerId);
+      await this.db.appointments.update(appointmentId, encryptedFields);
+      return { order, payment };
+    });
   },
 
   // Recomputes a customer's order aggregates from the orders table itself.
   // Single source of truth: called after add/update/delete of any order.
   async refreshCustomerTotals(customerId) {
-    if (!customerId) return;
-    const orders = await this.db.orders.where('customerId').equals(customerId).toArray();
-    const totalOrdersValue = orders.reduce((sum, o) => sum + (o.total || 0), 0);
-    const orderCount = orders.length;
-    const totalCommission = orders.reduce((sum, o) => sum + (o.commission || 0), 0);
-    await this.db.customers.update(customerId, {
-      totalOrdersValue,
-      orderCount,
-      totalCommission
-    });
+    return this._runWrite(['orders', 'customers'], () => this._refreshCustomerTotalsUnsafe(customerId));
   },
 
   // Deletes an order and refreshes the owning customer's totals.
   // Returns the deleted order (or null if it didn't exist).
   async removeOrder(orderId) {
-    const order = await this.db.orders.get(orderId);
-    if (!order) return null;
-    await this.db.orders.delete(orderId);
-    if (order.customerId) {
-      await this.refreshCustomerTotals(order.customerId);
-    }
-    return order;
+    return this._runWrite(['orders', 'customers'], async () => {
+      const order = await this.db.orders.get(orderId);
+      if (!order) return null;
+      await this.db.orders.delete(orderId);
+      await this._refreshCustomerTotalsUnsafe(order.customerId);
+      return order;
+    });
   },
 
   // Expense operations
@@ -1027,7 +1131,15 @@ const DB = {
   // once opened; the bundled shim keeps it internally without exposing it, so
   // fall back to the current schema constant (2 = photos table added).
   schemaVersion() {
-    return typeof this.db.verno === 'number' ? this.db.verno : 2;
+    return typeof this.db.verno === 'number' ? this.db.verno : DATABASE_SCHEMA_VERSION;
+  },
+
+  storageContract() {
+    return {
+      databaseSchemaVersion: DATABASE_SCHEMA_VERSION,
+      backupFormatVersion: BACKUP_FORMAT_VERSION,
+      backupTables: BACKUP_TABLES.slice()
+    };
   },
 
   // Export
@@ -1168,6 +1280,13 @@ const DB = {
     // 1. Every supplied table must be a list of records; a backup carrying no
     // tables at all is corrupt (importing it would wipe the database with
     // nothing to restore).
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      throw new Error('Backup file is corrupt: data is not an object');
+    }
+    const unknownTables = Object.keys(data).filter(table => !BACKUP_TABLES.includes(table));
+    if (unknownTables.length) {
+      throw new Error(`Backup file is incompatible: unknown table "${unknownTables[0]}"`);
+    }
     const present = [];
     for (const table of BACKUP_TABLES) {
       if (data[table] === undefined) continue;

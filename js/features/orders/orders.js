@@ -264,7 +264,7 @@ const OrdersFeature = {
 
   async setStage(orderId, stage) {
     try {
-      await DB.db.orders.update(orderId, { stage });
+      await DB.setOrderStage(orderId, stage);
       Toast.show('Order moved to ' + stage, 'success');
       this.refreshAfterEdit(orderId);
     } catch (e) {
@@ -276,7 +276,7 @@ const OrdersFeature = {
   async saveSupplierNumber(orderId) {
     const value = (document.getElementById('order-supplier-number')?.value || '').trim();
     try {
-      await DB.db.orders.update(orderId, { supplierOrderNumber: value || null });
+      await DB.setOrderSupplierNumber(orderId, value);
       Toast.show('Supplier number saved', 'success');
       this.refreshAfterEdit(orderId);
     } catch (e) {
@@ -293,14 +293,9 @@ const OrdersFeature = {
       Toast.show('Enter an amount first', 'warning');
       return;
     }
-    const depositPaid = Math.min((order.depositPaid || 0) + amount, order.total || 0);
-    const balanceDue = Math.max(0, (order.balanceDue || 0) - amount);
     try {
-      await DB.db.orders.update(orderId, {
-        depositPaid,
-        balanceDue,
-        stage: balanceDue <= 0 ? 'paid' : (order.stage || 'ordered')
-      });
+      const result = await DB.recordOrderPayment(orderId, amount);
+      const balanceDue = result.balanceDue;
       Toast.show(balanceDue <= 0 ? 'Order fully paid' : `Payment recorded · ${Utils.formatCurrency(balanceDue)} to go`, 'success');
       this.refreshAfterEdit(orderId);
     } catch (e) {
@@ -337,11 +332,7 @@ const OrdersFeature = {
     const order = await DB.db.orders.get(orderId);
     if (!order) return;
     try {
-      await DB.db.orders.update(orderId, {
-        depositPaid: order.total || 0,
-        balanceDue: 0,
-        stage: 'paid'
-      });
+      await DB.setOrderPaid(orderId);
       Toast.show('Order marked fully paid', 'success');
       this.refreshAfterEdit(orderId);
     } catch (e) {

@@ -15,6 +15,7 @@ function loadAll(entries, tailExpr) {
 // ---- Minimal DOM/global stubs ----
 global.document = {
   getElementById: () => null,
+  querySelector: () => null,
   querySelectorAll: () => [],
   createElement: () => ({ style: {}, appendChild() {}, remove() {} }),
   head: { appendChild() {} },
@@ -127,6 +128,9 @@ global.DB = {
   getExpensesForPeriod: async () => [{ amount: 80.2, category: 'fuel' }, { amount: 65, category: 'fuel' }],
   getTripsForPeriod: async () => [{ distanceKm: 120 }, { distanceKm: 98 }],
   getUpcomingAppointments: async () => APPOINTMENTS.filter(a => a.status !== 'cancelled'),
+  getFutureAppointmentsUntil: async (_end, now = new Date()) => APPOINTMENTS
+    .filter(a => a.status !== 'cancelled' && new Date(a.date) >= new Date(now))
+    .sort((a, b) => new Date(a.date) - new Date(b.date)),
   getAppointment: async id => APPOINTMENTS.find(a => a.id === id) || null,
   getAllAppointments: async () => APPOINTMENTS,
   getAppointmentsByCustomer: async customerId => APPOINTMENTS.filter(a => a.customerId === customerId),
@@ -164,7 +168,9 @@ assert(norm('follow ups') === 'follow-ups', 'alias "follow ups" routes');
 assert(norm('what can you do') === 'help', 'help phrasing routes');
 assert(norm('good morning') === 'greeting', 'greeting routes');
 assert(norm('random gibberish 123') === 'default', 'unknown routes to default');
-assert(norm('') === 'default', 'empty routes to default');
+  assert(norm('') === 'default', 'empty routes to default');
+  assert(Companion.homeVisitTime({ date: iso(0), arrivalStart: '09:00', arrivalEnd: '11:00' }).text === '09:00–11:00', 'Home prefers the promised arrival window');
+  assert(Companion.homeVisitTime({ date: iso(0), arrivalStart: '09:00' }).isWindow === false, 'Home ignores an incomplete arrival window');
 
 (async () => {
   // ---------- week handler ----------
@@ -186,11 +192,13 @@ assert(norm('') === 'default', 'empty routes to default');
   // ---------- today handler ----------
   const today = new Date();
   today.setHours(10, 0, 0, 0);
-  const tomorrow = new Date();
-  tomorrow.setHours(13, 30, 0, 0);
+  // This row drives the true-future [now, end) API. Keep it relative to the
+  // current instant: setting 13:30 in the device timezone made it past data
+  // when the suite ran after that hour (especially in Pacific/Kiritimati).
+  const nextVisitAt = new Date(Date.now() + 60 * 60 * 1000);
   APPOINTMENTS.push(
     { id: 1, clientName: 'Mrs Jones', type: 'consultation', date: today.toISOString(), address: '1 Elm Road', status: 'completed', outcome: 'ordered' },
-    { id: 2, customerId: 2, clientName: 'Mr Patel', type: 'consultation', date: tomorrow.toISOString(), address: '2 Oak Road', status: 'confirmed' }
+    { id: 2, customerId: 2, clientName: 'Mr Patel', type: 'consultation', date: nextVisitAt.toISOString(), address: '2 Oak Road', status: 'confirmed' }
   );
   const day = await Companion.answerToday();
   assert(day.facts.some(f => f.label === 'Visits today' && f.value === '2'), 'Today facts carry visit count');
@@ -331,6 +339,34 @@ assert(norm('') === 'default', 'empty routes to default');
   // Follow-ups filtered by kind.
   const fq = await Companion.answerFollowUps('who needs a quote chase');
   assert(fq.facts.length === 1 && fq.facts[0].label === 'Sarah', 'Follow-ups filter by kind (quotes)', fq.facts);
+
+  // Home schedule presentation: one continuous agenda owns the featured
+  // visit and all compact appointment rows.
+  const scheduleHtml = Companion.welcomeHtml({
+    nextVisit: {
+      id: 1, name: 'Mrs Smith', date: new Date().toISOString(), time: '09:30',
+      hasArrivalWindow: true, type: 'Fitting', address: '14 Beechwood Avenue', area: 'M33', eta: '18 min'
+    },
+    upcomingVisits: [
+      { id: 2, name: 'Mr Khan', date: iso(1), time: '11:00–13:00', hasArrivalWindow: true, type: 'Sales', area: 'Altrincham', eta: '25 min' }
+    ],
+    attention: [], suggestions: []
+  });
+  assert(scheduleHtml.includes('comp-home-greeting-main') && scheduleHtml.includes('<span class="comp-home-greeting-dot">.</span>'), 'Home starts with the advisor name and gold full stop');
+  assert((scheduleHtml.match(/comp-home-schedule"/g) || []).length === 1, 'Home renders one appointment schedule panel');
+  assert(scheduleHtml.includes('comp-home-schedule-list') && scheduleHtml.includes('comp-home-next-visit') && scheduleHtml.includes('comp-home-visit upcoming'), 'Schedule contains featured visit and compact rows');
+  assert(scheduleHtml.includes('09:30') && scheduleHtml.includes('11:00–13:00') && !scheduleHtml.includes('Arrival window') && !scheduleHtml.includes('Window '), 'Schedule shows promised time ranges without redundant labels');
+  assert(!scheduleHtml.includes('BEFORE YOU GO') && !scheduleHtml.includes('comp-home-customer-brief'), 'Featured visit omits the before-you-go block');
+  assert(scheduleHtml.includes('>Navigate<') && scheduleHtml.includes('>Call<') && scheduleHtml.includes('>On my way<'), 'Featured visit exposes the three field actions');
+
+  const priorDate = new Date(Date.now() - 86400000).toISOString();
+  APPOINTMENTS.push(
+    { id: 70, customerId: 70, date: priorDate, type: 'fitting', outcome: 'completed', notes: 'Parking: use visitor bay\nPets: dog in kitchen' },
+    { id: 71, customerId: 70, date: iso(1), type: 'service_call', notes: 'Access code: 2468\nFloor: second floor\nCustomer reports blind catches' }
+  );
+  const brief = await Companion.customerBriefFor(APPOINTMENTS.find(a => a.id === 71));
+  assert(brief.text.includes('Parking: use visitor bay') && brief.text.includes('Access: 2468') && brief.text.includes('Pets: dog in kitchen') && brief.text.includes('Floor: second floor'), 'Local customer brief combines operational facts across Customer 360 history', brief.text);
+  assert(brief.text.includes('1 previous visit') && brief.text.includes('last outcome: Fitted'), 'Local brief reports repeat-customer history without inventing detail', brief.text);
 
   // ---------- AI data minimisation ----------
   // Whatever goes to Claude must not carry the customer's most sensitive

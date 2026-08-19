@@ -1,0 +1,26 @@
+{
+  "databaseName": "advisoros_v6",
+  "databaseSchemaVersion": 2,
+  "capturedAt": "2026-08-01T09:00:00.000Z",
+  "data": {
+    "customers": [
+      { "id": 1, "firstName": "Current", "lastName": "Sample", "customerNumber": "CUS-2026-0004", "phone": "07000 000002", "status": "active", "createdAt": "2026-08-01T08:00:00.000Z" }
+    ],
+    "appointments": [
+      { "id": 1, "customerId": 1, "clientName": "Current Sample", "date": "2026-08-03T13:00:00.000Z", "type": "consultation", "status": "confirmed", "createdAt": "2026-08-01T08:10:00.000Z" }
+    ],
+    "orders": [],
+    "expenses": [],
+    "trips": [],
+    "measurements": [],
+    "communications": [],
+    "photos": [],
+    "settings": [
+      { "key": "config", "value": { "advisorName": "Current Advisor", "weeklyTarget": 600 } }
+    ],
+    "sequences": [
+      { "name": "customer", "value": 4 },
+      { "name": "order", "value": 0 }
+    ]
+  }
+}

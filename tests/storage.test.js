@@ -338,7 +338,7 @@ async function runDbJs(engine, tag) {
   // Mixed date storage: a Date object (older engines/imports) must appear in
   // the day/range queries too — string-bounded index ranges silently skip it.
   // Pinned to the UK day (the app's date contract) so these assertions hold
-  // on any device timezone; the day window is [UK midnight, +24h).
+  // on any device timezone; every public window is half-open [start, end).
   const sandboxUtils = vm.runInContext('Utils;', sandbox);
   const ukNow = sandboxUtils.ukParts(new Date());
   const t = sandboxUtils.ukMidnightInstant(ukNow.year, ukNow.month, ukNow.day);
@@ -350,7 +350,7 @@ async function runDbJs(engine, tag) {
   await DB.db.appointments.add({ customerId: 2, clientName: 'Early UK Row', date: earlyRow.toISOString(), status: 'confirmed' });
   const prevLate = new Date(t.getTime() - 3600000);
   await DB.db.appointments.add({ customerId: 2, clientName: 'Prev Late Row', date: prevLate.toISOString(), status: 'confirmed' });
-  const upcomingRow = new Date(Date.now() + 3600000);
+  const upcomingRow = new Date(t.getTime() + 2 * 3600000);
   await DB.db.appointments.add({ customerId: 2, clientName: 'Upcoming Row', date: upcomingRow, status: 'confirmed' });
   const dayRows = await DB.getAppointmentsForDate(t);
   ok(engine + ': day query finds ISO-string rows', dayRows.some(a => a.clientName === 'Date Object Row'));
@@ -361,6 +361,49 @@ async function runDbJs(engine, tag) {
   ok(engine + ': range query finds Date-object rows', rangeRows.some(a => a.clientName === 'Raw Date Row'));
   const upcoming = await DB.getUpcomingAppointments(1);
   ok(engine + ': upcoming finds Date-object rows', upcoming.some(a => a.clientName === 'Upcoming Row'));
+
+  // Explicit query contracts: sorted, cancelled-free, half-open, and stable
+  // without depending on the wall clock at which the suite happens to run.
+  const fixedStart = new Date('2026-02-10T10:00:00.000Z');
+  const fixedEnd = new Date('2026-02-10T12:00:00.000Z');
+  await DB.db.appointments.bulkAdd([
+    { customerId: 2, clientName: 'Window Later', date: new Date('2026-02-10T11:30:00.000Z'), status: 'confirmed' },
+    { customerId: 2, clientName: 'Window Earlier', date: '2026-02-10T10:30:00.000Z', status: 'confirmed' },
+    { customerId: 2, clientName: 'Window Cancelled', date: '2026-02-10T11:00:00.000Z', status: 'cancelled' },
+    { customerId: 2, clientName: 'Window At End', date: fixedEnd.toISOString(), status: 'confirmed' }
+  ]);
+  const between = await DB.getAppointmentsBetween(fixedStart, fixedEnd);
+  const windowNames = between.filter(a => a.clientName.startsWith('Window ')).map(a => a.clientName);
+  ok(engine + ': exact window is sorted and excludes cancelled rows',
+    JSON.stringify(windowNames) === JSON.stringify(['Window Earlier', 'Window Later']), windowNames);
+  ok(engine + ': exact window excludes its upper bound', !windowNames.includes('Window At End'), windowNames);
+  const future = await DB.getFutureAppointmentsUntil(fixedEnd, fixedStart);
+  ok(engine + ': future query uses explicit instants',
+    future.some(a => a.clientName === 'Window Earlier') && !future.some(a => a.clientName === 'Window At End'));
+
+  // UK calendar boundaries must use the real next UK midnight: spring has
+  // 23 hours and autumn has 25. A row at the following midnight belongs only
+  // to the following day.
+  const springAnchor = new Date('2024-03-31T12:00:00.000Z');
+  const springStart = sandboxUtils.ukMidnightInstant(2024, 3, 31);
+  const springEnd = sandboxUtils.ukMidnightInstant(2024, 4, 1);
+  const autumnAnchor = new Date('2024-10-27T12:00:00.000Z');
+  const autumnStart = sandboxUtils.ukMidnightInstant(2024, 10, 27);
+  const autumnEnd = sandboxUtils.ukMidnightInstant(2024, 10, 28);
+  ok(engine + ': UK spring-forward calendar day is 23 hours', springEnd - springStart === 23 * 3600000);
+  ok(engine + ': UK autumn-fallback calendar day is 25 hours', autumnEnd - autumnStart === 25 * 3600000);
+  await DB.db.appointments.bulkAdd([
+    { customerId: 2, clientName: 'Spring Last', date: new Date(springEnd.getTime() - 1), status: 'confirmed' },
+    { customerId: 2, clientName: 'Spring Boundary', date: springEnd, status: 'confirmed' },
+    { customerId: 2, clientName: 'Autumn Last', date: new Date(autumnEnd.getTime() - 1), status: 'confirmed' },
+    { customerId: 2, clientName: 'Autumn Boundary', date: autumnEnd, status: 'confirmed' }
+  ]);
+  const springRows = await DB.getAppointmentsForUKDate(springAnchor);
+  const autumnRows = await DB.getAppointmentsForUKCalendarDays(1, autumnAnchor);
+  ok(engine + ': spring day includes last instant and excludes next midnight',
+    springRows.some(a => a.clientName === 'Spring Last') && !springRows.some(a => a.clientName === 'Spring Boundary'));
+  ok(engine + ': autumn day includes last instant and excludes next midnight',
+    autumnRows.some(a => a.clientName === 'Autumn Last') && !autumnRows.some(a => a.clientName === 'Autumn Boundary'));
   await DB.db.appointments.filter(a => ['Raw Date Row', 'Early UK Row', 'Prev Late Row', 'Upcoming Row'].includes(a.clientName)).delete();
 
   // Factory reset: every table empties and app-prefixed localStorage keys go.
@@ -658,6 +701,14 @@ async function runBackupRoundtrip(engine, tag) {
   // (importing it would wipe the database with nothing to restore).
   await expectReject('empty backup (no tables)', {});
 
+  // Unknown tables cannot be silently discarded: that would report a
+  // successful restore while losing data from a newer/incompatible model.
+  await expectReject('unknown backup table', {
+    customers: [goodCustomer],
+    appointments: [],
+    futureJobs: [{ id: 1 }]
+  });
+
   // 3. Invalid record: entries that aren't record objects.
   await expectReject('malformed record', { customers: [null], appointments: [] });
 
@@ -790,6 +841,9 @@ async function runBackupEnvelope() {
   CONFIG.weeklyTarget = 750;
 
   const backup = await ExportService.exportBackup();
+  const storageContract = DB.storageContract();
+  ok('envelope: authoritative storage contract is schema 2 / format 1',
+    storageContract.databaseSchemaVersion === 2 && storageContract.backupFormatVersion === 1, storageContract);
   ok('envelope: backupFormatVersion present', backup.backupFormatVersion === 1, backup.backupFormatVersion);
   ok('envelope: databaseSchemaVersion present', backup.databaseSchemaVersion === 2, backup.databaseSchemaVersion);
   ok('envelope: appVersion present', backup.appVersion === '5.0', backup.appVersion);
@@ -826,6 +880,32 @@ async function runBackupEnvelope() {
     await ExportService.importBackup({ text: async () => JSON.stringify({ backupFormatVersion: 99, data: {} }) });
   } catch (e) { threw = e.message.indexOf('newer version') !== -1; }
   ok('envelope: future format version rejected', threw);
+
+  const intactBeforeMetadataRejects = JSON.stringify(await DB.exportAll());
+  threw = false;
+  try {
+    await ExportService.importBackup({ text: async () => JSON.stringify({
+      backupFormatVersion: 1,
+      databaseSchemaVersion: storageContract.databaseSchemaVersion + 1,
+      appVersion: '6.0', version: '6.0', exportedAt: now, data: backup.data
+    }) });
+  } catch (e) { threw = e.message.includes('newer database schema'); }
+  ok('envelope: future database schema rejected', threw);
+  ok('envelope: future schema rejection leaves every table intact',
+    JSON.stringify(await DB.exportAll()) === intactBeforeMetadataRejects);
+
+  for (const [label, field, value] of [
+    ['exportedAt', 'exportedAt', 'not-a-date'],
+    ['database schema', 'databaseSchemaVersion', 0],
+    ['app version', 'appVersion', { bad: true }]
+  ]) {
+    const malformed = { ...backup, [field]: value };
+    threw = false;
+    try { await ExportService.importBackup({ text: async () => JSON.stringify(malformed) }); } catch (e) { threw = true; }
+    ok(`envelope: malformed ${label} metadata rejected`, threw);
+    ok(`envelope: malformed ${label} leaves every table intact`,
+      JSON.stringify(await DB.exportAll()) === intactBeforeMetadataRejects);
+  }
 
   threw = false;
   try {
@@ -864,6 +944,42 @@ async function runBackupEnvelope() {
   ok('envelope: unknown config key rejected', !('evilKey' in CONFIG));
   ok('envelope: type-mismatched config value rejected', typeof CONFIG.weeklyTarget === 'number');
   ok('envelope: injected secret cannot override device secret', CONFIG.ai.secret === 'device-secret', CONFIG.ai.secret);
+}
+
+// Immutable Phase 0 compatibility fixtures are executable contracts, not
+// documentation samples. Exercise every fixture through both supported
+// storage engines and prove record counts plus post-restore sequence floors.
+async function runPhase0Fixtures(engine) {
+  const manifest = JSON.parse(fs.readFileSync(path.join(REPO, 'tests/fixtures/phase0-manifest.json'), 'utf8'));
+  for (const entry of manifest.fixtures) {
+    const fixture = JSON.parse(fs.readFileSync(path.join(REPO, 'tests/fixtures', entry.file), 'utf8'));
+    const data = fixture.data;
+    const sandbox = baseSandbox();
+    if (engine === 'dexie') {
+      const Dexie = require('dexie');
+      Dexie.dependencies.indexedDB = indexedDB;
+      Dexie.dependencies.IDBKeyRange = IDBKeyRange;
+      sandbox.Dexie = Dexie;
+    } else {
+      sandbox.Dexie = loadShim(sandbox);
+    }
+    const DB = loadDbJs(sandbox, `advisoros_v6_fixture_${engine}_${entry.kind}_${Date.now()}`);
+    await DB.init();
+    await sandbox.initEncryption('fixture-passphrase');
+    await DB.importAll(JSON.parse(JSON.stringify(data)));
+    const restored = await DB.exportAll();
+    const inputCounts = Object.fromEntries(DB.storageContract().backupTables.map(table => [table, (data[table] || []).length]));
+    ok(`${engine}: ${entry.kind} fixture source counts match manifest`,
+      JSON.stringify(inputCounts) === JSON.stringify(entry.expectedCounts), { inputCounts, expected: entry.expectedCounts });
+    const recordsPreserved = DB.storageContract().backupTables
+      .filter(table => table !== 'sequences')
+      .every(table => restored[table].length === entry.expectedCounts[table]);
+    ok(`${engine}: ${entry.kind} fixture restores expected records`, recordsPreserved);
+    const sequences = Object.fromEntries(restored.sequences.map(row => [row.name, row.value]));
+    ok(`${engine}: ${entry.kind} fixture enforces sequence floors`,
+      Object.entries(entry.expectedSequenceFloors).every(([name, floor]) => (sequences[name] || 0) >= floor),
+      { sequences, floors: entry.expectedSequenceFloors });
+  }
 }
 
 // Cross-install restore: a backup made under one passphrase must restore
@@ -913,6 +1029,64 @@ async function runCrossInstallRestore(engine, tag) {
   ok(engine + ': restored customer searchable', search.length === 1 && search[0].firstName === 'Vera', search.length);
 }
 
+async function runMutationBoundaries(engine) {
+  const sandbox = baseSandbox();
+  if (engine === 'dexie') {
+    const Dexie = require('dexie');
+    Dexie.dependencies.indexedDB = indexedDB;
+    Dexie.dependencies.IDBKeyRange = IDBKeyRange;
+    sandbox.Dexie = Dexie;
+  } else {
+    sandbox.Dexie = loadShim(sandbox);
+  }
+  const DB = loadDbJs(sandbox, 'advisoros_v6_mutations_' + engine + '_' + Date.now());
+  await DB.init();
+  await sandbox.initEncryption('mutation-passphrase');
+  const customer = await DB.addCustomer({ firstName: 'Jo', lastName: 'Field' });
+  const appt = await DB.addAppointment({ customerId: customer.id, date: new Date().toISOString(), type: 'consultation' });
+  const fields = { status: 'completed', outcome: 'ordered', value: 1000, commission: 100, completedAt: Date.now(), travelStatus: null };
+
+  let result = await DB.completeVisitOutcome({ appointmentId: appt.id, appointmentFields: fields, paymentAmount: 200, paymentOperationId: 'door-1' });
+  let linked = await DB.db.orders.where('appointmentId').equals(appt.id).toArray();
+  ok(engine + ': outcome creates exactly one linked order', linked.length === 1, linked.length);
+  ok(engine + ': door payment applied and clamped', result.payment.applied === 200 && linked[0].depositPaid === 200 && linked[0].balanceDue === 800, linked[0]);
+
+  await DB.completeVisitOutcome({ appointmentId: appt.id, appointmentFields: fields, paymentAmount: 200, paymentOperationId: 'door-1' });
+  linked = await DB.db.orders.where('appointmentId').equals(appt.id).toArray();
+  ok(engine + ': retry token prevents duplicate payment', linked[0].depositPaid === 200 && linked[0].balanceDue === 800, linked[0]);
+
+  await DB.completeVisitOutcome({ appointmentId: appt.id, appointmentFields: { ...fields, value: 1200 }, paymentAmount: 0 });
+  linked = await DB.db.orders.where('appointmentId').equals(appt.id).toArray();
+  ok(engine + ': re-save preserves paid amount without resurrecting full balance', linked.length === 1 && linked[0].depositPaid === 200 && linked[0].balanceDue === 1000, linked[0]);
+
+  await DB.db.orders.add({ ...linked[0], id: undefined, orderNumber: 'DUPLICATE' });
+  await DB.completeVisitOutcome({ appointmentId: appt.id, appointmentFields: { ...fields, value: 1200 } });
+  linked = await DB.db.orders.where('appointmentId').equals(appt.id).toArray();
+  ok(engine + ': reconciliation removes duplicate linked orders', linked.length === 1, linked.length);
+
+  result = await DB.recordOrderPayment(linked[0].id, 99999);
+  ok(engine + ': payment never exceeds balance', result.applied === 1000 && result.balanceDue === 0 && result.fullyPaid);
+
+  await DB.completeVisitOutcome({ appointmentId: appt.id, appointmentFields: { ...fields, outcome: 'quoted', value: 900, commission: null } });
+  linked = await DB.db.orders.where('appointmentId').equals(appt.id).toArray();
+  const totals = await DB.db.customers.get(customer.id);
+  ok(engine + ': ordered outcome reversal removes linked order and totals', linked.length === 0 && totals.orderCount === 0 && totals.totalOrdersValue === 0, { linked: linked.length, totals });
+
+  if (engine === 'dexie') {
+    const appt2 = await DB.addAppointment({ customerId: customer.id, date: new Date().toISOString(), type: 'consultation' });
+    const originalRefresh = DB._refreshCustomerTotalsUnsafe;
+    DB._refreshCustomerTotalsUnsafe = async () => { throw new Error('injected mutation failure'); };
+    let threw = false;
+    try {
+      await DB.completeVisitOutcome({ appointmentId: appt2.id, appointmentFields: fields });
+    } catch (e) { threw = true; }
+    DB._refreshCustomerTotalsUnsafe = originalRefresh;
+    const rolledBackAppt = await DB.getAppointment(appt2.id);
+    const rolledBackOrders = await DB.db.orders.where('appointmentId').equals(appt2.id).toArray();
+    ok('dexie: outcome mutation failure rolls back all records', threw && rolledBackAppt.outcome !== 'ordered' && rolledBackOrders.length === 0, { threw, outcome: rolledBackAppt.outcome, orders: rolledBackOrders.length });
+  }
+}
+
 // ---------- runner ----------
 
 (async () => {
@@ -952,6 +1126,14 @@ async function runCrossInstallRestore(engine, tag) {
 
   console.log('\nTest 10: cross-install restore — bundled shim');
   await runCrossInstallRestore('shim', 'shim');
+  console.log('\nTest 11: mutation boundaries — real Dexie');
+  await runMutationBoundaries('dexie');
+  console.log('\nTest 12: mutation boundaries — bundled shim');
+  await runMutationBoundaries('shim');
+  console.log('\nTest 13: Phase 0 fixtures — real Dexie');
+  await runPhase0Fixtures('dexie');
+  console.log('\nTest 14: Phase 0 fixtures — bundled shim');
+  await runPhase0Fixtures('shim');
   console.log('\n' + (failures === 0 ? 'ALL TESTS PASSED' : failures + ' TEST(S) FAILED'));
   process.exit(failures === 0 ? 0 : 1);
 })().catch(e => { console.error('UNEXPECTED ERROR:', e); process.exit(1); });

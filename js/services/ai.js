@@ -307,6 +307,35 @@ const AIService = {
     return { ok: true, text: parsed.draft_message || rawText, nudge: parsed.nudge || '', rawText, usage: result.data.usage };
   },
 
+  // Optional phrasing for Home's customer brief. The caller supplies only
+  // already-extracted operational facts — never names, phone numbers,
+  // addresses, postcodes or raw Customer 360 records.
+  async customerBrief({ facts = [] } = {}) {
+    const safeFacts = facts.map(v => String(v || '').trim()).filter(Boolean).slice(0, 5);
+    if (!safeFacts.length) return { ok: false, reason: 'empty' };
+    const result = await this._request({
+      type: 'customer_brief',
+      model: this.config().draftModel,
+      facts: safeFacts
+    }, 12000);
+    if (!result.ok) return result;
+    const parsed = this._parseCustomerBrief(result.data.text || '');
+    return parsed ? { ok: true, text: parsed.slice(0, 180), usage: result.data.usage } : { ok: false, reason: 'invalid_response' };
+  },
+
+  _parseCustomerBrief(rawText) {
+    const parse = text => {
+      try {
+        const value = JSON.parse(text);
+        return value && typeof value.brief === 'string' ? value.brief.trim() : '';
+      } catch (e) { return ''; }
+    };
+    return parse(rawText) || parse(rawText.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '').trim()) || (() => {
+      const start = rawText.indexOf('{'); const end = rawText.lastIndexOf('}');
+      return start >= 0 && end > start ? parse(rawText.slice(start, end + 1)) : '';
+    })();
+  },
+
   // Claude wraps the draft answer in {nudge, draft_message} JSON — the same
   // fence/preamble ladder as the OCR parsers, since a markdown fence or a
   // "Here you go:" preamble would otherwise blank the draft.

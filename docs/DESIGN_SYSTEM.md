@@ -58,7 +58,7 @@ deliberate readability choice.
 | **Amber** | `--warning` (`#C08A2D`) | **Overdue / urgent-but-not-broken.** The "Overdue" tag, overdue day-strip state, payment reminders. Deliberately a different hue from gold — gold is brand, amber is a warning. |
 | **Green** | `--secondary` (`#4f6a2f`) | **Success / done / positive.** "Done" states, success badges/toasts, paid order text. |
 | **Red** | `--danger` (`#C0563F`) | **Destructive / needs action now.** Delete, service issues, high-priority follow-up badges. Use `--danger-text` (`#E0876F`) for small text on dark surfaces. |
-| **Slate** | `--info` (`#5A7180`) | **Neutral info / delivered.** Info toasts, "delivered" states. |
+| **Slate** | `--info` (`#8299A8`) | **Neutral info / delivered.** Info toasts, "delivered" states; light enough for accessible small text on dark surfaces. |
 
 Rules that follow from this:
 - Warnings and brand accents are never the same colour (gold ≠ amber).

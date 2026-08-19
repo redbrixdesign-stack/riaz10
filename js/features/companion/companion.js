@@ -94,12 +94,85 @@ const CompanionFeature = {
     return '';
   },
 
+  // A truthful, offline-first "before you go" summary. It only uses notes
+  // already recorded against this customer's visits and a small amount of
+  // history metadata. Labelled facts win over prose so access details are
+  // predictable and easy to scan in the field.
+  async customerBriefFor(appt) {
+    if (!appt) return { text: 'No customer notes recorded yet.', fingerprint: '' };
+    let visits = [appt];
+    if (appt.customerId) {
+      try { visits = await DB.getAppointmentsByCustomer(appt.customerId); } catch (e) { /* current visit is enough */ }
+    }
+    const chronological = visits.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+    const noteField = (notes, label) => {
+      const match = String(notes || '').match(new RegExp(`^\\s*${label}\\s*[:\\-]\\s*(.+?)\\s*$`, 'im'));
+      return match ? match[1].trim() : '';
+    };
+    const facts = [];
+    const labels = [
+      ['Parking', 'parking'], ['Access', 'access(?: code)?'], ['Pets', 'pets?'], ['Floor', 'floor']
+    ];
+    for (const [title, pattern] of labels) {
+      const value = chronological.map(v => noteField(v.notes, pattern)).find(Boolean);
+      if (value) facts.push(`${title}: ${value}`);
+    }
+    const past = chronological.filter(v => v.id !== appt.id && new Date(v.date) < new Date());
+    if (past.length) {
+      const last = past.find(v => v.outcome);
+      facts.push(`${past.length} previous visit${past.length === 1 ? '' : 's'}${last ? `; last outcome: ${this.outcomeName(last.type, last.outcome)}` : ''}`);
+    }
+    // Preserve a useful unlabelled current-visit note after the operational
+    // facts and repeat-customer signal, so those higher-value facts survive
+    // the deliberately short five-item Home summary.
+    const freeNote = String(appt.notes || '').split(/\r?\n/)
+      .map(s => s.trim()).filter(s => s && !/^(parking|access(?: code)?|pets?|floor)\s*[:\-]/i.test(s))[0];
+    if (freeNote) facts.push(freeNote);
+    const localText = facts.slice(0, 5).join(' · ') || 'No customer notes recorded yet.';
+    const source = JSON.stringify({ customerId: appt.customerId || null, facts: facts.slice(0, 5) });
+    let hash = 5381;
+    for (let i = 0; i < source.length; i++) hash = ((hash << 5) + hash) ^ source.charCodeAt(i);
+    const fingerprint = (hash >>> 0).toString(36);
+    this._briefCache ||= new Map();
+    const cached = this._briefCache.get(fingerprint) || '';
+    if (!cached && CONFIG.ai?.customerBriefsEnabled && typeof AIService !== 'undefined' && AIService.isEnabled()) {
+      const aiFacts = facts.filter(f => /^(Parking|Access|Pets|Floor):|^\d+ previous visit/.test(f)).slice(0, 5);
+      // Deliberately detached: Home never waits for a network or model call.
+      if (aiFacts.length) setTimeout(() => this.enhanceCustomerBrief(aiFacts, fingerprint), 0);
+    }
+    return { text: cached || localText, fingerprint, ai: !!cached };
+  },
+
+  async enhanceCustomerBrief(facts, fingerprint) {
+    if (!facts.length || this._briefRequests?.has(fingerprint)) return;
+    this._briefRequests ||= new Set();
+    this._briefRequests.add(fingerprint);
+    try {
+      const result = await AIService.customerBrief({ facts: facts.slice(0, 5) });
+      const text = result.ok ? String(result.text || '').trim().slice(0, 180) : '';
+      if (!text) return;
+      this._briefCache.set(fingerprint, text);
+      const el = document.querySelector(`[data-customer-brief="${fingerprint}"]`);
+      if (el) el.textContent = `AI brief · check saved notes — ${text}`;
+    } catch (e) { /* local summary remains visible */ }
+    finally { this._briefRequests.delete(fingerprint); }
+  },
+
   get aiPrefKey() {
     return (CONFIG.companion && CONFIG.companion.aiPreferenceKey) || 'advisoros_companion_ai';
   },
 
   render() {
     return `<div id="companion-root" class="comp-page"></div>`;
+  },
+
+  // Keep the exact instant for diary order and routing, but emphasise the
+  // arrival promise everywhere the advisor reads the customer-facing time.
+  homeVisitTime(appt) {
+    if (appt && appt.arrivalStart && appt.arrivalEnd) {
+      return { text: `${appt.arrivalStart}–${appt.arrivalEnd}`, isWindow: true };
+    }
+    return { text: Utils.formatTimeUK(appt.date), isWindow: false };
   },
 
   /* ---------- lifecycle (called by TodayFeature) ---------- */
@@ -236,10 +309,17 @@ const CompanionFeature = {
   },
 
   welcomeHtml(homeData) {
-    // Home = the weekly calendar strip on top, then ONE appointment feed
+    // Home = the advisor identity, weekly calendar strip, then ONE appointment feed
     // (NEXT visit as a rich card + compact rows), then attention, then Ask
-    // Beelo chips. No greeting banner. (The strip was briefly removed and
-    // restored — the advisor wants the week at a glance back.)
+    // Beelo chips.
+
+    const advisorName = Utils.firstNameFrom(CONFIG.advisorName || '') || 'Advisor';
+    const greetingHtml = `
+      <div class="comp-home-greeting" aria-label="Advisor ${Utils.escapeHtml(advisorName)}">
+        <div class="comp-home-greeting-text">
+          <div class="comp-home-greeting-main">${Utils.escapeHtml(advisorName)}<span class="comp-home-greeting-dot">.</span></div>
+        </div>
+      </div>`;
 
     // A. THIS WEEK — navigational 7-day calendar (tap a day → My Day)
     // with a thin target progress line.
@@ -300,51 +380,36 @@ const CompanionFeature = {
         const whenText = visitToday
           ? nv.time
           : `${Utils.formatDateUK(nv.date, 'weekday-short')} ${Utils.formatDateUK(nv.date, 'short')}, ${nv.time}`;
-        const context = [nv.type, nv.briefing].filter(Boolean).join(' · ');
-        const journey = [nv.eta !== '—' ? nv.eta : null, nv.travel, nv.parkingNotes].filter(Boolean).join(' · ');
-        // Parking already lives on the journey line, so it isn't repeated
-        // inside the expandable — only Access + Notes (present fields only).
-        const moreRows = [
-          { label: 'Access', value: nv.accessNotes },
-          { label: 'Notes', value: nv.notes }
-        ].filter(r => r.value).map(r => `
-          <div class="comp-home-more-row">
-            <span class="comp-home-more-label">${Utils.escapeHtml(r.label)}</span>
-            <span class="comp-home-more-value">${Utils.escapeHtml(r.value)}</span>
-          </div>`).join('');
-        const callBtn = nv.phone ? `
-              <button class="comp-home-cta comp-home-cta--ghost" type="button" data-action="ContactFeature.open" data-args='${JSON.stringify([{name: Utils.escapeJsString(nv.name), phone: Utils.escapeJsString(nv.phone)}])}'>
-                <span class="material-symbols-rounded" aria-hidden="true">call</span>
-                <span>Call</span>
-              </button>` : '';
-        // Customer detail line — area + phone, so the featured card carries
-        // a bit more about the customer without opening the visit.
-        const customerInfo = [
-          nv.area ? `<span class="material-symbols-rounded comp-home-next-visit-cust-icon" aria-hidden="true">location_on</span><span>${Utils.escapeHtml(nv.area)}</span>` : '',
-          nv.phone ? `<span class="material-symbols-rounded comp-home-next-visit-cust-icon" aria-hidden="true">call</span><span>${Utils.escapeHtml(nv.phone)}</span>` : ''
-        ].filter(Boolean).join('<span class="comp-home-next-visit-cust-sep" aria-hidden="true">·</span>');
+        const timeLabel = whenText;
+        const context = nv.briefing || '';
+        const etaText = [nv.eta !== '—' ? nv.eta : null, nv.travel].filter(Boolean).join(' · ');
+        const phoneDisabled = nv.phone ? '' : ' disabled aria-disabled="true"';
         featuredHtml = `
           <div class="comp-home-next-visit">
             <button type="button" class="comp-home-next-visit-main" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: (nv.id)}])}'>
-              <div class="comp-home-next-visit-time">${Utils.escapeHtml(whenText)}</div>
-              <div class="comp-home-next-visit-name">${Utils.escapeHtml(nv.name)}</div>
+              <div class="comp-home-next-visit-time${nv.hasArrivalWindow ? ' is-window' : ''}">${Utils.escapeHtml(timeLabel)}</div>
+              <div class="comp-home-next-visit-headline">
+                <div class="comp-home-next-visit-name">@${Utils.escapeHtml(nv.name)}</div>
+                ${etaText ? `<div class="comp-home-next-visit-eta">${Utils.escapeHtml(etaText)}</div>` : ''}
+              </div>
               ${context ? `<div class="comp-home-next-visit-context">${Utils.escapeHtml(context)}</div>` : ''}
               <div class="comp-home-next-visit-address">${Utils.escapeHtml(nv.address)}</div>
-              ${customerInfo ? `<div class="comp-home-next-visit-customer">${customerInfo}</div>` : ''}
-              ${journey ? `<div class="comp-home-next-visit-journey">${Utils.escapeHtml(journey)}</div>` : ''}
+              ${nv.parkingNotes ? `<div class="comp-home-next-visit-journey">${Utils.escapeHtml(nv.parkingNotes)}</div>` : ''}
             </button>
             <div class="comp-home-next-visit-actions">
               <button class="comp-home-cta comp-home-cta--primary" type="button" data-action="AppointmentsFeature.navigateToVisit" data-args='${JSON.stringify([Utils.escapeJsString(nv.address || ''), (nv.id)])}'>
                 <span class="material-symbols-rounded" aria-hidden="true">navigation</span>
                 <span>Navigate</span>
               </button>
-              ${callBtn}
+              <button class="comp-home-cta comp-home-cta--ghost" type="button"${phoneDisabled} data-action="ContactFeature.open" data-args='${JSON.stringify([{name: Utils.escapeJsString(nv.name), phone: Utils.escapeJsString(nv.phone || '')}])}'>
+                <span class="material-symbols-rounded" aria-hidden="true">call</span>
+                <span>Call</span>
+              </button>
+              <button class="comp-home-cta comp-home-cta--ghost" type="button"${phoneDisabled} data-action="TalkFeature.sendMessage" data-args='${JSON.stringify([(nv.id), "on_my_way"])}'>
+                <span class="material-symbols-rounded" aria-hidden="true">near_me</span>
+                <span>On my way</span>
+              </button>
             </div>
-            ${moreRows ? `
-            <details class="comp-home-more">
-              <summary>More about this visit</summary>
-              ${moreRows}
-            </details>` : ''}
           </div>`;
       }
       // Compact rows for the remaining upcoming visits (name, time, ETA).
@@ -356,30 +421,36 @@ const CompanionFeature = {
         const meta = [v.area, v.eta ? `ETA ${v.eta}` : null].filter(Boolean).join(' · ');
         return `
           <button type="button" class="comp-home-visit upcoming" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: (v.id)}])}'>
+            <span class="comp-home-visit-time${v.hasArrivalWindow ? ' is-window' : ''}">${Utils.escapeHtml(whenText)}</span>
             <div class="comp-home-visit-main">
-              <span class="comp-home-visit-time">${Utils.escapeHtml(whenText)}</span>
-              <span class="comp-home-visit-name">${Utils.escapeHtml(v.name)}</span>
+              <span class="comp-home-visit-name">@${Utils.escapeHtml(v.name)}</span>
               <span class="comp-home-visit-area">${Utils.escapeHtml(meta)}</span>
             </div>
-            <span class="comp-home-visit-type">${Utils.escapeHtml(v.type)}</span>
-            <span class="material-symbols-rounded comp-home-visit-chevron" aria-hidden="true">chevron_right</span>
           </button>`;
       }).join('');
       nextVisitHtml = `
-        <div class="comp-home-section">
-          <div class="comp-home-section-header">
-            <span class="comp-home-section-label">NEXT</span>
+        <div class="comp-home-section comp-home-schedule" aria-labelledby="home-schedule-heading">
+          <div class="comp-home-section-header comp-home-schedule-header">
+            <div class="comp-home-schedule-title">
+              <span class="comp-home-section-label" id="home-schedule-heading">NEXT</span>
+              <span class="comp-home-schedule-range">Next 14 days</span>
+            </div>
             <span class="comp-home-section-count">${count} visit${count === 1 ? '' : 's'}</span>
           </div>
-          ${featuredHtml}
-          ${rowsHtml ? `<div class="comp-home-visits">${rowsHtml}</div>` : ''}
+          <div class="comp-home-schedule-list">
+            ${featuredHtml}
+            ${rowsHtml ? `<div class="comp-home-visits">${rowsHtml}</div>` : ''}
+          </div>
           ${upcomingVisits.length > 5 ? `<button class="btn btn-ghost btn-sm comp-home-see-all" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {tab: "upcoming"}])}'>See all ${count} visits</button>` : ''}
         </div>`;
     } else {
       nextVisitHtml = `
-        <div class="comp-home-section">
-          <div class="comp-home-section-header">
-            <span class="comp-home-section-label">NEXT</span>
+        <div class="comp-home-section comp-home-schedule" aria-labelledby="home-schedule-heading">
+          <div class="comp-home-section-header comp-home-schedule-header">
+            <div class="comp-home-schedule-title">
+              <span class="comp-home-section-label" id="home-schedule-heading">NEXT</span>
+              <span class="comp-home-schedule-range">Next 14 days</span>
+            </div>
             <span class="comp-home-section-count">No visits</span>
           </div>
           <div class="comp-home-empty">No upcoming visits booked. A good day for follow-ups.</div>
@@ -430,6 +501,7 @@ const CompanionFeature = {
 
     return `
       <div class="comp-home">
+        ${greetingHtml}
         ${weekStripHtml}
         ${nextVisitHtml}
         ${attentionHtml}
@@ -503,6 +575,7 @@ const CompanionFeature = {
     // Next visit data
     let nextVisit = null;
     if (next) {
+      const promisedTime = this.homeVisitTime(next);
       const eta = etaMap.get(next.id) || (await this.etaFor(next));
       const travel = next.travelStatus === 'on_site' ? 'On site now'
         : next.travelStatus === 'in_transit' ? 'On the way'
@@ -529,7 +602,8 @@ const CompanionFeature = {
       nextVisit = {
         id: next.id,
         name: next.clientName || 'Customer',
-        time: Utils.formatTimeUK(next.date),
+        time: promisedTime.text,
+        hasArrivalWindow: promisedTime.isWindow,
         area: this.getAreaLabel(next),
         type: next.type ? (CONFIG.appointmentTypes.find(t => t.id === next.type)?.name || next.type) : 'Visit',
         address: next.address || 'No address set',
@@ -675,15 +749,19 @@ const CompanionFeature = {
       upcomingVisits: await Promise.all(
         upcoming
           .filter(a => a.status !== 'completed' && !a.outcome && (!next || a.id !== next.id))
-          .map(async v => ({
-            id: v.id,
-            name: v.clientName || 'Customer',
-            time: Utils.formatTimeUK(v.date),
-            area: this.getAreaLabel(v),
-            type: v.type ? (CONFIG.appointmentTypes.find(t => t.id === v.type)?.name || v.type) : 'Visit',
-            date: v.date,
-            eta: etaMap.get(v.id) || null
-          }))
+          .map(async v => {
+            const promisedTime = this.homeVisitTime(v);
+            return {
+              id: v.id,
+              name: v.clientName || 'Customer',
+              time: promisedTime.text,
+              hasArrivalWindow: promisedTime.isWindow,
+              area: this.getAreaLabel(v),
+              type: v.type ? (CONFIG.appointmentTypes.find(t => t.id === v.type)?.name || v.type) : 'Visit',
+              date: v.date,
+              eta: etaMap.get(v.id) || null
+            };
+          })
       ),
       week,
       attention,
@@ -1171,7 +1249,7 @@ const CompanionFeature = {
 
   async answerNextVisit() {
     let upcoming = [];
-    try { upcoming = await DB.getUpcomingAppointments(14); } catch (e) {}
+    try { upcoming = await DB.getFutureAppointmentsUntil(new Date(Date.now() + 14 * 86400000)); } catch (e) {}
     const now = new Date();
     const next = upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && new Date(a.date) >= now && (a.phone || a.customerId))
       || upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && new Date(a.date) >= now)

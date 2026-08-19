@@ -229,9 +229,10 @@ const ExportService = {
   // layout change doesn't imply a schema change.
   async exportBackup(password = null) {
     const data = await DB.exportAll();
+    const storageContract = DB.storageContract();
     const backup = {
-      backupFormatVersion: 1,
-      databaseSchemaVersion: DB.schemaVersion ? DB.schemaVersion() : 2,
+      backupFormatVersion: storageContract.backupFormatVersion,
+      databaseSchemaVersion: storageContract.databaseSchemaVersion,
       appVersion: CONFIG.appVersion || '5.0',
       version: CONFIG.appVersion || '5.0',
       exportedAt: new Date().toISOString(),
@@ -304,16 +305,37 @@ const ExportService = {
     // backupFormatVersion field (new exports) and the legacy '4.0'/'5.0'
     // version field (old exports, whose data simply lacks photos/settings/
     // sequences — importAll treats missing tables as empty).
-    const BACKUP_FORMAT_VERSION = 1;
+    const storageContract = DB.storageContract();
+    const supportedFormatVersion = storageContract.backupFormatVersion;
+    const supportedSchemaVersion = storageContract.databaseSchemaVersion;
     const legacyOk = ['4.0', '5.0'].includes(backup.version);
     const formatVersion = typeof backup.backupFormatVersion === 'number'
       ? backup.backupFormatVersion
-      : (legacyOk ? BACKUP_FORMAT_VERSION : null);
+      : (legacyOk ? supportedFormatVersion : null);
     if (formatVersion === null) {
       throw new Error('This backup is from an incompatible version of Beelo. Please update the app and try again.');
     }
-    if (formatVersion > BACKUP_FORMAT_VERSION) {
+    if (!Number.isInteger(formatVersion) || formatVersion < 1) {
+      throw new Error('This backup has invalid format metadata');
+    }
+    if (formatVersion > supportedFormatVersion) {
       throw new Error('This backup was created by a newer version of Beelo — please update the app first');
+    }
+    if (typeof backup.exportedAt !== 'string' || !backup.exportedAt.trim() || isNaN(Date.parse(backup.exportedAt))) {
+      throw new Error('This backup has an invalid exportedAt timestamp');
+    }
+    const validVersionLabel = value => value === undefined ||
+      (typeof value === 'string' && /^\d+\.\d+(?:\.\d+)?(?:[-+][0-9A-Za-z.-]+)?$/.test(value));
+    if (!validVersionLabel(backup.appVersion) || !validVersionLabel(backup.version)) {
+      throw new Error('This backup has invalid application version metadata');
+    }
+    if (!legacyOk || backup.databaseSchemaVersion !== undefined) {
+      if (!Number.isInteger(backup.databaseSchemaVersion) || backup.databaseSchemaVersion < 1) {
+        throw new Error('This backup has an invalid database schema version');
+      }
+      if (backup.databaseSchemaVersion > supportedSchemaVersion) {
+        throw new Error('This backup was created by a newer database schema — please update the app first');
+      }
     }
     if (!backup.data || typeof backup.data !== 'object') {
       throw new Error('This backup file appears to be empty or corrupt');

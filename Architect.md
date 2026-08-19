@@ -402,7 +402,7 @@ Deleting a customer is a destructive, confirmed operation and cascades through r
 
 1. Open Tools → Add Visit, a day in the diary, a customer profile, or the PWA shortcut.
 2. Enter required customer name and address.
-3. Set date, time, duration, type, source, and optional arrival window/access notes.
+3. Set the internal diary time, duration, type, source, access notes, and the customer-facing arrival window; new visits default to the configured working block containing the diary time, with an explicit exact-time option.
 4. The system validates required values.
 5. The system checks duplicate risk using phone, address, similar name, and time overlap.
 6. The visit is saved and linked to an existing or newly created customer.
@@ -483,7 +483,8 @@ Home mounts the Companion feature and shows:
 
 - an advisor greeting;
 - a seven-day strip and weekly target progress;
-- selected/today visit context;
+- one continuous appointment schedule with the next visit expanded and later visits as rows;
+- customer-facing arrival windows where recorded, while the exact diary instant remains the internal routing and ordering time;
 - next-visit or empty-day guidance;
 - rule-based operational questions;
 - optional Claude phrasing.
@@ -1012,7 +1013,7 @@ These invariants apply regardless of which screen or service changes the data. A
 
 1. A visit requires a customer name, address, valid date, and valid time before it can be saved through the normal workflow.
 2. Visit duration must be positive.
-3. An arrival window supplements the exact diary time; it does not replace the scheduling instant used for ordering and conflict checks.
+3. The exact diary time remains the internal scheduling instant for ordering, routing, reminders, lateness, and conflict checks. A paired same-day arrival window is the customer-facing promise and must contain that diary time; appointments without a window fall back to an exact-time promise.
 4. Cancelled visits must not count toward earnings, active pipeline totals, or operational completion totals.
 5. Duplicate detection warns about likely conflicts but does not silently discard or merge a visit.
 6. Rescheduling must preserve record identity and linked customer/order relationships.
@@ -1266,6 +1267,36 @@ Exit criteria:
 - all accepted baseline failures are either fixed or explicitly registered;
 - a backup produced before the phase restores successfully afterward;
 - no current IndexedDB record, URL, storage key, or feature ID changes meaning.
+
+**Implementation status (19 August 2026): phase gate passed.**
+
+- Appointment queries now expose explicit UK calendar-day and true-future
+  contracts with half-open bounds and DST coverage. Compatibility wrappers
+  remain for existing callers.
+- Visit completion, appointment-linked order reconciliation, payment updates,
+  customer aggregates, and customer graph deletion now pass through domain DB
+  boundaries. Real Dexie uses transactions; the mini-Dexie compatibility path
+  remains a documented deterministic, retry-safe fallback rather than claiming
+  transaction equivalence.
+- Storage schema version `2` and backup format version `1` are authoritative
+  runtime contracts. Import validates envelopes and tables before replacement,
+  and legacy, pre-phase, and current-install fixtures run against both storage
+  engines.
+- Feature-flag, migration, rollback, fixture, and evidence rules are recorded
+  in `docs/PHASE0-CONTRACTS.md`.
+- Production bundles and the service-worker cache were rebuilt and versioned.
+  The complete Node suite, browser migration suite, journeys A-F, offline
+  banner, responsive viewport, OCR, feature, accessibility, and two foreign
+  timezone lanes passed. Browser runners use isolated DevTools ports so
+  sequential suites cannot attach to a browser that is still shutting down.
+- Delegated UI actions now have explicit pointer, keyboard, form-control, and
+  opt-in event semantics. Appointment creation is additionally single-flight,
+  so one activation cannot create duplicate customers or visits. Existing
+  visits can change type through both Edit Details and Move while new bookings
+  continue to respect the configured sales-day and fitting-day defaults.
+- No table, route, storage key, or feature identifier changed meaning. The
+  scale/performance capacity limit remains an explicit verification gap in
+  section 22.2 and is not represented as a current product guarantee.
 
 ### 24.3 Phase 1 — durable work management and recovery
 

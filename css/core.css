@@ -39,7 +39,7 @@
   --warning-light: #f5ead8;
   --danger: #C0563F;
   --danger-light: #f3dfdc;
-  --info: #5A7180;
+  --info: #8299A8;
   /* Success TEXT on dark surfaces: --secondary (#4f6a2f) is a legacy
      light-theme green that measures ~3:1 on the dark cards — unreadable.
      This sage reads 9:1 on --surface / 8.6:1 on --surface-elevated. */

@@ -68,6 +68,7 @@ lead sources. Payload size is capped on the proxy (100 KB text /
 2 MB images). AI responses are parsed through whitelists, so the
 model cannot inject app behavior.
 
+
 ## 4. Security reminders
 
 - Never commit `.env`; `server/.env.example` contains placeholders only.

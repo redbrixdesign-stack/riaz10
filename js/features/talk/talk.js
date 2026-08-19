@@ -198,7 +198,7 @@ const TalkFeature = {
     // Late" quick actions so they're one tap instead of a 5-tap customer picker.
     let nextVisit = null;
     try {
-      const upcoming = await DB.getUpcomingAppointments(3);
+      const upcoming = await DB.getFutureAppointmentsUntil(new Date(Date.now() + 3 * 86400000));
       nextVisit = upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && (a.phone || a.customerId)) || upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome) || null;
     } catch (e) {}
 

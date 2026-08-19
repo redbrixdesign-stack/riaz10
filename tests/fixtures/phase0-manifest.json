@@ -1,0 +1,28 @@
+{
+  "fixtureManifestVersion": 1,
+  "policy": "Immutable sanitized compatibility artifacts. Add a new file instead of editing an accepted fixture.",
+  "fixtures": [
+    {
+      "file": "current-install-schema2.json",
+      "kind": "current-install",
+      "sourceContract": "Sanitized advisoros_v6 schema-2 store snapshot before Phase 0 roadmap changes",
+      "expectedCounts": { "customers": 1, "appointments": 1, "orders": 0, "expenses": 0, "trips": 0, "measurements": 0, "communications": 0, "photos": 0, "settings": 1, "sequences": 2 },
+      "expectedSequenceFloors": { "customer": 4, "order": 0 }
+    },
+    {
+      "file": "legacy-backup-v5-format1.json",
+      "kind": "legacy-backup",
+      "sourceContract": "Legacy version 5.0 envelope with the seven operational tables supported by format 1",
+      "expectedCounts": { "customers": 1, "appointments": 1, "orders": 1, "expenses": 1, "trips": 1, "measurements": 1, "communications": 1, "photos": 0, "settings": 0, "sequences": 0 },
+      "expectedSequenceFloors": { "customer": 7, "order": 3 }
+    },
+    {
+      "file": "pre-phase0-backup-format1-schema2.json",
+      "kind": "pre-phase0-current-backup",
+      "sourceContract": "Backup format 1 emitted by database schema 2 before roadmap schema additions",
+      "restoreExpectation": "After import, exportAll contains the expected counts and relationships below; sequence counters are at least the declared floors.",
+      "expectedCounts": { "customers": 1, "appointments": 1, "orders": 1, "expenses": 1, "trips": 1, "measurements": 1, "communications": 1, "photos": 1, "settings": 1, "sequences": 2 },
+      "expectedSequenceFloors": { "customer": 12, "order": 8 }
+    }
+  ]
+}
