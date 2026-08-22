@@ -309,7 +309,8 @@ Global rules:
 11. Do not mention AI, automation, or that the message is a draft.
 12. Honesty: never invent facts. Quote amounts/figures only when message_context supplies them. If job_summary, order_summary or window_scope are empty do NOT invent window counts, blind types or timings. If eta is empty do not claim a time. If delay is empty do not claim a delay. If recent_messages exists, you may refer to "my last message" — never claim the customer replied or said anything not listed.
 13. CRITICAL: If the context includes "eta" or "delay" fields, you MUST include them in your draft_message exactly as provided. Do not paraphrase, omit, or replace them.
-14. Return ONLY a single JSON object, no markdown fences, no commentary:
+14. If facebook_url and/or instagram_url are non-empty, add the available link(s) at the end of draft_message on separate lines, labelled "Facebook:" and "Instagram:". Copy each URL exactly as provided. Do not invent a missing link. These link lines do not count toward the 60-word guideline.
+15. Return ONLY a single JSON object, no markdown fences, no commentary:
     {
       "nudge": "<short sentence suggesting this message, or empty string>",
       "draft_message": "<the message text>"

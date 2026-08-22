@@ -225,13 +225,23 @@ const SettingsFeature = {
   },
 
   renderBrandingDetail() {
+    const socialLinks = CONFIG.socialLinks || {};
     return `
       <div class="card mb-md">
         <div class="fw-600 mb-12">Company Branding</div>
-        <div class="form-group mb-0">
+        <div class="form-group">
           <label>Company Name</label>
           <input type="text" class="input" id="set-company-name" value="${Utils.escapeHtml(CONFIG.companyName || '')}" placeholder="e.g. Your Company Ltd" data-action="SettingsFeature.setCompanyName" data-args='${JSON.stringify(["__value__"])}'>
           <div class="hint">Shown throughout the app in place of "Beelo". Leave blank to use the default Beelo branding.</div>
+        </div>
+        <div class="form-group">
+          <label>Facebook page</label>
+          <input type="url" class="input" id="set-facebook-url" value="${Utils.escapeHtml(socialLinks.facebook || '')}" placeholder="https://www.facebook.com/your-page" data-action="SettingsFeature.setSocialLink" data-args='${JSON.stringify(['facebook', '__value__'])}'>
+        </div>
+        <div class="form-group mb-0">
+          <label>Instagram profile</label>
+          <input type="url" class="input" id="set-instagram-url" value="${Utils.escapeHtml(socialLinks.instagram || '')}" placeholder="https://www.instagram.com/your-profile/" data-action="SettingsFeature.setSocialLink" data-args='${JSON.stringify(['instagram', '__value__'])}'>
+          <div class="hint">Claude includes these links at the end of customer message drafts.</div>
         </div>
       </div>`;
   },
@@ -626,6 +636,7 @@ const SettingsFeature = {
     const toSave = {
       advisorName: CONFIG.advisorName,
       companyName: CONFIG.companyName,
+      socialLinks: CONFIG.socialLinks,
       businessAddress: CONFIG.businessAddress,
       businessLatLng: CONFIG.businessLatLng || null,
       weeklyTarget: CONFIG.weeklyTarget,
@@ -782,6 +793,13 @@ const SettingsFeature = {
     this.persist();
     App.setBranding?.();
     Toast.show('Company name updated', 'success');
+  },
+
+  setSocialLink(network, value) {
+    if (!['facebook', 'instagram'].includes(network)) return;
+    CONFIG.socialLinks = { ...(CONFIG.socialLinks || {}), [network]: value.trim() };
+    this.persist();
+    Toast.show(`${network === 'facebook' ? 'Facebook' : 'Instagram'} link updated`, 'success');
   },
 
   setBusinessAddress(value) {

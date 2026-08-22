@@ -1029,6 +1029,8 @@ const TalkFeature = {
     return {
       advisor_name: advisorName,
       advisor_role: CONFIG.advisorTitle || 'window coverings advisor',
+      facebook_url: String(CONFIG.socialLinks?.facebook || '').trim(),
+      instagram_url: String(CONFIG.socialLinks?.instagram || '').trim(),
       customer_name: customer ? customer.firstName || customer.lastName : (appt?.clientName || 'there'),
       customer_is_first_visit_at_address: pastVisits.length === 0,
       customer_visit_count: pastVisits.length,

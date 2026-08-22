@@ -22,6 +22,10 @@ const CONFIG = {
   // "Independent Hillarys Window Coverings Expert".
   advisorTitle: 'Independent Hillarys Window Coverings Expert',
   companyName: '', // White-label: shown in place of "AdvisorOS" wherever set, editable in Settings
+  socialLinks: {
+    facebook: 'https://www.facebook.com/profile.php?id=61588234222760',
+    instagram: 'https://www.instagram.com/blindsbyriazmcr/'
+  },
   businessAddress: '',
   businessLatLng: null,
   // Weekly EARNINGS target — the number the advisor actually sets (in Onboarding/Settings).

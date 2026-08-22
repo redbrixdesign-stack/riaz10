@@ -188,6 +188,7 @@ async function proxyTests() {
     ok('proxy: draft uses max_tokens cap for haiku', parsed.max_tokens === 800);
     ok('proxy: draft uses spec master prompt', parsed.system.includes('message_context') && parsed.system.includes('draft_message'), parsed.system.slice(0, 200));
     ok('proxy: draft prompt demands JSON only', parsed.system.includes('ONLY a single JSON object') && parsed.system.includes('no markdown fences'));
+    ok('proxy: draft prompt includes configured social links', parsed.system.includes('facebook_url') && parsed.system.includes('instagram_url') && parsed.system.includes('Copy each URL exactly as provided'));
     return anthropicOk('Hi Bob!');
   };
   r = await req('POST', {}, { type: 'draft', draftContext: '{"customerName":"Bob"}' });
