@@ -4,7 +4,7 @@
    Notes:
    - Beelo's first-run shows the encryption-passphrase sheet before
      onboarding, so Performance/LCP reflects the real first-visit modal —
-     keep the perf bar realistic (>= 70) while a11y/bp/SEO are strict.
+     keep the enforced floor realistic while tracking 90+ as the release goal.
    - Lighthouse 12+ removed the PWA category and its audit IDs
      (installable-manifest / service-worker / apple-touch-icon). PWA
      installability is instead gated by tests/browser/verify-live.js

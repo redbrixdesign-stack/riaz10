@@ -1,5 +1,6 @@
 {
   "name": "Beelo",
+  "id": "./",
   "short_name": "Beelo",
   "description": "The self-employed companion for field service professionals",
   "start_url": "./",

@@ -1,4 +1,5 @@
-const CACHE_NAME = 'advisoros-v6-96';
+const CACHE_PREFIX = 'advisoros-';
+const CACHE_NAME = 'advisoros-v6-97';
 const STATIC_ASSETS = [
   './','index.html','manifest.json?v=3','css/core.css?v=34','css/components.css?v=49',
   'assets/fonts/material-symbols-rounded.woff2','assets/fonts/hankengrotesk-latin.woff2','assets/fonts/hankengrotesk-latinext.woff2','assets/fonts/jetbrainsmono-latin.woff2',
@@ -16,13 +17,20 @@ const STATIC_ASSETS = [
 const FONT_ORIGINS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(STATIC_ASSETS)).then(() => self.skipWaiting()));
+  // Keep a newly installed worker waiting until the page deliberately asks
+  // it to activate. This avoids mixing an old, already-running UI with a new
+  // cache and worker halfway through a customer workflow.
+  e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(STATIC_ASSETS)));
 });
 
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(names => Promise.all(
-    names.filter(n => n !== CACHE_NAME).map(n => caches.delete(n))
+    names.filter(n => n.startsWith(CACHE_PREFIX) && n !== CACHE_NAME).map(n => caches.delete(n))
   )).then(() => self.clients.claim()));
+});
+
+self.addEventListener('message', e => {
+  if (e.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('fetch', e => {
@@ -31,38 +39,49 @@ self.addEventListener('fetch', e => {
   if (url.protocol === 'chrome-extension:') return;
   if (url.origin !== self.location.origin) return;
 
-  // Same-origin app files: network-first. This is what actually makes "I
-  // pushed a fix" and "the installed PWA is running the fix" the same
-  // statement — a cache-first strategy here would keep serving old JS/CSS
-  // indefinitely whenever the network is fine, contradicting the whole point
-  // of shipping a fix. Falls back to cache (then to the app shell) only when
-  // the network genuinely isn't available — or when it's stalled (captive
-  // portals, flaky WiFi), via the 6s timeout below. Without the timeout a
-  // request can hang for minutes on a connection that never actually fails,
-  // leaving the PWA stuck on a white screen instead of its cached shell.
-  // All fonts (Material Symbols, Hanken Grotesk, JetBrains Mono) are
-  // same-origin assets precached above in STATIC_ASSETS, so they're covered
-  // by this path too — no third-party font caching needed.
-  e.respondWith(
-    Promise.race([
-      fetch(e.request),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('network timeout')), 6000))
-    ]).then(resp => {
-      if (resp && resp.ok) {
-        const toCache = resp.clone();
-        caches.open(CACHE_NAME).then(c => c.put(e.request, toCache));
-      }
-      return resp;
-    }).catch(() => {
-      // Network failed or stalled — we're about to serve from cache, but
-      // navigator.onLine may still report true (flaky WiFi, captive portal),
-      // so tell the page it's actually offline. Only navigations notify, so
-      // a burst of failed asset fetches doesn't spam clients.
-      if (e.request.mode === 'navigate') notifyClientsOffline();
-      return caches.match(e.request).then(cached => cached || caches.match('index.html'));
-    })
-  );
+  if (e.request.mode === 'navigate') {
+    e.respondWith(networkWithTimeout(e.request, 6000)
+      .then(cacheResponse)
+      .catch(async () => {
+        notifyClientsOffline();
+        return (await caches.match(e.request)) || (await caches.match('index.html')) ||
+          new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain' } });
+      }));
+    return;
+  }
+
+  // Fingerprinted/versioned shell assets are safe to serve immediately and
+  // refresh in the background. A failed asset request never receives HTML.
+  if (['script', 'style', 'font', 'image'].includes(e.request.destination)) {
+    e.respondWith(caches.match(e.request).then(cached => {
+      const refresh = fetch(e.request).then(cacheResponse).catch(() => null);
+      return cached || refresh.then(response => response || new Response('', { status: 504 }));
+    }));
+    return;
+  }
+
+  // Do not persist arbitrary same-origin GET/API responses. They may contain
+  // private business data and require an endpoint-specific caching contract.
+  e.respondWith(fetch(e.request).catch(() => new Response('Offline', {
+    status: 503,
+    headers: { 'Content-Type': 'text/plain' }
+  })));
 });
+
+function networkWithTimeout(request, timeoutMs) {
+  return Promise.race([
+    fetch(request),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('network timeout')), timeoutMs))
+  ]);
+}
+
+function cacheResponse(response) {
+  if (response?.ok) {
+    const copy = response.clone();
+    caches.open(CACHE_NAME).then(cache => cache.put(copy.url, copy));
+  }
+  return response;
+}
 
 // Post a message to every controlled client so the page can flip the
 // persistent offline strip even when navigator.onLine lies. Delayed: when

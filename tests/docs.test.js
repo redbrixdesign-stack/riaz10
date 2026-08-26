@@ -17,6 +17,10 @@ const baseline = read('docs/VISUAL_BASELINE-v2.md');
 const app = read('js/core/app.js');
 const geo = read('js/core/geo.js');
 const notifications = read('js/services/notification.js');
+const serviceWorker = read('sw.js');
+const indexHtml = read('index.html');
+const manifest = JSON.parse(read('manifest.json'));
+const lighthouse = read('lighthouserc.js');
 
 console.log('documentation and product-language contracts');
 for (const [token, value] of [
@@ -53,6 +57,28 @@ ok('navigation clears focused controls and resets app plus window scroll',
   app.includes('active.blur()') &&
   app.includes('resetNavigationScroll(main)') &&
   app.includes('window.scrollTo(0, 0)'));
+ok('all generated dialogs receive an accessible name',
+  app.includes('this._nameDialog(sheet, options)') &&
+  app.includes("container.setAttribute('aria-labelledby', heading.id)"));
+ok('CSP is delivered once as a response header, not duplicated in meta markup',
+  !/http-equiv=["']Content-Security-Policy/i.test(indexHtml));
+ok('manifest has a stable app identity and required install fields',
+  manifest.id === './' && manifest.start_url === './' && manifest.scope === './' &&
+  ['standalone', 'fullscreen'].includes(manifest.display) &&
+  manifest.icons.some(icon => icon.sizes === '192x192' && /any/.test(icon.purpose || 'any')) &&
+  manifest.icons.some(icon => icon.sizes === '512x512' && /maskable/.test(icon.purpose || '')));
+ok('service-worker updates wait for deliberate activation',
+  !/install[\s\S]{0,250}skipWaiting\(\)/.test(serviceWorker) &&
+  serviceWorker.includes("e.data?.type === 'SKIP_WAITING'") &&
+  app.includes("worker.postMessage({ type: 'SKIP_WAITING' })"));
+ok('offline HTML fallback is restricted to navigation requests',
+  serviceWorker.includes("e.request.mode === 'navigate'") &&
+  serviceWorker.includes("caches.match('index.html')") &&
+  serviceWorker.includes("['script', 'style', 'font', 'image']"));
+ok('service worker deletes only Beelo-owned caches',
+  serviceWorker.includes('n.startsWith(CACHE_PREFIX)'));
+ok('production Lighthouse performance regression floor remains enforced',
+  /categories:performance'[\s\S]*minScore:\s*0\.7/.test(lighthouse));
 
 const readableUiFiles = [
   ...fs.readdirSync(path.join(root, 'js/features'), { recursive: true })

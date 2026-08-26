@@ -124,14 +124,14 @@
    name (e.g. "chevron_right") whenever the font was missing or late —
    offline, cold cache, throttled loads. Beelo is offline-first, so the
    icon font ships with the app: same-origin asset, precached by the
-   service worker, font-display: block so text never paints before the
-   glyphs are ready.
+   service worker. font-display: swap prevents the relatively large symbol
+   font from holding back first paint on a cold or throttled connection.
    ============================================ */
 @font-face {
   font-family: 'Material Symbols Rounded';
   font-style: normal;
   font-weight: 100 700; /* variable font — the wght axis powers the active-nav icon */
-  font-display: block;
+  font-display: swap;
   src: url('../assets/fonts/material-symbols-rounded.woff2') format('woff2');
 }
 

@@ -10,7 +10,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Beelo">
 <meta name="description" content="Beelo - The self-employed companion app for field service professionals">
-  <!-- Content-Security-Policy. Built from what the app actually loads:
+  <!-- Content-Security-Policy is delivered as an HTTP response header by
+       vercel.json. Keeping a second meta policy caused frame-ancestors to be
+       ignored and produced a production console warning. The header allows:
        - No 'unsafe-inline' in script-src: every interactive element now uses
          the delegated data-action router (js/core/app.js setupEvents), so
          inline handlers are gone and injection via on* attributes is blocked.
@@ -25,9 +27,7 @@
        - connect-src 'self' https: — the AI proxy URL is user-configurable in
          Settings and can be any origin, so https: is allowed broadly rather
          than pinning one host users would then have to edit by hand.
-       - frame-ancestors is NOT enforced by <meta> CSP (HTTP header only) — it
-         is included for when this policy is ever moved to headers. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://unpkg.com; font-src 'self'; img-src 'self' data: blob: https://*.tile.openstreetmap.org; connect-src 'self' https:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
+       - frame-ancestors is enforced by the response header. -->
 <style>html,body{background-color:#0A0A0A;}</style>
 
 <title>Beelo</title>
@@ -42,9 +42,7 @@
        they render offline. Preloading them here lets the first paint use the
        real typefaces immediately instead of swapping in after a FOUT; no
        Google Fonts request ever fires. -->
-  <link rel="preload" href="assets/fonts/material-symbols-rounded.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/hankengrotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="assets/fonts/jetbrainsmono-latin.woff2" as="font" type="font/woff2" crossorigin>
 
   <link rel="stylesheet" href="css/core.css?v=34">
   <link rel="stylesheet" href="css/components.css?v=49">

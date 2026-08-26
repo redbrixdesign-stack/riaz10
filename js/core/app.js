@@ -1190,6 +1190,7 @@ const App = {
     this._associateLabels(sheet);
     sheet.setAttribute('role', 'dialog');
     sheet.setAttribute('aria-modal', 'true');
+    this._nameDialog(sheet, options);
     overlay.classList.add('active');
     document.body.style.overflow = 'hidden';
 
@@ -1243,6 +1244,7 @@ const App = {
       const previous = this.modalStack.pop();
       sheet.innerHTML = previous.content;
       sheet.scrollTop = previous.scrollTop || 0;
+      this._nameDialog(sheet);
       this.focusFirstControl(sheet);
       this.trapFocus(sheet);
       return;
@@ -1258,6 +1260,8 @@ const App = {
       sheet.innerHTML = '';
       sheet.removeAttribute('role');
       sheet.removeAttribute('aria-modal');
+      sheet.removeAttribute('aria-label');
+      sheet.removeAttribute('aria-labelledby');
     }
     document.body.style.overflow = '';
 
@@ -1276,6 +1280,7 @@ const App = {
     this._associateLabels(modal);
     modal.setAttribute('role', 'dialog');
     modal.setAttribute('aria-modal', 'true');
+    this._nameDialog(modal, options);
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
 
@@ -1292,6 +1297,8 @@ const App = {
       modal.classList.remove('active');
       modal.removeAttribute('role');
       modal.removeAttribute('aria-modal');
+      modal.removeAttribute('aria-label');
+      modal.removeAttribute('aria-labelledby');
     }
     this._untrapFocus();
     document.body.style.overflow = '';
@@ -1311,16 +1318,82 @@ const App = {
     });
   },
 
+  // Every dialog needs an accessible name. Most call sites already include a
+  // visible heading, so associate it automatically and allow explicit labels
+  // for the few deliberately heading-free sheets.
+  _nameDialog(container, options = {}) {
+    container.removeAttribute('aria-label');
+    container.removeAttribute('aria-labelledby');
+    if (options.ariaLabel) {
+      container.setAttribute('aria-label', options.ariaLabel);
+      return;
+    }
+    const heading = container.querySelector('h1, h2, h3, [data-dialog-title]');
+    if (heading) {
+      if (!heading.id) heading.id = `dialog-title-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      container.setAttribute('aria-labelledby', heading.id);
+      return;
+    }
+    container.setAttribute('aria-label', 'Dialog');
+  },
+
   // Service worker
   async setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       try {
+        // Browser suites deliberately seed this flag before boot. Capture it
+        // before the asynchronous registration so a waiting worker cannot
+        // cover the install/onboarding UI those suites are exercising.
+        const suppressUpdateUI = localStorage.getItem('advisoros_enc_test') === '1';
         const registration = await navigator.serviceWorker.register('sw.js');
         console.log('Service Worker registered:', registration.scope);
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (suppressUpdateUI || refreshing) return;
+          refreshing = true;
+          window.location.reload();
+        });
+
+        const offerUpdate = worker => {
+          if (suppressUpdateUI || !worker || !navigator.serviceWorker.controller || this._updateOffered) return;
+          this._updateOffered = true;
+          this.openModal(`
+            <div class="sheet-handle"></div>
+            <div class="sheet-header"><h3>Update ready</h3></div>
+            <div class="sheet-body p-md">
+              <p class="text-secondary mb-lg">A new version of Beelo is ready. Update now to load it safely.</p>
+              <button class="btn btn-primary btn-block" data-action="App.applyServiceWorkerUpdate">Update and reload</button>
+              <button class="btn btn-ghost btn-block mt-sm" data-action="App.closeModal">Later</button>
+            </div>`);
+        };
+
+        this._waitingServiceWorker = registration.waiting || null;
+        if (registration.waiting) offerUpdate(registration.waiting);
+        registration.addEventListener('updatefound', () => {
+          const worker = registration.installing;
+          if (!worker) return;
+          worker.addEventListener('statechange', () => {
+            if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+              this._waitingServiceWorker = worker;
+              offerUpdate(worker);
+            }
+          });
+        });
       } catch (err) {
         console.log('Service Worker registration failed:', err);
       }
     }
+  },
+
+  applyServiceWorkerUpdate() {
+    const worker = this._waitingServiceWorker;
+    if (!worker) return;
+    const button = document.querySelector('[data-action="App.applyServiceWorkerUpdate"]');
+    if (button) {
+      button.disabled = true;
+      button.textContent = 'Updating…';
+    }
+    worker.postMessage({ type: 'SKIP_WAITING' });
   },
 };
 
