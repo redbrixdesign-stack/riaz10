@@ -367,13 +367,13 @@ assert(norm('random gibberish 123') === 'default', 'unknown routes to default');
   });
   assert(scheduleHtml.includes('comp-home-greeting-main') && scheduleHtml.includes('<span class="comp-home-greeting-dot">.</span>'), 'Home starts with the advisor name and gold full stop');
   assert(scheduleHtml.includes('Scan to add') && scheduleHtml.includes('home-quick-capture') && !scheduleHtml.includes('QUICK ADD') && !scheduleHtml.includes('Photo → right place'), 'Home exposes scan and manual fallbacks without the redundant quick-add labels');
-  assert(scheduleHtml.indexOf('home-quick-capture') < scheduleHtml.indexOf('comp-home-schedule') && scheduleHtml.indexOf('comp-home-schedule') < scheduleHtml.indexOf('THIS WEEK'), 'Home puts the appointment feed directly under the scan control');
-  assert(scheduleHtml.includes("TODAY'S ROUTE") && scheduleHtml.includes('Mrs Smith → Mr Khan') && scheduleHtml.includes('comp-home-route-map') && scheduleHtml.includes('Start overall route') && !scheduleHtml.includes('comp-home-route-leg'), 'Home shows one overall route map without individual route legs');
+  assert(scheduleHtml.indexOf('THIS WEEK') < scheduleHtml.indexOf('home-quick-capture'), 'Home puts the calendar above the thumb-reachable scan control');
+  assert(scheduleHtml.includes("TODAY'S ROUTE") && scheduleHtml.includes('Mrs Smith → Mr Khan') && scheduleHtml.includes('comp-home-route-leg completed') && scheduleHtml.includes('Next move ·'), 'Home route overview shows the next move and mutes completed legs');
   assert((scheduleHtml.match(/comp-home-schedule"/g) || []).length === 1, 'Home renders one appointment schedule panel');
   assert(scheduleHtml.includes('comp-home-schedule-list') && scheduleHtml.includes('comp-home-next-visit') && scheduleHtml.includes('comp-home-visit upcoming'), 'Schedule contains featured visit and compact rows');
   assert(scheduleHtml.includes('09:30') && scheduleHtml.includes('11:00–13:00') && !scheduleHtml.includes('Arrival window') && !scheduleHtml.includes('Window '), 'Schedule shows promised time ranges without redundant labels');
   assert(!scheduleHtml.includes('BEFORE YOU GO') && !scheduleHtml.includes('comp-home-customer-brief'), 'Featured visit omits the before-you-go block');
-  assert(!scheduleHtml.includes('>Navigate<') && scheduleHtml.includes('>Call<') && scheduleHtml.includes('>On my way<'), 'Featured visit keeps contact actions while route navigation stays consolidated');
+  assert(scheduleHtml.includes('>Navigate<') && scheduleHtml.includes('>Call<') && scheduleHtml.includes('>On my way<'), 'Featured visit exposes the three field actions');
 
   const priorDate = new Date(Date.now() - 86400000).toISOString();
   APPOINTMENTS.push(

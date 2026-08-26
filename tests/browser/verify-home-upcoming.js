@@ -106,19 +106,14 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
       todayCell,
       hasGreeting: !!document.querySelector('.comp-home-greeting'),
       hasWeekStrip: !!document.querySelector('.comp-home-week-strip'),
-      schedulePanels: document.querySelectorAll('.comp-home-schedule').length,
-      scanBeforeSchedule: document.querySelector('.comp-home-quick-add')?.compareDocumentPosition(document.querySelector('.comp-home-schedule')) & Node.DOCUMENT_POSITION_FOLLOWING,
-      scheduleBeforeWeek: document.querySelector('.comp-home-schedule')?.compareDocumentPosition(document.querySelector('.comp-home-week-strip')) & Node.DOCUMENT_POSITION_FOLLOWING,
-      overallRouteMap: !!document.querySelector('.comp-home-route-map'),
-      individualRouteLegs: document.querySelectorAll('.comp-home-route-leg').length
+      schedulePanels: document.querySelectorAll('.comp-home-schedule').length
     };
   });
 
   console.log(`\n  Phase 1 — seed + ${added.length} extra today visits (diary day-window count = ${p1.dayCount})`);
   ok('query: upcoming includes ALL of today\'s visits (day window)', p1.todayUpcomingCount === p1.dayCount, { todayUpcomingCount: p1.todayUpcomingCount, dayCount: p1.dayCount });
   ok('query: the earlier-today visit is included', p1.pastInUpcoming === true, p1);
-  ok('Home: appointment feed sits directly after Scan and before the weekly strip', !!p1.scanBeforeSchedule && !!p1.scheduleBeforeWeek && p1.hasWeekStrip, p1);
-  ok('Home: one overall route map replaces individual route legs', p1.overallRouteMap && p1.individualRouteLegs === 0, p1);
+  ok('Home: weekly calendar strip is back, above the feed', p1.labels[0] === 'THIS WEEK' && p1.hasWeekStrip, p1.labels);
   ok(`weekly strip today cell shows ${p1.dayCount} (matches the diary)`, p1.todayCell === String(p1.dayCount), { todayCell: p1.todayCell });
   ok('advisor greeting remains above the weekly strip', p1.hasGreeting, p1);
   ok('appointments share one schedule panel', p1.schedulePanels === 1, p1);

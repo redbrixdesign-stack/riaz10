@@ -49,13 +49,12 @@ const ok = (label, cond, extra) => {
     const p = w + 'px';
     ok(`${p}: no horizontal overflow`, r.overflowX <= 0, r.overflowX);
     ok(`${p}: advisor greeting and weekly calendar strip present`, r.hasGreeting && r.hasWeekStrip, r.labels);
-    // Scan (unlabelled) → NEXT feed → THIS WEEK → overall route → ATTENTION → ASK BEELO
+    // THIS WEEK strip → NEXT (featured card + upcoming rows) → ATTENTION → ASK BEELO
     const iWeek = r.labels.indexOf('THIS WEEK');
     const iNext = r.labels.indexOf('NEXT');
-    const iRoute = r.labels.indexOf("TODAY'S ROUTE");
     const iAtt = r.labels.indexOf('NEEDS YOUR ATTENTION');
     const iAsk = r.labels.indexOf('ASK BEELO');
-    ok(`${p}: labelled sections follow the Scan-first Home flow`, iNext === 0 && iWeek > iNext && iRoute > iWeek && iAtt > iRoute && iAsk > iAtt, r.labels);
+    ok(`${p}: labelled sections present in order (strip first)`, iWeek === 0 && iNext > iWeek && iAtt > iNext && iAsk > iAtt, r.labels);
     ok(`${p}: featured card + visit rows show real times (not the live clock)`, !!r.nextName && r.visitCount > 0 && !r.anyTimeIsNow, { times: r.times });
   }
 
