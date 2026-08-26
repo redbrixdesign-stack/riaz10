@@ -22,6 +22,7 @@ const indexHtml = read('index.html');
 const manifest = JSON.parse(read('manifest.json'));
 const lighthouse = read('lighthouserc.js');
 const routeFeature = read('js/features/route/route.js');
+const lazyFeatures = read('js/core/lazy-features.js');
 
 console.log('documentation and product-language contracts');
 for (const [token, value] of [
@@ -84,6 +85,12 @@ ok('Leaflet stays off the first-screen path until Route is activated',
   routeFeature.includes('init() {}') &&
   routeFeature.includes('this.loadLeaflet();') &&
   !/init\(\)\s*\{[^}]*leaflet-css/s.test(routeFeature));
+ok('secondary workflows are route-split rather than eager script tags',
+  ['quotes', 'jobs', 'invoices', 'suppliers', 'capacity', 'profitability', 'retention', 'settings']
+    .every(id => lazyFeatures.includes(`id: '${id}'`)) &&
+  !/features\/(quotes|jobs|invoices|suppliers|capacity|profitability|retention|settings)\/[^"']+\.min\.js/.test(indexHtml));
+ok('lazy workflows do not compete with the first-install shell precache',
+  !/features\/(quotes|jobs|invoices|suppliers|profitability|retention|settings)\/[^"']+\.min\.js/.test(serviceWorker));
 
 const readableUiFiles = [
   ...fs.readdirSync(path.join(root, 'js/features'), { recursive: true })

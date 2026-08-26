@@ -620,6 +620,47 @@ const App = {
     console.log(`Feature registered: ${feature.id}`);
   },
 
+  registerLazyFeature(definition) {
+    const proxy = {
+      id: definition.id,
+      name: definition.name,
+      icon: definition.icon,
+      route: definition.route === true,
+      _lazy: true,
+      async render(params = {}) {
+        await App.loadScripts(definition.scripts);
+        const loaded = App.features.get(definition.id);
+        if (!loaded || loaded === proxy || loaded._lazy) {
+          throw new Error(`${definition.name} failed to load`);
+        }
+        // Keep the object App.navigate() already selected, but promote it to
+        // the real implementation so activate/deactivate and later renders
+        // use the loaded feature without a second navigation or layout jump.
+        Object.assign(proxy, loaded, { _lazy: false });
+        App.features.set(definition.id, proxy);
+        return proxy.render(params);
+      }
+    };
+    this.registerFeature(proxy);
+  },
+
+  loadScripts(urls = []) {
+    return urls.reduce((chain, url) => chain.then(() => {
+      if (document.querySelector(`script[data-lazy-src="${url}"]`)) return;
+      return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = url;
+        script.dataset.lazySrc = url;
+        script.onload = resolve;
+        script.onerror = () => {
+          script.remove();
+          reject(new Error(`Could not load ${url}`));
+        };
+        document.head.appendChild(script);
+      });
+    }), Promise.resolve());
+  },
+
   // Navigation
   navigate(featureId, params = {}) {
     // Handle hash params
@@ -935,10 +976,12 @@ const App = {
     // data-key support is scoped to the legacy pattern
     //   if(event.key==='Enter'||event.key===' '){...}
     // which becomes data-key="Enter, " (comma-separated accepted keys).
-    const ACTION_OBJECTS = {
+    // Resolve on dispatch rather than snapshotting at boot: secondary
+    // features are loaded only when their route is opened.
+    const actionObject = name => ({
       App,
       AppointmentsFeature,
-      SettingsFeature,
+      SettingsFeature: typeof SettingsFeature === 'undefined' ? null : SettingsFeature,
       MoneyFeature,
       TalkFeature,
       MeasureFeature,
@@ -956,18 +999,18 @@ const App = {
       CustomerFeature,
       FollowupsFeature,
       LeadsFeature,
-      QuotesFeature,
-      JobsFeature,
-      InvoicesFeature,
-      SuppliersFeature,
-      CapacityFeature,
-      ProfitabilityFeature,
-      RetentionFeature,
+      QuotesFeature: typeof QuotesFeature === 'undefined' ? null : QuotesFeature,
+      JobsFeature: typeof JobsFeature === 'undefined' ? null : JobsFeature,
+      InvoicesFeature: typeof InvoicesFeature === 'undefined' ? null : InvoicesFeature,
+      SuppliersFeature: typeof SuppliersFeature === 'undefined' ? null : SuppliersFeature,
+      CapacityFeature: typeof CapacityFeature === 'undefined' ? null : CapacityFeature,
+      ProfitabilityFeature: typeof ProfitabilityFeature === 'undefined' ? null : ProfitabilityFeature,
+      RetentionFeature: typeof RetentionFeature === 'undefined' ? null : RetentionFeature,
       CommunicationsFeature,
       InstallPrompt,
       Legal,
       ConsentPrompt
-    };
+    })[name];
 
     const runAction = (el, event) => {
       const action = el.getAttribute('data-action');
@@ -1021,7 +1064,7 @@ const App = {
       const dot = action.lastIndexOf('.');
       const objName = dot > 0 ? action.slice(0, dot) : '';
       const method = dot > 0 ? action.slice(dot + 1) : action;
-      const obj = ACTION_OBJECTS[objName];
+      const obj = actionObject(objName);
       if (!obj) {
         console.error(`[action] unknown object "${objName}" from ${action}`);
         return false;
