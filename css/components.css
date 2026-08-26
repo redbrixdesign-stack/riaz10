@@ -288,6 +288,29 @@
   transform: translateY(0);
 }
 
+/* The passphrase gate opens before the app shell and must remain usable when
+   iOS shrinks the visual viewport for its keyboard. It is intentionally a
+   top-positioned dialog rather than a bottom sheet, with its own scroll area. */
+.modal-overlay.passphrase-gate {
+  align-items: flex-start;
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) 12px 12px;
+}
+
+.modal-overlay.passphrase-gate .bottom-sheet {
+  border-radius: var(--radius-lg);
+  max-height: calc(100dvh - env(safe-area-inset-top, 0px) - 24px);
+  transform: translateY(-24px);
+  box-shadow: var(--shadow-lg);
+}
+
+.modal-overlay.passphrase-gate.active .bottom-sheet {
+  transform: translateY(0);
+}
+
+.modal-overlay.passphrase-gate .sheet-body {
+  padding-bottom: var(--space-lg);
+}
+
 .sheet-header {
   display: flex;
   align-items: center;

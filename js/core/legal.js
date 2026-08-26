@@ -82,7 +82,10 @@ const Legal = {
           addresses, postal addresses) are encrypted on your device before they are
           stored, using AES-256-GCM with a key derived from the passphrase you set
           on first launch (PBKDF2, 100,000 iterations). The passphrase is never
-          stored — forgetting it means that data cannot be recovered, by design.
+          stored in plain text or sent to Beelo. If you enable an unlock grace
+          period, a wrapped copy is protected by a non-exportable key on this
+          device and is not included in backups. Beelo cannot recover a forgotten
+          passphrase or decrypt your records remotely.
         </div>
       </div>
 

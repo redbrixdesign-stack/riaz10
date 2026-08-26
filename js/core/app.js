@@ -173,8 +173,8 @@ const App = {
     console.log('AdvisorOS v5.0 ready');
   },
 
-  // Prompt for encryption passphrase on each app launch.
-  // The key is derived via PBKDF2 and held only in memory for the session.
+  // Prompt for the encryption passphrase when the device's configured unlock
+  // grace has expired. The active key is held only in memory while Beelo runs.
   async promptPassphrase() {
     // Browser test mode: e2e suites boot a fresh profile and can't click a
     // modal. They set advisoros_enc_test=1 before boot and get a fixed
@@ -197,7 +197,7 @@ const App = {
             <h3>Set Encryption Passphrase</h3>
           </div>
           <div class="sheet-body p-md">
-            <p class="text-secondary mb-lg">Your customer data (names, phones, addresses, emails) will be encrypted at rest. Choose a passphrase you'll remember — it's required every time you open Beelo.</p>
+            <p class="text-secondary mb-lg">Your customer data (names, phones, addresses, emails) will be encrypted at rest. Choose a passphrase you'll remember. You can choose how often Beelo asks for it in Settings.</p>
             <div class="form-group">
               <label>Passphrase</label>
               ${this.passphraseControl('enc-passphrase-new', 'Enter passphrase')}
@@ -210,7 +210,7 @@ const App = {
             <button class="btn btn-primary btn-block" data-action="App._setPassphrase">Set Passphrase</button>
             <div class="fs-11 text-tertiary text-center mt-10" >Setting up encryption can take a few seconds on older iPhones — tap once and wait.</div>
           </div>
-        `, { onOpen: () => document.getElementById('enc-passphrase-new')?.focus() });
+        `, { className: 'passphrase-gate', onOpen: () => document.getElementById('enc-passphrase-new')?.focus() });
         // The passphrase gate runs BEFORE setupEvents() attaches the delegated
         // data-action router (Phase 4.6), so the button's data-action alone
         // would do nothing — a tap here was silently dead (reported on iPhone).
@@ -245,6 +245,7 @@ const App = {
           try {
             await initEncryption(p1);
             localStorage.setItem('advisoros_enc_verify', JSON.stringify(await encryptField('advisoros-enc-verify')));
+            await this.rememberUnlock(p1);
             this._encryptInProgress = false;
             this.closeModal();
             delete App._setPassphrase;
@@ -259,6 +260,10 @@ const App = {
         };
       });
     } else {
+      // Reopen without prompting while the user-selected grace period is
+      // still valid. An active on-site visit temporarily extends that grace
+      // so iOS cannot put a passphrase gate in the middle of a customer visit.
+      if (await this.tryRememberedUnlock()) return;
       // Subsequent launches - prompt for existing passphrase
       return new Promise((resolve) => {
         this.openModal(`
@@ -276,7 +281,7 @@ const App = {
             <button class="btn btn-primary btn-block" data-action="App._checkPassphrase">Unlock</button>
             <div class="fs-11 text-tertiary text-center mt-10" >Decrypting can take a few seconds on older iPhones — tap Unlock once and wait.</div>
           </div>
-        `, { onOpen: () => document.getElementById('enc-passphrase')?.focus() });
+        `, { className: 'passphrase-gate', onOpen: () => document.getElementById('enc-passphrase')?.focus() });
         // Same as the set button: the router isn't attached yet, so wire the
         // Unlock button directly (this modal also keeps its Enter-key path).
         const unlockBtn = document.querySelector('[data-action="App._checkPassphrase"]');
@@ -309,6 +314,7 @@ const App = {
               const verified = await decryptField(JSON.parse(verifyRaw));
               if (verified !== 'advisoros-enc-verify') throw new Error('Passphrase verification failed');
             }
+            await this.rememberUnlock(passphrase);
             this._unlockInProgress = false;
             this.closeModal();
             delete App._checkPassphrase;
@@ -323,6 +329,110 @@ const App = {
           if (e.key === 'Enter') { e.preventDefault(); App._checkPassphrase(); }
         });
       });
+    }
+  },
+
+  unlockTimeoutMinutes() {
+    try {
+      const saved = JSON.parse(localStorage.getItem('advisoros_config') || '{}');
+      const value = Number(saved.unlockTimeoutMinutes);
+      return [0, 15, 30, 60, 240, 480, 720, 1440].includes(value) ? value : 60;
+    } catch (e) {
+      return 60;
+    }
+  },
+
+  _openUnlockCache() {
+    return new Promise((resolve, reject) => {
+      if (!window.indexedDB) return reject(new Error('IndexedDB unavailable'));
+      const request = indexedDB.open('beelo-unlock-cache', 1);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains('cache')) db.createObjectStore('cache', { keyPath: 'id' });
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error || new Error('Unlock cache unavailable'));
+    });
+  },
+
+  async _unlockCacheRecord(id, value) {
+    const db = await this._openUnlockCache();
+    try {
+      return await new Promise((resolve, reject) => {
+        const tx = db.transaction('cache', value === undefined ? 'readonly' : 'readwrite');
+        const store = tx.objectStore('cache');
+        const request = value === undefined ? store.get(id) : store.put({ id, value });
+        request.onsuccess = () => resolve(value === undefined ? request.result?.value : value);
+        request.onerror = () => reject(request.error);
+      });
+    } finally {
+      db.close();
+    }
+  },
+
+  async _unlockDeviceKey() {
+    let key = await this._unlockCacheRecord('device-key');
+    if (!key) {
+      key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+      await this._unlockCacheRecord('device-key', key);
+    }
+    return key;
+  },
+
+  async rememberUnlock(passphrase) {
+    try {
+      const key = await this._unlockDeviceKey();
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const wrapped = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(passphrase));
+      const minutes = this.unlockTimeoutMinutes();
+      await this._unlockCacheRecord('session', {
+        iv: Array.from(iv),
+        wrapped: Array.from(new Uint8Array(wrapped)),
+        expiresAt: Date.now() + (minutes * 60000),
+        activeVisitUntil: 0
+      });
+    } catch (e) {
+      // Private browsing and some managed devices block durable CryptoKeys.
+      // Falling back to the normal passphrase prompt is safer than weakening it.
+      console.warn('Secure unlock grace could not be saved:', e);
+    }
+  },
+
+  async tryRememberedUnlock() {
+    try {
+      const record = await this._unlockCacheRecord('session');
+      if (!record) return false;
+      const now = Date.now();
+      if (!(Number(record.expiresAt) > now || Number(record.activeVisitUntil) > now)) return false;
+      const key = await this._unlockDeviceKey();
+      const plain = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: new Uint8Array(record.iv) },
+        key,
+        new Uint8Array(record.wrapped)
+      );
+      const passphrase = new TextDecoder().decode(plain);
+      await initEncryption(passphrase);
+      const verifyRaw = localStorage.getItem('advisoros_enc_verify');
+      if (verifyRaw && await decryptField(JSON.parse(verifyRaw)) !== 'advisoros-enc-verify') return false;
+      return true;
+    } catch (e) {
+      console.warn('Remembered unlock was unavailable:', e);
+      return false;
+    }
+  },
+
+  // Called by the on-site timer. A visit may keep the secure wrapper usable
+  // for up to 12 hours; leaving the customer restarts the selected timeout.
+  async setActiveVisitUnlock(active) {
+    try {
+      const record = await this._unlockCacheRecord('session');
+      if (!record) return;
+      const now = Date.now();
+      record.activeVisitUntil = active ? now + (12 * 60 * 60000) : 0;
+      if (!active) record.expiresAt = now + (this.unlockTimeoutMinutes() * 60000);
+      await this._unlockCacheRecord('session', record);
+    } catch (e) {
+      console.warn('Visit unlock grace could not be updated:', e);
     }
   },
 
@@ -362,18 +472,20 @@ const App = {
       status.warning = 'This browser is not giving the app reliable storage. Export backups often or try Safari without private browsing.';
     }
 
-    // Check storage quota (once per session)
+    // Only warn when storage is genuinely critical. Photos make a fixed 4MB
+    // threshold noisy on healthy phones, so use the browser's real quota.
     if (!this._storageQuotaWarned) {
       try {
         if (navigator.storage && navigator.storage.estimate) {
           const estimate = await navigator.storage.estimate();
           const usageMB = estimate.usage ? Math.round(estimate.usage / 1024 / 1024 * 10) / 10 : 0;
           const quotaMB = estimate.quota ? Math.round(estimate.quota / 1024 / 1024 * 10) / 10 : 0;
-          // Warn at ~4MB usage or 80% of quota, whichever is lower
-          const warnThreshold = Math.min(4, quotaMB * 0.8 || 4);
-          if (usageMB >= warnThreshold) {
+          const ratio = estimate.quota ? estimate.usage / estimate.quota : 0;
+          const remainingMB = Math.max(0, quotaMB - usageMB);
+          const critical = ratio >= 0.90 || (ratio >= 0.75 && remainingMB <= 50);
+          if (critical) {
             this._storageQuotaWarned = true;
-            const msg = `Storage usage: ${usageMB}MB${quotaMB ? ` of ${quotaMB}MB` : ''}. Consider exporting a backup.`;
+            const msg = `Beelo storage is nearly full: ${usageMB}MB${quotaMB ? ` of ${quotaMB}MB` : ''}. Export a backup and remove unneeded photos.`;
             console.warn('AdvisorOS storage quota warning:', msg);
             Toast.show(msg, 'warning', 10000);
           }
@@ -389,8 +501,13 @@ const App = {
       // console.warn is invisible on a phone with no devtools attached -
       // this is the one piece of information most likely to explain "my
       // data isn't there", so it needs to reach the actual screen.
-      if (typeof Toast !== 'undefined') {
+      const today = new Date().toISOString().slice(0, 10);
+      const noticeKey = 'advisoros_storage_notice_day';
+      let alreadyShown = false;
+      try { alreadyShown = localStorage.getItem(noticeKey) === today; } catch (e) {}
+      if (!alreadyShown && typeof Toast !== 'undefined') {
         Toast.show(status.warning, 'warning', 8000);
+        try { localStorage.setItem(noticeKey, today); } catch (e) {}
       }
     }
     return status;
@@ -428,6 +545,9 @@ const App = {
     }
     if (!['ask', 'apple', 'google', 'waze'].includes(CONFIG.navigationApp)) {
       CONFIG.navigationApp = 'ask';
+    }
+    if (![0, 15, 30, 60, 240, 480, 720, 1440].includes(Number(CONFIG.unlockTimeoutMinutes))) {
+      CONFIG.unlockTimeoutMinutes = 60;
     }
     this.setBranding();
   },
@@ -1065,6 +1185,7 @@ const App = {
     }
 
     sheet.innerHTML = content;
+    overlay.classList.toggle('passphrase-gate', options.className === 'passphrase-gate');
     sheet.scrollTop = 0;
     this._associateLabels(sheet);
     sheet.setAttribute('role', 'dialog');
@@ -1131,6 +1252,7 @@ const App = {
     this._untrapFocus();
     if (overlay) {
       overlay.classList.remove('active');
+      overlay.classList.remove('passphrase-gate');
     }
     if (sheet) {
       sheet.innerHTML = '';

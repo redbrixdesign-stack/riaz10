@@ -71,6 +71,13 @@ const SettingsFeature = {
         description: 'Default app for customer directions'
       },
       {
+        id: 'security',
+        title: 'App Lock',
+        icon: 'lock_clock',
+        summary: this.unlockTimeoutLabel(CONFIG.unlockTimeoutMinutes),
+        description: 'Choose when Beelo asks for your passphrase'
+      },
+      {
         id: 'morning-brief',
         title: 'Morning Brief',
         icon: 'wb_sunny',
@@ -176,6 +183,7 @@ const SettingsFeature = {
       'branding': this.renderBrandingDetail(),
       'business-base': this.renderBusinessBaseDetail(),
       'navigation': this.renderNavigationDetail(),
+      'security': this.renderSecurityDetail(),
       'morning-brief': this.renderMorningBriefDetail(briefEnabled),
       'visit-reminders': this.renderVisitRemindersDetail(),
       'auto-messages': this.renderAutoMessagesDetail(),
@@ -203,6 +211,7 @@ const SettingsFeature = {
       'branding': 'Company Branding',
       'business-base': 'Business Base',
       'navigation': 'Navigation',
+      'security': 'App Lock',
       'morning-brief': 'Morning Brief',
       'visit-reminders': 'Visit Alerts',
       'auto-messages': 'Automated Messages',
@@ -329,6 +338,47 @@ const SettingsFeature = {
           </button>
         </div>
       </div>`;
+  },
+
+  unlockTimeoutLabel(value) {
+    const minutes = Number(value);
+    if (minutes === 0) return 'Every reopen';
+    if (minutes < 60) return `${minutes} minutes`;
+    if (minutes === 60) return '1 hour';
+    if (minutes === 1440) return '24 hours';
+    return `${minutes / 60} hours`;
+  },
+
+  renderSecurityDetail() {
+    const selected = Number(CONFIG.unlockTimeoutMinutes ?? 60);
+    const options = [
+      [0, 'Every time Beelo reopens'],
+      [15, 'After 15 minutes'],
+      [30, 'After 30 minutes'],
+      [60, 'After 1 hour'],
+      [240, 'After 4 hours'],
+      [480, 'After 8 hours'],
+      [720, 'After 12 hours'],
+      [1440, 'After 24 hours']
+    ];
+    return `
+      <div class="card mb-md">
+        <label class="fw-600 mb-4 block" for="set-unlock-timeout">Ask for passphrase</label>
+        <div class="fs-12 text-secondary lh-150 mb-md">Choose how long this device can reopen Beelo without asking again.</div>
+        <select class="select" id="set-unlock-timeout" data-action="SettingsFeature.setUnlockTimeout" data-args='${JSON.stringify(["__value__"])}'>
+          ${options.map(([value, label]) => `<option value="${value}" ${selected === value ? 'selected' : ''}>${label}</option>`).join('')}
+        </select>
+      </div>
+      <div class="card mb-md" style="border-left:3px solid var(--accent);">
+        <div class="flex items-start gap-10">
+          <span class="material-symbols-rounded text-accent">home_repair_service</span>
+          <div>
+            <div class="fw-600">Active visits stay unlocked</div>
+            <div class="fs-12 text-secondary lh-150 mt-2">When the on-site timer is running, Beelo will not interrupt the visit with a passphrase prompt. Leaving the customer restarts your chosen timeout.</div>
+          </div>
+        </div>
+      </div>
+      <div class="fs-12 text-tertiary lh-150 px-xs">Your passphrase is protected by a non-exportable key kept on this device. It is never added to backups or sent to Beelo.</div>`;
   },
 
   renderVisitRemindersDetail() {
@@ -736,6 +786,7 @@ const SettingsFeature = {
       distanceUnit: CONFIG.distanceUnit,
       measurementUnit: CONFIG.measurementUnit,
       navigationApp: CONFIG.navigationApp,
+      unlockTimeoutMinutes: CONFIG.unlockTimeoutMinutes,
       commission: CONFIG.commission,
       ai: aiWithoutSecret,
       autoMessages: CONFIG.autoMessages,
@@ -1003,6 +1054,15 @@ const SettingsFeature = {
     CONFIG.navigationApp = app;
     this.persist();
     Toast.show(`${this.navigationAppLabel(app)} selected`, 'success');
+    this.refreshInPlace();
+  },
+  async setUnlockTimeout(value) {
+    const minutes = Number(value);
+    if (![0, 15, 30, 60, 240, 480, 720, 1440].includes(minutes)) return;
+    CONFIG.unlockTimeoutMinutes = minutes;
+    this.persist();
+    await App.setActiveVisitUnlock?.(false);
+    Toast.show(`App lock set to ${this.unlockTimeoutLabel(minutes).toLowerCase()}`, 'success');
     this.refreshInPlace();
   },
   importBackup() { document.getElementById('import-file').click(); },

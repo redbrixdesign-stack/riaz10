@@ -17,6 +17,10 @@ const CONFIG = {
   // Turn-by-turn navigation hand-off. "ask" keeps the map chooser visible;
   // apple/google/waze launch that provider directly from Navigate.
   navigationApp: 'ask',
+  // How long this device may reopen Beelo without another passphrase prompt.
+  // The passphrase is wrapped by a non-extractable device key in IndexedDB;
+  // it is never written to localStorage or included in a backup.
+  unlockTimeoutMinutes: 60,
 
   // Advisor identity & targets (set during onboarding)
   advisorName: '',

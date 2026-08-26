@@ -46,7 +46,7 @@ const sandbox = {
   CONFIG: {
     advisorName: 'Riaz', weeklyTarget: 600, companyName: '', businessAddress: '',
     advisorMode: 'independent', trades: [{ id: 'blinds', name: 'Window Coverings' }], trade: 'blinds',
-    distanceUnit: 'miles', measurementUnit: 'mm', navigationApp: 'ask', country: 'GB', currency: 'GBP',
+    distanceUnit: 'miles', measurementUnit: 'mm', navigationApp: 'ask', unlockTimeoutMinutes: 60, country: 'GB', currency: 'GBP',
     ai: {}, commission: { mode: 'two_stage' }, autoMessages: { enabled: false }
   },
   Utils: { escapeHtml: s => String(s), formatCurrency: v => '£' + v },
@@ -72,6 +72,8 @@ const sandbox = {
   ExportService: { getLastBackupMeta: () => null, isBackupStale: () => false, getBackupAgeLabel: () => '', exportBackup() {}, importBackup() {}, exportCSV() {} },
   App: {
     state: {},
+    unlockUpdates: [],
+    setActiveVisitUnlock(active) { this.unlockUpdates.push(active); },
     renderTopHeader: () => '',
     navigate() {},
     openModal() {},
@@ -130,6 +132,10 @@ console.log('detail screens render');
   const navigation = SettingsFeature.render({ section: 'navigation' });
   ok('navigation detail offers ask + three map apps', ['Ask every time', 'Apple Maps', 'Google Maps', 'Waze'].every(label => navigation.includes(label)), navigation.slice(0, 120));
   ok('ask every time is selected by default', navigation.includes('data-args=\'["ask"]\'') && navigation.includes('aria-checked="true"'), navigation.slice(0, 180));
+
+  const security = SettingsFeature.render({ section: 'security' });
+  ok('app lock offers minute and hour choices', ['After 15 minutes', 'After 1 hour', 'After 24 hours'].every(label => security.includes(label)), security.slice(0, 160));
+  ok('app lock explains the active-visit exception', security.includes('Active visits stay unlocked') && security.includes('Leaving the customer restarts'), security.slice(0, 220));
 }
 
 console.log('navigation preference persists');
@@ -140,6 +146,15 @@ console.log('navigation preference persists');
   ok('navigation preference is saved locally', saved.navigationApp === 'waze', saved.navigationApp);
   ok('settings index reflects saved map', SettingsFeature.renderIndex().includes('Waze'));
   SettingsFeature.setNavigationApp('ask');
+}
+
+console.log('app-lock timeout persists');
+{
+  await SettingsFeature.setUnlockTimeout('30');
+  const saved = JSON.parse(stored.get('advisoros_config'));
+  ok('30-minute timeout becomes active', sandbox.CONFIG.unlockTimeoutMinutes === 30);
+  ok('unlock timeout is saved locally', saved.unlockTimeoutMinutes === 30, saved.unlockTimeoutMinutes);
+  ok('changing timeout refreshes the current grace window', sandbox.App.unlockUpdates.at(-1) === false);
 }
 
 console.log('AI shared secret persists as a device-only credential');

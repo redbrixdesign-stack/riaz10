@@ -1584,6 +1584,7 @@ const AppointmentsFeature = {
     if (!appt || appt.status === 'cancelled' || appt.status === 'completed') return Toast.show('This visit cannot be started', 'warning');
     if (appt.arrivedAt && !appt.leftAt) return Toast.show('On-site timer is already running', 'info');
     await DB.updateAppointment(id, { travelStatus: 'on_site', arrivedAt: Date.now(), leftAt: null, onSiteDurationMinutes: null });
+    await App.setActiveVisitUnlock?.(true);
     Toast.show('Arrival logged — on-site timer started', 'success');
     App.navigate('appointments', { id });
   },
@@ -1594,6 +1595,7 @@ const AppointmentsFeature = {
     const leftAt = Date.now();
     const onSiteDurationMinutes = this.onSiteDurationMinutes(appt, leftAt);
     await DB.updateAppointment(id, { travelStatus: null, leftAt, onSiteDurationMinutes });
+    await App.setActiveVisitUnlock?.(false);
     Toast.show(`Time at customer logged: ${this.formatOnSiteDuration(onSiteDurationMinutes)}`, 'success');
     App.navigate('appointments', { id });
   },
@@ -3354,6 +3356,7 @@ const AppointmentsFeature = {
           : (appt.onSiteDurationMinutes ?? null)
         }
       });
+      await App.setActiveVisitUnlock?.(false);
       const paymentNote = result.payment?.applied > 0
         ? ` · ${Utils.formatCurrency(result.payment.applied)} payment recorded`
         : '';
