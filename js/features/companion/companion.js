@@ -309,9 +309,9 @@ const CompanionFeature = {
   },
 
   welcomeHtml(homeData) {
-    // Home = advisor identity, weekly calendar, thumb-reachable capture,
-    // today's route, then ONE appointment feed (NEXT visit as a rich card +
-    // compact rows), attention and Ask Beelo chips.
+    // Home = advisor identity, thumb-reachable capture, ONE appointment feed
+    // (NEXT visit as a rich card + compact rows), weekly calendar, then one
+    // whole-day route overview, attention and Ask Beelo chips.
 
     const advisorName = Utils.firstNameFrom(CONFIG.advisorName || '') || 'Advisor';
     const greetingHtml = `
@@ -375,43 +375,38 @@ const CompanionFeature = {
         </div>`;
     }
 
-    // B. TODAY'S ROUTE — a compact, actionable sequence using the same
-    // time-ordered legs as the full Route screen. Completed stops remain in
-    // context but are muted; the active leg is highlighted as the next move.
+    // TODAY'S ROUTE — one overview map and one whole-day route action. Home
+    // deliberately avoids per-stop route controls; those belong to the full
+    // Route screen and made the appointment feed unnecessarily repetitive.
     let routePlanHtml = '';
     const routePlan = homeData.routePlan;
     if (routePlan && Array.isArray(routePlan.legs) && routePlan.legs.length > 0) {
-      const activeIndex = routePlan.activeLeg ? routePlan.activeLeg.index : null;
-      const legsHtml = routePlan.legs.map(leg => {
-        const destination = leg.to || {};
-        const appointment = destination.appointment || null;
-        const completed = !!appointment && (appointment.status === 'completed' || !!appointment.outcome);
-        const active = leg.index === activeIndex;
-        const stateClass = completed ? 'completed' : (active ? 'active' : 'upcoming');
-        const fromLabel = (leg.from && leg.from.label) || 'Start';
-        const toLabel = destination.label || (leg.isReturn ? 'Base' : 'Next stop');
-        const routeFacts = [];
-        if (completed) routeFacts.push('Completed');
-        else if (active) routeFacts.push('Next move');
-        else if (leg.isReturn) routeFacts.push('Return');
-        if (!completed && leg.distanceKm > 0) routeFacts.push(Utils.formatDistance(leg.distanceKm));
-        if (!completed && leg.etaMin > 0) routeFacts.push(`${leg.etaMin} min`);
-        if (!completed && leg.unresolvedPoint) routeFacts.push('Check address');
-        const marker = completed ? 'check' : (leg.isReturn ? 'home' : String(leg.index + 1));
-        return `
-          <button type="button" class="comp-home-route-leg ${stateClass}" data-action="RouteFeature.openLegRoute" data-args='${JSON.stringify([leg.index])}' ${completed ? 'disabled aria-label="Completed route leg"' : ''}>
-            <span class="comp-home-route-marker${completed || leg.isReturn ? ' material-symbols-rounded' : ''}" aria-hidden="true">${marker}</span>
-            <span class="comp-home-route-copy">
-              <strong>${Utils.escapeHtml(fromLabel)} <span aria-hidden="true">→</span> ${Utils.escapeHtml(toLabel)}</strong>
-              <small>${Utils.escapeHtml(routeFacts.join(' · ') || 'Route details')}</small>
-            </span>
-            <span class="material-symbols-rounded comp-home-route-action" aria-hidden="true">${completed ? 'check_circle' : (active ? 'navigation' : 'chevron_right')}</span>
-          </button>`;
+      const routePoints = [routePlan.legs[0].from, ...routePlan.legs.map(leg => leg.to)];
+      const located = routePoints.filter(point => Array.isArray(point?.latLng) && point.latLng.length === 2);
+      const lats = located.map(point => point.latLng[0]);
+      const lngs = located.map(point => point.latLng[1]);
+      const latSpan = Math.max(...lats, 0) - Math.min(...lats, 0) || 1;
+      const lngSpan = Math.max(...lngs, 0) - Math.min(...lngs, 0) || 1;
+      const plotted = routePoints.map((point, index) => {
+        if (Array.isArray(point?.latLng) && point.latLng.length === 2 && located.length > 1) {
+          return {
+            x: 28 + ((point.latLng[1] - Math.min(...lngs)) / lngSpan) * 264,
+            y: 122 - ((point.latLng[0] - Math.min(...lats)) / latSpan) * 94
+          };
+        }
+        const denominator = Math.max(1, routePoints.length - 1);
+        return { x: 28 + (index / denominator) * 264, y: index % 2 ? 48 : 112 };
+      });
+      const path = plotted.map(point => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(' ');
+      const markers = plotted.map((point, index) => {
+        const isBase = index === 0 || (index === plotted.length - 1 && routePoints[index]?.type === 'base');
+        return `<g transform="translate(${point.x.toFixed(1)} ${point.y.toFixed(1)})"><circle r="12" class="comp-home-route-dot${isBase ? ' base' : ''}"></circle><text text-anchor="middle" dominant-baseline="central">${isBase ? 'H' : index}</text></g>`;
       }).join('');
       const activeLeg = routePlan.activeLeg;
       const nextMove = activeLeg
         ? `${activeLeg.from?.label || 'Start'} → ${activeLeg.to?.label || 'next stop'}`
         : 'Route complete';
+      const distanceKm = routePlan.legs.reduce((sum, leg) => sum + (leg.distanceKm || 0), 0);
       routePlanHtml = `
         <div class="comp-home-section comp-home-route" aria-labelledby="home-route-heading">
           <div class="comp-home-section-header comp-home-route-header">
@@ -419,9 +414,20 @@ const CompanionFeature = {
               <span class="comp-home-section-label" id="home-route-heading">TODAY'S ROUTE</span>
               <span class="comp-home-route-next">${Utils.escapeHtml(nextMove)}</span>
             </div>
-            <button type="button" class="comp-home-route-open" data-action="App.navigate" data-args='${JSON.stringify(["route"])}'>Full route</button>
+            <button type="button" class="comp-home-route-open" data-action="App.navigate" data-args='${JSON.stringify(["route"])}'>Route details</button>
           </div>
-          <div class="comp-home-route-legs">${legsHtml}</div>
+          <button type="button" class="comp-home-route-map" data-action="App.navigate" data-args='${JSON.stringify(["route"])}' aria-label="View today's overall route map">
+            <svg viewBox="0 0 320 150" role="img" aria-label="Today's route with ${routePlan.legs.length} legs">
+              <path class="comp-home-route-road" d="M 0 34 C 68 12 105 72 168 42 S 266 18 320 62"></path>
+              <path class="comp-home-route-road secondary" d="M 0 126 C 78 94 110 132 184 102 S 270 82 320 112"></path>
+              <polyline class="comp-home-route-line" points="${path}"></polyline>
+              ${markers}
+            </svg>
+          </button>
+          <div class="comp-home-route-summary">
+            <span>${routePlan.legs.length} leg${routePlan.legs.length === 1 ? '' : 's'}${distanceKm > 0 ? ` · ${Utils.formatDistance(distanceKm)}` : ''}</span>
+            <button type="button" data-action="RouteFeature.openTodayRoute"><span class="material-symbols-rounded" aria-hidden="true">navigation</span>Start overall route</button>
+          </div>
         </div>`;
     }
 
@@ -461,10 +467,6 @@ const CompanionFeature = {
               ${nv.parkingNotes ? `<div class="comp-home-next-visit-journey">${Utils.escapeHtml(nv.parkingNotes)}</div>` : ''}
             </button>
             <div class="comp-home-next-visit-actions">
-              <button class="comp-home-cta comp-home-cta--primary" type="button" data-action="AppointmentsFeature.navigateToVisit" data-args='${Utils.escapeHtml(JSON.stringify([nv.address || '', (nv.id)]))}'>
-                <span class="material-symbols-rounded" aria-hidden="true">navigation</span>
-                <span>Navigate</span>
-              </button>
               <button class="comp-home-cta comp-home-cta--ghost" type="button"${phoneDisabled} data-action="ContactFeature.open" data-args='${Utils.escapeHtml(JSON.stringify([{name: nv.name, phone: nv.phone || ''}]))}'>
                 <span class="material-symbols-rounded" aria-hidden="true">call</span>
                 <span>Call</span>
@@ -570,10 +572,10 @@ const CompanionFeature = {
     return `
       <div class="comp-home">
         ${greetingHtml}
-        ${weekStripHtml}
         ${captureHtml}
-        ${routePlanHtml}
         ${nextVisitHtml}
+        ${weekStripHtml}
+        ${routePlanHtml}
         ${attentionHtml}
         ${suggestionsHtml}
         <div class="comp-home-composer-spacer"></div>
