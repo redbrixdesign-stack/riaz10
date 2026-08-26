@@ -21,6 +21,7 @@ const serviceWorker = read('sw.js');
 const indexHtml = read('index.html');
 const manifest = JSON.parse(read('manifest.json'));
 const lighthouse = read('lighthouserc.js');
+const routeFeature = read('js/features/route/route.js');
 
 console.log('documentation and product-language contracts');
 for (const [token, value] of [
@@ -79,6 +80,10 @@ ok('service worker deletes only Beelo-owned caches',
   serviceWorker.includes('n.startsWith(CACHE_PREFIX)'));
 ok('production Lighthouse performance regression floor remains enforced',
   /categories:performance'[\s\S]*minScore:\s*0\.7/.test(lighthouse));
+ok('Leaflet stays off the first-screen path until Route is activated',
+  routeFeature.includes('init() {}') &&
+  routeFeature.includes('this.loadLeaflet();') &&
+  !/init\(\)\s*\{[^}]*leaflet-css/s.test(routeFeature));
 
 const readableUiFiles = [
   ...fs.readdirSync(path.join(root, 'js/features'), { recursive: true })

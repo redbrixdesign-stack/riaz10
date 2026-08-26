@@ -14,7 +14,18 @@ const RouteFeature = {
   _activationId: 0,
   leafletLoaded: false,
 
-  init() {
+  init() {},
+
+  // Leaflet is only needed when the advisor opens the Route map. Loading it
+  // during feature registration put the whole third-party library on every
+  // first-screen critical path, even when the map was never visited.
+  loadLeaflet() {
+    if (window.L) {
+      this.leafletLoaded = true;
+      this._selfHostMarkerIcons();
+      return;
+    }
+
     // Load Leaflet CSS dynamically
     if (!document.getElementById('leaflet-css')) {
       const link = document.createElement('link');
@@ -25,9 +36,7 @@ const RouteFeature = {
     }
 
     // Load Leaflet JS
-    if (!window.L) {
-      const existing = document.getElementById('leaflet-js');
-      if (existing) existing.remove(); // retry: drop the previous (failed) attempt before re-adding
+    if (!document.getElementById('leaflet-js')) {
       const script = document.createElement('script');
       script.id = 'leaflet-js';
       script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
@@ -40,9 +49,6 @@ const RouteFeature = {
         console.error('Leaflet failed to load');
       };
       document.head.appendChild(script);
-    } else {
-      this.leafletLoaded = true;
-      this._selfHostMarkerIcons();
     }
   },
 
@@ -856,6 +862,7 @@ const RouteFeature = {
     // geocoding/location work, so an activation may otherwise finish after
     // the user has left the screen and collide with a later Leaflet map.
     const activationId = ++this._activationId;
+    this.loadLeaflet();
     // Wait for Leaflet to load
     if (!this.leafletLoaded) {
       let attempts = 0;
@@ -896,7 +903,8 @@ const RouteFeature = {
     }
     if (!window.L) {
       this.leafletLoaded = false;
-      this.init(); // re-attempt the script/CSS injection in case it failed the first time
+      document.getElementById('leaflet-js')?.remove();
+      this.loadLeaflet(); // re-attempt the script/CSS injection after a failed load
     }
     await this.activate();
   },
