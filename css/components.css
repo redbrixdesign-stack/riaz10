@@ -3095,6 +3095,125 @@ body.trip-active .toast-container {
 }
 .comp-home-quick-manual .material-symbols-rounded { font-size: 18px; color: var(--accent); }
 
+/* Today's route stays compact enough for Home while preserving the whole
+   sequence. Finished legs are deliberately greyed rather than removed, so
+   the advisor can understand where they are in the day at a glance. */
+.comp-home-route {
+  gap: 10px;
+  padding: 16px;
+  background: var(--comp-card);
+  border: 1px solid var(--comp-border);
+  border-radius: 18px;
+}
+
+.comp-home-route-header { margin: 0 0 2px; }
+
+.comp-home-route-title {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.comp-home-route-next {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--comp-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.comp-home-route-open {
+  flex: 0 0 auto;
+  min-height: 42px;
+  padding: 8px 11px;
+  border: 1px solid var(--comp-border);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.comp-home-route-legs {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.comp-home-route-leg {
+  width: 100%;
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid var(--comp-border);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--comp-card) 80%, var(--comp-bg));
+  color: var(--comp-text);
+  font: inherit;
+  text-align: left;
+}
+
+.comp-home-route-leg.active {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--comp-border));
+  background: color-mix(in srgb, var(--accent) 10%, var(--comp-card));
+}
+
+.comp-home-route-leg.completed {
+  border-color: var(--comp-border);
+  background: var(--comp-bg);
+  color: var(--comp-muted);
+  cursor: default;
+}
+
+.comp-home-route-marker {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--comp-muted) 14%, transparent);
+  color: var(--comp-text);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.comp-home-route-leg.active .comp-home-route-marker {
+  background: var(--accent);
+  color: #0a0a0a;
+}
+
+.comp-home-route-leg.completed .comp-home-route-marker {
+  background: color-mix(in srgb, var(--comp-muted) 16%, transparent);
+  color: var(--comp-muted);
+  font-size: 18px;
+}
+
+.comp-home-route-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.comp-home-route-copy strong,
+.comp-home-route-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.comp-home-route-copy strong { font-size: 13px; line-height: 1.25; }
+.comp-home-route-copy small { font-size: 11px; color: var(--comp-muted); }
+.comp-home-route-leg.completed .comp-home-route-copy strong { color: var(--comp-muted); }
+.comp-home-route-action { font-size: 20px; color: var(--comp-muted); }
+.comp-home-route-leg.active .comp-home-route-action { color: var(--accent); }
+
 /* One continuous diary surface: the expanded next visit and every compact
    appointment row belong to the same schedule, rather than looking like
    separate activity sessions. */

@@ -351,10 +351,24 @@ assert(norm('random gibberish 123') === 'default', 'unknown routes to default');
     upcomingVisits: [
       { id: 2, name: 'Mr Khan', date: iso(1), time: '11:00–13:00', hasArrivalWindow: true, type: 'Sales', area: 'Altrincham', eta: '25 min' }
     ],
+    week: { target: 1000, gap: 380, pct: 62 },
+    weekDays: [
+      { iso: global.utilsRef.formatDate(new Date(), 'iso'), label: 'Wed', num: 26, count: 2 }
+    ],
+    weekRange: 'Mon 24 – Sun 30',
+    routePlan: {
+      legs: [
+        { index: 0, from: { label: 'Base' }, to: { label: 'Mrs Smith', appointment: { id: 1, status: 'completed' } }, distanceKm: 6, etaMin: 12 },
+        { index: 1, from: { label: 'Mrs Smith' }, to: { label: 'Mr Khan', appointment: { id: 2, status: 'confirmed' } }, distanceKm: 8, etaMin: 16 }
+      ],
+      activeLeg: { index: 1, from: { label: 'Mrs Smith' }, to: { label: 'Mr Khan' } }
+    },
     attention: [], suggestions: []
   });
   assert(scheduleHtml.includes('comp-home-greeting-main') && scheduleHtml.includes('<span class="comp-home-greeting-dot">.</span>'), 'Home starts with the advisor name and gold full stop');
-  assert(scheduleHtml.includes('QUICK ADD') && scheduleHtml.includes('Scan to add') && scheduleHtml.includes('home-quick-capture'), 'Home exposes one-tap scan plus manual visit and expense fallbacks');
+  assert(scheduleHtml.includes('Scan to add') && scheduleHtml.includes('home-quick-capture') && !scheduleHtml.includes('QUICK ADD') && !scheduleHtml.includes('Photo → right place'), 'Home exposes scan and manual fallbacks without the redundant quick-add labels');
+  assert(scheduleHtml.indexOf('THIS WEEK') < scheduleHtml.indexOf('home-quick-capture'), 'Home puts the calendar above the thumb-reachable scan control');
+  assert(scheduleHtml.includes("TODAY'S ROUTE") && scheduleHtml.includes('Mrs Smith → Mr Khan') && scheduleHtml.includes('comp-home-route-leg completed') && scheduleHtml.includes('Next move ·'), 'Home route overview shows the next move and mutes completed legs');
   assert((scheduleHtml.match(/comp-home-schedule"/g) || []).length === 1, 'Home renders one appointment schedule panel');
   assert(scheduleHtml.includes('comp-home-schedule-list') && scheduleHtml.includes('comp-home-next-visit') && scheduleHtml.includes('comp-home-visit upcoming'), 'Schedule contains featured visit and compact rows');
   assert(scheduleHtml.includes('09:30') && scheduleHtml.includes('11:00–13:00') && !scheduleHtml.includes('Arrival window') && !scheduleHtml.includes('Window '), 'Schedule shows promised time ranges without redundant labels');
