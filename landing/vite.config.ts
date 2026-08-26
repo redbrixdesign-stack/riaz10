@@ -7,6 +7,11 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   base: './',
+  // Reuse Beelo's canonical self-hosted font from the parent app in dev;
+  // Vite bundles it into dist for production.
+  server: {
+    fs: { allow: ['..'] }
+  },
   build: {
     target: 'es2020',
     sourcemap: false

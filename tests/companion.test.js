@@ -354,6 +354,7 @@ assert(norm('random gibberish 123') === 'default', 'unknown routes to default');
     attention: [], suggestions: []
   });
   assert(scheduleHtml.includes('comp-home-greeting-main') && scheduleHtml.includes('<span class="comp-home-greeting-dot">.</span>'), 'Home starts with the advisor name and gold full stop');
+  assert(scheduleHtml.includes('QUICK ADD') && scheduleHtml.includes('Scan to add') && scheduleHtml.includes('home-quick-capture'), 'Home exposes one-tap scan plus manual visit and expense fallbacks');
   assert((scheduleHtml.match(/comp-home-schedule"/g) || []).length === 1, 'Home renders one appointment schedule panel');
   assert(scheduleHtml.includes('comp-home-schedule-list') && scheduleHtml.includes('comp-home-next-visit') && scheduleHtml.includes('comp-home-visit upcoming'), 'Schedule contains featured visit and compact rows');
   assert(scheduleHtml.includes('09:30') && scheduleHtml.includes('11:00–13:00') && !scheduleHtml.includes('Arrival window') && !scheduleHtml.includes('Window '), 'Schedule shows promised time ranges without redundant labels');

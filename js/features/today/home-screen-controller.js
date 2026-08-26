@@ -282,7 +282,7 @@ const HomeScreenController = {
     const color = isLate ? 'var(--warning,#b06000)' : isOnSite ? 'var(--secondary)' : 'var(--text-secondary)';
     const photoThumbs = photos.slice(0, 4).map(p => `
       <button class="hsc-upnext-photo" type="button" aria-label="View photo" data-action="AppointmentsFeature.openPhotoViewer" data-args='${JSON.stringify([(p.id), (p.customerId)])}'>
-        <img src="data:${p.mimeType || 'image/jpeg'};base64,${p.data}" alt="">
+        <img src="${Utils.photoDataUrl(p)}" alt="">
       </button>
     `).join('');
     return `

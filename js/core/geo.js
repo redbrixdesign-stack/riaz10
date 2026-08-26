@@ -35,13 +35,11 @@ const Geo = {
     return GeoProviderRegistry.get();
   },
 
-  // Initialize geolocation tracking
+  // Initialize trip state without requesting location on app launch. Location
+  // permission is requested only from a user action that needs it (start trip,
+  // live ETA, route map without a base), or when resuming a trip the user
+  // explicitly started earlier.
   init() {
-    if ('geolocation' in navigator) {
-      this.getCurrentPosition().catch(e => {
-        console.log('Initial position unavailable:', e && e.message ? e.message : e);
-      });
-    }
     this.restoreActiveTrip();
 
     document.addEventListener('visibilitychange', () => {
@@ -222,7 +220,9 @@ const Geo = {
       try {
         await DB.db.appointments.update(trip.appointmentId, {
           travelStatus: 'on_site',
-          arrivedAt: Date.now()
+          arrivedAt: Date.now(),
+          leftAt: null,
+          onSiteDurationMinutes: null
         });
       } catch (e) { console.log('travelStatus update (on_site) failed:', e); }
     }
@@ -346,11 +346,111 @@ const Geo = {
     return this._provider().buildNavigationUrl(destination, origin);
   },
 
-  // Open turn-by-turn navigation in a new tab (delegated-router friendly:
-  // replaces inline window.open(...) handlers).
-  openNavigation(destination, origin = '') {
-    const url = this.buildNavigationUrl(destination || '', origin || '');
-    if (url) window.open(url, '_blank');
+  // Build a universal link for the navigation app selected by the advisor.
+  // Universal links are preferable to app-only schemes here: they open the
+  // installed app when available and retain a useful web fallback otherwise.
+  buildNavigationAppUrl(provider, destination, origin = '') {
+    const dest = encodeURIComponent(destination || '');
+    const from = origin ? encodeURIComponent(origin) : '';
+
+    if (provider === 'apple') {
+      return `https://maps.apple.com/?daddr=${dest}${from ? `&saddr=${from}` : ''}&dirflg=d`;
+    }
+    if (provider === 'waze') {
+      return `https://www.waze.com/ul?q=${dest}&navigate=yes`;
+    }
+    return this.buildNavigationUrl(destination || '', origin || '');
+  },
+
+  openNavigationChooser(destination, origin = '', appointmentId = null) {
+    const address = String(destination || '').trim();
+    if (!address) {
+      Toast.show('Add the destination address first', 'warning');
+      return;
+    }
+
+    const preferred = ['apple', 'google', 'waze'].includes(CONFIG.navigationApp)
+      ? CONFIG.navigationApp
+      : 'ask';
+    if (preferred !== 'ask') {
+      this.launchNavigationChoice(preferred, address, origin || '', appointmentId);
+      return;
+    }
+
+    const actionArgs = provider => Utils.escapeHtml(JSON.stringify([
+      provider,
+      address,
+      origin || '',
+      appointmentId
+    ]));
+
+    App.openModal(`
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <div>
+          <h3>Choose navigation app</h3>
+          <div class="fs-12 text-secondary mt-2">${Utils.escapeHtml(address)}</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" type="button" aria-label="Close" data-action="App.closeModal">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+      <div class="sheet-body">
+        <div class="nav-app-list" role="group" aria-label="Navigation apps">
+          <button class="nav-app-option" type="button" data-action="Geo.launchNavigationChoice" data-args='${actionArgs('apple')}'>
+            <span class="nav-app-icon nav-app-icon--apple material-symbols-rounded" aria-hidden="true">map</span>
+            <span><strong>Apple Maps</strong><small>Best integrated with iPhone</small></span>
+            <span class="material-symbols-rounded" aria-hidden="true">chevron_right</span>
+          </button>
+          <button class="nav-app-option" type="button" data-action="Geo.launchNavigationChoice" data-args='${actionArgs('google')}'>
+            <span class="nav-app-icon nav-app-icon--google material-symbols-rounded" aria-hidden="true">location_on</span>
+            <span><strong>Google Maps</strong><small>Opens the app or web directions</small></span>
+            <span class="material-symbols-rounded" aria-hidden="true">chevron_right</span>
+          </button>
+          <button class="nav-app-option" type="button" data-action="Geo.launchNavigationChoice" data-args='${actionArgs('waze')}'>
+            <span class="nav-app-icon nav-app-icon--waze material-symbols-rounded" aria-hidden="true">directions_car</span>
+            <span><strong>Waze</strong><small>Live traffic and road alerts</small></span>
+            <span class="material-symbols-rounded" aria-hidden="true">chevron_right</span>
+          </button>
+        </div>
+        <p class="hint mt-md mb-0">Beelo stays available when you return. Set a default in Settings → Navigation, or keep choosing each time.</p>
+      </div>
+    `);
+  },
+
+  launchNavigationChoice(provider, destination, origin = '', appointmentId = null) {
+    const url = this.buildNavigationAppUrl(provider, destination, origin);
+    if (!url) return;
+
+    App.closeModal();
+
+    // Begin tracking from the same deliberate tap. Do not await location here:
+    // the navigation hand-off should remain immediate even if GPS is slow.
+    Promise.resolve(this.startTrip({ destinationAddress: destination || '', appointmentId }))
+      .then(() => {
+        if (appointmentId && typeof MessageScheduler !== 'undefined' && typeof MessageScheduler.onDeparture === 'function') {
+          try { MessageScheduler.onDeparture(appointmentId); } catch (e) { /* scheduler optional */ }
+        }
+      })
+      .catch(e => console.log('Trip start from navigation skipped:', e));
+
+    this.launchExternalUrl(url);
+  },
+
+  // A same-context hand-off avoids the empty Safari/PWA overlay produced by
+  // window.open(..., '_blank') on iPhone. External universal links still open
+  // their native app (when installed), while Beelo remains ready on return.
+  launchExternalUrl(url) {
+    if (!url) return;
+    if (window.location && typeof window.location.assign === 'function') {
+      window.location.assign(url);
+    } else {
+      window.location.href = url;
+    }
+  },
+
+  openNavigation(destination, origin = '', appointmentId = null) {
+    this.openNavigationChooser(destination, origin, appointmentId);
   },
 
   // Optimize route for multiple stops (TSP approximation) - uses local calculateDistance

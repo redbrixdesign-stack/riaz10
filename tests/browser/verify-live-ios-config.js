@@ -3,8 +3,13 @@
    Checks the deployed manifest, head metadata, SW precache and new icons,
    then simulates a fresh standalone install + offline relaunch. */
 'use strict';
+const fs = require('fs');
+const path = require('path');
 const { chromium } = require('playwright');
 const BASE = 'https://beelo.beelestial.co.uk';
+const ROOT = path.resolve(__dirname, '../..');
+const localSw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
+const localHtml = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 let failures = 0;
 const ok = (l, c, x) => { console.log((c ? '  OK   ' : '  FAIL ') + l + (!c && x ? ' — ' + JSON.stringify(x) : '')); if (!c) failures++; };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -17,11 +22,13 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
   const sw = await (await fetch(BASE + '/sw.js')).text();
   const cacheName = (sw.match(/CACHE_NAME = '([^']+)'/) || [])[1];
-  ok('live: SW CACHE_NAME updated (' + cacheName + ')', /advisoros-v6-50/.test(cacheName), cacheName);
+  const expectedCacheName = (localSw.match(/CACHE_NAME = '([^']+)'/) || [])[1];
+  ok('live: SW CACHE_NAME matches release (' + cacheName + ')', cacheName === expectedCacheName, { live: cacheName, expected: expectedCacheName });
   ok('live: SW precaches gold icons + 180 apple-touch-icon', /apple-touch-icon-gold-180\.png/.test(sw) && /icon-gold-512\.png/.test(sw));
 
   const html = await (await fetch(BASE + '/')).text();
-  ok('live: apple-mobile-web-app-title + gold 180 icon + core.css?v=30', /apple-mobile-web-app-title/.test(html) && /apple-touch-icon-gold-180\.png/.test(html) && /core\.css\?v=30/.test(html));
+  const expectedCoreCss = (localHtml.match(/css\/core\.css\?v=\d+/) || [])[0];
+  ok('live: iOS metadata + release CSS token', /apple-mobile-web-app-title/.test(html) && /apple-touch-icon-gold-180\.png/.test(html) && html.includes(expectedCoreCss), expectedCoreCss);
 
   for (const f of ['assets/icons/apple-touch-icon-gold-180.png', 'assets/icons/icon-gold-192-maskable.png', 'assets/icons/icon-gold-512-maskable.png']) {
     const r = await fetch(BASE + '/' + f);
@@ -57,7 +64,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     nav: !!document.querySelector('#bottom-nav .nav-item'),
     banner: (() => { const b = document.getElementById('offline-banner'); return !!b && b.style.display === 'flex'; })()
   }));
-  ok('live: offline relaunch serves the shell (SW v50 precache)', off.nav && off.banner, off);
+  ok('live: offline relaunch serves the release shell', off.nav && off.banner, off);
   await ctx.setOffline(false);
 
   await browser.close();

@@ -253,6 +253,22 @@ async function proxyTests() {
   r = await req('POST', {}, { type: 'receipt', model: 'gpt-999', image: 'QUJD', mediaType: 'image/jpeg' });
   ok('proxy: receipt fallback model request succeeds', r.status === 200);
 
+  stubbedAnthropic = o => {
+    const parsed = JSON.parse(o.body);
+    ok('proxy: supplier quote uses fixed extraction prompt', parsed.system.includes('supplier quote') && parsed.system.includes('"validUntil"'));
+    return anthropicOk('{"supplier":"North","reference":"Q-9","amount":"301.20"}');
+  };
+  r = await req('POST', {}, { type: 'supplier_quote', image: 'QUJD', mediaType: 'image/jpeg' });
+  ok('proxy: supplier quote image request succeeds', r.status === 200 && JSON.parse(r.body).type === 'supplier_quote');
+
+  stubbedAnthropic = o => {
+    const parsed = JSON.parse(o.body);
+    ok('proxy: quick capture uses cautious classification prompt', parsed.system.includes('"unknown"') && parsed.system.includes('expense receipt'));
+    return anthropicOk('{"kind":"expense","amount":"18.40","vendor":"Shell"}');
+  };
+  r = await req('POST', {}, { type: 'quick_capture', image: 'QUJD', mediaType: 'image/jpeg' });
+  ok('proxy: quick capture image request succeeds', r.status === 200 && JSON.parse(r.body).type === 'quick_capture');
+
   // Assistant type: input validation.
   r = await req('POST', {}, { type: 'assistant' });
   ok('proxy: assistant without snapshot 400', r.status === 400);
@@ -510,6 +526,24 @@ async function clientTests() {
   svcReceipt._toBase64 = async () => ({ base64: 'QUJD', mediaType: 'image/jpeg' });
   const rcpt = await svcReceipt.extractReceipt({});
   ok('client: receipt maps fields, trims and drops unknown keys', rcpt.ok && rcpt.fields.amount === '24.99' && rcpt.fields.vendor === 'Screwfix' && rcpt.fields.category === 'samples' && !('bogus' in rcpt.fields), rcpt.fields);
+
+  const svcSupplierQuote = loadAiClient({
+    responder: async payload => {
+      ok('client: supplier quote uses dedicated request type', payload.type === 'supplier_quote');
+      return responseLike({ text: '```json\n{"supplier":" North ","reference":"Q-9","quoteDate":"2026-08-25","validUntil":"2026-09-25","amount":"£301.20","description":"Two frames","bogus":1}\n```', type: 'supplier_quote' });
+    }
+  });
+  svcSupplierQuote._toBase64 = async () => ({ base64: 'QUJD', mediaType: 'image/jpeg' });
+  const supplierQuote = await svcSupplierQuote.extractSupplierQuote({});
+  ok('client: supplier quote parser normalizes reviewed fields', supplierQuote.ok && supplierQuote.fields.supplier === 'North' && supplierQuote.fields.amount === '301.20' && !('bogus' in supplierQuote.fields), supplierQuote.fields);
+
+  const svcQuickCapture = loadAiClient({ responder: async payload => {
+    ok('client: quick capture uses dedicated request type', payload.type === 'quick_capture');
+    return responseLike({ text: '```json\n{"kind":"visit","name":" Sarah ","postcode":"m14 7fz","appointmentTime":"3pm to 6pm"}\n```', type: 'quick_capture' });
+  }});
+  svcQuickCapture._toBase64 = async () => ({ base64: 'QUJD', mediaType: 'image/jpeg' });
+  const quickCapture = await svcQuickCapture.extractQuickCapture({});
+  ok('client: quick capture classifies and normalizes visit data', quickCapture.ok && quickCapture.fields.kind === 'visit' && quickCapture.fields.name === 'Sarah' && quickCapture.fields.postcode === 'M14 7FZ' && quickCapture.fields.appointmentTime === '15:00-18:00', quickCapture.fields);
 
   // extractReceipt: an invented category id falls back to "other".
   const svcBadCat = loadAiClient({

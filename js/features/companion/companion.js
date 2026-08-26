@@ -321,6 +321,24 @@ const CompanionFeature = {
         </div>
       </div>`;
 
+    const quickAddHtml = `
+      <div class="comp-home-section comp-home-quick-add" aria-labelledby="home-quick-add-heading">
+        <div class="comp-home-section-header">
+          <span class="comp-home-section-label" id="home-quick-add-heading">QUICK ADD</span>
+          <span class="comp-home-section-count">Photo → right place</span>
+        </div>
+        <label class="comp-home-capture" for="home-quick-capture">
+          <span class="comp-home-capture-plus material-symbols-rounded" aria-hidden="true">add</span>
+          <span class="comp-home-capture-copy"><strong>Scan to add</strong><small>Visit details or an expense receipt</small></span>
+          <span class="material-symbols-rounded" aria-hidden="true">document_scanner</span>
+        </label>
+        <input class="native-file-input" type="file" id="home-quick-capture" accept="image/*" capture="environment" data-event="change" data-action="ControlFeature.handleQuickCapture" data-args='${JSON.stringify(["__event__"])}'>
+        <div class="comp-home-quick-manual">
+          <button type="button" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {action: "add"}])}'><span class="material-symbols-rounded">event</span>Add visit manually</button>
+          <button type="button" data-action="MoneyFeature.openExpenseModal"><span class="material-symbols-rounded">receipt_long</span>Add expense manually</button>
+        </div>
+      </div>`;
+
     // A. THIS WEEK — navigational 7-day calendar (tap a day → My Day)
     // with a thin target progress line.
     let weekStripHtml = '';
@@ -408,6 +426,10 @@ const CompanionFeature = {
               <button class="comp-home-cta comp-home-cta--ghost" type="button"${phoneDisabled} data-action="TalkFeature.sendMessage" data-args='${JSON.stringify([(nv.id), "on_my_way"])}'>
                 <span class="material-symbols-rounded" aria-hidden="true">near_me</span>
                 <span>On my way</span>
+              </button>
+              <button class="comp-home-cta ${nv.onSiteActive ? 'comp-home-cta--primary' : 'comp-home-cta--ghost'}" type="button" data-action="AppointmentsFeature.${nv.onSiteActive ? 'finishOnSite' : 'startOnSite'}" data-args='${JSON.stringify([nv.id])}'>
+                <span class="material-symbols-rounded" aria-hidden="true">${nv.onSiteActive ? 'logout' : 'timer'}</span>
+                <span>${nv.onSiteActive ? 'Leave' : 'Arrived'}</span>
               </button>
             </div>
           </div>`;
@@ -502,6 +524,7 @@ const CompanionFeature = {
     return `
       <div class="comp-home">
         ${greetingHtml}
+        ${quickAddHtml}
         ${weekStripHtml}
         ${nextVisitHtml}
         ${attentionHtml}
@@ -618,7 +641,8 @@ const CompanionFeature = {
         phone,
         accessNotes: noteField('access'),
         parkingNotes: noteField('parking'),
-        notes: next.notes || ''
+        notes: next.notes || '',
+        onSiteActive: !!next.arrivedAt && !next.leftAt && next.status !== 'completed'
       };
     }
 

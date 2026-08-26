@@ -12,6 +12,7 @@ export interface PilotFormData {
   phone: string;
   trade: string;
   area: string;
+  ukResident: boolean;
   worksAlone: 'yes' | 'no' | 'sometimes';
   currentTools: string;
   biggestProblem: string;
@@ -25,21 +26,23 @@ export interface PartnerFormData {
   message: string;
 }
 
-/* TODO: replace with the real form endpoint, e.g. a Vercel function or
-   Formspree/Netlify Forms URL. Leave unset to keep the mock handler. */
-const ENDPOINT = import.meta.env.VITE_FORM_ENDPOINT as string | undefined;
+/* IONOS executes the production PHP handler. An environment override keeps
+   preview deployments flexible without putting credentials in the bundle. */
+const ENDPOINT = (import.meta.env.VITE_FORM_ENDPOINT as string | undefined) || '/api/pilot.php';
 
 export const isValidEmail = (value: string): boolean =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+
+export const isValidUkPostcode = (value: string): boolean =>
+  /^(GIR\s?0AA|[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2})$/i.test(value.trim());
 
 export function validatePilot(d: PilotFormData): Record<string, string> {
   const errors: Record<string, string> = {};
   if (!d.name.trim()) errors.name = 'Please enter your name.';
   if (!isValidEmail(d.email)) errors.email = 'Please enter a valid email address.';
-  if (!d.phone.trim()) errors.phone = 'Please enter a phone number.';
   if (!d.trade.trim()) errors.trade = 'Please tell us your trade or role.';
-  if (!d.area.trim()) errors.area = 'Please add an area or postcode.';
-  if (!d.currentTools.trim()) errors.currentTools = 'Please tell us what you currently use.';
+  if (!isValidUkPostcode(d.area)) errors.area = 'Please enter a valid UK postcode.';
+  if (!d.ukResident) errors.ukResident = 'The Beelo pilot is currently open to UK residents only.';
   if (!d.biggestProblem.trim()) errors.biggestProblem = 'Please describe your biggest admin problem.';
   return errors;
 }
@@ -53,21 +56,18 @@ export function validatePartner(d: PartnerFormData): Record<string, string> {
 }
 
 /**
- * Submit a form payload. When ENDPOINT is unset this resolves after a
- * short delay with a success flag (mock handler). When set, it POSTs
- * JSON to the endpoint and expects `{ ok: true }`.
+ * Submit a form payload and expect `{ ok: true }` from the server.
  */
-export async function submitForm(payload: Record<string, unknown>): Promise<{ ok: boolean }> {
-  if (!ENDPOINT) {
-    await new Promise((r) => setTimeout(r, 900)); // simulate network
-    return { ok: true };
-  }
+export async function submitForm(payload: Record<string, unknown>): Promise<{ ok: boolean; code?: string }> {
   const res = await fetch(ENDPOINT, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
-  if (!res.ok) throw new Error('Form request failed');
-  const data = (await res.json().catch(() => ({}))) as { ok?: boolean };
-  return { ok: data.ok !== false };
+  const data = (await res.json().catch(() => ({}))) as { ok?: boolean; code?: string };
+  if (!res.ok) {
+    if (data.code === 'uk_only') return { ok: false, code: data.code };
+    throw new Error('Form request failed');
+  }
+  return { ok: data.ok !== false, code: data.code };
 }

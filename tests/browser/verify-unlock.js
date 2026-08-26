@@ -5,7 +5,7 @@
    bypass):
    1. Fresh profile → Set Encryption Passphrase modal → set a passphrase →
       boot proceeds (onboarding).
-   2. Reload → Unlock AdvisorOS modal → wrong passphrase shows the error
+   2. Reload → Unlock Beelo modal → wrong passphrase shows the error
       and the button re-enables (not a dead screen).
    3. Correct passphrase → boot completes and the app renders.
    4. Unlock button shows a working state and ignores double-taps
@@ -59,7 +59,7 @@ const ok = (label, cond, extra) => {
   await page.reload();
   await page.waitForFunction(() => {
     const s = document.getElementById('bottom-sheet');
-    return s && /Unlock AdvisorOS/.test(s.textContent);
+    return s && /Unlock Beelo/.test(s.textContent);
   }, null, { timeout: 30000 });
   ok('reload shows the Unlock sheet', true);
 

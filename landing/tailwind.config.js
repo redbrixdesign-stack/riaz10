@@ -14,7 +14,7 @@ export default {
       },
       fontFamily: {
         sans: [
-          '-apple-system', 'BlinkMacSystemFont', 'Inter', 'Manrope', 'Segoe UI',
+          'Hanken Grotesk', '-apple-system', 'BlinkMacSystemFont', 'Inter', 'Segoe UI',
           'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'
         ]
       },

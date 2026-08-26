@@ -298,8 +298,12 @@ async function runDbJs(engine, tag) {
   const ph = await DB.addPhoto({ customerId: c.id, data: photoData, caption: 'Front windows' });
   ok(engine + ': photo stored with id and caption', ph.id > 0 && ph.caption === 'Front windows');
   ok(engine + ': photo data roundtrip', (await DB.getPhotosForCustomer(c.id)).length === 1 && (await DB.db.photos.get(ph.id)).data === photoData);
+  const legacyPhoto = await DB.addPhoto({ customerId: c.id, data: `data:image/heic;base64,${photoData}`, mimeType: 'image/heic', caption: 'Apple photo' });
+  const normalisedPhoto = await DB.db.photos.get(legacyPhoto.id);
+  ok(engine + ': full photo data URL is normalised before storage', normalisedPhoto.data === photoData && normalisedPhoto.mimeType === 'image/heic');
   ok(engine + ': photos are per customer', (await DB.getPhotosForCustomer(9999)).length === 0);
   await DB.deletePhoto(ph.id);
+  await DB.deletePhoto(legacyPhoto.id);
   ok(engine + ': photo deletable', (await DB.db.photos.count()) === 0);
   await DB.addPhoto({ customerId: c.id, data: photoData, caption: 'Back yard' });
 
@@ -607,6 +611,10 @@ async function runBackupRoundtrip(engine, tag) {
   await DB.setSetting('config', { advisorName: 'Riaz', weeklyTarget: 600 });
   await DB.setSetting('__storage_probe__', { origin: 'test', updatedAt: now });
   await DB.setSetting('pitchDemoSeeded', true);
+  await DB.setPrivateSetting('__device_ai_secret__', 'device-only-secret');
+  const privateRow = await DB.db.settings.get('__device_ai_secret__');
+  ok(engine + ': private setting decrypts on this device', (await DB.getPrivateSetting('__device_ai_secret__')) === 'device-only-secret');
+  ok(engine + ': private setting is encrypted at rest', privateRow && typeof privateRow.value === 'object' && privateRow.value.ct && privateRow.value.iv, privateRow);
 
   const exported = await DB.exportAll();
   ok(engine + ': backup exports all 38 tables', Object.keys(exported).length === 38, Object.keys(exported));
@@ -651,6 +659,7 @@ async function runBackupRoundtrip(engine, tag) {
   ok(engine + ': photo customer links intact', restoredPhotos.filter(p => p.customerId === c1.id).length === 2);
   ok(engine + ': settings restored', (await DB.getSetting('config')).weeklyTarget === 600);
   ok(engine + ': runtime settings NOT restored', (await DB.getSetting('__storage_probe__')) === null && (await DB.getSetting('pitchDemoSeeded')) === null);
+  ok(engine + ': device secret never travels in the backup', (await DB.getPrivateSetting('__device_ai_secret__')) === null && !JSON.stringify(exported).includes('device-only-secret'));
 
   // Sequences: restored counters keep issuing non-colliding numbers. The
   // dataset used CUS-2026-0001/2 and ORD-2026-0001, so the next issued

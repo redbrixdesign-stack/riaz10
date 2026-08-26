@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'Hanken Grotesk';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../../assets/fonts/hankengrotesk-latin.woff2') format('woff2');
+}
+
 /* ============================================================
    BEELO — DESIGN TOKENS
    Single source of truth for colour. Tailwind maps these into
@@ -9,15 +17,15 @@
    ============================================================ */
 :root {
   /* Charcoal — text on light, darkest surfaces */
-  --color-ink: 18 18 18;
+  --color-ink: 10 10 10;
   /* Warm off-white — page background */
-  --color-paper: 247 246 242;
+  --color-paper: 245 240 232;
   /* Deep forest green — primary brand / dark sections */
-  --color-forest: 21 61 50;
+  --color-forest: 10 10 10;
   /* Soft sage / mint — tints, highlights on forest */
-  --color-sage: 221 239 228;
+  --color-sage: 253 185 19;
   /* Muted clay / amber — tiny accents only */
-  --color-clay: 192 122 83;
+  --color-clay: 253 185 19;
 }
 
 @layer base {
@@ -27,6 +35,12 @@
   }
   body {
     @apply bg-paper text-ink font-sans antialiased;
+  }
+  body::before {
+    content: '';
+    display: block;
+    height: 3px;
+    background: rgb(var(--color-sage));
   }
   ::selection {
     background: rgb(var(--color-sage));
@@ -51,11 +65,15 @@
 
 /* ---------- Reveal-on-scroll (see components/Reveal.tsx) ---------- */
 .reveal {
+  opacity: 1;
+  transform: none;
+}
+.reveal.reveal-ready {
   opacity: 0;
   transform: translateY(16px);
   transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1), transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.reveal.is-visible {
+.reveal.reveal-ready.is-visible {
   opacity: 1;
   transform: none;
 }
@@ -65,6 +83,70 @@
 
 /* ---------- Shared component classes ---------- */
 @layer components {
+  .hero-shell {
+    background:
+      radial-gradient(circle at 76% 42%, rgba(253, 185, 19, 0.13), transparent 29%),
+      rgb(var(--color-forest));
+  }
+  .hero-grid {
+    position: absolute;
+    inset: 0;
+    opacity: 0.18;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.28) 0.75px, transparent 0.75px);
+    background-size: 24px 24px;
+    mask-image: linear-gradient(to right, transparent 8%, black 58%, transparent 98%);
+  }
+  .hero-glow {
+    position: absolute;
+    right: 5%;
+    top: 12%;
+    width: min(44rem, 70vw);
+    aspect-ratio: 1;
+    border-radius: 999px;
+    border: 1px solid rgba(253, 185, 19, 0.13);
+    box-shadow: 0 0 0 72px rgba(253, 185, 19, 0.025), 0 0 0 144px rgba(253, 185, 19, 0.018);
+  }
+  .product-stage {
+    isolation: isolate;
+  }
+  .product-stage-orbit {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: min(31rem, 80vw);
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    border-radius: 999px;
+    background: rgba(253, 185, 19, 0.96);
+    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.45);
+  }
+  .product-stage-orbit::before,
+  .product-stage-orbit::after {
+    content: '';
+    position: absolute;
+    border-radius: 999px;
+    border: 1px solid rgba(10, 10, 10, 0.16);
+  }
+  .product-stage-orbit::before { inset: 12%; }
+  .product-stage-orbit::after { inset: 27%; }
+  .hero-edge {
+    height: 20px;
+    background: linear-gradient(90deg, rgb(var(--color-sage)) 0 31%, rgb(var(--color-paper)) 31% 100%);
+  }
+  /*
+   * Keep the navigation on its own opaque layer. Safari can occasionally fail
+   * to repaint translucent/backdrop-filtered sticky elements while scrolling,
+   * leaving a light rectangle where the header should be.
+   */
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    isolation: isolate;
+    background-color: rgb(var(--color-ink));
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
   .container-page {
     @apply mx-auto w-full max-w-section px-5 sm:px-8;
   }
@@ -75,21 +157,52 @@
     @apply inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full px-6 text-sm font-semibold transition-colors duration-150;
   }
   .btn-primary {
-    @apply btn bg-forest text-paper hover:bg-[#1b4c3e];
+    @apply btn bg-sage text-ink hover:bg-[#ffd15b];
   }
   .btn-ghost-dark {
     @apply btn border border-white/25 text-white hover:border-white/50 hover:bg-white/5;
   }
   .btn-primary-light {
-    @apply btn bg-paper text-forest hover:bg-sage;
+    @apply btn bg-sage text-ink hover:bg-[#ffd15b];
   }
   .card {
     @apply rounded-2xl border border-ink/[0.08] bg-white p-6 shadow-soft;
+  }
+  .feature-callout {
+    @apply relative rounded-2xl border border-ink/[0.08] bg-paper p-6 shadow-soft;
+  }
+  .feature-icon {
+    @apply inline-flex h-11 w-11 items-center justify-center rounded-xl bg-sage text-ink;
+  }
+  .process-line::before {
+    content: '';
+    display: none;
+    position: absolute;
+    left: 8%;
+    right: 8%;
+    top: 1.25rem;
+    height: 1px;
+    background: rgba(10, 10, 10, 0.12);
   }
   .field {
     @apply w-full rounded-xl border border-ink/[0.12] bg-white px-4 py-3 text-[15px] text-ink placeholder:text-ink/40 focus:border-forest focus:outline-none focus:ring-2 focus:ring-forest/20;
   }
   .field-label {
     @apply mb-1.5 block text-sm font-medium text-ink/80;
+  }
+}
+
+@media (min-width: 1024px) {
+  .process-line::before { display: block; }
+}
+
+@media (max-width: 639px) {
+  .product-stage-orbit {
+    width: 21rem;
+  }
+  .hero-glow {
+    right: -45%;
+    top: 52%;
+    width: 34rem;
   }
 }

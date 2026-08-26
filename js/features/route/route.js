@@ -1219,7 +1219,7 @@ const RouteFeature = {
     const destination = base?.address || stops[stops.length - 1];
     const waypoints = base?.address ? stops : stops.slice(1, -1);
     const url = this.buildDayRouteUrl(origin, waypoints, destination);
-    window.open(url, '_blank');
+    Geo.launchExternalUrl(url);
   },
 
   buildDayRouteUrl(origin, waypoints, destination) {
@@ -1256,19 +1256,13 @@ const RouteFeature = {
       Toast.show('Add the destination address first', 'warning');
       return;
     }
-    window.open(Geo.buildNavigationUrl(destination, origin), '_blank');
-    // Same as the Home/Today "Navigate" flow: opening directions from the
-    // Route screen must ALSO start the GPS-tracked mileage trip for that
-    // stop (it previously opened maps without tracking, so mileage was
-    // captured from Home but silently missed from Route).
-    await this.startTripForStop(destination, leg.to.appointment);
+    Geo.openNavigationChooser(destination, origin, leg.to.appointment?.id || null);
   },
 
   // Open directions for a single route stop and start the live mileage trip
   // for it (per-stop Navigate button on the route list).
   async navigateToStop(address, appointmentId) {
-    window.open(Geo.buildNavigationUrl(address || ''), '_blank');
-    await this.startTripForStop(address, { id: appointmentId });
+    Geo.openNavigationChooser(address || '', '', appointmentId);
   },
 
   async startTripForStop(destinationAddress, appointment) {

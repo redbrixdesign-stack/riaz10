@@ -510,6 +510,16 @@ button:not(:disabled):active,
   color: var(--text-tertiary);
 }
 
+/* Encryption passphrases are not website-account credentials. On engines
+   that support this property, App.passphraseInputAttrs() uses a masked text
+   control so iOS does not offer to create/save a login for Beelo. */
+.passphrase-input {
+  -webkit-text-security: disc;
+  resize: none;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
 /* iOS Safari auto-zooms the page whenever a focused field's font-size is
    under 16px. Desktop keeps the denser 15px; touch devices (no hover)
    get 16px so tapping any field never triggers the zoom. */
@@ -590,7 +600,7 @@ button:not(:disabled):active,
   margin: 0 16px;
 }
 
-.empty-state .material-symbols-rounded {
+.empty-state > .material-symbols-rounded {
   font-size: 48px;
   margin-bottom: var(--space-md);
   opacity: 0.5;

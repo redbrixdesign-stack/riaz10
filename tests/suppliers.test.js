@@ -3,7 +3,7 @@ const vm = require('vm');
 const assert = require('assert');
 
 const source = fs.readFileSync('js/features/suppliers/suppliers.js', 'utf8');
-const state = { suppliers: [], products: [], records: [], events: [], orderStageCalls: 0, navigations: [] };
+const state = { suppliers: [], products: [], records: [], events: [], documents: [], orderStageCalls: 0, navigations: [] };
 const elements = {};
 const sandbox = {
   console,
@@ -33,7 +33,10 @@ const sandbox = {
     async createPurchaseOrder(data, items, operationId) { const purchaseOrder = { ...data, items, events: [], operationId, id: state.records.length + 1 }; state.records.push(purchaseOrder); return { purchaseOrder }; },
     async updatePurchaseOrder(id, patch) { Object.assign(state.records.find(record => record.id === id), patch); },
     async recordPurchaseOrderEvent(id, type, data, operationId) { const event = { purchaseOrderId: id, type, ...data, operationId }; state.events.push(event); const record = state.records.find(row => row.id === id); record.events.push(event); if (['submitted', 'acknowledged', 'received', 'returned'].includes(type)) record.status = type; if (['shortage', 'damage'].includes(type)) record.status = 'issue'; return record; },
-    async setOrderStage() { state.orderStageCalls += 1; }
+    async setOrderStage() { state.orderStageCalls += 1; },
+    async getDocuments(filter) { return state.documents.filter(row => row.purchaseOrderId === filter.purchaseOrderId && row.type === filter.type); },
+    async addDocumentMetadata(data) { const row = { ...data, id: state.documents.length + 1, createdAt: new Date().toISOString() }; state.documents.push(row); return row; },
+    async getDocument(id) { return state.documents.find(row => row.id === id) || null; }
   }
 };
 vm.createContext(sandbox);
@@ -71,5 +74,18 @@ const feature = sandbox.SuppliersFeature;
   assert.match(list, /never moves the customer order stage automatically/i);
   assert.match(detail, /Customer-facing order stages remain a separate decision/i);
   assert.match(detail, /Two rails scratched in transit/);
+
+  feature.pendingQuote = { id: 1, filename: 'north-quote.jpg', mimeType: 'image/jpeg', contentData: 'data:image/jpeg;base64,QUJD', extractedText: '{"reference":"NF-Q-9"}' };
+  elements['supplier-quote-vendor'] = { value: 'North Fabrication' };
+  elements['supplier-quote-reference'] = { value: 'NF-Q-9' };
+  elements['supplier-quote-date'] = { value: '2026-08-25' };
+  elements['supplier-quote-valid'] = { value: '2026-09-25' };
+  elements['supplier-quote-amount'] = { value: '301.20' };
+  elements['supplier-quote-description'] = { value: 'Two timber-look frames' };
+  await feature.saveQuoteDocument(1);
+  assert.equal(state.documents.length, 1, 'stores the quote attachment');
+  assert.equal(state.documents[0].purchaseOrderId, 1, 'links the quote to the supplier order');
+  assert.equal(state.documents[0].amount, 301.2, 'stores the advisor-reviewed quote total');
+  assert.equal(state.records[0].reference, 'NF-142', 'does not overwrite an existing supplier reference');
   console.log('✓ supplier purchase workflow is additive and order-stage safe');
 })().catch(error => { console.error(error); process.exit(1); });

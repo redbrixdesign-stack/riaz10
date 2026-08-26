@@ -219,6 +219,37 @@
   align-items: center;
 }
 
+/* Labelled header actions become icon-only on phone widths so the actions
+   cannot collide with the genuinely centred page title. aria-label remains
+   on each button, so compact mode keeps an accessible name. */
+@media (max-width: 430px) {
+  .top-header .header-actions .header-action-text {
+    display: none;
+  }
+
+  .top-header .header-actions .btn-sm {
+    padding-inline: 12px;
+  }
+}
+
+/* Follow-ups carries two independent header actions. Collapse their visible
+   labels earlier than the generic phone breakpoint so the truly centred title
+   cannot be covered on large iPhones, zoomed displays, or portrait tablets. */
+.top-header .header-actions .followups-header-action {
+  flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+  .top-header .header-actions .followups-header-action .header-action-text {
+    display: none;
+  }
+
+  .top-header .header-actions .followups-header-action {
+    min-width: 42px;
+    padding-inline: 10px;
+  }
+}
+
 /* ============================================
    BOTTOM SHEET / MODAL
    ============================================ */
@@ -287,6 +318,145 @@
   background: var(--border);
   border-radius: 2px;
   margin: 8px auto;
+}
+
+/* Navigation-app chooser. Kept as large, plain rows for one-handed use in
+   the van, with a 56px+ target and enough contrast in both colour themes. */
+.nav-app-list {
+  display: grid;
+  gap: 10px;
+}
+
+.nav-app-option {
+  appearance: none;
+  width: 100%;
+  min-height: 64px;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background: var(--surface-elevated);
+  color: var(--text-primary);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.nav-app-option:active {
+  transform: scale(0.99);
+}
+
+.nav-app-option:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.nav-app-option > span:nth-child(2) {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.nav-app-option strong {
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.nav-app-option small {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.nav-app-option > .material-symbols-rounded:last-child {
+  color: var(--text-tertiary);
+}
+
+.nav-app-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  font-size: 23px;
+  color: var(--text-inverse);
+}
+
+.nav-app-icon--apple {
+  background: var(--primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+.nav-app-icon--google { background: var(--info); }
+.nav-app-icon--waze { background: var(--secondary); }
+
+/* Settings version of the navigation picker. This is a radio group rather
+   than a select so each provider and its fallback behaviour are explicit. */
+.nav-setting-list {
+  display: grid;
+  gap: 8px;
+}
+
+.nav-setting-option {
+  appearance: none;
+  width: 100%;
+  min-height: 64px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background: var(--surface-elevated);
+  color: var(--text-primary);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.nav-setting-option.active {
+  border-color: var(--accent);
+  background: var(--surface-muted);
+}
+
+.nav-setting-option:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.nav-setting-option > .material-symbols-rounded:first-child {
+  color: var(--accent);
+  font-size: 22px;
+}
+
+.nav-setting-option > span:nth-child(2) {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.nav-setting-option strong {
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.nav-setting-option small {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.nav-setting-check {
+  color: var(--text-tertiary);
+  font-size: 21px;
+}
+
+.nav-setting-option.active .nav-setting-check {
+  color: var(--accent);
 }
 
 /* Full screen modal */
@@ -2087,7 +2257,7 @@ body.trip-active .toast-container {
   /* Solid dim, not opacity — container opacity scales the text tokens down
      and breaks WCAG 4.5:1 (axe color-contrast). A darker card keeps the
      completed-day look while text stays fully legible. */
-  background: color-mix(in srgb, var(--surface) 72%, #000);
+  background: color-mix(in srgb, var(--surface) 72%, var(--bg));
 }
 .hsc-week-row-main {
   display: block;
@@ -2121,7 +2291,7 @@ body.trip-active .toast-container {
 /* Follow-up cards. Muted = solid dim, never container opacity (opacity
    scales the text tokens down and fails WCAG 4.5:1 — axe color-contrast). */
 .fup-card { background: var(--surface); }
-.fup-card--muted { background: color-mix(in srgb, var(--surface) 82%, #000); }
+.fup-card--muted { background: color-mix(in srgb, var(--surface) 82%, var(--bg)); }
 .hsc-week-row-actions {
   display: flex;
   gap: 8px;
@@ -2426,7 +2596,7 @@ body.trip-active .toast-container {
   --comp-text: var(--text-primary);
   --comp-muted: var(--text-secondary);
   --comp-bee: var(--accent);
-  --comp-bee-deep: color-mix(in srgb, var(--accent) 80%, #000);
+  --comp-bee-deep: color-mix(in srgb, var(--accent) 80%, var(--bg));
   --comp-user: color-mix(in srgb, var(--surface-muted) 26%, var(--bg));
   display: flex;
   flex-direction: column;
@@ -2849,6 +3019,59 @@ body.trip-active .toast-container {
   color: var(--comp-text);
 }
 
+.comp-home-quick-add {
+  padding: 14px;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 12%, var(--comp-card)), var(--comp-card));
+  border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--comp-border));
+  border-radius: 18px;
+}
+
+.comp-home-capture {
+  min-height: 68px;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 15px;
+  background: var(--accent);
+  color: #0a0a0a;
+  cursor: pointer;
+  box-shadow: 0 10px 28px rgba(255, 183, 0, 0.16);
+}
+
+.comp-home-capture-plus {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #0a0a0a;
+  color: var(--accent);
+  font-size: 30px;
+}
+
+.comp-home-capture-copy { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.comp-home-capture-copy strong { font-size: 16px; line-height: 1.2; }
+.comp-home-capture-copy small { font-size: 12px; line-height: 1.3; opacity: 0.76; }
+.comp-home-quick-manual { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.comp-home-quick-manual button {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--comp-border);
+  border-radius: 12px;
+  background: var(--comp-card);
+  color: var(--comp-text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+}
+.comp-home-quick-manual .material-symbols-rounded { font-size: 18px; color: var(--accent); }
+
 /* One continuous diary surface: the expanded next visit and every compact
    appointment row belong to the same schedule, rather than looking like
    separate activity sessions. */
@@ -3151,7 +3374,7 @@ body.trip-active .toast-container {
 /* Actions — Navigate is the primary (subtle gold border), Call secondary. */
 .comp-home-next-visit-actions {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   margin-top: 12px;
 }

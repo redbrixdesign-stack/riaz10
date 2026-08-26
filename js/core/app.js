@@ -29,6 +29,22 @@ const App = {
     `;
   },
 
+  // This passphrase protects local encrypted records; it is not an account
+  // credential. iOS ignores autocomplete="off" on password fields and offers
+  // to create/save a website login, then misidentifies the onboarding name as
+  // that login's username. WebKit/Chromium can mask an ordinary text control,
+  // which keeps the value visually protected without invoking password-manager
+  // account heuristics. Browsers without text-security support retain the
+  // normal password-field fallback.
+  passphraseControl(id, placeholder) {
+    const canMaskText = typeof CSS !== 'undefined' &&
+      typeof CSS.supports === 'function' &&
+      CSS.supports('-webkit-text-security', 'disc');
+    const common = `class="input passphrase-input" id="${id}" placeholder="${placeholder}" autocomplete="one-time-code" autocorrect="off" autocapitalize="none" spellcheck="false" inputmode="text" data-1p-ignore="true" data-lpignore="true" data-bwignore="true"`;
+    if (canMaskText) return `<textarea ${common} rows="1" aria-multiline="false"></textarea>`;
+    return `<input type="password" ${common}>`;
+  },
+
   // Initialize
   // Safe JSON.parse wrapper with debugging for corrupted stored data
   safeJSONParse(str, key) {
@@ -83,18 +99,23 @@ const App = {
       console.log('No DB config yet');
     }
 
-    // Restore the AI shared secret for this session: it is never persisted
-    // (config/DB/backup), so the only source is sessionStorage, which is
-    // cleared when the tab/browser closes. This is a deliberate trade-off —
-    // the secret is a shared gate against quota-burning, not true auth, so
-    // requiring a re-entry per session is acceptable and keeps it out of
-    // at-rest storage entirely.
+    // Restore the device-only AI shared secret after the encryption key and
+    // database are ready. Older releases kept it only in sessionStorage; if
+    // that value is still present, migrate it into encrypted device storage.
     try {
+      let deviceSecret = await DB.getPrivateSetting('__device_ai_secret__', '');
       const sessionSecret = sessionStorage.getItem('advisoros_ai_secret');
-      if (sessionSecret) {
-        CONFIG.ai = { ...(CONFIG.ai || {}), secret: sessionSecret };
+      if (!deviceSecret && sessionSecret) {
+        deviceSecret = sessionSecret;
+        await DB.setPrivateSetting('__device_ai_secret__', deviceSecret);
       }
-    } catch (e) { /* private mode — no session storage */ }
+      if (deviceSecret) {
+        CONFIG.ai = { ...(CONFIG.ai || {}), secret: deviceSecret };
+        sessionStorage.setItem('advisoros_ai_secret', deviceSecret);
+      }
+    } catch (e) {
+      console.warn('AI shared secret could not be restored');
+    }
 
     this.migrateConfig();
 
@@ -139,6 +160,9 @@ const App = {
     if (typeof NotificationService !== 'undefined' && NotificationService.isMorningBriefEnabled()) {
       NotificationService._queueNextMorningBrief();
     }
+    if (typeof NotificationService !== 'undefined') {
+      NotificationService.startVisitReminders();
+    }
 
     // Automated message cadence (evening-before / morning-of drafts around
     // each visit). Recomputes its timers fresh on every boot.
@@ -176,11 +200,11 @@ const App = {
             <p class="text-secondary mb-lg">Your customer data (names, phones, addresses, emails) will be encrypted at rest. Choose a passphrase you'll remember — it's required every time you open Beelo.</p>
             <div class="form-group">
               <label>Passphrase</label>
-              <input type="password" class="input" id="enc-passphrase-new" placeholder="Enter passphrase" autocomplete="off">
+              ${this.passphraseControl('enc-passphrase-new', 'Enter passphrase')}
             </div>
             <div class="form-group">
               <label>Confirm Passphrase</label>
-              <input type="password" class="input" id="enc-passphrase-confirm" placeholder="Confirm passphrase" autocomplete="off">
+              ${this.passphraseControl('enc-passphrase-confirm', 'Confirm passphrase')}
             </div>
             <div class="fs-12 text-tertiary mb-md">Forgetting this passphrase means permanent loss of customer data. No recovery is possible.</div>
             <button class="btn btn-primary btn-block" data-action="App._setPassphrase">Set Passphrase</button>
@@ -193,14 +217,22 @@ const App = {
         // Attach a direct listener so the modal works regardless of router state.
         const setBtn = document.querySelector('[data-action="App._setPassphrase"]');
         if (setBtn) setBtn.addEventListener('click', () => App._setPassphrase());
+        const newPassphrase = document.getElementById('enc-passphrase-new');
+        const confirmPassphrase = document.getElementById('enc-passphrase-confirm');
+        newPassphrase?.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); confirmPassphrase?.focus(); }
+        });
+        confirmPassphrase?.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); App._setPassphrase(); }
+        });
         App._setPassphrase = async () => {
           const btn = document.querySelector('[data-action="App._setPassphrase"]');
           const fail = (msg) => {
             if (btn) { btn.disabled = false; btn.textContent = 'Set Passphrase'; }
             Toast.show(msg, 'error');
           };
-          const p1 = document.getElementById('enc-passphrase-new').value;
-          const p2 = document.getElementById('enc-passphrase-confirm').value;
+          const p1 = document.getElementById('enc-passphrase-new').value.replace(/[\r\n]/g, '');
+          const p2 = document.getElementById('enc-passphrase-confirm').value.replace(/[\r\n]/g, '');
           if (!p1 || p1.length < 8) { fail('Passphrase must be at least 8 characters'); return; }
           if (p1 !== p2) { fail('Passphrases do not match'); return; }
           if (typeof crypto === 'undefined' || !crypto.subtle) {
@@ -238,7 +270,7 @@ const App = {
             <p class="text-secondary mb-lg">Enter your passphrase to decrypt customer data.</p>
             <div class="form-group">
               <label>Passphrase</label>
-              <input type="password" class="input" id="enc-passphrase" placeholder="Enter passphrase" autocomplete="off" autocapitalize="off" spellcheck="false">
+              ${this.passphraseControl('enc-passphrase', 'Enter passphrase')}
             </div>
             <div id="enc-error" class="fs-12 text-danger mb-md" style="display:none;"></div>
             <button class="btn btn-primary btn-block" data-action="App._checkPassphrase">Unlock</button>
@@ -258,7 +290,7 @@ const App = {
             if (btn) { btn.disabled = false; btn.innerHTML = 'Unlock'; }
             if (input) input.value = '';
           };
-          const passphrase = input ? input.value : '';
+          const passphrase = input ? input.value.replace(/[\r\n]/g, '') : '';
           if (!passphrase) { fail('Please enter your passphrase'); return; }
           // WebCrypto needs a secure context. Opening the app over plain
           // http:// (e.g. a LAN address on a phone) leaves crypto.subtle
@@ -288,7 +320,7 @@ const App = {
         };
         // Allow Enter key to submit
         document.getElementById('enc-passphrase').addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') App._checkPassphrase();
+          if (e.key === 'Enter') { e.preventDefault(); App._checkPassphrase(); }
         });
       });
     }
@@ -394,6 +426,9 @@ const App = {
         CONFIG.commission = { mode: 'two_stage', simpleRate: 10, saleReductionRate: 20, netCommissionRate: 15.25, tiers: null };
       }
     }
+    if (!['ask', 'apple', 'google', 'waze'].includes(CONFIG.navigationApp)) {
+      CONFIG.navigationApp = 'ask';
+    }
     this.setBranding();
   },
 
@@ -496,6 +531,14 @@ const App = {
         this.navigate('today');
       }
       return;
+    }
+
+    // Dismiss any iOS keyboard/focused form control before replacing the
+    // screen. Otherwise Safari can carry the old visual viewport offset into
+    // the next route even when #main.scrollTop is reset correctly.
+    const active = document.activeElement;
+    if (active && active !== document.body && typeof active.blur === 'function') {
+      try { active.blur(); } catch (e) { /* detached control */ }
     }
 
     this.closeModal({ all: true, silent: true });
@@ -605,8 +648,31 @@ const App = {
       window.location.hash = targetHash;
     }
 
-    // Scroll to top
-    main.scrollTop = 0;
+    // Reset both the app scroller and the document viewport. Repeat after the
+    // next paint and after iOS finishes closing its keyboard; a single
+    // synchronous #main.scrollTop assignment does not reliably clear Safari's
+    // visual-viewport carry-over from a long form.
+    this.resetNavigationScroll(main);
+    requestAnimationFrame(() => {
+      if (this.currentHash === targetHash) this.resetNavigationScroll(main);
+    });
+    setTimeout(() => {
+      if (this.currentHash === targetHash) this.resetNavigationScroll(main);
+    }, 180);
+  },
+
+  resetNavigationScroll(main) {
+    if (main) {
+      main.scrollTop = 0;
+      if (typeof main.scrollTo === 'function') main.scrollTo(0, 0);
+    }
+    if (typeof document !== 'undefined') {
+      if (document.documentElement) document.documentElement.scrollTop = 0;
+      if (document.body) document.body.scrollTop = 0;
+    }
+    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
+      window.scrollTo(0, 0);
+    }
   },
 
   // The app's forms use a loose "label next to control" pattern — 100+ labels
@@ -921,6 +987,10 @@ const App = {
     // navigator.onLine lies (flaky WiFi, captive portals) and the banner
     // would otherwise never appear even though the app IS offline.
     navigator.serviceWorker?.addEventListener('message', e => {
+      if (e.data && e.data.type === 'notification-click' && e.data.data?.appointmentId) {
+        this.navigate('appointments', { id: e.data.data.appointmentId });
+        return;
+      }
       if (e.data && e.data.type === 'beelo-offline') {
         applyOfflineState(true);
         if (typeof navigator !== 'undefined' && navigator.onLine) {

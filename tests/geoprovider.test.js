@@ -49,11 +49,17 @@ function loadGeoProvider({ mockProvider = null, mapboxKey = '' } = {}) {
       }
       throw new Error('No mock fetch');
     },
-    Toast: { show: () => {} }
+    Toast: { show: () => {} },
+    App: {
+      modal: '',
+      openModal(html) { this.modal = html; },
+      closeModal() {}
+    }
   };
   sandbox.globalThis = sandbox;
   sandbox.self = sandbox;
   sandbox.window = sandbox;
+  sandbox.location = { assigned: '', assign(url) { this.assigned = url; } };
   sandbox.navigator = { geolocation: {} };
 
   vm.createContext(sandbox);
@@ -214,13 +220,35 @@ function loadGeoProvider({ mockProvider = null, mapboxKey = '' } = {}) {
 
   console.log('\nTest G: Navigation URL format');
   {
-    const { PublicGeoProvider } = loadGeoProvider();
+    const { PublicGeoProvider, Geo, sandbox } = loadGeoProvider();
 
     const provider = new PublicGeoProvider();
     const url = provider.buildNavigationUrl('Manchester, UK', 'London, UK');
     ok('contains Google Maps base', url.startsWith('https://www.google.com/maps/dir/'));
     ok('contains destination', url.includes('Manchester'));
     ok('contains origin', url.includes('London'));
+
+    const appleUrl = Geo.buildNavigationAppUrl('apple', 'Manchester, UK', 'London, UK');
+    ok('Apple Maps URL contains driving destination', appleUrl.startsWith('https://maps.apple.com/') && appleUrl.includes('daddr=Manchester%2C%20UK') && appleUrl.includes('dirflg=d'));
+
+    const wazeUrl = Geo.buildNavigationAppUrl('waze', 'Manchester, UK');
+    ok('Waze URL starts live navigation', wazeUrl.startsWith('https://www.waze.com/ul?') && wazeUrl.includes('navigate=yes'));
+
+    const googleUrl = Geo.buildNavigationAppUrl('google', 'Manchester, UK');
+    ok('Google choice uses provider URL', googleUrl.startsWith('https://www.google.com/maps/dir/'));
+
+    Geo.launchExternalUrl(appleUrl);
+    ok('navigation handoff uses same browsing context', sandbox.location.assigned === appleUrl);
+
+    vm.runInContext("CONFIG.navigationApp = 'ask'", sandbox);
+    Geo.openNavigationChooser('Manchester, UK');
+    ok('ask preference opens the three-app chooser', sandbox.App.modal.includes('Apple Maps') && sandbox.App.modal.includes('Google Maps') && sandbox.App.modal.includes('Waze'));
+
+    let directChoice = null;
+    Geo.launchNavigationChoice = (...args) => { directChoice = args; };
+    vm.runInContext("CONFIG.navigationApp = 'waze'", sandbox);
+    Geo.openNavigationChooser('Manchester, UK', '', 42);
+    ok('saved preference bypasses chooser', directChoice && directChoice[0] === 'waze' && directChoice[3] === 42, directChoice);
   }
 
   console.log('\nTest H: Provider swap does not break Geo API');
@@ -231,6 +259,8 @@ function loadGeoProvider({ mockProvider = null, mapboxKey = '' } = {}) {
     const methods = [
       'init', 'getCurrentPosition', 'startTrip', 'finishTrip', 'cancelTrip',
       'geocode', 'calculateDistance', 'buildNavigationUrl',
+      'buildNavigationAppUrl', 'openNavigationChooser', 'launchNavigationChoice',
+      'launchExternalUrl',
       'optimizeRoute', 'calculateRouteDistance', 'getDrivingDistanceKm',
       'getDrivingRouteSummary', 'persistActiveTrip', 'clearPersistedTrip',
       'restoreActiveTrip', 'renderTripBanner', 'updateTripBanner',

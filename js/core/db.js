@@ -31,7 +31,7 @@ const PAYMENT_PII_FIELDS = ['reference', 'notes'];
 const INVOICE_PII_FIELDS = ['customerSnapshot', 'terms', 'notes'];
 const INVOICE_ITEM_PII_FIELDS = ['description'];
 const CREDIT_PII_FIELDS = ['reason', 'itemSnapshot'];
-const DOCUMENT_PII_FIELDS = ['filename'];
+const DOCUMENT_PII_FIELDS = ['filename', 'contentData', 'extractedText'];
 const JOB_COST_PII_FIELDS = ['description', 'supplier', 'reference'];
 const AVAILABILITY_PII_FIELDS = ['label'];
 const RETENTION_PII_FIELDS = ['notes', 'outcome'];
@@ -42,6 +42,7 @@ const INTEGRATION_OUTBOX_PII_FIELDS = ['payload', 'lastError'];
 const PBKDF2_ITERATIONS = 100000;
 const KEY_LENGTH = 256;
 const IV_LENGTH = 12;
+const DEVICE_AI_SECRET_SETTING = '__device_ai_secret__';
 
 let encryptionKey = null;
 let encryptionSalt = null;
@@ -820,12 +821,18 @@ const DB = {
   // advisor may rely on), so they ARE included in exportAll()/importAll() —
   // a restored backup must reconstruct them, not leave them behind.
   async addPhoto({ customerId, jobId = null, appointmentId = null, data, mimeType = 'image/jpeg', caption = '' }) {
+    // Be defensive at the storage boundary: callers must not persist a full
+    // data URL because renderers add their own MIME prefix. Normalising here
+    // also keeps backups smaller and makes all photo rows use one contract.
+    const normalised = (typeof Utils !== 'undefined' && Utils.imagePayloadFromDataUrl)
+      ? Utils.imagePayloadFromDataUrl(data, mimeType)
+      : { data, mimeType };
     const photo = {
       customerId,
       jobId,
       appointmentId,
-      data,
-      mimeType,
+      data: normalised.data,
+      mimeType: normalised.mimeType,
       caption: caption || '',
       createdAt: new Date().toISOString()
     };
@@ -925,6 +932,7 @@ const DB = {
 
     const encrypted = await encryptAppointment(appointment);
     const id = await this.db.appointments.add(encrypted);
+    if (typeof NotificationService !== 'undefined') NotificationService.queueVisitReminderRefresh();
     return { ...appointment, id };
   },
 
@@ -933,6 +941,7 @@ const DB = {
   async updateAppointment(id, fields) {
     const encrypted = await encryptAppointment(fields);
     await this.db.appointments.update(id, encrypted);
+    if (typeof NotificationService !== 'undefined') NotificationService.queueVisitReminderRefresh();
   },
 
   // Single appointment with PII decrypted. All detail screens must use this
@@ -1225,6 +1234,8 @@ const DB = {
   async getCreditNote(id){const row=await this.db.creditNotes.get(id);return row?decryptCreditNote(row):null;},
   async getCreditNotes(filters={}){let rows=await this.db.creditNotes.toArray();for(const f of ['customerId','invoiceId','status'])if(filters[f]!=null)rows=rows.filter(r=>r[f]===filters[f]);return Promise.all(rows.map(decryptCreditNote));},
   async addDocumentMetadata(data){if(!data||!data.type)throw new Error('Document type is required');const plain={...data,generatedAt:data.generatedAt||new Date().toISOString(),createdAt:new Date().toISOString()};const row=await encryptDocument(plain);const id=await this.db.documents.add(row);return{...plain,id};},
+  async getDocument(id){const row=await this.db.documents.get(id);return row?decryptDocument(row):null;},
+  async getDocuments(filters={}){let rows=await this.db.documents.toArray();for(const field of ['customerId','invoiceId','paymentId','jobId','purchaseOrderId','type'])if(filters[field]!=null)rows=rows.filter(row=>row[field]===filters[field]);rows.sort((a,b)=>new Date(b.createdAt||b.generatedAt)-new Date(a.createdAt||a.generatedAt));return Promise.all(rows.map(decryptDocument));},
   async getReceipt(paymentId){const payment=await this.db.payments.get(paymentId);if(!payment)return null;const document=await this.db.documents.where('paymentId').equals(paymentId).first();return{payment:await decryptPayment(payment),document:document?await decryptDocument(document):null};},
 
   async _refreshCustomerTotalsUnsafe(customerId) {
@@ -1965,6 +1976,26 @@ const DB = {
     await this.db.settings.put({ key, value });
   },
 
+  // Device-only credentials use the same passphrase-derived AES-GCM key as
+  // customer PII. They stay out of CONFIG, localStorage and every backup.
+  async getPrivateSetting(key, defaultValue = null) {
+    const setting = await this.db.settings.get(key);
+    if (!setting) return defaultValue;
+    return isEncrypted(setting.value) ? decryptField(setting.value) : setting.value;
+  },
+
+  async setPrivateSetting(key, value) {
+    if (!value) {
+      await this.db.settings.delete(key);
+      return;
+    }
+    await this.db.settings.put({ key, value: await encryptField(String(value)) });
+  },
+
+  async deletePrivateSetting(key) {
+    await this.db.settings.delete(key);
+  },
+
   // Schema version of the current database. Real Dexie reports it as `verno`
   // once opened; the bundled shim keeps it internally without exposing it, so
   // fall back to the current schema constant (8 = Phase 6 retention added).
@@ -2026,7 +2057,7 @@ const DB = {
     if(data.communicationEvents?.length)data.communicationEvents=await Promise.all(data.communicationEvents.map(decryptCommunicationEvent));
     if(data.integrationConflicts?.length)data.integrationConflicts=await Promise.all(data.integrationConflicts.map(decryptIntegrationConflict));
     if(data.integrationOutbox?.length)data.integrationOutbox=await Promise.all(data.integrationOutbox.map(decryptIntegrationOutbox));
-    const RUNTIME_SETTING_KEYS = ['__v6_legacy_migrated__', '__storage_probe__', 'pitchDemoSeeded'];
+    const RUNTIME_SETTING_KEYS = ['__v6_legacy_migrated__', '__storage_probe__', 'pitchDemoSeeded', DEVICE_AI_SECRET_SETTING];
     data.settings = (await this.db.settings.toArray()).filter(s => !RUNTIME_SETTING_KEYS.includes(s.key));
     data.sequences = await this.db.sequences.toArray();
     return data;
@@ -2350,7 +2381,7 @@ const DB = {
     for(const r of data.invoiceItems||[]){checkRef('invoiceItems',r,'invoiceId',invoiceIds);if(typeof r.description!=='string'||!(Number(r.quantity)>0)||Number(r.unitPrice)<0)throw new Error('Backup file is corrupt: invoice item is invalid');}
     for(const r of data.payments||[]){checkRef('payments',r,'customerId',customerIds);if(r.orderId!=null)checkRef('payments',r,'orderId',orderIds);if(r.invoiceId!=null)checkRef('payments',r,'invoiceId',invoiceIds);if(r.reversesPaymentId!=null)checkRef('payments',r,'reversesPaymentId',paymentIds);if(!(r.amount>0)||!['in','out'].includes(r.direction)||!['pending','cleared','void'].includes(r.status))throw new Error('Backup file is corrupt: payment is invalid');}
     for(const r of data.creditNotes||[]){checkRef('creditNotes',r,'customerId',customerIds);checkRef('creditNotes',r,'invoiceId',invoiceIds);if(!(r.amount>0)||!['issued','void'].includes(r.status)||typeof r.creditNumber!=='string')throw new Error('Backup file is corrupt: credit note is invalid');}
-    for(const r of data.documents||[]){checkRef('documents',r,'customerId',customerIds);if(r.invoiceId!=null)checkRef('documents',r,'invoiceId',invoiceIds);if(r.paymentId!=null)checkRef('documents',r,'paymentId',paymentIds);if(r.jobId!=null)checkRef('documents',r,'jobId',jobIds);if(typeof r.type!=='string'||!r.type)throw new Error('Backup file is corrupt: document metadata is invalid');}
+    for(const r of data.documents||[]){checkRef('documents',r,'customerId',customerIds);if(r.invoiceId!=null)checkRef('documents',r,'invoiceId',invoiceIds);if(r.paymentId!=null)checkRef('documents',r,'paymentId',paymentIds);if(r.jobId!=null)checkRef('documents',r,'jobId',jobIds);if(r.purchaseOrderId!=null)checkRef('documents',r,'purchaseOrderId',purchaseOrderIds);if(typeof r.type!=='string'||!r.type)throw new Error('Backup file is corrupt: document metadata is invalid');}
     for(const r of data.suppliers||[]){if(typeof r.name!=='string'||!r.name||!['active','inactive'].includes(r.status))throw new Error('Backup file is corrupt: supplier is invalid');}
     for(const r of data.products||[]){checkRef('products',r,'supplierId',supplierIds);if(typeof r.name!=='string'||!r.name)throw new Error('Backup file is corrupt: product is invalid');}
     for(const r of data.purchaseOrders||[]){checkRef('purchaseOrders',r,'supplierId',supplierIds);checkRef('purchaseOrders',r,'orderId',orderIds);if(r.jobId!=null)checkRef('purchaseOrders',r,'jobId',jobIds);if(!['draft','submitted','acknowledged','part_received','received','issue','returned','cancelled'].includes(r.status))throw new Error('Backup file is corrupt: purchase order is invalid');}

@@ -1130,11 +1130,12 @@ const AppointmentsFeature = {
     App.openModal(content);
   },
 
-  openCustomerSearch() {
+  openCustomerSearch(customerOnly = false) {
+    this._customerSearchOnly = customerOnly === true;
     const content = `
       <div class="sheet-handle"></div>
       <div class="sheet-header">
-        <h3>Search</h3>
+        <h3>${this._customerSearchOnly ? 'Find Customer' : 'Search'}</h3>
         <button class="btn btn-ghost btn-sm" data-action="App.closeModal">
           <span class="material-symbols-rounded">close</span>
         </button>
@@ -1169,7 +1170,7 @@ const AppointmentsFeature = {
 
     let results = [];
     try {
-      results = await Search.search(query);
+      results = await Search.search(query, this._customerSearchOnly ? { types: ['customer'] } : {});
     } catch (e) {
       console.error('Search failed:', e);
       resultsEl.innerHTML = `<div class="fs-13 text-danger text-center py-24" >Search failed - try again</div>`;
@@ -1320,7 +1321,7 @@ const AppointmentsFeature = {
   },
 
   _photoSrc(p) {
-    return `data:${p.mimeType || 'image/jpeg'};base64,${p.data}`;
+    return Utils.photoDataUrl(p);
   },
 
   // Photo picker: on mobile it offers both the hardware camera and the photo
@@ -1335,20 +1336,30 @@ const AppointmentsFeature = {
     const file = event?.target?.files?.[0];
     if (event?.target) event.target.value = '';
     if (!file) return;
-    let data;
+    let encoded;
     try {
       const blob = await this._downscaleImage(file);
-      data = await this._blobToDataUrl(blob);
+      const dataUrl = await this._blobToDataUrl(blob);
+      encoded = Utils.imagePayloadFromDataUrl(dataUrl, 'image/jpeg');
+      encoded.previewUrl = dataUrl;
     } catch (e) {
       console.error('Photo read failed:', e);
-      Toast.show('Could not read that image', 'error');
+      const appleFormat = /hei[cf]/i.test(file.type || '') || /\.hei[cf]$/i.test(file.name || '');
+      Toast.show(appleFormat
+        ? 'This Apple photo could not be converted. Try Camera > Formats > Most Compatible.'
+        : 'Could not read that image', 'error');
       return;
     }
-    this._capturePhoto = { customerId, data, mimeType: 'image/jpeg', returnToAppointmentId };
+    this._capturePhoto = {
+      customerId,
+      data: encoded.data,
+      mimeType: encoded.mimeType,
+      returnToAppointmentId
+    };
     const content = `<div class="sheet-handle"></div>
       <div class="sheet-header"><h3>Save photo</h3><button class="btn btn-ghost btn-sm" data-close="1" data-action="AppointmentsFeature.discardCapture"><span class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body">
-        <img class="img-contain maxh-45" src="${data}" alt="Captured photo" >
+        <img class="img-contain maxh-45" src="${encoded.previewUrl}" alt="Captured photo" >
         <div class="form-group mt-12" >
           <label>Caption (optional)</label>
           <input type="text" class="input" id="photo-caption-input" value="${Utils.escapeHtml(Utils.formatDate(new Date(), 'long'))}" placeholder="e.g. Front windows with Juliet balcony">
@@ -1372,28 +1383,36 @@ const AppointmentsFeature = {
   },
 
   // Photos are reference-only (seen on a phone, rarely zoomed), so they're
-  // downscaled hard before storage: 800px longest side at ~60% JPEG keeps a
-  // 2-4MB camera shot to a few tens of KB base64, which keeps IndexedDB lean
-  // and the gallery quick — detail far beyond what a phone screen shows is
-  // simply not needed.
-  _downscaleImage(file, maxSide = 800, quality = 0.62) {
+  // converted to a broadly supported JPEG and downscaled before storage.
+  // 1280px at 72% preserves useful fitting/damage detail while avoiding the
+  // multi-megabyte HEIC/JPEG files produced by modern iPhones.
+  _downscaleImage(file, maxSide = 1280, quality = 0.72) {
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onerror = () => reject(new Error('read failed'));
-      reader.onload = () => {
-        const img = new Image();
-        img.onerror = () => reject(new Error('decode failed'));
-        img.onload = () => {
+      const objectUrl = URL.createObjectURL(file);
+      const img = new Image();
+      const release = () => URL.revokeObjectURL(objectUrl);
+      img.onerror = () => {
+        release();
+        reject(new Error('decode failed'));
+      };
+      img.onload = () => {
+        try {
           const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
           const canvas = document.createElement('canvas');
           canvas.width = Math.round(img.width * scale);
           canvas.height = Math.round(img.height * scale);
-          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+          const context = canvas.getContext('2d', { alpha: false });
+          context.fillStyle = '#ffffff';
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          context.drawImage(img, 0, 0, canvas.width, canvas.height);
+          release();
           canvas.toBlob(b => (b ? resolve(b) : reject(new Error('encode failed'))), 'image/jpeg', quality);
-        };
-        img.src = reader.result;
+        } catch (error) {
+          release();
+          reject(error);
+        }
       };
-      reader.readAsDataURL(file);
+      img.src = objectUrl;
     });
   },
 
@@ -1422,6 +1441,14 @@ const AppointmentsFeature = {
     let p = null;
     try { p = await DB.db.photos.get(photoId); } catch (e) {}
     if (!p) { Toast.show('Photo not found', 'error'); return; }
+    // Repair rows written by the affected release as soon as they are opened.
+    if (/^data:image\//i.test(String(p.data || ''))) {
+      const repaired = Utils.imagePayloadFromDataUrl(p.data, p.mimeType || 'image/jpeg');
+      p = { ...p, ...repaired };
+      try { await DB.db.photos.update(photoId, repaired); } catch (e) {
+        console.warn('Could not repair legacy photo row:', e);
+      }
+    }
     const caption = p.caption || Utils.formatDate(p.createdAt, 'long');
     const content = `<div class="sheet-handle"></div>
       <div class="sheet-header"><h3>Photo</h3><button class="btn btn-ghost btn-sm" data-action="App.closeModal"><span class="material-symbols-rounded">close</span></button></div>
@@ -1509,6 +1536,66 @@ const AppointmentsFeature = {
       console.error('Delete customer error:', e);
       Toast.show('Failed to delete customer', 'error');
     }
+  },
+
+  onSiteDurationMinutes(appt, endAt = Date.now()) {
+    const started = new Date(appt?.arrivedAt || 0).getTime();
+    const ended = new Date(appt?.leftAt || endAt).getTime();
+    if (!Number.isFinite(started) || started <= 0 || !Number.isFinite(ended) || ended < started) return null;
+    return Math.max(0, Math.round((ended - started) / 60000));
+  },
+
+  formatOnSiteDuration(minutes) {
+    if (!Number.isFinite(minutes)) return '';
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return hours > 0 ? `${hours}h ${mins}m` : `${mins} min`;
+  },
+
+  renderOnSiteCard(appt) {
+    if (!appt || appt.status === 'cancelled') return '';
+    const active = !!appt.arrivedAt && !appt.leftAt && appt.status !== 'completed';
+    const duration = this.onSiteDurationMinutes(appt);
+    if (active) {
+      return `<div class="card card-page" style="border-left:4px solid var(--accent);">
+        <div class="flex items-start gap-12">
+          <span class="material-symbols-rounded text-accent">timer</span>
+          <div class="flex-1 min-w-0"><div class="fw-600">On-site timer running</div><div class="fs-13 text-secondary mt-2">Started ${Utils.escapeHtml(Utils.formatTimeUK(appt.arrivedAt))}${duration !== null ? ` · ${Utils.escapeHtml(this.formatOnSiteDuration(duration))} so far` : ''}</div></div>
+        </div>
+        <button class="btn btn-primary btn-block mt-md" data-action="AppointmentsFeature.finishOnSite" data-args='${JSON.stringify([appt.id])}'><span class="material-symbols-rounded">logout</span>Leave customer</button>
+        <div class="hint mt-sm">Saving the visit outcome also stops this timer.</div>
+      </div>`;
+    }
+    if (appt.arrivedAt && appt.leftAt) {
+      const recorded = Number.isFinite(Number(appt.onSiteDurationMinutes)) ? Number(appt.onSiteDurationMinutes) : duration;
+      return `<div class="card card-page">
+        <div class="flex items-start gap-12"><span class="material-symbols-rounded text-tertiary">schedule</span><div><div class="fw-600">Time at customer: ${Utils.escapeHtml(this.formatOnSiteDuration(recorded))}</div><div class="fs-13 text-secondary mt-2">${Utils.escapeHtml(Utils.formatTimeUK(appt.arrivedAt))}–${Utils.escapeHtml(Utils.formatTimeUK(appt.leftAt))}</div></div></div>
+      </div>`;
+    }
+    if (appt.status === 'completed') return '';
+    return `<div class="card card-page">
+      <div class="flex items-start gap-12"><span class="material-symbols-rounded text-accent">location_on</span><div class="flex-1"><div class="fw-600">At the customer?</div><div class="fs-13 text-secondary mt-2">Start the timer when you arrive. Beelo will store the visit duration on this phone.</div></div></div>
+      <button class="btn btn-primary btn-block mt-md" data-action="AppointmentsFeature.startOnSite" data-args='${JSON.stringify([appt.id])}'><span class="material-symbols-rounded">timer</span>I've arrived — start timer</button>
+    </div>`;
+  },
+
+  async startOnSite(id) {
+    const appt = await DB.getAppointment(id);
+    if (!appt || appt.status === 'cancelled' || appt.status === 'completed') return Toast.show('This visit cannot be started', 'warning');
+    if (appt.arrivedAt && !appt.leftAt) return Toast.show('On-site timer is already running', 'info');
+    await DB.updateAppointment(id, { travelStatus: 'on_site', arrivedAt: Date.now(), leftAt: null, onSiteDurationMinutes: null });
+    Toast.show('Arrival logged — on-site timer started', 'success');
+    App.navigate('appointments', { id });
+  },
+
+  async finishOnSite(id) {
+    const appt = await DB.getAppointment(id);
+    if (!appt?.arrivedAt || appt.leftAt) return Toast.show('No on-site timer is running', 'warning');
+    const leftAt = Date.now();
+    const onSiteDurationMinutes = this.onSiteDurationMinutes(appt, leftAt);
+    await DB.updateAppointment(id, { travelStatus: null, leftAt, onSiteDurationMinutes });
+    Toast.show(`Time at customer logged: ${this.formatOnSiteDuration(onSiteDurationMinutes)}`, 'success');
+    App.navigate('appointments', { id });
   },
 
   async renderDetail(id) {
@@ -1641,6 +1728,8 @@ const AppointmentsFeature = {
           </div>
         </div>
 
+        ${this.renderOnSiteCard(appt)}
+
         ${orderCardOrder ? this.renderLinkedOrderCard(orderCardOrder) : ''}
 
         ${measurements.length ? `
@@ -1682,7 +1771,7 @@ const AppointmentsFeature = {
                 ${photos.map(p => this.renderPhotoThumb(p)).join('')}
               </div>
             `}
-            <input type="file" id="visit-photo-input" accept="image/*" style="display:none;" data-action="AppointmentsFeature.captureCustomerPhoto" data-args='${JSON.stringify(["__event__", (appt.customerId), (appt.id)])}'>
+            <input type="file" id="visit-photo-input" accept="image/*,.heic,.heif" style="display:none;" data-action="AppointmentsFeature.captureCustomerPhoto" data-args='${JSON.stringify(["__event__", (appt.customerId), (appt.id)])}'>
           </div>
         ` : `
           <div class="card card-page" >
@@ -1786,8 +1875,10 @@ const AppointmentsFeature = {
     const paramTime = params.time && /^\d{2}:\d{2}$/.test(params.time) ? params.time : '';
     const today = paramDate || Utils.formatDate(new Date(), 'iso');
     const selectedTime = paramTime || '09:00';
-    const allowedTypes = this.getAllowedTypesForDate(today);
-    const defaultType = allowedTypes.includes(params.type) ? params.type : allowedTypes[0];
+    let allowedTypes = this.getAllowedTypesForDate(today);
+    const requestedJobType = params.jobId && CONFIG.appointmentTypes.some(type => type.id === params.type) ? params.type : null;
+    if (requestedJobType && !allowedTypes.includes(requestedJobType)) allowedTypes = [...allowedTypes, requestedJobType];
+    const defaultType = requestedJobType || (allowedTypes.includes(params.type) ? params.type : allowedTypes[0]);
     const mode = this.getDayMode(today + 'T00:00:00');
     const scannedName = params.name || '';
     const scannedPhone = params.phone || '';
@@ -1952,9 +2043,17 @@ const AppointmentsFeature = {
     const adviceEl = document.getElementById('visit-day-advice');
     const typeEl = document.getElementById('appt-type');
     const mode = this.getDayMode(dateValue + 'T00:00:00');
+    const jobId = parseInt(document.getElementById('appt-job-id')?.value, 10) || null;
+    const currentType = typeEl?.value || '';
     const allowed = this.getAllowedTypesForDate(dateValue + 'T00:00:00');
+    // A visit deliberately launched from a Job is an explicit operational
+    // decision. Keep its fitting/service type available even when the chosen
+    // date is normally configured as a sales day.
+    if (jobId && CONFIG.appointmentTypes.some(type => type.id === currentType) && !allowed.includes(currentType)) {
+      allowed.push(currentType);
+    }
     if (adviceEl) adviceEl.textContent = mode.friendLine;
-    if (typeEl) typeEl.innerHTML = this.renderTypeOptions(allowed, allowed[0]);
+    if (typeEl) typeEl.innerHTML = this.renderTypeOptions(allowed, allowed.includes(currentType) ? currentType : allowed[0]);
     this.updateScheduleAdvice();
   },
 
@@ -2164,6 +2263,7 @@ const AppointmentsFeature = {
     }
 
     const allowedTypes = this.getAllowedTypesForDate(date + 'T00:00:00');
+    if (data.jobId && CONFIG.appointmentTypes.some(item => item.id === type) && !allowedTypes.includes(type)) allowedTypes.push(type);
     if (!allowedTypes.includes(type)) {
       const mode = this.getDayMode(date + 'T00:00:00');
       Toast.show(`${mode.label}: this slot is better kept for ${mode.shortAdvice.toLowerCase()}.`, 'warning');
@@ -2913,9 +3013,7 @@ const AppointmentsFeature = {
   // entirely, while a differently-named button elsewhere in the app did track it -
   // same feature, inconsistent behaviour depending which screen you tapped from.
   async navigateToVisit(address, appointmentId) {
-    window.open(Geo.buildNavigationUrl(address || ''), '_blank');
-    await Geo.startTrip({ destinationAddress: address || '', appointmentId });
-    if (typeof MessageScheduler !== 'undefined') MessageScheduler.onDeparture(appointmentId);
+    Geo.openNavigationChooser(address || '', '', appointmentId);
   },
 
   async openEditNotesModal(id) {
@@ -3249,7 +3347,11 @@ const AppointmentsFeature = {
         // editing a morning sale at 17:00) must not move "when the day was
         // completed" - the home screen's closeout window reads this.
         completedAt: appt.completedAt || Date.now(),
-        travelStatus: null
+        travelStatus: null,
+        leftAt: appt.leftAt || (appt.arrivedAt ? Date.now() : null),
+        onSiteDurationMinutes: appt.arrivedAt
+          ? this.onSiteDurationMinutes(appt, appt.leftAt || Date.now())
+          : (appt.onSiteDurationMinutes ?? null)
         }
       });
       const paymentNote = result.payment?.applied > 0

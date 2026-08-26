@@ -18,8 +18,9 @@ export function Reveal({ children, className = '', delay = 0, as = 'div' }: Reve
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    el.classList.add('reveal-ready');
     if (typeof IntersectionObserver === 'undefined') {
-      el.classList.add('is-visible');
+              el.classList.add('is-visible');
       return;
     }
     const io = new IntersectionObserver(
@@ -34,7 +35,10 @@ export function Reveal({ children, className = '', delay = 0, as = 'div' }: Reve
       { threshold: 0.12, rootMargin: '0px 0px -8% 0px' }
     );
     io.observe(el);
-    return () => io.disconnect();
+    return () => {
+      io.disconnect();
+      el.classList.remove('reveal-ready');
+    };
   }, []);
 
   const Tag = as as 'div';

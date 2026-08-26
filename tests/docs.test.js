@@ -15,6 +15,7 @@ const core = read('css/core.css');
 const design = read('docs/DESIGN_SYSTEM.md');
 const baseline = read('docs/VISUAL_BASELINE-v2.md');
 const app = read('js/core/app.js');
+const geo = read('js/core/geo.js');
 const notifications = read('js/services/notification.js');
 
 console.log('documentation and product-language contracts');
@@ -35,6 +36,23 @@ ok('unlock UI uses Beelo', app.includes('Unlock Beelo') && !app.includes('Unlock
 ok('morning notification uses Beelo', notifications.includes('Open Beelo to see your day.'));
 ok('shared back button has an accessible name', app.includes('aria-label="Back"'));
 ok('shared back icon is decorative', app.includes('aria-hidden="true">arrow_back'));
+ok('local passphrase uses masked-text account-credential avoidance when supported',
+  app.includes('passphraseControl(id, placeholder)') &&
+  app.includes("CSS.supports('-webkit-text-security', 'disc')") &&
+  app.includes('autocomplete="one-time-code"') &&
+  app.includes('<textarea ${common}') &&
+  core.includes('.passphrase-input') &&
+  core.includes('-webkit-text-security: disc'));
+ok('passphrase markup is generated through the non-account credential helper',
+  ['enc-passphrase-new', 'enc-passphrase-confirm', 'enc-passphrase'].every(id =>
+    app.includes("this.passphraseControl('" + id + "'")));
+const geoInit = (geo.match(/init\(\)\s*\{([\s\S]*?)\n\s*\},\n\n\s*async checkArrivalOnResume/) || [])[1] || '';
+ok('app launch restores trip state without proactively requesting location',
+  geoInit.includes('this.restoreActiveTrip()') && !geoInit.includes('this.getCurrentPosition()'));
+ok('navigation clears focused controls and resets app plus window scroll',
+  app.includes('active.blur()') &&
+  app.includes('resetNavigationScroll(main)') &&
+  app.includes('window.scrollTo(0, 0)'));
 
 const readableUiFiles = [
   ...fs.readdirSync(path.join(root, 'js/features'), { recursive: true })

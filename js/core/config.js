@@ -14,6 +14,9 @@ const CONFIG = {
   dateFormat: 'DD/MM/YYYY',
   distanceUnit: 'miles',
   measurementUnit: 'mm',
+  // Turn-by-turn navigation hand-off. "ask" keeps the map chooser visible;
+  // apple/google/waze launch that provider directly from Navigate.
+  navigationApp: 'ask',
 
   // Advisor identity & targets (set during onboarding)
   advisorName: '',

@@ -1,0 +1,11 @@
+'use strict';
+const vm=require('vm'),fs=require('fs'),path=require('path');
+let failures=0;const ok=(l,c)=>{if(c)console.log('  OK '+l);else{failures++;console.log('  FAIL '+l)}};
+const stored=new Map(),timers=[],notifications=[],modals=[];
+const visitAt=Date.now()+30*60000;
+let appointment={id:7,date:new Date(visitAt).toISOString(),status:'confirmed',clientName:'Hannah',address:'Manchester'};
+function FakeNotification(title,options){notifications.push({title,options})}
+FakeNotification.permission='granted';FakeNotification.requestPermission=async()=>'granted';
+const sandbox={console,window:{Notification:FakeNotification},Notification:FakeNotification,navigator:{},document:{visibilityState:'visible',addEventListener(){}},localStorage:{getItem:k=>stored.has(k)?stored.get(k):null,setItem:(k,v)=>stored.set(k,String(v))},setTimeout(fn,delay){const id={fn,delay};timers.push(id);return id},clearTimeout(){},DB:{db:{},async getUpcomingAppointments(){return[appointment]},async getAppointment(){return appointment}},Utils:{formatTimeUK:()=>'10:30',escapeHtml:v=>String(v)},App:{openModal:h=>modals.push(h)},Toast:{show(){}},TodayFeature:{getWeekEarnings:async()=>0},CONFIG:{weeklyTarget:600}};
+vm.createContext(sandbox);vm.runInContext(fs.readFileSync(path.join(__dirname,'..','js/services/notification.js'),'utf8'),sandbox);const service=vm.runInContext('NotificationService',sandbox);
+(async()=>{ok('visit alerts default to enabled',service.isVisitReminderEnabled());await service.refreshVisitReminders();ok('visit reminder is scheduled 15 minutes before',timers.some(t=>t.delay>14*60000&&t.delay<=15*60000));await service._fireVisitReminder(7,service._visitReminderKey(appointment));ok('phone notification names the next appointment',notifications.some(n=>n.title.includes('Next appointment')));ok('notification deep-links to the visit',notifications.some(n=>n.options.data.appointmentId===7));ok('visible app shows actionable reminder sheet',modals.some(h=>h.includes('Open visit')&&h.includes('Hannah')));notifications.length=0;appointment={...appointment,status:'completed'};await service._fireVisitReminder(7,service._visitReminderKey(appointment));ok('completed visit does not alert',notifications.length===0);if(failures)process.exit(1);console.log('VISIT REMINDER TESTS PASSED')})().catch(e=>{console.error(e);process.exit(1)});

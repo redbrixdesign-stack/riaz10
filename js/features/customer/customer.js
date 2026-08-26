@@ -284,7 +284,7 @@ const CustomerFeature = {
               ${photos.map(p => this.renderPhotoThumb(p)).join('')}
             </div>
           `}
-          <input type="file" id="customer-photo-input" accept="image/*" style="display:none;" data-action="AppointmentsFeature.captureCustomerPhoto" data-args='${JSON.stringify(["__event__", (customerId)])}'>
+          <input type="file" id="customer-photo-input" accept="image/*,.heic,.heif" style="display:none;" data-action="AppointmentsFeature.captureCustomerPhoto" data-args='${JSON.stringify(["__event__", (customerId)])}'>
         </div>
 
         <div class="card-page" >
@@ -315,7 +315,7 @@ const CustomerFeature = {
 
   renderPhotoThumb(p) {
     return `<div class="photo-tile"  role="button" tabindex="0" aria-label="View photo" data-action="AppointmentsFeature.openPhotoViewer" data-args='${JSON.stringify([(p.id), (p.customerId)])}' data-key="Enter, space">
-      <img class="img-cover" src="data:${p.mimeType || 'image/jpeg'};base64,${p.data}" alt="" >
+      <img class="img-cover" src="${Utils.photoDataUrl(p)}" alt="" >
     </div>`;
   }
 };
