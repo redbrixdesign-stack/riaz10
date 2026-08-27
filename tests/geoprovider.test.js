@@ -237,6 +237,14 @@ function loadGeoProvider({ mockProvider = null, mapboxKey = '' } = {}) {
     const googleUrl = Geo.buildNavigationAppUrl('google', 'Manchester, UK');
     ok('Google choice uses provider URL', googleUrl.startsWith('https://www.google.com/maps/dir/'));
 
+    let tripOptions = null;
+    let departureCalls = 0;
+    Geo.startTrip = async options => { tripOptions = options; return null; };
+    sandbox.MessageScheduler = { onDeparture: () => { departureCalls++; } };
+    await Geo.launchNavigationChoice('google', 'Manchester, UK', '', 42);
+    ok('navigation requests GPS before handing off to Maps', tripOptions?.appointmentId === 42 && sandbox.location.assigned === googleUrl, tripOptions);
+    ok('failed optional trip does not trigger departure messaging', departureCalls === 0, departureCalls);
+
     Geo.launchExternalUrl(appleUrl);
     ok('navigation handoff uses same browsing context', sandbox.location.assigned === appleUrl);
 

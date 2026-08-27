@@ -111,7 +111,7 @@ const Geo = {
     try {
       startPos = await this.getCurrentPosition();
     } catch (e) {
-      Toast.show('Could not get your location. Check location permissions and try again.', 'error');
+      Toast.show('Navigation will open, but Beelo could not start mileage tracking. Check Location access in your phone settings.', 'warning', 6000);
       return null;
     }
 
@@ -418,22 +418,23 @@ const Geo = {
     `);
   },
 
-  launchNavigationChoice(provider, destination, origin = '', appointmentId = null) {
+  async launchNavigationChoice(provider, destination, origin = '', appointmentId = null) {
     const url = this.buildNavigationAppUrl(provider, destination, origin);
     if (!url) return;
 
     App.closeModal();
 
-    // Begin tracking from the same deliberate tap. Do not await location here:
-    // the navigation hand-off should remain immediate even if GPS is slow.
-    Promise.resolve(this.startTrip({ destinationAddress: destination || '', appointmentId }))
-      .then(() => {
-        if (appointmentId && typeof MessageScheduler !== 'undefined' && typeof MessageScheduler.onDeparture === 'function') {
-          try { MessageScheduler.onDeparture(appointmentId); } catch (e) { /* scheduler optional */ }
-        }
-      })
-      .catch(e => console.log('Trip start from navigation skipped:', e));
-
+    // Resolve the deliberate GPS request while Beelo is still foregrounded.
+    // Handing off first backgrounds the PWA on phones and can abort location.
+    let trip = null;
+    try {
+      trip = await this.startTrip({ destinationAddress: destination || '', appointmentId });
+    } catch (e) {
+      console.log('Trip start from navigation skipped:', e);
+    }
+    if (trip && appointmentId && typeof MessageScheduler !== 'undefined' && typeof MessageScheduler.onDeparture === 'function') {
+      try { MessageScheduler.onDeparture(appointmentId); } catch (e) { /* scheduler optional */ }
+    }
     this.launchExternalUrl(url);
   },
 
