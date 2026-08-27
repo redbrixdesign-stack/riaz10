@@ -346,20 +346,32 @@ const Geo = {
     return this._provider().buildNavigationUrl(destination, origin);
   },
 
-  // Build a universal link for the navigation app selected by the advisor.
-  // Universal links are preferable to app-only schemes here: they open the
-  // installed app when available and retain a useful web fallback otherwise.
+  // Build an app-specific iOS URL. The chooser is explicit, so selecting
+  // Google Maps or Waze means the corresponding app is expected to exist.
+  // HTTPS universal links are deliberately avoided: iOS PWAs may keep those
+  // links in Safari instead of handing them to the installed map app.
   buildNavigationAppUrl(provider, destination, origin = '') {
     const dest = encodeURIComponent(destination || '');
     const from = origin ? encodeURIComponent(origin) : '';
 
     if (provider === 'apple') {
-      return `https://maps.apple.com/?daddr=${dest}${from ? `&saddr=${from}` : ''}&dirflg=d`;
+      return `maps://?daddr=${dest}${from ? `&saddr=${from}` : ''}&dirflg=d`;
     }
     if (provider === 'waze') {
-      return `https://www.waze.com/ul?q=${dest}&navigate=yes`;
+      return `waze://?q=${dest}&navigate=yes`;
     }
-    return this.buildNavigationUrl(destination || '', origin || '');
+    return `comgooglemaps://?${from ? `saddr=${from}&` : ''}daddr=${dest}&directionsmode=driving`;
+  },
+
+  isIOS() {
+    const ua = navigator.userAgent || '';
+    const platform = navigator.platform || '';
+    return /iPad|iPhone|iPod/i.test(ua) ||
+      (/Mac/i.test(platform) && Number(navigator.maxTouchPoints || 0) > 1);
+  },
+
+  buildGoogleMapsAppUrl(webUrl) {
+    return String(webUrl || '').replace(/^https?:\/\//i, 'comgooglemapsurl://');
   },
 
   openNavigationChooser(destination, origin = '', appointmentId = null) {
@@ -404,16 +416,16 @@ const Geo = {
           </button>
           <button class="nav-app-option" type="button" data-action="Geo.launchNavigationChoice" data-args='${actionArgs('google')}'>
             <span class="nav-app-icon nav-app-icon--google material-symbols-rounded" aria-hidden="true">location_on</span>
-            <span><strong>Google Maps</strong><small>Opens the app or web directions</small></span>
+            <span><strong>Google Maps</strong><small>Requires the Google Maps app</small></span>
             <span class="material-symbols-rounded" aria-hidden="true">chevron_right</span>
           </button>
           <button class="nav-app-option" type="button" data-action="Geo.launchNavigationChoice" data-args='${actionArgs('waze')}'>
             <span class="nav-app-icon nav-app-icon--waze material-symbols-rounded" aria-hidden="true">directions_car</span>
-            <span><strong>Waze</strong><small>Live traffic and road alerts</small></span>
+            <span><strong>Waze</strong><small>Requires the Waze app</small></span>
             <span class="material-symbols-rounded" aria-hidden="true">chevron_right</span>
           </button>
         </div>
-        <p class="hint mt-md mb-0">Beelo stays available when you return. Set a default in Settings → Navigation, or keep choosing each time.</p>
+        <p class="hint mt-md mb-0">Google Maps and Waze must be installed. Beelo stays available when you return. Set a default in Settings → Navigation, or keep choosing each time.</p>
       </div>
     `);
   },
@@ -424,23 +436,31 @@ const Geo = {
 
     App.closeModal();
 
-    // Resolve the deliberate GPS request while Beelo is still foregrounded.
-    // Handing off first backgrounds the PWA on phones and can abort location.
+    // Initiate GPS while the tap is still active, but do not await it before
+    // opening the native URL scheme. iOS may block a custom scheme once the
+    // original user activation has been lost across an async boundary.
+    let tripPromise = null;
+    try {
+      tripPromise = this.startTrip({ destinationAddress: destination || '', appointmentId });
+    } catch (e) {
+      console.log('Trip start from navigation skipped:', e);
+    }
+    this.launchExternalUrl(url);
+
     let trip = null;
     try {
-      trip = await this.startTrip({ destinationAddress: destination || '', appointmentId });
+      trip = tripPromise ? await tripPromise : null;
     } catch (e) {
       console.log('Trip start from navigation skipped:', e);
     }
     if (trip && appointmentId && typeof MessageScheduler !== 'undefined' && typeof MessageScheduler.onDeparture === 'function') {
       try { MessageScheduler.onDeparture(appointmentId); } catch (e) { /* scheduler optional */ }
     }
-    this.launchExternalUrl(url);
   },
 
   // A same-context hand-off avoids the empty Safari/PWA overlay produced by
-  // window.open(..., '_blank') on iPhone. External universal links still open
-  // their native app (when installed), while Beelo remains ready on return.
+  // window.open(..., '_blank') on iPhone and preserves the original tap for
+  // custom app schemes.
   launchExternalUrl(url) {
     if (!url) return;
     if (window.location && typeof window.location.assign === 'function') {

@@ -302,8 +302,8 @@ const SettingsFeature = {
     const options = [
       { id: 'ask', label: 'Ask every time', detail: 'Choose Apple Maps, Google Maps or Waze when you tap Navigate.', icon: 'apps' },
       { id: 'apple', label: 'Apple Maps', detail: 'Best integrated with iPhone.', icon: 'map' },
-      { id: 'google', label: 'Google Maps', detail: 'Uses the app when installed, with web directions as a fallback.', icon: 'location_on' },
-      { id: 'waze', label: 'Waze', detail: 'Live traffic and road alerts.', icon: 'directions_car' }
+      { id: 'google', label: 'Google Maps', detail: 'Opens the installed Google Maps app directly.', icon: 'location_on' },
+      { id: 'waze', label: 'Waze', detail: 'Opens the installed Waze app directly.', icon: 'directions_car' }
     ];
 
     return `
