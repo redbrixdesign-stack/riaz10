@@ -473,10 +473,6 @@ const CompanionFeature = {
                 <span class="material-symbols-rounded" aria-hidden="true">near_me</span>
                 <span>On my way</span>
               </button>
-              <button class="comp-home-cta ${nv.onSiteActive ? 'comp-home-cta--primary' : 'comp-home-cta--ghost'}" type="button" data-action="AppointmentsFeature.${nv.onSiteActive ? 'finishOnSite' : 'startOnSite'}" data-args='${JSON.stringify([nv.id])}'>
-                <span class="material-symbols-rounded" aria-hidden="true">${nv.onSiteActive ? 'logout' : 'timer'}</span>
-                <span>${nv.onSiteActive ? 'Leave' : 'Arrived'}</span>
-              </button>
             </div>
           </div>`;
       }
