@@ -2913,7 +2913,7 @@ const AppointmentsFeature = {
   // entirely, while a differently-named button elsewhere in the app did track it -
   // same feature, inconsistent behaviour depending which screen you tapped from.
   async navigateToVisit(address, appointmentId) {
-    window.open(Geo.buildNavigationUrl(address || ''), '_blank');
+    Geo.openNavigation(address || '');
     await Geo.startTrip({ destinationAddress: address || '', appointmentId });
     if (typeof MessageScheduler !== 'undefined') MessageScheduler.onDeparture(appointmentId);
   },

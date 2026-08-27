@@ -346,11 +346,48 @@ const Geo = {
     return this._provider().buildNavigationUrl(destination, origin);
   },
 
-  // Open turn-by-turn navigation in a new tab (delegated-router friendly:
-  // replaces inline window.open(...) handlers).
+  _isIOS() {
+    const ua = navigator.userAgent || '';
+    const platform = navigator.platform || '';
+    return /iPad|iPhone|iPod/i.test(ua) ||
+      (/Mac/i.test(platform) && Number(navigator.maxTouchPoints || 0) > 1);
+  },
+
+  buildAppleMapsUrl(destination, origin = '') {
+    const dest = encodeURIComponent(destination || '');
+    const from = origin ? `&saddr=${encodeURIComponent(origin)}` : '';
+    return `maps://?daddr=${dest}${from}&dirflg=d`;
+  },
+
+  _handoffNavigationUrl(url) {
+    if (!url) return;
+    // A new browsing context makes installed iOS PWAs keep universal links in
+    // Safari. A same-context handoff lets iOS resolve maps:// (or a universal
+    // HTTPS route) to the installed navigation app.
+    if (this._isIOS()) {
+      if (window.location && typeof window.location.assign === 'function') {
+        window.location.assign(url);
+      } else {
+        window.location.href = url;
+      }
+      return;
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
+  },
+
+  // Open a single destination in the native Apple Maps app on iPhone/iPad.
+  // Other platforms retain the provider's HTTPS navigation handoff.
   openNavigation(destination, origin = '') {
-    const url = this.buildNavigationUrl(destination || '', origin || '');
-    if (url) window.open(url, '_blank');
+    const url = this._isIOS()
+      ? this.buildAppleMapsUrl(destination || '', origin || '')
+      : this.buildNavigationUrl(destination || '', origin || '');
+    this._handoffNavigationUrl(url);
+  },
+
+  // Multi-stop Google routes have no equivalent Apple Maps URL scheme. Use a
+  // same-context universal-link handoff on iOS so Google Maps can claim it.
+  openNavigationUrl(url) {
+    this._handoffNavigationUrl(url);
   },
 
   // Optimize route for multiple stops (TSP approximation) - uses local calculateDistance

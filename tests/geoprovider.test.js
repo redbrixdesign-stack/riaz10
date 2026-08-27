@@ -37,7 +37,7 @@ function makeLocalStorage() {
 }
 
 // Build a sandbox with a mock provider
-function loadGeoProvider({ mockProvider = null, mapboxKey = '' } = {}) {
+function loadGeoProvider({ mockProvider = null, mapboxKey = '', userAgent = '', platform = '', maxTouchPoints = 0 } = {}) {
   const sandbox = {
     console, Math, JSON, Date, Promise, Map, Set, Array, Object,
     Number, String, Boolean, RegExp, Error, parseInt, parseFloat, isNaN,
@@ -54,7 +54,13 @@ function loadGeoProvider({ mockProvider = null, mapboxKey = '' } = {}) {
   sandbox.globalThis = sandbox;
   sandbox.self = sandbox;
   sandbox.window = sandbox;
-  sandbox.navigator = { geolocation: {} };
+  sandbox.navigator = { geolocation: {}, userAgent, platform, maxTouchPoints };
+  sandbox.location = {
+    assigned: '',
+    assign(url) { this.assigned = url; }
+  };
+  sandbox.openCalls = [];
+  sandbox.open = (...args) => sandbox.openCalls.push(args);
 
   vm.createContext(sandbox);
 
@@ -223,6 +229,26 @@ function loadGeoProvider({ mockProvider = null, mapboxKey = '' } = {}) {
     ok('contains origin', url.includes('London'));
   }
 
+  console.log('\nTest G2: iOS navigation uses a native app handoff');
+  {
+    const { Geo, sandbox } = loadGeoProvider({ userAgent: 'Mozilla/5.0 (iPhone)', platform: 'iPhone' });
+    const nativeUrl = Geo.buildAppleMapsUrl('Manchester, UK', 'London, UK');
+    ok('Apple Maps scheme is used', nativeUrl.startsWith('maps://?'));
+    ok('Apple Maps destination is encoded', nativeUrl.includes('daddr=Manchester%2C%20UK'));
+    ok('Apple Maps origin is encoded', nativeUrl.includes('saddr=London%2C%20UK'));
+    Geo.openNavigation('Manchester, UK', 'London, UK');
+    ok('iOS uses same-context app handoff', sandbox.location.assigned === nativeUrl, sandbox.location.assigned);
+    ok('iOS does not open a browser tab', sandbox.openCalls.length === 0, sandbox.openCalls);
+  }
+
+  console.log('\nTest G3: non-iOS navigation retains a safe browser fallback');
+  {
+    const { Geo, sandbox } = loadGeoProvider({ userAgent: 'Mozilla/5.0 (X11; Linux x86_64)', platform: 'Linux' });
+    Geo.openNavigation('Manchester, UK');
+    ok('non-iOS opens one external tab', sandbox.openCalls.length === 1, sandbox.openCalls);
+    ok('external tab prevents opener access', sandbox.openCalls[0][2] === 'noopener,noreferrer', sandbox.openCalls[0]);
+  }
+
   console.log('\nTest H: Provider swap does not break Geo API');
   {
     // Verify Geo's public API surface is unchanged
@@ -230,7 +256,8 @@ function loadGeoProvider({ mockProvider = null, mapboxKey = '' } = {}) {
 
     const methods = [
       'init', 'getCurrentPosition', 'startTrip', 'finishTrip', 'cancelTrip',
-      'geocode', 'calculateDistance', 'buildNavigationUrl',
+      'geocode', 'calculateDistance', 'buildNavigationUrl', 'buildAppleMapsUrl',
+      'openNavigation', 'openNavigationUrl',
       'optimizeRoute', 'calculateRouteDistance', 'getDrivingDistanceKm',
       'getDrivingRouteSummary', 'persistActiveTrip', 'clearPersistedTrip',
       'restoreActiveTrip', 'renderTripBanner', 'updateTripBanner',
