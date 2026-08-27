@@ -1227,7 +1227,7 @@ const RouteFeature = {
     const destination = base?.address || stops[stops.length - 1];
     const waypoints = base?.address ? stops : stops.slice(1, -1);
     const url = this.buildDayRouteUrl(origin, waypoints, destination);
-    Geo.launchExternalUrl(url);
+    Geo.launchExternalUrl(Geo.isIOS() ? Geo.buildGoogleMapsAppUrl(url) : url);
   },
 
   buildDayRouteUrl(origin, waypoints, destination) {
