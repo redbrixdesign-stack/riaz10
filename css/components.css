@@ -3516,7 +3516,7 @@ body.trip-active .toast-container {
 /* Actions — Navigate is the primary (subtle gold border), Call secondary. */
 .comp-home-next-visit-actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin-top: 12px;
 }
@@ -3726,7 +3726,9 @@ body.trip-active .toast-container {
 }
 
 @media (max-width: 380px) {
-  .comp-home-next-visit-actions { grid-template-columns: 1fr; }
+  .comp-home-next-visit-actions { gap: 5px; }
+  .comp-home-cta { gap: 3px; padding-inline: 6px; font-size: 11px; }
+  .comp-home-cta .material-symbols-rounded { display: none; }
   .comp-home-visit { grid-template-columns: minmax(78px, auto) minmax(0, 1fr); gap: 10px; }
 }
 
