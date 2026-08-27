@@ -375,6 +375,7 @@ assert(norm('random gibberish 123') === 'default', 'unknown routes to default');
   assert(scheduleHtml.includes('09:30') && scheduleHtml.includes('11:00–13:00') && !scheduleHtml.includes('Arrival window') && !scheduleHtml.includes('Window '), 'Schedule shows promised time ranges without redundant labels');
   assert(!scheduleHtml.includes('BEFORE YOU GO') && !scheduleHtml.includes('comp-home-customer-brief'), 'Featured visit omits the before-you-go block');
   assert(scheduleHtml.includes('>Navigate<') && scheduleHtml.includes('>Call<') && scheduleHtml.includes('>On my way<'), 'Featured visit exposes the three field actions');
+  assert(!scheduleHtml.includes('AppointmentsFeature.startOnSite') && !scheduleHtml.includes('AppointmentsFeature.finishOnSite') && !scheduleHtml.includes('>Arrived<') && !scheduleHtml.includes('>Leave<'), 'Home leaves arrival and departure to automatic trip state instead of duplicate taps');
 
   const priorDate = new Date(Date.now() - 86400000).toISOString();
   APPOINTMENTS.push(

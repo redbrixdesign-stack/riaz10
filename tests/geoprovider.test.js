@@ -218,6 +218,29 @@ function loadGeoProvider({ mockProvider = null, mapboxKey = '' } = {}) {
     ok('uses Haversine', d > 250 && d < 270, d);
   }
 
+  console.log('\nTest F2: Starting the next journey closes prior on-site sessions');
+  {
+    const { Geo, sandbox } = loadGeoProvider();
+    const now = Date.now();
+    const visits = [
+      { id: 10, arrivedAt: now - 25 * 60000, leftAt: null, status: 'confirmed' },
+      { id: 11, arrivedAt: now - 5 * 60000, leftAt: null, status: 'confirmed' },
+      { id: 12, arrivedAt: now - 60 * 60000, leftAt: now - 30 * 60000, status: 'confirmed' }
+    ];
+    const updates = [];
+    let unlocked = null;
+    sandbox.DB = { db: { appointments: {
+      filter(predicate) { return { toArray: async () => visits.filter(predicate) }; },
+      async update(id, fields) { updates.push({ id, fields }); }
+    } } };
+    sandbox.App.setActiveVisitUnlock = async value => { unlocked = value; };
+
+    const closed = await Geo.closePreviousOnSiteSessions(11);
+    ok('only a different open visit is closed', closed === 1 && updates.length === 1 && updates[0].id === 10, { closed, updates });
+    ok('departure clears on-site state and records duration', updates[0].fields.travelStatus === null && !!updates[0].fields.leftAt && updates[0].fields.onSiteDurationMinutes === 25, updates[0]);
+    ok('normal lock timing resumes after inferred departure', unlocked === false, unlocked);
+  }
+
   console.log('\nTest G: Navigation URL format');
   {
     const { PublicGeoProvider, Geo, sandbox } = loadGeoProvider();

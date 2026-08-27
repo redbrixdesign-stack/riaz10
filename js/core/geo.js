@@ -107,6 +107,12 @@ const Geo = {
       return this.activeTrip;
     }
 
+    // Starting the next appointment's journey is the advisor's clearest
+    // low-input signal that any previous customer visit has ended. Close a
+    // stale on-site timer before beginning the new trip; the visit-detail
+    // controls remain available when GPS or this inference needs correcting.
+    await this.closePreviousOnSiteSessions(appointmentId);
+
     let startPos;
     try {
       startPos = await this.getCurrentPosition();
@@ -152,6 +158,31 @@ const Geo = {
     this.renderTripBanner();
     Toast.show(destination ? "Trip started — I'll check for arrival whenever you reopen Beelo" : 'Trip started', 'success');
     return this.activeTrip;
+  },
+
+  async closePreviousOnSiteSessions(nextAppointmentId = null) {
+    if (typeof DB === 'undefined' || !DB.db?.appointments) return 0;
+
+    try {
+      const openVisits = await DB.db.appointments
+        .filter(appt => !!appt.arrivedAt && !appt.leftAt && appt.status !== 'completed' && appt.id !== nextAppointmentId)
+        .toArray();
+      const leftAt = Date.now();
+
+      for (const visit of openVisits) {
+        await DB.db.appointments.update(visit.id, {
+          travelStatus: null,
+          leftAt,
+          onSiteDurationMinutes: Math.max(0, Math.round((leftAt - new Date(visit.arrivedAt).getTime()) / 60000))
+        });
+      }
+
+      if (openVisits.length) await App.setActiveVisitUnlock?.(false);
+      return openVisits.length;
+    } catch (e) {
+      console.log('Previous on-site session close skipped:', e);
+      return 0;
+    }
   },
 
   onTripPositionUpdate(position) {
