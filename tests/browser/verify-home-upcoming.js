@@ -196,7 +196,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   ok('feed: the earlier-today visit is listed', p2.pastOnHome, p2);
   ok('feed: the featured NEXT card is the earliest pending visit TODAY', p2.featuredIsEarliestToday, { featured: p2.featured, expected: p2.expectedFeatured });
   ok('feed: promised time range replaces the exact time without a redundant label', p2.featuredShowsWindow, { featured: p2.featured });
-  ok(`NEXT section counts ${p2.dayCount} visits`, p2.nextCount.includes(`${p2.dayCount} visit`), { nextCount: p2.nextCount });
+  ok(`Upcoming section counts ${p2.dayCount} visits`, p2.nextCount.includes(`${p2.dayCount} visit`), { nextCount: p2.nextCount });
   ok('feed rows rendered (featured + compact)', p2.rowCount >= 4, { rowCount: p2.rowCount });
   ok('featured visit and compact rows stay inside one schedule', p2.rowsInsideSchedule === p2.rowCount, p2);
 

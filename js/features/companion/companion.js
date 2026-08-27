@@ -292,7 +292,7 @@ const CompanionFeature = {
       <div class="comp-home">
         <div class="comp-home-section">
           <div class="comp-home-section-header">
-            <span class="comp-home-section-label">NEXT</span>
+            <span class="comp-home-section-label">Upcoming</span>
           </div>
           <div class="comp-home-empty">Loading your visits…</div>
         </div>
@@ -500,8 +500,7 @@ const CompanionFeature = {
         <div class="comp-home-section comp-home-schedule" aria-labelledby="home-schedule-heading">
           <div class="comp-home-section-header comp-home-schedule-header">
             <div class="comp-home-schedule-title">
-              <span class="comp-home-section-label" id="home-schedule-heading">NEXT</span>
-              <span class="comp-home-schedule-range">Next 14 days</span>
+              <span class="comp-home-section-label" id="home-schedule-heading">Upcoming</span>
             </div>
             <span class="comp-home-section-count">${count} visit${count === 1 ? '' : 's'}</span>
           </div>
@@ -516,8 +515,7 @@ const CompanionFeature = {
         <div class="comp-home-section comp-home-schedule" aria-labelledby="home-schedule-heading">
           <div class="comp-home-section-header comp-home-schedule-header">
             <div class="comp-home-schedule-title">
-              <span class="comp-home-section-label" id="home-schedule-heading">NEXT</span>
-              <span class="comp-home-schedule-range">Next 14 days</span>
+              <span class="comp-home-section-label" id="home-schedule-heading">Upcoming</span>
             </div>
             <span class="comp-home-section-count">No visits</span>
           </div>
@@ -572,7 +570,6 @@ const CompanionFeature = {
         ${greetingHtml}
         ${weekStripHtml}
         ${captureHtml}
-        ${routePlanHtml}
         ${nextVisitHtml}
         ${attentionHtml}
         ${suggestionsHtml}

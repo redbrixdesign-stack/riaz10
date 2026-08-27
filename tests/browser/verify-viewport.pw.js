@@ -49,9 +49,9 @@ const ok = (label, cond, extra) => {
     const p = w + 'px';
     ok(`${p}: no horizontal overflow`, r.overflowX <= 0, r.overflowX);
     ok(`${p}: advisor greeting and weekly calendar strip present`, r.hasGreeting && r.hasWeekStrip, r.labels);
-    // THIS WEEK strip → NEXT (featured card + upcoming rows) → ATTENTION → ASK BEELO
+    // THIS WEEK strip → Upcoming (featured card + upcoming rows) → ATTENTION → ASK BEELO
     const iWeek = r.labels.indexOf('THIS WEEK');
-    const iNext = r.labels.indexOf('NEXT');
+    const iNext = r.labels.indexOf('Upcoming');
     const iAtt = r.labels.indexOf('NEEDS YOUR ATTENTION');
     const iAsk = r.labels.indexOf('ASK BEELO');
     ok(`${p}: labelled sections present in order (strip first)`, iWeek === 0 && iNext > iWeek && iAtt > iNext && iAsk > iAtt, r.labels);
@@ -104,7 +104,7 @@ const ok = (label, cond, extra) => {
     hasNoVisits: /No (upcoming )?visits (booked|today)/.test(document.getElementById('comp-scroll').textContent),
     overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth
   }));
-  ok('empty state: calm "No visits" + Ask Beelo chips', empty.labels.includes('NEXT') && empty.labels.includes('ASK BEELO') && empty.hasNoVisits, empty.labels);
+  ok('empty state: calm "No visits" + Ask Beelo chips', empty.labels.includes('Upcoming') && empty.labels.includes('ASK BEELO') && empty.hasNoVisits, empty.labels);
   ok('empty state: no horizontal overflow', empty.overflowX <= 0, empty.overflowX);
 
   await browser.close();
