@@ -3474,6 +3474,41 @@ body.trip-active .toast-container {
   color: var(--comp-muted);
 }
 
+.comp-home-next-visit-meta {
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--comp-muted);
+}
+
+.comp-home-visit-brief {
+  display: grid;
+  gap: 3px;
+  margin-top: 5px;
+  padding: 9px 10px;
+  border: 1px solid color-mix(in srgb, var(--comp-bee) 28%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--comp-bee) 7%, transparent);
+  text-align: left;
+}
+
+.comp-home-visit-brief-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--comp-bee);
+}
+
+.comp-home-visit-brief-text {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--comp-text);
+}
+
 .comp-home-next-visit-address {
   font-size: 12px;
   color: var(--comp-muted);
