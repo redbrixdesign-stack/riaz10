@@ -1647,6 +1647,9 @@ const AppointmentsFeature = {
       } catch (e) {}
     }
 
+    let voiceNotes = [];
+    try { voiceNotes = await DB.getVoiceNotes({ appointmentId: appt.id }); } catch (e) {}
+
     const typeConfig = CONFIG.appointmentTypes.find(t => t.id === appt.type);
     const contactPhone = customer?.phone || appt.phone || '';
 
@@ -1754,6 +1757,14 @@ const AppointmentsFeature = {
             `).join('')}
           </div>
         ` : ''}
+
+        <div class="card card-page">
+          <div class="flex items-center justify-between mb-sm">
+            <div class="fs-13 fw-600 text-secondary">Voice notes ${voiceNotes.length ? `(${voiceNotes.length})` : ''}</div>
+            <button class="btn btn-outline btn-sm" data-action="VoiceNotes.openRecorder" data-args='${JSON.stringify([appt.customerId || null, appt.id, appt.jobId || null])}'><span class="material-symbols-rounded fs-16">mic</span>Record</button>
+          </div>
+          ${VoiceNotes.renderList(voiceNotes, { customerId: appt.customerId || null, appointmentId: appt.id })}
+        </div>
 
         <!-- Photos — capture on-site during sales, survey (measure) or fit
              days without leaving the visit screen. Co-lives with the same

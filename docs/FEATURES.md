@@ -149,7 +149,8 @@ A "what's due today" inbox so nothing slips:
   automatic fallback.
 
 ### Customers (360 profile)
-- Contact details, call / message / navigate shortcuts, photo gallery
+- Contact details, call / message / navigate shortcuts, photo gallery and
+  offline voice-note recording/playback
   (stored in the local DB).
 - Stats: visits, total ordered, open quotes, amount owed.
 - Merged chronological timeline of visits, orders, and messages.
@@ -169,9 +170,9 @@ Backup.
 ## 3. How it works
 
 ### Storage
-- **IndexedDB** via bundled Dexie 4 (`advisoros_v6` database) with 38
+- **IndexedDB** via bundled Dexie 4 (`advisoros_v6` database) with 39
   tables: customers, appointments, orders, expenses, trips, measurements,
-  communications, settings, sequences, photos, leads, tasks, taskEvents,
+  communications, settings, sequences, photos, voiceNotes, leads, tasks, taskEvents,
   quotes, quoteItems, jobs, checklistTemplates, checklistItems,
   checklistResponses, and jobIssues.
   The Phase 4 additions are payments, invoices, invoiceItems, creditNotes, and
@@ -184,6 +185,9 @@ Backup.
 - Job notes/sign-off/override details, checklist response text, and issue
   content are encrypted at rest. Older backups import with Phase 3 tables
   empty.
+- Voice-note titles and audio are encrypted at rest, remain playable offline,
+  and are included in backup/restore and customer deletion. Stage 1 performs
+  no transcription and uploads no audio.
 - Payment references/notes, invoice snapshots/notes/terms, item descriptions,
   and credit-note content are encrypted at rest. Older backups import the
   Phase 4 tables as empty and retain their compatibility order balances.

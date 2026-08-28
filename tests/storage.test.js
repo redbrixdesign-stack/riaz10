@@ -266,7 +266,7 @@ async function runDbJs(engine, tag) {
   ok(engine + ': search by phone', searchPost.length === 1 && searchPost[0].firstName === 'Ada');
 
   const today = new Date().toISOString();
-  await DB.addAppointment({ customerId: c.id, date: today, outcome: 'quoted', value: 300, commission: 30 });
+  const voiceAppt = await DB.addAppointment({ customerId: c.id, date: today, outcome: 'quoted', value: 300, commission: 30 });
   await DB.addAppointment({ customerId: c.id, date: today, outcome: null, value: 0, status: 'cancelled' });
   const todayAppts = await DB.getAppointmentsForDate(new Date());
   ok(engine + ': getAppointmentsForDate excludes cancelled', todayAppts.length === 1, todayAppts.length);
@@ -306,9 +306,16 @@ async function runDbJs(engine, tag) {
   await DB.deletePhoto(legacyPhoto.id);
   ok(engine + ': photo deletable', (await DB.db.photos.count()) === 0);
   await DB.addPhoto({ customerId: c.id, data: photoData, caption: 'Back yard' });
+  const audioData = Buffer.from('synthetic-audio-bytes'.repeat(20)).toString('base64');
+  const voice = await DB.addVoiceNote({ customerId: c.id, appointmentId: voiceAppt.id, data: audioData, mimeType: 'audio/mp4', durationSeconds: 12, title: 'Synthetic visit note' });
+  ok(engine + ': voice note stores linked offline audio', voice.id > 0 && (await DB.getVoiceNotes({ appointmentId: voiceAppt.id }))[0].data === audioData, voice);
+  await DB.updateVoiceNoteTitle(voice.id, 'Renamed synthetic note');
+  ok(engine + ': voice note title updates', (await DB.getVoiceNote(voice.id)).title === 'Renamed synthetic note');
+  const rawVoice = await DB.db.voiceNotes.get(voice.id);
+  ok(engine + ': voice note audio and title are encrypted at rest', typeof rawVoice.data === 'object' && !!rawVoice.data.ct && typeof rawVoice.title === 'object' && !!rawVoice.title.ct);
 
   const exported = await DB.exportAll();
-  ok(engine + ': exportAll shape', Object.keys(exported).length === 38 && exported.customers.length === 3 && exported.photos.length === 1, Object.keys(exported));
+  ok(engine + ': exportAll shape', Object.keys(exported).length === 39 && exported.customers.length === 3 && exported.photos.length === 1 && exported.voiceNotes.length === 1, Object.keys(exported));
 
   // Import: corrupt payload must throw and leave data untouched.
   const beforeExport = await DB.exportAll();
@@ -335,9 +342,10 @@ async function runDbJs(engine, tag) {
   ok(engine + ': corrupt import leaves every table intact', JSON.stringify(failedCounts) === JSON.stringify(beforeCounts), { beforeCounts, failedCounts });
 
   const del = await DB.deleteCustomer(c.id);
-  ok(engine + ': deleteCustomer cascades', del.appointments >= 1 && del.orders === 1 && del.communications === 1 && del.photos === 1, del);
+  ok(engine + ': deleteCustomer cascades', del.appointments >= 1 && del.orders === 1 && del.communications === 1 && del.photos === 1 && del.voiceNotes === 1, del);
   ok(engine + ': customer gone after cascade', (await DB.db.customers.get(c.id)) === undefined);
   ok(engine + ': photos gone after customer cascade', (await DB.db.photos.count()) === 0);
+  ok(engine + ': voice notes gone after customer cascade', (await DB.db.voiceNotes.count()) === 0);
 
   // Mixed date storage: a Date object (older engines/imports) must appear in
   // the day/range queries too — string-bounded index ranges silently skip it.
@@ -606,6 +614,8 @@ async function runBackupRoundtrip(engine, tag) {
   const b1 = await DB.addAppointment({ customerId: c2.id, date: now, type: 'measure' });
   await DB.addMeasurement({ appointmentId: b1.id, windowName: 'Lounge' });
   await DB.addPhoto({ customerId: c2.id, data: photoA, caption: 'Lounge window' });
+  const backupAudio = Buffer.from('backup-voice-note').toString('base64');
+  await DB.addVoiceNote({ customerId: c1.id, appointmentId: a1.id, data: backupAudio, mimeType: 'audio/mp4', durationSeconds: 8, title: 'Backup note' });
 
   // Settings: real config plus runtime-only rows that must NOT travel.
   await DB.setSetting('config', { advisorName: 'Riaz', weeklyTarget: 600 });
@@ -617,11 +627,12 @@ async function runBackupRoundtrip(engine, tag) {
   ok(engine + ': private setting is encrypted at rest', privateRow && typeof privateRow.value === 'object' && privateRow.value.ct && privateRow.value.iv, privateRow);
 
   const exported = await DB.exportAll();
-  ok(engine + ': backup exports all 38 tables', Object.keys(exported).length === 38, Object.keys(exported));
+  ok(engine + ': backup exports all 39 tables', Object.keys(exported).length === 39, Object.keys(exported));
   ok(engine + ': backup carries photos', exported.photos.length === 3, exported.photos.length);
   ok(engine + ': backup drops runtime-only settings', exported.settings.length === 1 && exported.settings[0].key === 'config', exported.settings);
   ok(engine + ': backup carries sequences', exported.sequences.length === 5, exported.sequences);
   ok(engine + ': backup photo payloads exact', exported.photos.some(p => p.data === photoB) && exported.photos.some(p => p.data === photoA));
+  ok(engine + ': backup carries voice-note audio', exported.voiceNotes.length === 1 && exported.voiceNotes[0].data === backupAudio);
 
   // Wipe (simulating a lost/cleared device) then restore from the dump.
   await DB.deleteAllData();
@@ -657,6 +668,7 @@ async function runBackupRoundtrip(engine, tag) {
   ok(engine + ': photo count after restore', restoredPhotos.length === 3);
   ok(engine + ': photo data integrity after restore', restoredPhotos.every(p => p.data === photoA || p.data === photoB));
   ok(engine + ': photo customer links intact', restoredPhotos.filter(p => p.customerId === c1.id).length === 2);
+  ok(engine + ': voice note restores with links intact', (await DB.getVoiceNotes({ customerId: c1.id })).some(n => n.appointmentId === a1.id && n.data === backupAudio));
   ok(engine + ': settings restored', (await DB.getSetting('config')).weeklyTarget === 600);
   ok(engine + ': runtime settings NOT restored', (await DB.getSetting('__storage_probe__')) === null && (await DB.getSetting('pitchDemoSeeded')) === null);
   ok(engine + ': device secret never travels in the backup', (await DB.getPrivateSetting('__device_ai_secret__')) === null && !JSON.stringify(exported).includes('device-only-secret'));
@@ -851,14 +863,14 @@ async function runBackupEnvelope() {
 
   const backup = await ExportService.exportBackup();
   const storageContract = DB.storageContract();
-  ok('envelope: authoritative storage contract is schema 8 / format 1',
-    storageContract.databaseSchemaVersion === 8 && storageContract.backupFormatVersion === 1, storageContract);
+  ok('envelope: authoritative storage contract is schema 9 / format 1',
+    storageContract.databaseSchemaVersion === 9 && storageContract.backupFormatVersion === 1, storageContract);
   ok('envelope: backupFormatVersion present', backup.backupFormatVersion === 1, backup.backupFormatVersion);
-  ok('envelope: databaseSchemaVersion present', backup.databaseSchemaVersion === 8, backup.databaseSchemaVersion);
+  ok('envelope: databaseSchemaVersion present', backup.databaseSchemaVersion === 9, backup.databaseSchemaVersion);
   ok('envelope: appVersion present', backup.appVersion === '5.0', backup.appVersion);
   ok('envelope: legacy version field kept', backup.version === '5.0');
   ok('envelope: exportedAt timestamp', typeof backup.exportedAt === 'string' && !isNaN(Date.parse(backup.exportedAt)));
-  ok('envelope: carries all 38 data tables', Object.keys(backup.data).length === 38, Object.keys(backup.data));
+  ok('envelope: carries all 39 data tables', Object.keys(backup.data).length === 39, Object.keys(backup.data));
   ok('envelope: photos in backup', backup.data.photos.length === 1 && backup.data.photos[0].data === photo);
   ok('envelope: no proxy secret in backup config', backup.config.ai && backup.config.ai.secret === undefined);
   ok('envelope: secret absent from serialized file', JSON.stringify(backup).indexOf('super-secret-key') === -1);

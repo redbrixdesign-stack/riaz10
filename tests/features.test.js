@@ -174,6 +174,7 @@ loadAll([
   };`,
   'js/core/config.js',
   'js/core/utils.js',
+  'js/services/voice-notes.js',
   'js/features/talk/talk.js',
   'js/features/followups/followups.js',
   'js/features/orders/orders.js',

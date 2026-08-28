@@ -6,9 +6,9 @@
 // Every table a backup can carry. exportAll() and importAll() speak this
 // exact list; adding a table here is a backup-format change and must be
 // mirrored in the backup envelope's versioning (js/services/export.js).
-const DATABASE_SCHEMA_VERSION = 8;
+const DATABASE_SCHEMA_VERSION = 9;
 const BACKUP_FORMAT_VERSION = 1;
-const BACKUP_TABLES = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'photos', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems', 'jobs', 'checklistTemplates', 'checklistItems', 'checklistResponses', 'jobIssues', 'payments', 'invoices', 'invoiceItems', 'creditNotes', 'documents', 'suppliers', 'products', 'purchaseOrders', 'purchaseOrderItems', 'jobCosts', 'availabilityBlocks', 'financialPolicies', 'retentionRecords', 'contactPreferences', 'communicationEvents', 'integrationLinks', 'integrationConflicts', 'integrationOutbox', 'settings', 'sequences'];
+const BACKUP_TABLES = ['customers', 'appointments', 'orders', 'expenses', 'trips', 'measurements', 'communications', 'photos', 'voiceNotes', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems', 'jobs', 'checklistTemplates', 'checklistItems', 'checklistResponses', 'jobIssues', 'payments', 'invoices', 'invoiceItems', 'creditNotes', 'documents', 'suppliers', 'products', 'purchaseOrders', 'purchaseOrderItems', 'jobCosts', 'availabilityBlocks', 'financialPolicies', 'retentionRecords', 'contactPreferences', 'communicationEvents', 'integrationLinks', 'integrationConflicts', 'integrationOutbox', 'settings', 'sequences'];
 
 // ============================================
 // Field-level encryption (AES-GCM 256-bit, key from passphrase via PBKDF2)
@@ -39,6 +39,7 @@ const CONTACT_PREFERENCE_PII_FIELDS = ['notes', 'consentSource'];
 const COMMUNICATION_EVENT_PII_FIELDS = ['detail', 'error'];
 const INTEGRATION_CONFLICT_PII_FIELDS = ['localSnapshot', 'remoteSnapshot', 'resolutionNotes'];
 const INTEGRATION_OUTBOX_PII_FIELDS = ['payload', 'lastError'];
+const VOICE_NOTE_PII_FIELDS = ['title', 'data'];
 const PBKDF2_ITERATIONS = 100000;
 const KEY_LENGTH = 256;
 const IV_LENGTH = 12;
@@ -314,6 +315,8 @@ async function encryptIntegrationConflict(row) { const copy={...row};for(const f
 async function decryptIntegrationConflict(row) { const out=await decryptStringFields(row,INTEGRATION_CONFLICT_PII_FIELDS);for(const field of ['localSnapshot','remoteSnapshot'])if(typeof out?.[field]==='string'&&/^[\[{]/.test(out[field]))try{out[field]=JSON.parse(out[field]);}catch(e){}return out; }
 async function encryptIntegrationOutbox(row) { const copy={...row};if(copy.payload&&typeof copy.payload==='object')copy.payload=JSON.stringify(copy.payload);return encryptStringFields(copy,INTEGRATION_OUTBOX_PII_FIELDS); }
 async function decryptIntegrationOutbox(row) { const out=await decryptStringFields(row,INTEGRATION_OUTBOX_PII_FIELDS);if(typeof out?.payload==='string'&&/^[\[{]/.test(out.payload))try{out.payload=JSON.parse(out.payload);}catch(e){}return out; }
+const encryptVoiceNote = row => encryptStringFields(row, VOICE_NOTE_PII_FIELDS);
+const decryptVoiceNote = row => decryptStringFields(row, VOICE_NOTE_PII_FIELDS);
 
 async function migratePlaintextWorkItems() {
   if (!encryptionKey) return;
@@ -337,6 +340,7 @@ async function migratePlaintextWorkItems() {
     ,['communicationEvents', COMMUNICATION_EVENT_PII_FIELDS, encryptCommunicationEvent]
     ,['integrationConflicts', INTEGRATION_CONFLICT_PII_FIELDS, encryptIntegrationConflict]
     ,['integrationOutbox', INTEGRATION_OUTBOX_PII_FIELDS, encryptIntegrationOutbox]
+    ,['voiceNotes', VOICE_NOTE_PII_FIELDS, encryptVoiceNote]
   ]) {
     const rows = await DB.db[table].toArray();
     for (const row of rows) {
@@ -426,6 +430,7 @@ const DB = {
       ,integrationLinks: '++id, provider, entityType, localId, remoteId, updatedAt'
       ,integrationConflicts: '++id, integrationLinkId, status, detectedAt, operationId, createdAt'
       ,integrationOutbox: '++id, provider, entityType, localId, action, status, nextAttemptAt, operationId, createdAt'
+      ,voiceNotes: '++id, customerId, appointmentId, jobId, createdAt'
     });
 
     if (typeof this.db.open === 'function') {
@@ -744,7 +749,7 @@ const DB = {
   // what actually happened, not just "done".
   async deleteCustomer(customerId) {
     return this._runWrite(
-      ['customers', 'appointments', 'orders', 'communications', 'photos', 'measurements', 'trips', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems', 'jobs', 'checklistResponses', 'jobIssues', 'payments', 'invoices', 'invoiceItems', 'creditNotes', 'documents', 'purchaseOrders', 'purchaseOrderItems', 'jobCosts', 'retentionRecords', 'contactPreferences', 'communicationEvents'],
+      ['customers', 'appointments', 'orders', 'communications', 'photos', 'voiceNotes', 'measurements', 'trips', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems', 'jobs', 'checklistResponses', 'jobIssues', 'payments', 'invoices', 'invoiceItems', 'creditNotes', 'documents', 'purchaseOrders', 'purchaseOrderItems', 'jobCosts', 'retentionRecords', 'contactPreferences', 'communicationEvents'],
       async () => {
         const [appts, orders, comms] = await Promise.all([
           this.db.appointments.where('customerId').equals(customerId).toArray(),
@@ -752,6 +757,7 @@ const DB = {
           this.db.communications.where('customerId').equals(customerId).toArray()
         ]);
         const photoCount = await this.db.photos.where('customerId').equals(customerId).count();
+        const voiceNoteCount = await this.db.voiceNotes.where('customerId').equals(customerId).count();
         const apptIds = appts.map(a => a.id);
         const orderIds = orders.map(o => o.id);
         const quotes = await this.db.quotes.where('customerId').equals(customerId).toArray();
@@ -790,8 +796,9 @@ const DB = {
         await this.db.orders.where('customerId').equals(customerId).delete();
         await this.db.communications.where('customerId').equals(customerId).delete();
         await this.db.photos.where('customerId').equals(customerId).delete();
+        await this.db.voiceNotes.where('customerId').equals(customerId).delete();
         await this.db.customers.delete(customerId);
-        return { appointments: appts.length, orders: orders.length, communications: comms.length, photos: photoCount, measurements: measurementCount, trips: tripCount, leads: leads.length, tasks: tasks.length, taskEvents: taskIds.length, quotes: quotes.length, jobs: jobs.length };
+        return { appointments: appts.length, orders: orders.length, communications: comms.length, photos: photoCount, voiceNotes: voiceNoteCount, measurements: measurementCount, trips: tripCount, leads: leads.length, tasks: tasks.length, taskEvents: taskIds.length, quotes: quotes.length, jobs: jobs.length };
       }
     );
   },
@@ -848,6 +855,48 @@ const DB = {
 
   async deletePhoto(photoId) {
     await this.db.photos.delete(photoId);
+  },
+
+  // ---- Offline voice notes ----
+  // Audio is stored as base64 rather than Blob so it survives both real
+  // Dexie and the bundled JSON-serialising fallback storage engine.
+  async addVoiceNote({ customerId = null, appointmentId = null, jobId = null, data, mimeType, durationSeconds = 0, title = '' }) {
+    if (!data || typeof data !== 'string') throw new Error('Voice note audio is required');
+    const note = {
+      customerId: customerId || null,
+      appointmentId: appointmentId || null,
+      jobId: jobId || null,
+      data,
+      mimeType: mimeType || 'audio/mp4',
+      durationSeconds: Math.max(0, Math.round(Number(durationSeconds) || 0)),
+      title: String(title || '').trim().slice(0, 120) || 'Voice note',
+      createdAt: new Date().toISOString()
+    };
+    const id = await this.db.voiceNotes.add(await encryptVoiceNote(note));
+    return { ...note, id };
+  },
+
+  async getVoiceNotes({ customerId = null, appointmentId = null } = {}) {
+    let notes = [];
+    if (appointmentId) notes = await this.db.voiceNotes.where('appointmentId').equals(Number(appointmentId)).toArray();
+    else if (customerId) notes = await this.db.voiceNotes.where('customerId').equals(Number(customerId)).toArray();
+    else notes = await this.db.voiceNotes.toArray();
+    notes = await Promise.all(notes.map(row => decryptVoiceNote(row)));
+    return notes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  },
+
+  async getVoiceNote(id) {
+    return decryptVoiceNote(await this.db.voiceNotes.get(Number(id)));
+  },
+
+  async updateVoiceNoteTitle(id, title) {
+    const clean = String(title || '').trim().slice(0, 120);
+    if (!clean) throw new Error('Voice note title is required');
+    await this.db.voiceNotes.update(Number(id), { title: await encryptField(clean) });
+  },
+
+  async deleteVoiceNote(id) {
+    await this.db.voiceNotes.delete(Number(id));
   },
 
   async searchCustomers(query) {
@@ -2057,6 +2106,7 @@ const DB = {
     if(data.communicationEvents?.length)data.communicationEvents=await Promise.all(data.communicationEvents.map(decryptCommunicationEvent));
     if(data.integrationConflicts?.length)data.integrationConflicts=await Promise.all(data.integrationConflicts.map(decryptIntegrationConflict));
     if(data.integrationOutbox?.length)data.integrationOutbox=await Promise.all(data.integrationOutbox.map(decryptIntegrationOutbox));
+    if(data.voiceNotes?.length)data.voiceNotes=await Promise.all(data.voiceNotes.map(decryptVoiceNote));
     const RUNTIME_SETTING_KEYS = ['__v6_legacy_migrated__', '__storage_probe__', 'pitchDemoSeeded', DEVICE_AI_SECRET_SETTING];
     data.settings = (await this.db.settings.toArray()).filter(s => !RUNTIME_SETTING_KEYS.includes(s.key));
     data.sequences = await this.db.sequences.toArray();
@@ -2116,6 +2166,7 @@ const DB = {
     if(encryptionKey&&importData.communicationEvents){importData={...importData};importData.communicationEvents=await Promise.all(importData.communicationEvents.map(encryptCommunicationEvent));}
     if(encryptionKey&&importData.integrationConflicts){importData={...importData};importData.integrationConflicts=await Promise.all(importData.integrationConflicts.map(encryptIntegrationConflict));}
     if(encryptionKey&&importData.integrationOutbox){importData={...importData};importData.integrationOutbox=await Promise.all(importData.integrationOutbox.map(encryptIntegrationOutbox));}
+    if(encryptionKey&&importData.voiceNotes){importData={...importData};importData.voiceNotes=await Promise.all(importData.voiceNotes.map(encryptVoiceNote));}
 
     // On the real engine this is a single atomic readwrite transaction
     // across every table: a failure anywhere aborts the whole import and
@@ -2317,6 +2368,15 @@ const DB = {
       if (record.appointmentId !== null && record.appointmentId !== undefined) checkRef('photos', record, 'appointmentId', appointmentIds);
       if (typeof record.data !== 'string' || record.data.length === 0) {
         throw new Error('Backup file is corrupt: a photo record is missing its image data');
+      }
+    }
+    for (const record of data.voiceNotes || []) {
+      if (record.customerId !== null && record.customerId !== undefined) checkRef('voiceNotes', record, 'customerId', customerIds);
+      if (record.appointmentId !== null && record.appointmentId !== undefined) checkRef('voiceNotes', record, 'appointmentId', appointmentIds);
+      if (record.jobId !== null && record.jobId !== undefined) checkRef('voiceNotes', record, 'jobId', jobIds);
+      if (!record.customerId && !record.appointmentId && !record.jobId) throw new Error('Backup file is corrupt: a voice note has no linked record');
+      if (typeof record.data !== 'string' || !record.data || typeof record.mimeType !== 'string' || !record.mimeType.startsWith('audio/')) {
+        throw new Error('Backup file is corrupt: a voice note is missing valid audio data');
       }
     }
     for (const record of data.leads || []) {
