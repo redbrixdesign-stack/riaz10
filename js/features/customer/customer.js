@@ -36,6 +36,7 @@ const CustomerFeature = {
     let orders = [];
     let comms = [];
     let photos = [];
+    let voiceNotes = [];
     let structuredQuotes = [];
     let jobs = [];
     let invoices = [];
@@ -45,6 +46,7 @@ const CustomerFeature = {
     try { orders = await DB.db.orders.where('customerId').equals(customerId).toArray(); } catch (e) {}
     try { comms = await DB.db.communications.where('customerId').equals(customerId).toArray(); } catch (e) {}
     try { photos = await DB.getPhotosForCustomer(customerId); } catch (e) {}
+    try { voiceNotes = await DB.getVoiceNotes({ customerId }); } catch (e) {}
     try { if (typeof DB.getQuotes === 'function') structuredQuotes = await DB.getQuotes({ customerId }); } catch (e) {}
     try { if (typeof DB.getJobs === 'function') jobs = await DB.getJobs({ customerId }); } catch (e) {}
     try { if (typeof DB.getInvoices === 'function') invoices = await DB.getInvoices({ customerId }); } catch (e) {}
@@ -149,6 +151,14 @@ const CustomerFeature = {
               Visit
             </button>
           </div>
+        </div>
+
+        <div class="card card-page">
+          <div class="flex items-center justify-between mb-sm">
+            <div class="fs-13 fw-600 text-secondary">Voice notes ${voiceNotes.length ? `(${voiceNotes.length})` : ''}</div>
+            <button class="btn btn-outline btn-sm" data-action="VoiceNotes.openRecorder" data-args='${JSON.stringify([customerId, null, null])}'><span class="material-symbols-rounded fs-16">mic</span>Record</button>
+          </div>
+          ${VoiceNotes.renderList(voiceNotes, { customerId })}
         </div>
 
         <div class="card card-page" >
