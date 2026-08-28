@@ -108,17 +108,38 @@ async function encryptField(plaintext) {
     encoder.encode(plaintext)
   );
   return {
-    iv: btoa(String.fromCharCode(...iv)),
-    ct: btoa(String.fromCharCode(...new Uint8Array(ciphertext)))
+    iv: bytesToBase64(iv),
+    ct: bytesToBase64(new Uint8Array(ciphertext))
   };
+}
+
+// Avoid passing an entire recording as function arguments. Mobile Safari
+// rejects large spreads with a RangeError, which previously made realistic
+// voice notes fail at the final save step.
+function bytesToBase64(bytes) {
+  const chunkSize = 8192;
+  let binary = '';
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+  }
+  return btoa(binary);
+}
+
+function base64ToBytes(base64) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index++) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return bytes;
 }
 
 async function decryptField(encrypted) {
   if (!encrypted || typeof encrypted !== 'object') return encrypted;
   if (typeof encrypted === 'string') return encrypted; // already plaintext (legacy)
   if (!encryptionKey) throw new Error('Encryption key not initialized');
-  const iv = new Uint8Array(atob(encrypted.iv).split('').map(c => c.charCodeAt(0)));
-  const ct = new Uint8Array(atob(encrypted.ct).split('').map(c => c.charCodeAt(0)));
+  const iv = base64ToBytes(encrypted.iv);
+  const ct = base64ToBytes(encrypted.ct);
   const decoder = new TextDecoder();
   const plaintext = await crypto.subtle.decrypt(
     { name: 'AES-GCM', iv },
