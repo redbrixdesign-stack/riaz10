@@ -346,7 +346,8 @@ assert(norm('random gibberish 123') === 'default', 'unknown routes to default');
   const scheduleHtml = Companion.welcomeHtml({
     nextVisit: {
       id: 1, name: 'Mrs Smith', date: new Date().toISOString(), time: '09:30',
-      hasArrivalWindow: true, type: 'Fitting', address: '14 Beechwood Avenue', area: 'M33', eta: '18 min'
+      hasArrivalWindow: true, type: 'Fitting', address: '14 Beechwood Avenue', area: 'M33', eta: '18 min',
+      customerBrief: { text: 'Parking: visitor bay · Returning customer · Prefers neutral colours', fingerprint: 'brief-test' }
     },
     upcomingVisits: [
       { id: 2, name: 'Mr Khan', date: iso(1), time: '11:00–13:00', hasArrivalWindow: true, type: 'Sales', area: 'Altrincham', eta: '25 min' }
@@ -373,7 +374,9 @@ assert(norm('random gibberish 123') === 'default', 'unknown routes to default');
   assert((scheduleHtml.match(/comp-home-schedule"/g) || []).length === 1, 'Home renders one appointment schedule panel');
   assert(scheduleHtml.includes('comp-home-schedule-list') && scheduleHtml.includes('comp-home-next-visit') && scheduleHtml.includes('comp-home-visit upcoming'), 'Schedule contains featured visit and compact rows');
   assert(scheduleHtml.includes('09:30') && scheduleHtml.includes('11:00–13:00') && !scheduleHtml.includes('Arrival window') && !scheduleHtml.includes('Window '), 'Schedule shows promised time ranges without redundant labels');
-  assert(!scheduleHtml.includes('BEFORE YOU GO') && !scheduleHtml.includes('comp-home-customer-brief'), 'Featured visit omits the before-you-go block');
+  assert(scheduleHtml.includes('Visit brief') && scheduleHtml.includes('Parking: visitor bay') && scheduleHtml.includes('Returning customer'), 'Featured visit shows concise saved customer context');
+  assert(scheduleHtml.includes('Fitting · M33'), 'Featured visit shows sourced visit and area context');
+  assert(scheduleHtml.includes('data-customer-brief="brief-test"'), 'Featured visit brief remains addressable for an optional verified AI rephrase');
   assert(scheduleHtml.includes('>Navigate<') && scheduleHtml.includes('>Call<') && scheduleHtml.includes('>On my way<'), 'Featured visit exposes the three field actions');
   assert(!scheduleHtml.includes('AppointmentsFeature.startOnSite') && !scheduleHtml.includes('AppointmentsFeature.finishOnSite') && !scheduleHtml.includes('>Arrived<') && !scheduleHtml.includes('>Leave<'), 'Home leaves arrival and departure to automatic trip state instead of duplicate taps');
 

@@ -446,6 +446,7 @@ const CompanionFeature = {
           : `${Utils.formatDateUK(nv.date, 'weekday-short')} ${Utils.formatDateUK(nv.date, 'short')}, ${nv.time}`;
         const timeLabel = whenText;
         const context = nv.briefing || '';
+        const customerBrief = nv.customerBrief || null;
         const etaText = [nv.eta !== '—' ? nv.eta : null, nv.travel].filter(Boolean).join(' · ');
         const phoneDisabled = nv.phone ? '' : ' disabled aria-disabled="true"';
         featuredHtml = `
@@ -459,6 +460,12 @@ const CompanionFeature = {
               ${context ? `<div class="comp-home-next-visit-context">${Utils.escapeHtml(context)}</div>` : ''}
               <div class="comp-home-next-visit-address">${Utils.escapeHtml(nv.address)}</div>
               ${nv.parkingNotes ? `<div class="comp-home-next-visit-journey">${Utils.escapeHtml(nv.parkingNotes)}</div>` : ''}
+              <div class="comp-home-next-visit-meta">${Utils.escapeHtml([nv.type, nv.area].filter(Boolean).join(' · '))}</div>
+              ${customerBrief ? `
+                <div class="comp-home-visit-brief" data-customer-brief="${Utils.escapeHtml(customerBrief.fingerprint || '')}">
+                  <span class="comp-home-visit-brief-label">Visit brief</span>
+                  <span class="comp-home-visit-brief-text">${Utils.escapeHtml(customerBrief.text)}</span>
+                </div>` : ''}
             </button>
             <div class="comp-home-next-visit-actions">
               <button class="comp-home-cta comp-home-cta--primary" type="button" data-action="AppointmentsFeature.navigateToVisit" data-args='${Utils.escapeHtml(JSON.stringify([nv.address || '', (nv.id)]))}'>
@@ -688,6 +695,7 @@ const CompanionFeature = {
         eta: eta || '—',
         travel,
         briefing: await this.briefingFor(next),
+        customerBrief: await this.customerBriefFor(next),
         phone,
         accessNotes: noteField('access'),
         parkingNotes: noteField('parking'),
