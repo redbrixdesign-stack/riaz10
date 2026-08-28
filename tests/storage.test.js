@@ -306,7 +306,9 @@ async function runDbJs(engine, tag) {
   await DB.deletePhoto(legacyPhoto.id);
   ok(engine + ': photo deletable', (await DB.db.photos.count()) === 0);
   await DB.addPhoto({ customerId: c.id, data: photoData, caption: 'Back yard' });
-  const audioData = Buffer.from('synthetic-audio-bytes'.repeat(20)).toString('base64');
+  // A realistic recording is large enough to exceed JavaScript's function
+  // argument limit if encryption converts it with one unbounded spread.
+  const audioData = Buffer.alloc(1024 * 1024, 0x5a).toString('base64');
   const voice = await DB.addVoiceNote({ customerId: c.id, appointmentId: voiceAppt.id, data: audioData, mimeType: 'audio/mp4', durationSeconds: 12, title: 'Synthetic visit note' });
   ok(engine + ': voice note stores linked offline audio', voice.id > 0 && (await DB.getVoiceNotes({ appointmentId: voiceAppt.id }))[0].data === audioData, voice);
   await DB.updateVoiceNoteTitle(voice.id, 'Renamed synthetic note');
