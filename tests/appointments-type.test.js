@@ -32,6 +32,7 @@ const context = {
   },
   Utils: {
     escapeHtml: value => String(value ?? ''),
+    generateId: prefix => `${prefix}-test`,
     formatDate: (_value, format) => format === 'iso' ? '2026-08-21' : '21 Aug 2026',
     formatTime: () => '09:30',
     ukParts: date => ({ weekday: date.getUTCDay() })
@@ -88,5 +89,8 @@ const feature = context.AppointmentsFeature;
   assert.match(fittingDayForm, /Exact time — no arrival window/);
   assert.equal(feature.validateArrivalWindowContainsTime('10:00', '09:00', '12:00'), '');
   assert.match(feature.validateArrivalWindowContainsTime('10:00', '12:00', '15:00'), /must sit inside/);
+  const jobFittingOnSalesDay = feature.renderAddForm({ date: '2026-08-20', jobId: 12, jobRole: 'fitting', type: 'fitting' });
+  assert.match(jobFittingOnSalesDay, /id="appt-job-id" value="12"/);
+  assert.match(jobFittingOnSalesDay, /value="fitting" selected/, 'a job fitting remains selectable on a configured sales day');
   console.log('appointments: editable existing type and new-visit weekday defaults OK');
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -10,36 +10,31 @@ export function Problem() {
   return (
     <Section eyebrow="The problem" heading={CONTENT.problem.heading}>
       <Reveal className="mt-10">
-        <div className="rounded-2xl border border-ink/8 bg-white p-6 shadow-soft sm:p-8">
-          <ol className="flex flex-wrap items-center gap-2" aria-label="The disconnected tools a solo advisor juggles">
-            {CONTENT.problem.chain.map((tool, i) => (
-              <li key={tool} className="flex items-center gap-2">
-                <span className="rounded-full border border-ink/10 bg-paper px-3 py-1.5 text-[13px] font-medium text-ink/80">
-                  {tool}
-                </span>
-                {i < CONTENT.problem.chain.length - 1 && (
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 16 16"
-                    className="h-3 w-3 text-ink/30"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                  >
-                    <path d="M3 8h10m0 0-3-3m3 3-3 3" />
-                  </svg>
-                )}
-              </li>
-            ))}
-          </ol>
-          <div className="mt-5 flex items-center gap-3">
-            <svg aria-hidden="true" viewBox="0 0 20 20" className="h-6 w-6 text-ink/40" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-              <path d="M5 8v6m4-6v6m4-6v6M3 15h14" />
-            </svg>
-            <span className="text-sm font-semibold text-ink/70">{CONTENT.problem.collapse}</span>
+        <div className="overflow-hidden rounded-[2rem] bg-ink text-paper shadow-lift">
+          <div className="grid lg:grid-cols-[220px_1fr]">
+            <div className="flex items-center gap-5 border-b border-white/10 bg-sage p-7 text-ink lg:block lg:border-b-0 lg:border-r lg:border-black/10 lg:p-9">
+              <span className="text-6xl font-semibold tracking-[-0.08em] sm:text-7xl">07</span>
+              <p className="max-w-[10rem] text-sm font-semibold leading-snug lg:mt-4">separate places where the working day gets stored</p>
+            </div>
+            <div className="p-7 sm:p-9">
+              <ol className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="The disconnected tools a solo advisor juggles">
+                {CONTENT.problem.chain.map((tool, i) => (
+                  <li key={tool} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
+                    <span className="text-[10px] font-semibold text-sage">{String(i + 1).padStart(2, '0')}</span>
+                    <span className="text-sm font-medium text-paper/80">{tool}</span>
+                  </li>
+                ))}
+                <li className="flex items-center gap-3 rounded-xl border border-sage/35 bg-sage/10 px-4 py-3 sm:col-span-2 xl:col-span-1">
+                  <span aria-hidden="true" className="text-sage">→</span>
+                  <span className="text-sm font-semibold text-sage">You connect it all</span>
+                </li>
+              </ol>
+              <div className="mt-7 grid gap-4 border-t border-white/10 pt-7 md:grid-cols-[1fr_auto] md:items-end">
+                <p className="max-w-2xl text-[15px] leading-relaxed text-paper/62">{CONTENT.problem.supporting}</p>
+                <p className="text-sm font-semibold text-paper">{CONTENT.problem.collapse}</p>
+              </div>
+            </div>
           </div>
-          <p className="mt-5 max-w-prose text-[15px] leading-relaxed text-ink/75">{CONTENT.problem.supporting}</p>
         </div>
       </Reveal>
     </Section>

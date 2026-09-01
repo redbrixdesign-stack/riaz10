@@ -4,6 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const source = fs.readFileSync(path.join(__dirname, '..', 'js/features/leads/leads.js'), 'utf8');
+const coreCss = fs.readFileSync(path.join(__dirname, '..', 'css/core.css'), 'utf8');
 
 const elements = new Map();
 const el = (id, value = '') => ({ id, value, disabled: false });
@@ -43,6 +44,7 @@ const assert = (condition, message, extra) => {
   assert(feature && feature.route === false, 'lead inbox is a secondary route, not primary navigation');
   const empty = await feature.renderInbox();
   assert(empty.includes('No enquiries yet') && empty.includes('Add enquiry'), 'empty inbox has an enquiry CTA');
+  assert(coreCss.includes('.empty-state > .material-symbols-rounded') && !coreCss.includes('.empty-state .material-symbols-rounded {'), 'empty-state illustration sizing does not enlarge CTA icons');
 
   elements.set('lead-name', el('lead-name', 'Alice Smith'));
   elements.set('lead-phone', el('lead-phone', '07700900123'));

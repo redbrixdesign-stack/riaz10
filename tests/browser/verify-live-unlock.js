@@ -18,7 +18,7 @@ const ok = (l, c, x) => { console.log((c ? '  OK   ' : '  FAIL ') + l + (!c && x
   await page.waitForFunction(() => typeof App !== 'undefined' && (App.currentHash === 'onboarding' || App.currentHash === 'today'), null, { timeout: 45000 });
   ok('live: tapping Set Passphrase boots the app', true);
   await page.reload();
-  await page.waitForFunction(() => { const s = document.getElementById('bottom-sheet'); return s && /Unlock AdvisorOS/.test(s.textContent); }, null, { timeout: 45000 });
+  await page.waitForFunction(() => { const s = document.getElementById('bottom-sheet'); return s && /Unlock Beelo/.test(s.textContent); }, null, { timeout: 45000 });
   await page.fill('#enc-passphrase', 'live-unlock-test-123');
   await page.click('[data-action="App._checkPassphrase"]'); // TAP, not Enter
   await page.waitForFunction(() => typeof App !== 'undefined' && (App.currentHash === 'onboarding' || App.currentHash === 'today') && !document.querySelector('.modal-overlay.active'), null, { timeout: 45000 });

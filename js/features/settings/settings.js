@@ -24,6 +24,7 @@ const SettingsFeature = {
 
   renderIndex() {
     const briefEnabled = NotificationService.isMorningBriefEnabled();
+    const visitRemindersEnabled = NotificationService.isVisitReminderEnabled();
     const ai = CONFIG.ai || {};
     const aiEnabled = !!ai.enabled;
     // "Connected" must mean configured AND enabled — enabling AI without a
@@ -63,11 +64,32 @@ const SettingsFeature = {
         description: 'Home address for route distances & ETAs'
       },
       {
+        id: 'navigation',
+        title: 'Navigation',
+        icon: 'navigation',
+        summary: this.navigationAppLabel(CONFIG.navigationApp),
+        description: 'Default app for customer directions'
+      },
+      {
+        id: 'security',
+        title: 'App Lock',
+        icon: 'lock_clock',
+        summary: this.unlockTimeoutLabel(CONFIG.unlockTimeoutMinutes),
+        description: 'Choose when Beelo asks for your passphrase'
+      },
+      {
         id: 'morning-brief',
         title: 'Morning Brief',
         icon: 'wb_sunny',
         summary: briefEnabled ? 'On · 7am' : 'Off',
         description: 'Daily overview when you open the app'
+      },
+      {
+        id: 'visit-reminders',
+        title: 'Visit Alerts',
+        icon: 'notifications_active',
+        summary: visitRemindersEnabled ? 'On · 15 minutes before' : 'Off',
+        description: 'Next-appointment alerts and phone notifications'
       },
       {
         id: 'auto-messages',
@@ -160,7 +182,10 @@ const SettingsFeature = {
       'details': this.renderDetailsDetail(),
       'branding': this.renderBrandingDetail(),
       'business-base': this.renderBusinessBaseDetail(),
+      'navigation': this.renderNavigationDetail(),
+      'security': this.renderSecurityDetail(),
       'morning-brief': this.renderMorningBriefDetail(briefEnabled),
+      'visit-reminders': this.renderVisitRemindersDetail(),
       'auto-messages': this.renderAutoMessagesDetail(),
       'commission': this.renderCommissionDetail(),
       'advisor-mode': this.renderAdvisorModeDetail(),
@@ -185,7 +210,10 @@ const SettingsFeature = {
       'details': 'Your Details',
       'branding': 'Company Branding',
       'business-base': 'Business Base',
+      'navigation': 'Navigation',
+      'security': 'App Lock',
       'morning-brief': 'Morning Brief',
+      'visit-reminders': 'Visit Alerts',
       'auto-messages': 'Automated Messages',
       'commission': 'Commission Rate',
       'advisor-mode': 'Advisor Mode',
@@ -258,6 +286,45 @@ const SettingsFeature = {
       </div>`;
   },
 
+  navigationAppLabel(value) {
+    return ({
+      ask: 'Ask every time',
+      apple: 'Apple Maps',
+      google: 'Google Maps',
+      waze: 'Waze'
+    })[value] || 'Ask every time';
+  },
+
+  renderNavigationDetail() {
+    const selected = ['ask', 'apple', 'google', 'waze'].includes(CONFIG.navigationApp)
+      ? CONFIG.navigationApp
+      : 'ask';
+    const options = [
+      { id: 'ask', label: 'Ask every time', detail: 'Choose Apple Maps, Google Maps or Waze when you tap Navigate.', icon: 'apps' },
+      { id: 'apple', label: 'Apple Maps', detail: 'Best integrated with iPhone.', icon: 'map' },
+      { id: 'google', label: 'Google Maps', detail: 'Opens the installed Google Maps app directly.', icon: 'location_on' },
+      { id: 'waze', label: 'Waze', detail: 'Opens the installed Waze app directly.', icon: 'directions_car' }
+    ];
+
+    return `
+      <div class="card mb-md">
+        <div class="fw-600">Default navigation app</div>
+        <div class="fs-13 text-secondary mt-2 mb-12">Used when you tap Navigate on a customer visit or route stop.</div>
+        <div class="nav-setting-list" role="radiogroup" aria-label="Default navigation app">
+          ${options.map(option => `
+            <button class="nav-setting-option ${selected === option.id ? 'active' : ''}" type="button" role="radio" aria-checked="${selected === option.id}" data-action="SettingsFeature.setNavigationApp" data-args='${JSON.stringify([option.id])}'>
+              <span class="material-symbols-rounded" aria-hidden="true">${option.icon}</span>
+              <span><strong>${option.label}</strong><small>${option.detail}</small></span>
+              <span class="material-symbols-rounded nav-setting-check" aria-hidden="true">${selected === option.id ? 'check_circle' : 'radio_button_unchecked'}</span>
+            </button>
+          `).join('')}
+        </div>
+      </div>
+      <div class="card">
+        <div class="fs-13 text-secondary lh-150">Your choice stays on this device and can be changed at any time. Beelo still starts mileage tracking when directions open.</div>
+      </div>`;
+  },
+
   renderMorningBriefDetail(briefEnabled) {
     return `
       <div class="card mb-md">
@@ -270,6 +337,74 @@ const SettingsFeature = {
             ${briefEnabled ? 'On' : 'Off'}
           </button>
         </div>
+      </div>`;
+  },
+
+  unlockTimeoutLabel(value) {
+    const minutes = Number(value);
+    if (minutes === 0) return 'Every reopen';
+    if (minutes < 60) return `${minutes} minutes`;
+    if (minutes === 60) return '1 hour';
+    if (minutes === 1440) return '24 hours';
+    return `${minutes / 60} hours`;
+  },
+
+  renderSecurityDetail() {
+    const selected = Number(CONFIG.unlockTimeoutMinutes ?? 60);
+    const options = [
+      [0, 'Every time Beelo reopens'],
+      [15, 'After 15 minutes'],
+      [30, 'After 30 minutes'],
+      [60, 'After 1 hour'],
+      [240, 'After 4 hours'],
+      [480, 'After 8 hours'],
+      [720, 'After 12 hours'],
+      [1440, 'After 24 hours']
+    ];
+    return `
+      <div class="card mb-md">
+        <label class="fw-600 mb-4 block" for="set-unlock-timeout">Ask for passphrase</label>
+        <div class="fs-12 text-secondary lh-150 mb-md">Choose how long this device can reopen Beelo without asking again.</div>
+        <select class="select" id="set-unlock-timeout" data-action="SettingsFeature.setUnlockTimeout" data-args='${JSON.stringify(["__value__"])}'>
+          ${options.map(([value, label]) => `<option value="${value}" ${selected === value ? 'selected' : ''}>${label}</option>`).join('')}
+        </select>
+      </div>
+      <div class="card mb-md" style="border-left:3px solid var(--accent);">
+        <div class="flex items-start gap-10">
+          <span class="material-symbols-rounded text-accent">home_repair_service</span>
+          <div>
+            <div class="fw-600">Active visits stay unlocked</div>
+            <div class="fs-12 text-secondary lh-150 mt-2">When the on-site timer is running, Beelo will not interrupt the visit with a passphrase prompt. Leaving the customer restarts your chosen timeout.</div>
+          </div>
+        </div>
+      </div>
+      <div class="fs-12 text-tertiary lh-150 px-xs">Your passphrase is protected by a non-exportable key kept on this device. It is never added to backups or sent to Beelo.</div>`;
+  },
+
+  renderVisitRemindersDetail() {
+    const enabled = NotificationService.isVisitReminderEnabled();
+    const permission = ('Notification' in window) ? Notification.permission : 'unsupported';
+    const permissionLabel = permission === 'granted'
+      ? 'Phone alerts enabled'
+      : permission === 'denied'
+        ? 'Phone alerts blocked in browser settings'
+        : permission === 'unsupported'
+          ? 'Phone alerts are not supported here'
+          : 'Phone alerts need permission';
+    return `
+      <div class="card mb-md">
+        <div class="flex items-center justify-between gap-md">
+          <div>
+            <div class="fw-600">15-minute visit alert</div>
+            <div class="fs-12 text-secondary mt-2">Shows an in-app alert before the next appointment and opens the visit in one tap.</div>
+          </div>
+          <button class="btn btn-sm ${enabled ? 'btn-primary' : 'btn-outline'}" data-action="SettingsFeature.toggleVisitReminders">${enabled ? 'On' : 'Off'}</button>
+        </div>
+      </div>
+      <div class="card mb-md">
+        <div class="fw-600">${Utils.escapeHtml(permissionLabel)}</div>
+        <div class="fs-12 text-secondary mt-4 lh-150">Installed iPhone PWAs may pause timers while fully closed. Keep Beelo open during the working day for the most reliable alert; the app checks again whenever you return.</div>
+        ${permission === 'default' ? '<button class="btn btn-outline btn-sm mt-md" data-action="SettingsFeature.enableVisitPhoneAlerts"><span class="material-symbols-rounded">notifications</span>Enable phone alerts</button>' : ''}
       </div>`;
   },
 
@@ -390,8 +525,7 @@ const SettingsFeature = {
 
   renderAIDetail() {
     const ai = CONFIG.ai || {};
-    const sessionSecret = (() => { try { return sessionStorage.getItem('advisoros_ai_secret'); } catch (e) { return null; } })();
-    const secretSaved = !!sessionSecret || !!ai.secret;
+    const secretSaved = !!ai.secret;
     const usage = AIService.lastUsage;
     const usageLine = usage
       ? `Last call: ${usage.type === 'ocr' ? 'OCR' : 'draft'} · ${(usage.input_tokens || 0).toLocaleString()}/${(usage.output_tokens || 0).toLocaleString()} tokens · ${Utils.formatCurrency(usage.cost ?? 0)}`
@@ -417,7 +551,12 @@ const SettingsFeature = {
         </div>
         <div class="form-group">
           <label>Shared Secret (optional)</label>
-          <input type="password" class="input" id="set-ai-secret" value="" placeholder="${secretSaved ? 'Saved for this session — leave blank to keep it' : 'Only if your proxy requires X-AI-Key'}" data-action="SettingsFeature.setAISecret" data-args='${JSON.stringify(["__value__"])}'>
+          <input type="password" class="input" id="set-ai-secret" value="" placeholder="${secretSaved ? 'Saved securely on this device — leave blank to keep it' : 'Only if your proxy requires X-AI-Key'}" autocomplete="off">
+          <div class="fs-11 text-tertiary mt-4">Encrypted on this device and never included in Beelo backups.</div>
+          <div class="flex gap-sm mt-6">
+            <button class="btn btn-outline btn-sm" data-action="SettingsFeature.saveAISecretFromField">Save secret</button>
+            ${secretSaved ? '<button class="btn btn-ghost btn-sm text-danger" data-action="SettingsFeature.clearAISecret">Forget saved secret</button>' : ''}
+          </div>
         </div>
         <div class="form-group">
           <label>OCR model (document reading)</label>
@@ -626,12 +765,8 @@ const SettingsFeature = {
 
   // Central persist helper — keeps every setter in sync with one call
   persist() {
-    // The AI shared secret is deliberately NOT persisted (no localStorage,
-    // no DB, no backup): it lives only in sessionStorage for the lifetime of
-    // this browser session. persist() saves everything else about the AI
-    // config (enabled, proxyUrl, models) — the secret is restored to CONFIG
-    // on boot from sessionStorage (see AIService.readSecret) so this session
-    // keeps working, and any stored config never carries it.
+    // The AI shared secret is excluded from the ordinary config and backups.
+    // It is stored separately as an encrypted, device-only DB setting.
     const aiWithoutSecret = CONFIG.ai ? { ...CONFIG.ai, secret: undefined } : CONFIG.ai;
     const toSave = {
       advisorName: CONFIG.advisorName,
@@ -650,6 +785,8 @@ const SettingsFeature = {
       dateFormat: CONFIG.dateFormat,
       distanceUnit: CONFIG.distanceUnit,
       measurementUnit: CONFIG.measurementUnit,
+      navigationApp: CONFIG.navigationApp,
+      unlockTimeoutMinutes: CONFIG.unlockTimeoutMinutes,
       commission: CONFIG.commission,
       ai: aiWithoutSecret,
       autoMessages: CONFIG.autoMessages,
@@ -687,19 +824,44 @@ const SettingsFeature = {
     Toast.show('AI proxy URL saved', 'success');
   },
 
-  setAISecret(value) {
+  async setAISecret(value) {
     // The field never displays the stored secret (it renders empty), so a
     // blank blur means "leave it as it is", not "delete it" — otherwise just
     // tapping past the field would quietly wipe a working secret.
     const trimmed = (value || '').trim();
     if (!trimmed) return;
-    // Session-only: the secret lives in sessionStorage (cleared when the
-    // tab/browser closes) and in CONFIG.ai.secret for this session only —
-    // never in the persisted config or a backup.
-    try { sessionStorage.setItem('advisoros_ai_secret', trimmed); } catch (e) { /* private mode */ }
-    CONFIG.ai = { ...(CONFIG.ai || {}), secret: trimmed };
-    this.persist(); // persists everything EXCEPT the secret
-    Toast.show('AI secret saved for this session', 'success');
+    try {
+      await DB.setPrivateSetting('__device_ai_secret__', trimmed);
+      try { sessionStorage.setItem('advisoros_ai_secret', trimmed); } catch (e) { /* private mode */ }
+      CONFIG.ai = { ...(CONFIG.ai || {}), secret: trimmed };
+      this.persist(); // persists everything EXCEPT the secret
+      Toast.show('AI secret saved securely on this device', 'success');
+      this.refreshInPlace();
+    } catch (e) {
+      console.error('AI secret save failed:', e);
+      Toast.show('Could not save the AI secret on this device', 'error');
+    }
+  },
+
+  saveAISecretFromField() {
+    const field = document.getElementById('set-ai-secret');
+    if (!field || !field.value.trim()) {
+      Toast.show('Enter the shared secret first', 'warning');
+      return;
+    }
+    return this.setAISecret(field.value);
+  },
+
+  async clearAISecret() {
+    try {
+      await DB.deletePrivateSetting('__device_ai_secret__');
+      try { sessionStorage.removeItem('advisoros_ai_secret'); } catch (e) { /* private mode */ }
+      CONFIG.ai = { ...(CONFIG.ai || {}), secret: '' };
+      Toast.show('Saved AI secret removed', 'success');
+      this.refreshInPlace();
+    } catch (e) {
+      Toast.show('Could not remove the saved AI secret', 'error');
+    }
   },
 
   setAIModel(key, value) {
@@ -865,10 +1027,44 @@ const SettingsFeature = {
     this.refreshInPlace();
   },
 
+  toggleVisitReminders() {
+    const enabled = !NotificationService.isVisitReminderEnabled();
+    NotificationService.setVisitReminderEnabled(enabled);
+    Toast.show(enabled ? 'Visit alerts turned on' : 'Visit alerts turned off', enabled ? 'success' : 'info');
+    this.refreshInPlace();
+  },
+
+  async enableVisitPhoneAlerts() {
+    const granted = await NotificationService.requestPushPermission();
+    if (granted) {
+      NotificationService.setVisitReminderEnabled(true);
+      Toast.show('Phone visit alerts enabled', 'success');
+    } else {
+      Toast.show('Phone alerts were not allowed — in-app alerts can still work', 'warning');
+    }
+    this.refreshInPlace();
+  },
+
   async setMode(mode) { CONFIG.advisorMode = mode; this.persist(); Toast.show(`Switched to ${mode} mode`, 'success'); this.refreshInPlace(); },
   async setTrade(trade) { CONFIG.trade = trade; this.persist(); },
   async setDistanceUnit(unit) { CONFIG.distanceUnit = unit; this.persist(); this.refreshInPlace(); },
   async setMeasurementUnit(unit) { CONFIG.measurementUnit = unit; this.persist(); this.refreshInPlace(); },
+  setNavigationApp(app) {
+    if (!['ask', 'apple', 'google', 'waze'].includes(app)) return;
+    CONFIG.navigationApp = app;
+    this.persist();
+    Toast.show(`${this.navigationAppLabel(app)} selected`, 'success');
+    this.refreshInPlace();
+  },
+  async setUnlockTimeout(value) {
+    const minutes = Number(value);
+    if (![0, 15, 30, 60, 240, 480, 720, 1440].includes(minutes)) return;
+    CONFIG.unlockTimeoutMinutes = minutes;
+    this.persist();
+    await App.setActiveVisitUnlock?.(false);
+    Toast.show(`App lock set to ${this.unlockTimeoutLabel(minutes).toLowerCase()}`, 'success');
+    this.refreshInPlace();
+  },
   importBackup() { document.getElementById('import-file').click(); },
   async handleImport(event) {
     const file = event.target.files[0];
@@ -918,6 +1114,7 @@ const SettingsFeature = {
     App.closeModal();
     try {
       await DB.deleteAllData();
+      try { sessionStorage.removeItem('advisoros_ai_secret'); } catch (e) { /* private mode */ }
       Toast.show('All data deleted — starting fresh', 'success');
       // Config, targets and onboarding flags are gone; reload boots back
       // into the setup flow.

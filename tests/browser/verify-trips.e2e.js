@@ -56,7 +56,10 @@ const ok = (label, cond, extra) => {
   // Deterministic geocoding for the test (no network): every address
   // resolves to the same "destination" point. Set AFTER the reload below —
   // a reload resets the page's overrides.
-  await page.evaluate(() => { Geo.geocode = async () => ({ lat: 53.445, lng: -2.160 }); });
+  await page.evaluate(() => {
+    Geo.geocode = async () => ({ lat: 53.445, lng: -2.160 });
+    Geo.launchExternalUrl = url => { window.__navigationUrl = url; };
+  });
   await setPos(53.415, -2.149); // start at "base"
 
   // Clear all appointments; add ONE service call for today at a slot that
@@ -83,7 +86,10 @@ const ok = (label, cond, extra) => {
 
   // Re-assert the mock AFTER the reload (a reload resets page overrides):
   // geocoding stub + the starting position.
-  await page.evaluate(() => { Geo.geocode = async () => ({ lat: 53.445, lng: -2.160 }); });
+  await page.evaluate(() => {
+    Geo.geocode = async () => ({ lat: 53.445, lng: -2.160 });
+    Geo.launchExternalUrl = url => { window.__navigationUrl = url; };
+  });
   await setPos(53.415, -2.149);
 
   console.log('\n=== 1. The passed-slot service call is the featured NEXT ===');
@@ -98,6 +104,7 @@ const ok = (label, cond, extra) => {
 
   console.log('\n=== 2. Navigate on the featured card starts the mileage trip ===');
   await page.evaluate(() => { const b = document.querySelector('.comp-home-cta--primary'); if (b) b.click(); });
+  await page.getByRole('button', { name: /Google Maps/ }).click();
   await sleep(1200);
   const started = await page.evaluate(async ({ svc }) => {
     const trip = Geo.activeTrip;
@@ -107,12 +114,14 @@ const ok = (label, cond, extra) => {
       tripAppointmentId: trip ? trip.appointmentId : null,
       destSet: !!(trip && trip.destinationAddress),
       destGeocoded: !!(trip && trip.destination && trip.destination.lat),
-      travelStatus: appt.travelStatus
+      travelStatus: appt.travelStatus,
+      navigationUrl: window.__navigationUrl || ''
     };
   }, { svc: ids.svc });
   ok('a live trip is active for the service call', started.hasTrip && started.tripAppointmentId === ids.svc, started);
   ok('destination address set + geocoded', started.destSet && started.destGeocoded, started);
   ok('appointment marked in_transit', started.travelStatus === 'in_transit', started);
+  ok('Google Maps launched without a blank popup tab', started.navigationUrl.startsWith('https://www.google.com/maps/dir/'), started);
 
   console.log('\n=== 3. Arrival near the destination auto-finishes the trip ===');
   // The advisor drove to the destination; "reopening" the app re-checks.
@@ -148,6 +157,7 @@ const ok = (label, cond, extra) => {
   await page.evaluate(() => Geo.cancelTrip());
   await sleep(300);
   await page.evaluate(async () => RouteFeature.openLegRoute(0));
+  await page.getByRole('button', { name: /Google Maps/ }).click();
   await sleep(1200);
   const routeTrip = await page.evaluate(async () => {
     const trip = Geo.activeTrip;

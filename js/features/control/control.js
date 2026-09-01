@@ -7,6 +7,72 @@ const ControlFeature = {
   id: 'control',
   name: 'Tools',
   icon: 'construction',
+  pendingQuickCapture: null,
+
+  async handleQuickCapture(event) {
+    const file = event?.target?.files?.[0];
+    if (!file) return;
+    if (!String(file.type || '').startsWith('image/')) {
+      event.target.value = '';
+      return Toast.show('Choose or take a photo', 'warning');
+    }
+    this.pendingQuickCapture = { file, fields: {} };
+    App.openModal(`<div class="sheet-handle"></div><div class="sheet-header"><h3>Quick add</h3></div><div class="sheet-body"><div class="center-box"><span class="material-symbols-rounded fs-48 text-brand">document_scanner</span><div class="fw-600 mt-sm">Reading and finding the right place…</div><div class="hint mt-sm">Nothing is saved until you review it.</div></div></div>`);
+    try {
+      if (typeof AIService !== 'undefined' && AIService.isEnabled() && typeof AIService.extractQuickCapture === 'function') {
+        const result = await AIService.extractQuickCapture(file);
+        if (result.ok && ['visit', 'expense'].includes(result.fields?.kind)) {
+          this.pendingQuickCapture.fields = result.fields;
+          await this.routeQuickCapture(result.fields.kind);
+          return;
+        }
+      }
+      this.openQuickCaptureChoice();
+    } catch (error) {
+      console.error('Quick capture routing failed:', error);
+      this.openQuickCaptureChoice();
+    } finally {
+      if (event?.target) event.target.value = '';
+    }
+  },
+
+  openQuickCaptureChoice() {
+    if (!this.pendingQuickCapture?.file) return;
+    App.openModal(`<div class="sheet-handle"></div><div class="sheet-header"><h3>What are you adding?</h3><button class="btn btn-ghost btn-sm" data-action="ControlFeature.cancelQuickCapture" aria-label="Close"><span class="material-symbols-rounded">close</span></button></div><div class="sheet-body">
+      <div class="hint mb-md">Beelo could not identify the document confidently. Choose where it belongs.</div>
+      <button class="btn btn-primary btn-block" data-action="ControlFeature.routeQuickCapture" data-args='${JSON.stringify(["visit"])}'><span class="material-symbols-rounded">event</span>Customer / visit</button>
+      <button class="btn btn-outline btn-block mt-sm" data-action="ControlFeature.routeQuickCapture" data-args='${JSON.stringify(["expense"])}'><span class="material-symbols-rounded">receipt_long</span>Expense receipt</button>
+    </div>`);
+  },
+
+  cancelQuickCapture() { this.pendingQuickCapture = null; App.closeModal(); },
+
+  async routeQuickCapture(kind) {
+    const pending = this.pendingQuickCapture;
+    if (!pending?.file) return Toast.show('Take the photo again', 'warning');
+    const fields = pending.fields || {};
+    if (kind === 'expense') {
+      App.closeModal();
+      MoneyFeature.openExpenseModal();
+      await MoneyFeature.applyQuickCapture(pending.file, fields);
+      this.pendingQuickCapture = null;
+      return;
+    }
+    if (kind === 'visit') {
+      const hasUsefulDetails = fields.kind === 'visit' && (fields.name || fields.address || fields.postcode);
+      this.pendingQuickCapture = null;
+      App.closeModal();
+      if (hasUsefulDetails) {
+        const address = [fields.address, fields.town, fields.city, fields.postcode].filter(Boolean).join(', ');
+        const time = String(fields.appointmentTime || '').split(/\s*(?:-|–|—|to)\s*/)[0];
+        App.navigate('appointments', { action: 'add', name: fields.name || '', phone: fields.phone || '', address, date: fields.appointmentDate || '', time });
+        Toast.show('Visit details found — review, then save', 'success');
+      } else {
+        App.navigate('ocr');
+        setTimeout(() => OCRFeature.processImage({ target: { files: [pending.file] } }), 50);
+      }
+    }
+  },
 
   async render() {
     const demoSeeded = await DB.getSetting('pitchDemoSeeded', false);
@@ -52,7 +118,7 @@ const ControlFeature = {
               <span class="material-symbols-rounded">person_add</span>
               <span>Lead Inbox</span>
             </button>
-            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["appointments"])}'>
+            <button class="control-tile" type="button" data-action="AppointmentsFeature.openCustomerSearch" data-args='${JSON.stringify([true])}'>
               <span class="material-symbols-rounded">person_search</span>
               <span>Find Customer</span>
             </button>

@@ -35,13 +35,11 @@ const Geo = {
     return GeoProviderRegistry.get();
   },
 
-  // Initialize geolocation tracking
+  // Initialize trip state without requesting location on app launch. Location
+  // permission is requested only from a user action that needs it (start trip,
+  // live ETA, route map without a base), or when resuming a trip the user
+  // explicitly started earlier.
   init() {
-    if ('geolocation' in navigator) {
-      this.getCurrentPosition().catch(e => {
-        console.log('Initial position unavailable:', e && e.message ? e.message : e);
-      });
-    }
     this.restoreActiveTrip();
 
     document.addEventListener('visibilitychange', () => {
@@ -109,11 +107,17 @@ const Geo = {
       return this.activeTrip;
     }
 
+    // Starting the next appointment's journey is the advisor's clearest
+    // low-input signal that any previous customer visit has ended. Close a
+    // stale on-site timer before beginning the new trip; the visit-detail
+    // controls remain available when GPS or this inference needs correcting.
+    await this.closePreviousOnSiteSessions(appointmentId);
+
     let startPos;
     try {
       startPos = await this.getCurrentPosition();
     } catch (e) {
-      Toast.show('Could not get your location. Check location permissions and try again.', 'error');
+      Toast.show('Navigation will open, but Beelo could not start mileage tracking. Check Location access in your phone settings.', 'warning', 6000);
       return null;
     }
 
@@ -154,6 +158,31 @@ const Geo = {
     this.renderTripBanner();
     Toast.show(destination ? "Trip started — I'll check for arrival whenever you reopen Beelo" : 'Trip started', 'success');
     return this.activeTrip;
+  },
+
+  async closePreviousOnSiteSessions(nextAppointmentId = null) {
+    if (typeof DB === 'undefined' || !DB.db?.appointments) return 0;
+
+    try {
+      const openVisits = await DB.db.appointments
+        .filter(appt => !!appt.arrivedAt && !appt.leftAt && appt.status !== 'completed' && appt.id !== nextAppointmentId)
+        .toArray();
+      const leftAt = Date.now();
+
+      for (const visit of openVisits) {
+        await DB.db.appointments.update(visit.id, {
+          travelStatus: null,
+          leftAt,
+          onSiteDurationMinutes: Math.max(0, Math.round((leftAt - new Date(visit.arrivedAt).getTime()) / 60000))
+        });
+      }
+
+      if (openVisits.length) await App.setActiveVisitUnlock?.(false);
+      return openVisits.length;
+    } catch (e) {
+      console.log('Previous on-site session close skipped:', e);
+      return 0;
+    }
   },
 
   onTripPositionUpdate(position) {
@@ -222,7 +251,9 @@ const Geo = {
       try {
         await DB.db.appointments.update(trip.appointmentId, {
           travelStatus: 'on_site',
-          arrivedAt: Date.now()
+          arrivedAt: Date.now(),
+          leftAt: null,
+          onSiteDurationMinutes: null
         });
       } catch (e) { console.log('travelStatus update (on_site) failed:', e); }
     }
@@ -346,48 +377,132 @@ const Geo = {
     return this._provider().buildNavigationUrl(destination, origin);
   },
 
-  _isIOS() {
+  // Build an app-specific iOS URL. The chooser is explicit, so selecting
+  // Google Maps or Waze means the corresponding app is expected to exist.
+  // HTTPS universal links are deliberately avoided: iOS PWAs may keep those
+  // links in Safari instead of handing them to the installed map app.
+  buildNavigationAppUrl(provider, destination, origin = '') {
+    const dest = encodeURIComponent(destination || '');
+    const from = origin ? encodeURIComponent(origin) : '';
+
+    if (provider === 'apple') {
+      return `maps://?daddr=${dest}${from ? `&saddr=${from}` : ''}&dirflg=d`;
+    }
+    if (provider === 'waze') {
+      return `waze://?q=${dest}&navigate=yes`;
+    }
+    return `comgooglemaps://?${from ? `saddr=${from}&` : ''}daddr=${dest}&directionsmode=driving`;
+  },
+
+  isIOS() {
     const ua = navigator.userAgent || '';
     const platform = navigator.platform || '';
     return /iPad|iPhone|iPod/i.test(ua) ||
       (/Mac/i.test(platform) && Number(navigator.maxTouchPoints || 0) > 1);
   },
 
-  buildAppleMapsUrl(destination, origin = '') {
-    const dest = encodeURIComponent(destination || '');
-    const from = origin ? `&saddr=${encodeURIComponent(origin)}` : '';
-    return `maps://?daddr=${dest}${from}&dirflg=d`;
+  buildGoogleMapsAppUrl(webUrl) {
+    return String(webUrl || '').replace(/^https?:\/\//i, 'comgooglemapsurl://');
   },
 
-  _handoffNavigationUrl(url) {
-    if (!url) return;
-    // A new browsing context makes installed iOS PWAs keep universal links in
-    // Safari. A same-context handoff lets iOS resolve maps:// (or a universal
-    // HTTPS route) to the installed navigation app.
-    if (this._isIOS()) {
-      if (window.location && typeof window.location.assign === 'function') {
-        window.location.assign(url);
-      } else {
-        window.location.href = url;
-      }
+  openNavigationChooser(destination, origin = '', appointmentId = null) {
+    const address = String(destination || '').trim();
+    if (!address) {
+      Toast.show('Add the destination address first', 'warning');
       return;
     }
-    window.open(url, '_blank', 'noopener,noreferrer');
+
+    const preferred = ['apple', 'google', 'waze'].includes(CONFIG.navigationApp)
+      ? CONFIG.navigationApp
+      : 'ask';
+    if (preferred !== 'ask') {
+      this.launchNavigationChoice(preferred, address, origin || '', appointmentId);
+      return;
+    }
+
+    const actionArgs = provider => Utils.escapeHtml(JSON.stringify([
+      provider,
+      address,
+      origin || '',
+      appointmentId
+    ]));
+
+    App.openModal(`
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <div>
+          <h3>Choose navigation app</h3>
+          <div class="fs-12 text-secondary mt-2">${Utils.escapeHtml(address)}</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" type="button" aria-label="Close" data-action="App.closeModal">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+      <div class="sheet-body">
+        <div class="nav-app-list" role="group" aria-label="Navigation apps">
+          <button class="nav-app-option" type="button" data-action="Geo.launchNavigationChoice" data-args='${actionArgs('apple')}'>
+            <span class="nav-app-icon nav-app-icon--apple material-symbols-rounded" aria-hidden="true">map</span>
+            <span><strong>Apple Maps</strong><small>Best integrated with iPhone</small></span>
+            <span class="material-symbols-rounded" aria-hidden="true">chevron_right</span>
+          </button>
+          <button class="nav-app-option" type="button" data-action="Geo.launchNavigationChoice" data-args='${actionArgs('google')}'>
+            <span class="nav-app-icon nav-app-icon--google material-symbols-rounded" aria-hidden="true">location_on</span>
+            <span><strong>Google Maps</strong><small>Requires the Google Maps app</small></span>
+            <span class="material-symbols-rounded" aria-hidden="true">chevron_right</span>
+          </button>
+          <button class="nav-app-option" type="button" data-action="Geo.launchNavigationChoice" data-args='${actionArgs('waze')}'>
+            <span class="nav-app-icon nav-app-icon--waze material-symbols-rounded" aria-hidden="true">directions_car</span>
+            <span><strong>Waze</strong><small>Requires the Waze app</small></span>
+            <span class="material-symbols-rounded" aria-hidden="true">chevron_right</span>
+          </button>
+        </div>
+        <p class="hint mt-md mb-0">Google Maps and Waze must be installed. Beelo stays available when you return. Set a default in Settings → Navigation, or keep choosing each time.</p>
+      </div>
+    `);
   },
 
-  // Open a single destination in the native Apple Maps app on iPhone/iPad.
-  // Other platforms retain the provider's HTTPS navigation handoff.
-  openNavigation(destination, origin = '') {
-    const url = this._isIOS()
-      ? this.buildAppleMapsUrl(destination || '', origin || '')
-      : this.buildNavigationUrl(destination || '', origin || '');
-    this._handoffNavigationUrl(url);
+  async launchNavigationChoice(provider, destination, origin = '', appointmentId = null) {
+    const url = this.buildNavigationAppUrl(provider, destination, origin);
+    if (!url) return;
+
+    App.closeModal();
+
+    // Initiate GPS while the tap is still active, but do not await it before
+    // opening the native URL scheme. iOS may block a custom scheme once the
+    // original user activation has been lost across an async boundary.
+    let tripPromise = null;
+    try {
+      tripPromise = this.startTrip({ destinationAddress: destination || '', appointmentId });
+    } catch (e) {
+      console.log('Trip start from navigation skipped:', e);
+    }
+    this.launchExternalUrl(url);
+
+    let trip = null;
+    try {
+      trip = tripPromise ? await tripPromise : null;
+    } catch (e) {
+      console.log('Trip start from navigation skipped:', e);
+    }
+    if (trip && appointmentId && typeof MessageScheduler !== 'undefined' && typeof MessageScheduler.onDeparture === 'function') {
+      try { MessageScheduler.onDeparture(appointmentId); } catch (e) { /* scheduler optional */ }
+    }
   },
 
-  // Multi-stop Google routes have no equivalent Apple Maps URL scheme. Use a
-  // same-context universal-link handoff on iOS so Google Maps can claim it.
-  openNavigationUrl(url) {
-    this._handoffNavigationUrl(url);
+  // A same-context hand-off avoids the empty Safari/PWA overlay produced by
+  // window.open(..., '_blank') on iPhone and preserves the original tap for
+  // custom app schemes.
+  launchExternalUrl(url) {
+    if (!url) return;
+    if (window.location && typeof window.location.assign === 'function') {
+      window.location.assign(url);
+    } else {
+      window.location.href = url;
+    }
+  },
+
+  openNavigation(destination, origin = '', appointmentId = null) {
+    this.openNavigationChooser(destination, origin, appointmentId);
   },
 
   // Optimize route for multiple stops (TSP approximation) - uses local calculateDistance

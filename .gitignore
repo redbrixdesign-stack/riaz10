@@ -31,3 +31,8 @@ deepseek-harness/
 # Generated screenshots (regenerable via tests/browser/capture-review.js)
 screenshots/
 screenshots-seeded/
+
+# Pilot-pack render QA is regenerated from build_pilot_pack.py. Keep the
+# final DOCX/PDF in Git, but not every intermediate page render.
+pilot-pack/qa*/
+pilot-pack/a11y-audit.json

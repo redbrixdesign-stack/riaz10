@@ -16,6 +16,9 @@ const fs = require('fs');
 const path = require('path');
 
 const REPO = path.join(__dirname, '..');
+const stored = new Map();
+const sessionStored = new Map();
+const privateStored = new Map();
 
 let failures = 0;
 function ok(label, cond, extra) {
@@ -31,17 +34,35 @@ const sandbox = {
   console,
   window: { location: { href: 'http://localhost' } },
   document: { head: { appendChild() {} }, getElementById() { return null; } },
+  localStorage: {
+    getItem(key) { return stored.has(key) ? stored.get(key) : null; },
+    setItem(key, value) { stored.set(key, String(value)); }
+  },
+  sessionStorage: {
+    getItem(key) { return sessionStored.has(key) ? sessionStored.get(key) : null; },
+    setItem(key, value) { sessionStored.set(key, String(value)); },
+    removeItem(key) { sessionStored.delete(key); }
+  },
   CONFIG: {
     advisorName: 'Riaz', weeklyTarget: 600, companyName: '', businessAddress: '',
     advisorMode: 'independent', trades: [{ id: 'blinds', name: 'Window Coverings' }], trade: 'blinds',
-    distanceUnit: 'miles', measurementUnit: 'mm', country: 'GB', currency: 'GBP',
+    distanceUnit: 'miles', measurementUnit: 'mm', navigationApp: 'ask', unlockTimeoutMinutes: 60, country: 'GB', currency: 'GBP',
     ai: {}, commission: { mode: 'two_stage' }, autoMessages: { enabled: false }
   },
   Utils: { escapeHtml: s => String(s), formatCurrency: v => '£' + v },
   Toast: { show() {} },
-  DB: { setSetting() {} },
+  DB: {
+    setSetting() {},
+    async setPrivateSetting(key, value) { privateStored.set(key, value); },
+    async deletePrivateSetting(key) { privateStored.delete(key); }
+  },
   AIService: { lastUsage: null, isEnabled: () => false, testConnection: async () => ({}) },
-  NotificationService: { isMorningBriefEnabled: () => false },
+  NotificationService: {
+    isMorningBriefEnabled: () => false,
+    isVisitReminderEnabled: () => true,
+    setVisitReminderEnabled() {},
+    requestPushPermission: async () => true
+  },
   TaxCalculator: {
     getEffectiveCommissionRate: () => 0.122,
     getRequiredWeeklySales: () => 4918,
@@ -51,6 +72,8 @@ const sandbox = {
   ExportService: { getLastBackupMeta: () => null, isBackupStale: () => false, getBackupAgeLabel: () => '', exportBackup() {}, importBackup() {}, exportCSV() {} },
   App: {
     state: {},
+    unlockUpdates: [],
+    setActiveVisitUnlock(active) { this.unlockUpdates.push(active); },
     renderTopHeader: () => '',
     navigate() {},
     openModal() {},
@@ -105,6 +128,44 @@ console.log('detail screens render');
   ok('commission detail renders example line', html.includes('Example:') && html.includes('commission'), html.slice(0, 80));
   const units = SettingsFeature.render({ section: 'units' });
   ok('units detail renders HMRC mileage hint for GB', units.includes('HMRC pays mileage relief in miles'), units.slice(0, 80));
+
+  const navigation = SettingsFeature.render({ section: 'navigation' });
+  ok('navigation detail offers ask + three map apps', ['Ask every time', 'Apple Maps', 'Google Maps', 'Waze'].every(label => navigation.includes(label)), navigation.slice(0, 120));
+  ok('ask every time is selected by default', navigation.includes('data-args=\'["ask"]\'') && navigation.includes('aria-checked="true"'), navigation.slice(0, 180));
+
+  const security = SettingsFeature.render({ section: 'security' });
+  ok('app lock offers minute and hour choices', ['After 15 minutes', 'After 1 hour', 'After 24 hours'].every(label => security.includes(label)), security.slice(0, 160));
+  ok('app lock explains the active-visit exception', security.includes('Active visits stay unlocked') && security.includes('Leaving the customer restarts'), security.slice(0, 220));
+}
+
+console.log('navigation preference persists');
+{
+  SettingsFeature.setNavigationApp('waze');
+  const saved = JSON.parse(stored.get('advisoros_config'));
+  ok('Waze becomes the active preference', sandbox.CONFIG.navigationApp === 'waze');
+  ok('navigation preference is saved locally', saved.navigationApp === 'waze', saved.navigationApp);
+  ok('settings index reflects saved map', SettingsFeature.renderIndex().includes('Waze'));
+  SettingsFeature.setNavigationApp('ask');
+}
+
+console.log('app-lock timeout persists');
+{
+  await SettingsFeature.setUnlockTimeout('30');
+  const saved = JSON.parse(stored.get('advisoros_config'));
+  ok('30-minute timeout becomes active', sandbox.CONFIG.unlockTimeoutMinutes === 30);
+  ok('unlock timeout is saved locally', saved.unlockTimeoutMinutes === 30, saved.unlockTimeoutMinutes);
+  ok('changing timeout refreshes the current grace window', sandbox.App.unlockUpdates.at(-1) === false);
+}
+
+console.log('AI shared secret persists as a device-only credential');
+{
+  await SettingsFeature.setAISecret('device-secret');
+  ok('secret reaches encrypted-device storage API', privateStored.get('__device_ai_secret__') === 'device-secret');
+  ok('secret remains available to the current session', sessionStored.get('advisoros_ai_secret') === 'device-secret' && sandbox.CONFIG.ai.secret === 'device-secret');
+  ok('ordinary saved config excludes the secret', !JSON.parse(stored.get('advisoros_config')).ai.secret);
+  ok('AI settings explains device-only encrypted storage', SettingsFeature.renderAIDetail().includes('Saved securely on this device') && SettingsFeature.renderAIDetail().includes('never included in Beelo backups'));
+  await SettingsFeature.clearAISecret();
+  ok('forget secret clears device and session copies', !privateStored.has('__device_ai_secret__') && !sessionStored.has('advisoros_ai_secret') && sandbox.CONFIG.ai.secret === '');
 }
 
 })().catch(e => { console.error('UNEXPECTED ERROR:', e); process.exit(1); })

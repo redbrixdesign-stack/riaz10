@@ -363,6 +363,11 @@ const ExportService = {
       }
     }
 
+    // importAll replaces the settings table. Preserve this device's encrypted
+    // proxy gate separately because the backup correctly contains no secret.
+    const deviceAISecret = CONFIG.ai?.secret || (typeof DB.getPrivateSetting === 'function'
+      ? await DB.getPrivateSetting('__device_ai_secret__', '')
+      : '');
     await DB.importAll(backup.data);
 
     if (backup.config) {
@@ -401,11 +406,16 @@ const ExportService = {
         dateFormat: CONFIG.dateFormat,
         distanceUnit: CONFIG.distanceUnit,
         measurementUnit: CONFIG.measurementUnit,
+        navigationApp: CONFIG.navigationApp,
         commission: CONFIG.commission,
         onboardingComplete: CONFIG.onboardingComplete !== false
       };
       localStorage.setItem('advisoros_config', JSON.stringify(savedConfig));
       await DB.setSetting('config', savedConfig);
+    }
+
+    if (deviceAISecret && typeof DB.setPrivateSetting === 'function') {
+      await DB.setPrivateSetting('__device_ai_secret__', deviceAISecret);
     }
 
     Toast.show('Backup restored successfully', 'success');

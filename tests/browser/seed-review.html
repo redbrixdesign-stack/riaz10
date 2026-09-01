@@ -101,6 +101,10 @@
     mileageRate: 0.55, mileageRateOver: 0.25
   };
   localStorage.setItem('advisoros_config', JSON.stringify(config));
+  // This page is local test infrastructure and is excluded from production.
+  // Give the seeded origin a deterministic, non-interactive encryption
+  // session so Simulator reviews never depend on a tester's old passphrase.
+  localStorage.setItem('advisoros_enc_test', '1');
   await db.settings.put({ key: 'config', value: config });
 
   // ---- customers (12) — every lead source + edge cases ----

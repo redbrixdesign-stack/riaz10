@@ -65,7 +65,17 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
       names.push(name);
     }
     names.push('Home Upcoming PAST');
-    await DB.addAppointment({ customerId: custs[3].id, clientName: 'Home Upcoming PAST', type: 'consultation', date: at(Math.max(0, nowH - 1), 0), status: 'confirmed' });
+    const pastHour = Math.max(0, nowH - 1);
+    const pad = n => String(n).padStart(2, '0') + ':00';
+    await DB.addAppointment({
+      customerId: custs[3].id,
+      clientName: 'Home Upcoming PAST',
+      type: 'consultation',
+      date: at(pastHour, 0),
+      status: 'confirmed',
+      arrivalStart: pad(pastHour),
+      arrivalEnd: pad(Math.min(23, pastHour + 3))
+    });
     return names;
   });
 
@@ -129,7 +139,17 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
         ...(i === 0 ? { arrivalStart: '09:00', arrivalEnd: '12:00' } : {})
       });
     }
-    await DB.addAppointment({ customerId: custs[3].id, clientName: 'Home Upcoming PAST', type: 'consultation', date: at(Math.max(0, nowH - 1), 0), status: 'confirmed' });
+    const pastHour = Math.max(0, nowH - 1);
+    const pad = n => String(n).padStart(2, '0') + ':00';
+    await DB.addAppointment({
+      customerId: custs[3].id,
+      clientName: 'Home Upcoming PAST',
+      type: 'consultation',
+      date: at(pastHour, 0),
+      status: 'confirmed',
+      arrivalStart: pad(pastHour),
+      arrivalEnd: pad(Math.min(23, pastHour + 3))
+    });
   });
   await page.reload();
   await page.waitForFunction(() => typeof App !== 'undefined' && App.currentHash === 'today', null, { timeout: 30000 });
@@ -153,14 +173,18 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
       .filter(a => !a.outcome && a.status !== 'completed')
       .sort((a, b) => new Date(a.date) - new Date(b.date));
     const expectedFeatured = pendingToday[0] ? (pendingToday[0].clientName || '').replace(/^@/, '') : null;
+    const expectedWindow = pendingToday[0]?.arrivalStart && pendingToday[0]?.arrivalEnd
+      ? `${pendingToday[0].arrivalStart}–${pendingToday[0].arrivalEnd}`
+      : null;
     return {
       dayCount: dayAppts.length,
       namesOnHome: names.filter(n => feedText.includes(n)).length,
       pastOnHome: feedText.includes('Home Upcoming PAST'),
       featuredIsEarliestToday: !!(expectedFeatured && new RegExp(expectedFeatured.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(featured)),
-      featuredShowsWindow: /09:00–12:00/.test(featured) && !/Arrival window/.test(featured),
+      featuredShowsWindow: !!expectedWindow && featured.includes(expectedWindow) && !/Arrival window/.test(featured),
       featured: featured.replace(/\s+/g, ' ').slice(0, 120),
       expectedFeatured,
+      expectedWindow,
       nextCount,
       rowCount: rows.length,
       rowsInsideSchedule: document.querySelectorAll('.comp-home-schedule .comp-home-next-visit, .comp-home-schedule .comp-home-visit').length
@@ -172,7 +196,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   ok('feed: the earlier-today visit is listed', p2.pastOnHome, p2);
   ok('feed: the featured NEXT card is the earliest pending visit TODAY', p2.featuredIsEarliestToday, { featured: p2.featured, expected: p2.expectedFeatured });
   ok('feed: promised time range replaces the exact time without a redundant label', p2.featuredShowsWindow, { featured: p2.featured });
-  ok(`NEXT section counts ${p2.dayCount} visits`, p2.nextCount.includes(`${p2.dayCount} visit`), { nextCount: p2.nextCount });
+  ok(`Upcoming section counts ${p2.dayCount} visits`, p2.nextCount.includes(`${p2.dayCount} visit`), { nextCount: p2.nextCount });
   ok('feed rows rendered (featured + compact)', p2.rowCount >= 4, { rowCount: p2.rowCount });
   ok('featured visit and compact rows stay inside one schedule', p2.rowsInsideSchedule === p2.rowCount, p2);
 

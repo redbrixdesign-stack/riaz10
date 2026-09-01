@@ -4,6 +4,9 @@
    ============================================ */
 
 const NotificationService = {
+  _visitReminderTimers: new Map(),
+  _visitReminderRefreshTimer: null,
+
   // Process template with variables
   processTemplate(template, variables = {}) {
     let result = template;
@@ -117,12 +120,24 @@ const NotificationService = {
   // Show local notification
   showNotification(title, options = {}) {
     if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(title, {
+      const notificationOptions = {
         icon: 'assets/icons/icon-gold-192.png',
         badge: 'assets/icons/badge-gold-72.png',
         ...options
-      });
+      };
+      // Installed iPhone PWAs deliver notifications through their service
+      // worker. Desktop browsers can still use the Notification constructor.
+      if (navigator.serviceWorker?.ready) {
+        navigator.serviceWorker.ready
+          .then(registration => registration.showNotification(title, notificationOptions))
+          .catch(() => {
+            try { new Notification(title, notificationOptions); } catch (e) {}
+          });
+        return true;
+      }
+      try { new Notification(title, notificationOptions); return true; } catch (e) {}
     }
+    return false;
   },
 
   // Schedule reminder
@@ -130,6 +145,119 @@ const NotificationService = {
     setTimeout(() => {
       this.showNotification(title, { body });
     }, delayMs);
+  },
+
+  // ── VISIT REMINDERS ────────────────────────────────────────────────────
+  // Timers are rebuilt whenever Beelo starts, becomes visible, or a visit is
+  // added/moved. iOS can suspend a PWA in the background, so the in-app alert
+  // is guaranteed only while Beelo is active; an OS notification is also
+  // requested from Settings for installed PWAs where the browser permits it.
+  isVisitReminderEnabled() {
+    return localStorage.getItem('advisoros_visit_reminders_enabled') !== 'false';
+  },
+
+  setVisitReminderEnabled(enabled) {
+    localStorage.setItem('advisoros_visit_reminders_enabled', enabled ? 'true' : 'false');
+    if (enabled) this.refreshVisitReminders();
+    else this.clearVisitReminders();
+  },
+
+  startVisitReminders() {
+    if (!this.isVisitReminderEnabled()) return;
+    this.refreshVisitReminders();
+    if (!this._visitVisibilityBound) {
+      this._visitVisibilityBound = true;
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') this.refreshVisitReminders();
+      });
+    }
+  },
+
+  clearVisitReminders() {
+    for (const timer of this._visitReminderTimers.values()) clearTimeout(timer);
+    this._visitReminderTimers.clear();
+    if (this._visitReminderRefreshTimer) clearTimeout(this._visitReminderRefreshTimer);
+    this._visitReminderRefreshTimer = null;
+  },
+
+  queueVisitReminderRefresh() {
+    if (!this.isVisitReminderEnabled()) return;
+    if (this._visitReminderRefreshTimer) clearTimeout(this._visitReminderRefreshTimer);
+    this._visitReminderRefreshTimer = setTimeout(() => this.refreshVisitReminders(), 150);
+  },
+
+  _visitReminderKey(appt) {
+    return `${appt.id}:${new Date(appt.date).getTime()}`;
+  },
+
+  _readDeliveredVisitReminders() {
+    try { return JSON.parse(localStorage.getItem('advisoros_visit_reminders_delivered') || '{}'); }
+    catch (e) { return {}; }
+  },
+
+  _markVisitReminderDelivered(key) {
+    const delivered = this._readDeliveredVisitReminders();
+    delivered[key] = Date.now();
+    const cutoff = Date.now() - (7 * 86400000);
+    for (const [storedKey, at] of Object.entries(delivered)) {
+      if (!Number.isFinite(Number(at)) || Number(at) < cutoff) delete delivered[storedKey];
+    }
+    localStorage.setItem('advisoros_visit_reminders_delivered', JSON.stringify(delivered));
+  },
+
+  async refreshVisitReminders() {
+    this.clearVisitReminders();
+    if (!this.isVisitReminderEnabled() || typeof DB === 'undefined' || !DB.db) return;
+    try {
+      const now = Date.now();
+      const upcoming = await DB.getUpcomingAppointments(2);
+      const delivered = this._readDeliveredVisitReminders();
+      for (const appt of upcoming) {
+        if (!appt || appt.status === 'cancelled' || appt.status === 'completed' || appt.outcome) continue;
+        const visitAt = new Date(appt.date).getTime();
+        if (!Number.isFinite(visitAt) || visitAt < now - (15 * 60000)) continue;
+        const key = this._visitReminderKey(appt);
+        if (delivered[key]) continue;
+        const delay = Math.max(250, visitAt - now - (15 * 60000));
+        const timer = setTimeout(() => this._fireVisitReminder(appt.id, key), delay);
+        this._visitReminderTimers.set(key, timer);
+      }
+    } catch (e) {
+      console.log('Visit reminder scheduling skipped:', e);
+    }
+  },
+
+  async _fireVisitReminder(appointmentId, key) {
+    this._visitReminderTimers.delete(key);
+    let appt = null;
+    try { appt = await DB.getAppointment(appointmentId); } catch (e) {}
+    if (!appt || this._visitReminderKey(appt) !== key || appt.status === 'cancelled' || appt.status === 'completed' || appt.outcome) return;
+
+    this._markVisitReminderDelivered(key);
+    const visitAt = new Date(appt.date).getTime();
+    const minutes = Math.max(0, Math.ceil((visitAt - Date.now()) / 60000));
+    const name = appt.clientName || 'your customer';
+    const timing = minutes >= 14 ? 'in 15 minutes' : minutes > 0 ? `in ${minutes} minutes` : 'now';
+    const body = `${name} · ${Utils.formatTimeUK(appt.date)}${appt.address ? ` · ${appt.address}` : ''}`;
+    this.showNotification(`Next appointment ${timing}`, {
+      body,
+      tag: `visit-reminder-${appointmentId}`,
+      data: { appointmentId },
+      requireInteraction: true
+    });
+
+    if (document.visibilityState === 'visible' && typeof App !== 'undefined') {
+      App.openModal(`<div class="sheet-handle"></div>
+        <div class="sheet-header">
+          <div><h3>Next appointment ${timing}</h3><div class="fs-12 text-secondary mt-2">${Utils.escapeHtml(Utils.formatTimeUK(appt.date))}</div></div>
+          <button class="btn btn-ghost btn-sm" type="button" aria-label="Close" data-action="App.closeModal"><span class="material-symbols-rounded">close</span></button>
+        </div>
+        <div class="sheet-body">
+          <div class="card mb-md"><div class="fw-600">${Utils.escapeHtml(name)}</div>${appt.address ? `<div class="fs-13 text-secondary mt-4">${Utils.escapeHtml(appt.address)}</div>` : ''}</div>
+          <button class="btn btn-primary btn-block" data-close="1" data-action="App.navigate" data-args='${JSON.stringify(['appointments', { id: appointmentId }])}'>Open visit</button>
+          <button class="btn btn-outline btn-block mt-sm" data-action="App.closeModal">Dismiss</button>
+        </div>`);
+    }
   },
 
   // ── MORNING BRIEF NOTIFICATION ──────────────────────────────────────────

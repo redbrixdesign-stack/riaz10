@@ -8,3 +8,8 @@ docs
 .github
 .env*
 screenshots-seeded
+
+# Supporting deliverables are versioned in Git but are not part of the Beelo
+# PWA production artifact.
+landing
+pilot-pack

@@ -23,16 +23,21 @@ export function Trust() {
 
   return (
     <Section eyebrow="Responsible AI" heading={CONTENT.trust.heading}>
+      <Reveal delay={40}>
+        <p className="mt-5 max-w-2xl text-base leading-relaxed text-ink/70">{CONTENT.trust.intro}</p>
+      </Reveal>
       <div className="mt-10 grid gap-8 lg:grid-cols-2">
         <Reveal>
-          <div className="h-full rounded-2xl border border-ink/8 bg-white p-7 shadow-soft">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-forest/80">{CONTENT.trust.doesTitle}</h3>
+          <div className="h-full rounded-[2rem] border border-ink/8 bg-white p-7 shadow-soft sm:p-9">
+            <span className="text-5xl font-semibold tracking-[-0.08em] text-sage">01</span>
+            <h3 className="mt-5 text-xl font-semibold">{CONTENT.trust.doesTitle}</h3>
             <div className="mt-4 text-ink/85">{list(CONTENT.trust.does, 'forest')}</div>
           </div>
         </Reveal>
         <Reveal delay={100}>
-          <div className="h-full rounded-2xl bg-forest p-7 text-paper shadow-soft">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-sage">{CONTENT.trust.youTitle}</h3>
+          <div className="h-full rounded-[2rem] bg-forest p-7 text-paper shadow-lift sm:p-9">
+            <span className="text-5xl font-semibold tracking-[-0.08em] text-sage">02</span>
+            <h3 className="mt-5 text-xl font-semibold">{CONTENT.trust.youTitle}</h3>
             <div className="mt-4 text-paper/90">{list(CONTENT.trust.you, 'sage')}</div>
           </div>
         </Reveal>

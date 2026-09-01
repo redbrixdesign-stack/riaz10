@@ -1,28 +1,36 @@
-const CACHE_NAME = 'advisoros-v6-79';
+const CACHE_PREFIX = 'advisoros-';
+const CACHE_NAME = 'advisoros-v6-106';
 const STATIC_ASSETS = [
-  './','index.html','manifest.json?v=3','css/core.css?v=32','css/components.css?v=39',
+  './','index.html','manifest.json?v=3','css/core.css?v=34','css/components.css?v=51',
   'assets/fonts/material-symbols-rounded.woff2','assets/fonts/hankengrotesk-latin.woff2','assets/fonts/hankengrotesk-latinext.woff2','assets/fonts/jetbrainsmono-latin.woff2',
   'assets/icons/badge-gold-72.png','assets/icons/icon-gold-72.png','assets/icons/icon-gold-96.png','assets/icons/icon-gold-128.png','assets/icons/icon-gold-144.png','assets/icons/icon-gold-152.png','assets/icons/icon-gold-192.png','assets/icons/icon-gold-384.png','assets/icons/icon-gold-512.png','assets/icons/icon-gold-192-maskable.png','assets/icons/icon-gold-512-maskable.png','assets/icons/apple-touch-icon-gold-180.png',
   'assets/img/marker-icon.png','assets/img/marker-icon-2x.png','assets/img/marker-shadow.png',
   'js/vendor/dexie.min.js?v=1','js/vendor/minidexie.min.js?v=12',
-  'js/core/config.min.js?v=13','js/core/utils.min.js?v=6','js/core/db.min.js?v=25','js/core/geoprovider.min.js?v=1','js/core/geo.min.js?v=8','js/core/search.min.js?v=3','js/core/tax.min.js?v=2','js/core/install-prompt.min.js?v=1','js/core/app.min.js?v=28','js/core/legal.min.js?v=1','js/core/contact.min.js?v=4',
-  'js/services/ai.min.js?v=9','js/services/notification.min.js?v=7','js/services/message-scheduler.min.js?v=6','js/services/export.min.js?v=9','js/services/weather.min.js?v=3','js/services/tasks.min.js?v=1','js/services/quote-document.min.js?v=1','js/services/job-field-service.min.js?v=1','js/services/finance-document.min.js?v=1','js/services/capacity.min.js?v=1','js/services/communications.min.js?v=1',
-  'js/features/companion/companion.min.js?v=20','js/features/onboarding/onboarding.min.js?v=7','js/features/today/today.min.js?v=18','js/features/today/home-screen-controller.min.js?v=11','js/features/appointments/appointments.min.js?v=35','js/features/quotes/quotes.min.js?v=1','js/features/jobs/jobs.min.js?v=3','js/features/invoices/invoices.min.js?v=1','js/features/suppliers/suppliers.min.js?v=1','js/features/capacity/capacity.min.js?v=1','js/features/profitability/profitability.min.js?v=1','js/features/retention/retention.min.js?v=1','js/features/customer/customer.min.js?v=9','js/features/route/route.min.js?v=13',
-  'js/features/leads/leads.min.js?v=1','js/features/followups/followups.min.js?v=16','js/features/orders/orders.min.js?v=14',
-  'js/features/money/money.min.js?v=9','js/features/talk/talk.min.js?v=21','js/features/measure/measure.min.js?v=7',
-  'js/features/ocr/ocr.min.js?v=22','js/features/control/control.min.js?v=11','js/features/settings/settings.min.js?v=17'
+  'js/core/config.min.js?v=15','js/core/utils.min.js?v=7','js/core/db.min.js?v=31','js/core/geoprovider.min.js?v=1','js/core/geo.min.js?v=14','js/core/search.min.js?v=3','js/core/tax.min.js?v=2','js/core/install-prompt.min.js?v=1','js/services/voice-notes.min.js?v=1','js/core/app.min.js?v=37','js/core/lazy-features.min.js?v=2','js/core/legal.min.js?v=2','js/core/contact.min.js?v=4',
+  'js/services/ai.min.js?v=11','js/services/notification.min.js?v=8','js/services/message-scheduler.min.js?v=6','js/services/export.min.js?v=11','js/services/weather.min.js?v=3','js/services/tasks.min.js?v=1','js/services/job-field-service.min.js?v=1','js/services/capacity.min.js?v=1','js/services/communications.min.js?v=1',
+  'js/features/companion/companion.min.js?v=25','js/features/onboarding/onboarding.min.js?v=7','js/features/today/today.min.js?v=18','js/features/today/home-screen-controller.min.js?v=12','js/features/appointments/appointments.min.js?v=41','js/features/customer/customer.min.js?v=11','js/features/route/route.min.js?v=15',
+  'js/features/leads/leads.min.js?v=1','js/features/followups/followups.min.js?v=18','js/features/orders/orders.min.js?v=14',
+  'js/features/money/money.min.js?v=10','js/features/talk/talk.min.js?v=21','js/features/measure/measure.min.js?v=7',
+  'js/features/ocr/ocr.min.js?v=22','js/features/control/control.min.js?v=13'
 ];
 
 const FONT_ORIGINS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(STATIC_ASSETS)).then(() => self.skipWaiting()));
+  // Keep a newly installed worker waiting until the page deliberately asks
+  // it to activate. This avoids mixing an old, already-running UI with a new
+  // cache and worker halfway through a customer workflow.
+  e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(STATIC_ASSETS)));
 });
 
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(names => Promise.all(
-    names.filter(n => n !== CACHE_NAME).map(n => caches.delete(n))
+    names.filter(n => n.startsWith(CACHE_PREFIX) && n !== CACHE_NAME).map(n => caches.delete(n))
   )).then(() => self.clients.claim()));
+});
+
+self.addEventListener('message', e => {
+  if (e.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('fetch', e => {
@@ -31,38 +39,49 @@ self.addEventListener('fetch', e => {
   if (url.protocol === 'chrome-extension:') return;
   if (url.origin !== self.location.origin) return;
 
-  // Same-origin app files: network-first. This is what actually makes "I
-  // pushed a fix" and "the installed PWA is running the fix" the same
-  // statement — a cache-first strategy here would keep serving old JS/CSS
-  // indefinitely whenever the network is fine, contradicting the whole point
-  // of shipping a fix. Falls back to cache (then to the app shell) only when
-  // the network genuinely isn't available — or when it's stalled (captive
-  // portals, flaky WiFi), via the 6s timeout below. Without the timeout a
-  // request can hang for minutes on a connection that never actually fails,
-  // leaving the PWA stuck on a white screen instead of its cached shell.
-  // All fonts (Material Symbols, Hanken Grotesk, JetBrains Mono) are
-  // same-origin assets precached above in STATIC_ASSETS, so they're covered
-  // by this path too — no third-party font caching needed.
-  e.respondWith(
-    Promise.race([
-      fetch(e.request),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('network timeout')), 6000))
-    ]).then(resp => {
-      if (resp && resp.ok) {
-        const toCache = resp.clone();
-        caches.open(CACHE_NAME).then(c => c.put(e.request, toCache));
-      }
-      return resp;
-    }).catch(() => {
-      // Network failed or stalled — we're about to serve from cache, but
-      // navigator.onLine may still report true (flaky WiFi, captive portal),
-      // so tell the page it's actually offline. Only navigations notify, so
-      // a burst of failed asset fetches doesn't spam clients.
-      if (e.request.mode === 'navigate') notifyClientsOffline();
-      return caches.match(e.request).then(cached => cached || caches.match('index.html'));
-    })
-  );
+  if (e.request.mode === 'navigate') {
+    e.respondWith(networkWithTimeout(e.request, 6000)
+      .then(cacheResponse)
+      .catch(async () => {
+        notifyClientsOffline();
+        return (await caches.match(e.request)) || (await caches.match('index.html')) ||
+          new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain' } });
+      }));
+    return;
+  }
+
+  // Fingerprinted/versioned shell assets are safe to serve immediately and
+  // refresh in the background. A failed asset request never receives HTML.
+  if (['script', 'style', 'font', 'image'].includes(e.request.destination)) {
+    e.respondWith(caches.match(e.request).then(cached => {
+      const refresh = fetch(e.request).then(cacheResponse).catch(() => null);
+      return cached || refresh.then(response => response || new Response('', { status: 504 }));
+    }));
+    return;
+  }
+
+  // Do not persist arbitrary same-origin GET/API responses. They may contain
+  // private business data and require an endpoint-specific caching contract.
+  e.respondWith(fetch(e.request).catch(() => new Response('Offline', {
+    status: 503,
+    headers: { 'Content-Type': 'text/plain' }
+  })));
 });
+
+function networkWithTimeout(request, timeoutMs) {
+  return Promise.race([
+    fetch(request),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('network timeout')), timeoutMs))
+  ]);
+}
+
+function cacheResponse(response) {
+  if (response?.ok) {
+    const copy = response.clone();
+    caches.open(CACHE_NAME).then(cache => cache.put(copy.url, copy));
+  }
+  return response;
+}
 
 // Post a message to every controlled client so the page can flip the
 // persistent offline strip even when navigator.onLine lies. Delayed: when

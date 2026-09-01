@@ -445,6 +445,24 @@ const Utils = {
     });
   },
 
+  // Photo rows normally store only the base64 payload. Builds released before
+  // August 2026 could accidentally store a complete data URL instead, which
+  // then received a second `data:image/...` prefix at render time. Accept both
+  // shapes so those already-captured customer photos remain visible.
+  photoDataUrl(photo) {
+    const data = String(photo?.data || '');
+    if (/^data:image\//i.test(data)) return data;
+    return `data:${photo?.mimeType || 'image/jpeg'};base64,${data}`;
+  },
+
+  imagePayloadFromDataUrl(dataUrl, fallbackMimeType = 'image/jpeg') {
+    const value = String(dataUrl || '');
+    const match = value.match(/^data:([^;,]+);base64,([\s\S]*)$/i);
+    return match
+      ? { data: match[2], mimeType: match[1] || fallbackMimeType }
+      : { data: value, mimeType: fallbackMimeType };
+  },
+
   base64ToBlob(base64, mimeType = 'image/jpeg') {
     const byteString = atob(base64.split(',')[1]);
     const ab = new ArrayBuffer(byteString.length);

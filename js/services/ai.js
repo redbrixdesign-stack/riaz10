@@ -12,10 +12,9 @@ const AIService = {
   // ---- config helpers ----
   config() {
     const ai = CONFIG.ai || {};
-    // The shared secret is session-only by design: it is never persisted to
-    // localStorage/DB/backup. On boot it is restored into CONFIG.ai.secret
-    // from sessionStorage; this fallback covers any caller that reads config
-    // before that restore runs (e.g. feature init hooks).
+    // The shared secret is restored from encrypted device storage into
+    // CONFIG.ai.secret during app boot. sessionStorage remains a synchronous
+    // fallback for callers that run before that restore completes.
     let secret = ai.secret || '';
     if (!secret) {
       try { secret = sessionStorage.getItem('advisoros_ai_secret') || ''; } catch (e) { /* private mode */ }
@@ -166,6 +165,60 @@ const AIService = {
     const rawText = result.data.text || '';
     const fields = this._parseReceipt(rawText);
     return { ok: true, fields, rawText, usage: result.data.usage };
+  },
+
+  // Supplier quotes stay attached to the relevant purchasing record. Vision
+  // reads only the small set of fields needed to start that workflow; the
+  // advisor reviews them before anything is saved.
+  async extractSupplierQuote(file) {
+    const { base64, mediaType } = await this._toBase64(file);
+    if (base64 && (base64.length * 3) / 4 > 2 * 1024 * 1024) {
+      return { ok: false, reason: 'too_large', message: 'That quote photo is too large to analyse — try a sharper, smaller shot' };
+    }
+    const result = await this._request({
+      type: 'supplier_quote',
+      model: this.config().ocrModel,
+      image: base64,
+      mediaType
+    }, 30000);
+    if (!result.ok) return result;
+    const rawText = result.data.text || '';
+    return { ok: true, fields: this._parseSupplierQuote(rawText), rawText, usage: result.data.usage };
+  },
+
+  async extractQuickCapture(file) {
+    const { base64, mediaType } = await this._toBase64(file);
+    if (base64 && (base64.length * 3) / 4 > 2 * 1024 * 1024) return { ok: false, reason: 'too_large', message: 'That photo is too large to analyse' };
+    const result = await this._request({ type: 'quick_capture', model: this.config().ocrModel, image: base64, mediaType }, 30000);
+    if (!result.ok) return result;
+    const rawText = result.data.text || '';
+    return { ok: true, fields: this._parseQuickCapture(rawText), rawText, usage: result.data.usage };
+  },
+
+  _parseQuickCapture(rawText) {
+    const normalize = value => {
+      const kind = ['visit', 'expense'].includes(value.kind) ? value.kind : 'unknown';
+      const text = key => typeof value[key] === 'string' ? value[key].trim() : '';
+      return { kind, name:text('name'), phone:text('phone'), address:text('address'), town:text('town'), city:text('city'), postcode:text('postcode').toUpperCase(), appointmentDate:text('appointmentDate'), appointmentTime:this._normalizeTimeOrRange(text('appointmentTime')), amount:text('amount').replace(/[^0-9.-]/g, ''), vendor:text('vendor'), expenseDate:text('expenseDate'), description:text('description'), category:text('category').toLowerCase() };
+    };
+    const parse = text => { try { const value = JSON.parse(text); return value && typeof value === 'object' ? normalize(value) : null; } catch (error) { return null; } };
+    return parse(rawText) || parse(String(rawText).replace(/```(?:json)?\s*/gi, '').replace(/```/g, '').trim()) || (() => { const first=String(rawText).indexOf('{'),last=String(rawText).lastIndexOf('}'); return first>=0&&last>first?parse(String(rawText).slice(first,last+1)):null; })() || normalize({});
+  },
+
+  _parseSupplierQuote(rawText) {
+    const normalize = value => ({
+      supplier: typeof value.supplier === 'string' ? value.supplier.trim() : '',
+      reference: typeof value.reference === 'string' ? value.reference.trim() : '',
+      quoteDate: typeof value.quoteDate === 'string' ? value.quoteDate.trim() : '',
+      validUntil: typeof value.validUntil === 'string' ? value.validUntil.trim() : '',
+      amount: typeof value.amount === 'string' || typeof value.amount === 'number' ? String(value.amount).replace(/[^0-9.-]/g, '') : '',
+      description: typeof value.description === 'string' ? value.description.trim() : ''
+    });
+    const parse = text => { try { const value = JSON.parse(text); return value && typeof value === 'object' ? normalize(value) : null; } catch (error) { return null; } };
+    return parse(rawText)
+      || parse(String(rawText).replace(/```(?:json)?\s*/gi, '').replace(/```/g, '').trim())
+      || (() => { const first = String(rawText).indexOf('{'); const last = String(rawText).lastIndexOf('}'); return first >= 0 && last > first ? parse(String(rawText).slice(first, last + 1)) : null; })()
+      || normalize({});
   },
 
   // Claude sometimes wraps its JSON in markdown code fences or adds a line of

@@ -560,6 +560,21 @@ const MoneyFeature = {
     Toast.show(`Receipt read — ${filled} filled in. Review, then save`, 'success');
   },
 
+  async applyQuickCapture(file, fields = {}) {
+    const base64 = await Utils.fileToBase64(file);
+    this.expensePhotoData = base64;
+    const preview = document.getElementById('expense-photo-preview');
+    if (preview) preview.innerHTML = `<img class="max-w-full br-8" src="${base64}" alt="Receipt preview">`;
+    const parsedAmount = parseFloat(String(fields.amount || '').replace(/[^0-9.]/g, ''));
+    const amountEl = document.getElementById('expense-amount');
+    const categoryEl = document.getElementById('expense-category');
+    const descEl = document.getElementById('expense-description');
+    if (amountEl && parsedAmount > 0) amountEl.value = parsedAmount;
+    if (categoryEl && Array.from(categoryEl.options).some(option => option.value === fields.category)) categoryEl.value = fields.category;
+    if (descEl && (fields.description || fields.vendor)) descEl.value = fields.description || fields.vendor;
+    Toast.show(fields.kind === 'expense' ? 'Receipt found — review, then save' : 'Receipt attached — add the details, then save', 'success');
+  },
+
   async saveExpense() {
     const amountEl = document.getElementById('expense-amount');
     const categoryEl = document.getElementById('expense-category');

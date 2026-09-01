@@ -64,9 +64,14 @@ const ok = (label, cond, extra) => {
   const rows = await page.evaluate(() => {
     const out = {};
     const featured = document.querySelector('.comp-home-next-visit');
-    if (featured) out[featured.querySelector('.comp-home-next-visit-name')?.textContent.trim()] = (featured.querySelector('.comp-home-next-visit-journey') || { textContent: '' }).textContent.replace(/\s+/g, ' ').trim();
+    if (featured) {
+      const name = (featured.querySelector('.comp-home-next-visit-name')?.textContent || '').trim().replace(/^@/, '');
+      const eta = (featured.querySelector('.comp-home-next-visit-eta')?.textContent || '').trim();
+      const address = (featured.querySelector('.comp-home-next-visit-address')?.textContent || '').trim();
+      out[name] = `${address} ${eta}`.trim();
+    }
     Array.from(document.querySelectorAll('.comp-home-visit')).forEach(r => {
-      const name = r.querySelector('.comp-home-visit-name')?.textContent.trim();
+      const name = (r.querySelector('.comp-home-visit-name')?.textContent || '').trim().replace(/^@/, '');
       out[name] = (r.querySelector('.comp-home-visit-area') || { textContent: '' }).textContent.replace(/\s+/g, ' ').trim();
     });
     return out;

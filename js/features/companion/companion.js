@@ -292,7 +292,7 @@ const CompanionFeature = {
       <div class="comp-home">
         <div class="comp-home-section">
           <div class="comp-home-section-header">
-            <span class="comp-home-section-label">NEXT</span>
+            <span class="comp-home-section-label">Upcoming</span>
           </div>
           <div class="comp-home-empty">Loading your visits…</div>
         </div>
@@ -309,15 +309,29 @@ const CompanionFeature = {
   },
 
   welcomeHtml(homeData) {
-    // Home = the advisor identity, weekly calendar strip, then ONE appointment feed
-    // (NEXT visit as a rich card + compact rows), then attention, then Ask
-    // Beelo chips.
+    // Home = advisor identity, weekly calendar, thumb-reachable capture,
+    // today's route, then ONE appointment feed (NEXT visit as a rich card +
+    // compact rows), attention and Ask Beelo chips.
 
     const advisorName = Utils.firstNameFrom(CONFIG.advisorName || '') || 'Advisor';
     const greetingHtml = `
       <div class="comp-home-greeting" aria-label="Advisor ${Utils.escapeHtml(advisorName)}">
         <div class="comp-home-greeting-text">
           <div class="comp-home-greeting-main">${Utils.escapeHtml(advisorName)}<span class="comp-home-greeting-dot">.</span></div>
+        </div>
+      </div>`;
+
+    const captureHtml = `
+      <div class="comp-home-section comp-home-quick-add" aria-label="Scan or add">
+        <label class="comp-home-capture" for="home-quick-capture">
+          <span class="comp-home-capture-plus material-symbols-rounded" aria-hidden="true">add</span>
+          <span class="comp-home-capture-copy"><strong>Scan to add</strong><small>Visit details or an expense receipt</small></span>
+          <span class="material-symbols-rounded" aria-hidden="true">document_scanner</span>
+        </label>
+        <input class="native-file-input" type="file" id="home-quick-capture" accept="image/*" capture="environment" data-event="change" data-action="ControlFeature.handleQuickCapture" data-args='${JSON.stringify(["__event__"])}'>
+        <div class="comp-home-quick-manual">
+          <button type="button" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {action: "add"}])}'><span class="material-symbols-rounded">event</span>Add visit manually</button>
+          <button type="button" data-action="MoneyFeature.openExpenseModal"><span class="material-symbols-rounded">receipt_long</span>Add expense manually</button>
         </div>
       </div>`;
 
@@ -361,7 +375,57 @@ const CompanionFeature = {
         </div>`;
     }
 
-    // B. NEXT / UPCOMING — the appointment feed. The first upcoming visit
+    // B. TODAY'S ROUTE — a compact, actionable sequence using the same
+    // time-ordered legs as the full Route screen. Completed stops remain in
+    // context but are muted; the active leg is highlighted as the next move.
+    let routePlanHtml = '';
+    const routePlan = homeData.routePlan;
+    if (routePlan && Array.isArray(routePlan.legs) && routePlan.legs.length > 0) {
+      const activeIndex = routePlan.activeLeg ? routePlan.activeLeg.index : null;
+      const legsHtml = routePlan.legs.map(leg => {
+        const destination = leg.to || {};
+        const appointment = destination.appointment || null;
+        const completed = !!appointment && (appointment.status === 'completed' || !!appointment.outcome);
+        const active = leg.index === activeIndex;
+        const stateClass = completed ? 'completed' : (active ? 'active' : 'upcoming');
+        const fromLabel = (leg.from && leg.from.label) || 'Start';
+        const toLabel = destination.label || (leg.isReturn ? 'Base' : 'Next stop');
+        const routeFacts = [];
+        if (completed) routeFacts.push('Completed');
+        else if (active) routeFacts.push('Next move');
+        else if (leg.isReturn) routeFacts.push('Return');
+        if (!completed && leg.distanceKm > 0) routeFacts.push(Utils.formatDistance(leg.distanceKm));
+        if (!completed && leg.etaMin > 0) routeFacts.push(`${leg.etaMin} min`);
+        if (!completed && leg.unresolvedPoint) routeFacts.push('Check address');
+        const marker = completed ? 'check' : (leg.isReturn ? 'home' : String(leg.index + 1));
+        return `
+          <button type="button" class="comp-home-route-leg ${stateClass}" data-action="RouteFeature.openLegRoute" data-args='${JSON.stringify([leg.index])}' ${completed ? 'disabled aria-label="Completed route leg"' : ''}>
+            <span class="comp-home-route-marker${completed || leg.isReturn ? ' material-symbols-rounded' : ''}" aria-hidden="true">${marker}</span>
+            <span class="comp-home-route-copy">
+              <strong>${Utils.escapeHtml(fromLabel)} <span aria-hidden="true">→</span> ${Utils.escapeHtml(toLabel)}</strong>
+              <small>${Utils.escapeHtml(routeFacts.join(' · ') || 'Route details')}</small>
+            </span>
+            <span class="material-symbols-rounded comp-home-route-action" aria-hidden="true">${completed ? 'check_circle' : (active ? 'navigation' : 'chevron_right')}</span>
+          </button>`;
+      }).join('');
+      const activeLeg = routePlan.activeLeg;
+      const nextMove = activeLeg
+        ? `${activeLeg.from?.label || 'Start'} → ${activeLeg.to?.label || 'next stop'}`
+        : 'Route complete';
+      routePlanHtml = `
+        <div class="comp-home-section comp-home-route" aria-labelledby="home-route-heading">
+          <div class="comp-home-section-header comp-home-route-header">
+            <div class="comp-home-route-title">
+              <span class="comp-home-section-label" id="home-route-heading">TODAY'S ROUTE</span>
+              <span class="comp-home-route-next">${Utils.escapeHtml(nextMove)}</span>
+            </div>
+            <button type="button" class="comp-home-route-open" data-action="App.navigate" data-args='${JSON.stringify(["route"])}'>Full route</button>
+          </div>
+          <div class="comp-home-route-legs">${legsHtml}</div>
+        </div>`;
+    }
+
+    // C. NEXT / UPCOMING — the appointment feed. The first upcoming visit
     // renders as the featured card (active, full detail + actions +
     // "More about this visit"); the remaining upcoming visits render as
     // compact rows (customer name, time, ETA). ONE feed — no separate
@@ -432,8 +496,7 @@ const CompanionFeature = {
         <div class="comp-home-section comp-home-schedule" aria-labelledby="home-schedule-heading">
           <div class="comp-home-section-header comp-home-schedule-header">
             <div class="comp-home-schedule-title">
-              <span class="comp-home-section-label" id="home-schedule-heading">NEXT</span>
-              <span class="comp-home-schedule-range">Next 14 days</span>
+              <span class="comp-home-section-label" id="home-schedule-heading">Upcoming</span>
             </div>
             <span class="comp-home-section-count">${count} visit${count === 1 ? '' : 's'}</span>
           </div>
@@ -448,8 +511,7 @@ const CompanionFeature = {
         <div class="comp-home-section comp-home-schedule" aria-labelledby="home-schedule-heading">
           <div class="comp-home-section-header comp-home-schedule-header">
             <div class="comp-home-schedule-title">
-              <span class="comp-home-section-label" id="home-schedule-heading">NEXT</span>
-              <span class="comp-home-schedule-range">Next 14 days</span>
+              <span class="comp-home-section-label" id="home-schedule-heading">Upcoming</span>
             </div>
             <span class="comp-home-section-count">No visits</span>
           </div>
@@ -503,6 +565,7 @@ const CompanionFeature = {
       <div class="comp-home">
         ${greetingHtml}
         ${weekStripHtml}
+        ${captureHtml}
         ${nextVisitHtml}
         ${attentionHtml}
         ${suggestionsHtml}
@@ -533,16 +596,26 @@ const CompanionFeature = {
     // weekly layout uses (see home-screen-controller); the feed rows just
     // render its labels. Coords for today's visits are ensured here so the
     // chain works even before the Route screen has geocoded them.
+    let basePoint = null;
     let baseLatLng = null;
     try {
-      const bp = await RouteFeature.getBasePoint();
-      if (Array.isArray(bp && bp.latLng)) baseLatLng = bp.latLng;
+      basePoint = await RouteFeature.getBasePoint();
+      if (Array.isArray(basePoint && basePoint.latLng)) baseLatLng = basePoint.latLng;
     } catch (e) { /* no base point */ }
     try {
-      await RouteFeature.ensureAppointmentCoords(
-        upcoming.filter(a => Utils.isSameDay(new Date(a.date), today))
-      );
+      if (typeof RouteFeature.ensureAppointmentCoords === 'function') {
+        todayAppts = await RouteFeature.ensureAppointmentCoords(todayAppts);
+        const todayCoords = new Map(todayAppts.filter(a => Array.isArray(a.latLng)).map(a => [a.id, a.latLng]));
+        upcoming = upcoming.map(a => todayCoords.has(a.id) ? { ...a, latLng: todayCoords.get(a.id) } : a);
+      }
     } catch (e) { /* chain degrades to per-visit-from-base below */ }
+
+    let routePlan = null;
+    try {
+      if (todayAppts.length > 0 && typeof RouteFeature.analyseDay === 'function') {
+        routePlan = RouteFeature.analyseDay(todayAppts, today, basePoint);
+      }
+    } catch (e) { /* route overview is optional */ }
     const etaMap = new Map();
     {
       const sorted = [...upcoming].sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -618,7 +691,8 @@ const CompanionFeature = {
         phone,
         accessNotes: noteField('access'),
         parkingNotes: noteField('parking'),
-        notes: next.notes || ''
+        notes: next.notes || '',
+        onSiteActive: !!next.arrivedAt && !next.leftAt && next.status !== 'completed'
       };
     }
 
@@ -772,6 +846,7 @@ const CompanionFeature = {
           })
       ),
       week,
+      routePlan,
       attention,
       suggestions
     };

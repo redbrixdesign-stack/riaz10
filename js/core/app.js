@@ -29,6 +29,22 @@ const App = {
     `;
   },
 
+  // This passphrase protects local encrypted records; it is not an account
+  // credential. iOS ignores autocomplete="off" on password fields and offers
+  // to create/save a website login, then misidentifies the onboarding name as
+  // that login's username. WebKit/Chromium can mask an ordinary text control,
+  // which keeps the value visually protected without invoking password-manager
+  // account heuristics. Browsers without text-security support retain the
+  // normal password-field fallback.
+  passphraseControl(id, placeholder) {
+    const canMaskText = typeof CSS !== 'undefined' &&
+      typeof CSS.supports === 'function' &&
+      CSS.supports('-webkit-text-security', 'disc');
+    const common = `class="input passphrase-input" id="${id}" placeholder="${placeholder}" autocomplete="one-time-code" autocorrect="off" autocapitalize="none" spellcheck="false" inputmode="text" data-1p-ignore="true" data-lpignore="true" data-bwignore="true"`;
+    if (canMaskText) return `<textarea ${common} rows="1" aria-multiline="false"></textarea>`;
+    return `<input type="password" ${common}>`;
+  },
+
   // Initialize
   // Safe JSON.parse wrapper with debugging for corrupted stored data
   safeJSONParse(str, key) {
@@ -83,18 +99,23 @@ const App = {
       console.log('No DB config yet');
     }
 
-    // Restore the AI shared secret for this session: it is never persisted
-    // (config/DB/backup), so the only source is sessionStorage, which is
-    // cleared when the tab/browser closes. This is a deliberate trade-off —
-    // the secret is a shared gate against quota-burning, not true auth, so
-    // requiring a re-entry per session is acceptable and keeps it out of
-    // at-rest storage entirely.
+    // Restore the device-only AI shared secret after the encryption key and
+    // database are ready. Older releases kept it only in sessionStorage; if
+    // that value is still present, migrate it into encrypted device storage.
     try {
+      let deviceSecret = await DB.getPrivateSetting('__device_ai_secret__', '');
       const sessionSecret = sessionStorage.getItem('advisoros_ai_secret');
-      if (sessionSecret) {
-        CONFIG.ai = { ...(CONFIG.ai || {}), secret: sessionSecret };
+      if (!deviceSecret && sessionSecret) {
+        deviceSecret = sessionSecret;
+        await DB.setPrivateSetting('__device_ai_secret__', deviceSecret);
       }
-    } catch (e) { /* private mode — no session storage */ }
+      if (deviceSecret) {
+        CONFIG.ai = { ...(CONFIG.ai || {}), secret: deviceSecret };
+        sessionStorage.setItem('advisoros_ai_secret', deviceSecret);
+      }
+    } catch (e) {
+      console.warn('AI shared secret could not be restored');
+    }
 
     this.migrateConfig();
 
@@ -139,6 +160,9 @@ const App = {
     if (typeof NotificationService !== 'undefined' && NotificationService.isMorningBriefEnabled()) {
       NotificationService._queueNextMorningBrief();
     }
+    if (typeof NotificationService !== 'undefined') {
+      NotificationService.startVisitReminders();
+    }
 
     // Automated message cadence (evening-before / morning-of drafts around
     // each visit). Recomputes its timers fresh on every boot.
@@ -149,8 +173,8 @@ const App = {
     console.log('AdvisorOS v5.0 ready');
   },
 
-  // Prompt for encryption passphrase on each app launch.
-  // The key is derived via PBKDF2 and held only in memory for the session.
+  // Prompt for the encryption passphrase when the device's configured unlock
+  // grace has expired. The active key is held only in memory while Beelo runs.
   async promptPassphrase() {
     // Browser test mode: e2e suites boot a fresh profile and can't click a
     // modal. They set advisoros_enc_test=1 before boot and get a fixed
@@ -173,34 +197,42 @@ const App = {
             <h3>Set Encryption Passphrase</h3>
           </div>
           <div class="sheet-body p-md">
-            <p class="text-secondary mb-lg">Your customer data (names, phones, addresses, emails) will be encrypted at rest. Choose a passphrase you'll remember — it's required every time you open Beelo.</p>
+            <p class="text-secondary mb-lg">Your customer data (names, phones, addresses, emails) will be encrypted at rest. Choose a passphrase you'll remember. You can choose how often Beelo asks for it in Settings.</p>
             <div class="form-group">
               <label>Passphrase</label>
-              <input type="password" class="input" id="enc-passphrase-new" placeholder="Enter passphrase" autocomplete="off">
+              ${this.passphraseControl('enc-passphrase-new', 'Enter passphrase')}
             </div>
             <div class="form-group">
               <label>Confirm Passphrase</label>
-              <input type="password" class="input" id="enc-passphrase-confirm" placeholder="Confirm passphrase" autocomplete="off">
+              ${this.passphraseControl('enc-passphrase-confirm', 'Confirm passphrase')}
             </div>
             <div class="fs-12 text-tertiary mb-md">Forgetting this passphrase means permanent loss of customer data. No recovery is possible.</div>
             <button class="btn btn-primary btn-block" data-action="App._setPassphrase">Set Passphrase</button>
             <div class="fs-11 text-tertiary text-center mt-10" >Setting up encryption can take a few seconds on older iPhones — tap once and wait.</div>
           </div>
-        `, { onOpen: () => document.getElementById('enc-passphrase-new')?.focus() });
+        `, { className: 'passphrase-gate', onOpen: () => document.getElementById('enc-passphrase-new')?.focus() });
         // The passphrase gate runs BEFORE setupEvents() attaches the delegated
         // data-action router (Phase 4.6), so the button's data-action alone
         // would do nothing — a tap here was silently dead (reported on iPhone).
         // Attach a direct listener so the modal works regardless of router state.
         const setBtn = document.querySelector('[data-action="App._setPassphrase"]');
         if (setBtn) setBtn.addEventListener('click', () => App._setPassphrase());
+        const newPassphrase = document.getElementById('enc-passphrase-new');
+        const confirmPassphrase = document.getElementById('enc-passphrase-confirm');
+        newPassphrase?.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); confirmPassphrase?.focus(); }
+        });
+        confirmPassphrase?.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); App._setPassphrase(); }
+        });
         App._setPassphrase = async () => {
           const btn = document.querySelector('[data-action="App._setPassphrase"]');
           const fail = (msg) => {
             if (btn) { btn.disabled = false; btn.textContent = 'Set Passphrase'; }
             Toast.show(msg, 'error');
           };
-          const p1 = document.getElementById('enc-passphrase-new').value;
-          const p2 = document.getElementById('enc-passphrase-confirm').value;
+          const p1 = document.getElementById('enc-passphrase-new').value.replace(/[\r\n]/g, '');
+          const p2 = document.getElementById('enc-passphrase-confirm').value.replace(/[\r\n]/g, '');
           if (!p1 || p1.length < 8) { fail('Passphrase must be at least 8 characters'); return; }
           if (p1 !== p2) { fail('Passphrases do not match'); return; }
           if (typeof crypto === 'undefined' || !crypto.subtle) {
@@ -213,6 +245,7 @@ const App = {
           try {
             await initEncryption(p1);
             localStorage.setItem('advisoros_enc_verify', JSON.stringify(await encryptField('advisoros-enc-verify')));
+            await this.rememberUnlock(p1);
             this._encryptInProgress = false;
             this.closeModal();
             delete App._setPassphrase;
@@ -227,6 +260,10 @@ const App = {
         };
       });
     } else {
+      // Reopen without prompting while the user-selected grace period is
+      // still valid. An active on-site visit temporarily extends that grace
+      // so iOS cannot put a passphrase gate in the middle of a customer visit.
+      if (await this.tryRememberedUnlock()) return;
       // Subsequent launches - prompt for existing passphrase
       return new Promise((resolve) => {
         this.openModal(`
@@ -238,13 +275,13 @@ const App = {
             <p class="text-secondary mb-lg">Enter your passphrase to decrypt customer data.</p>
             <div class="form-group">
               <label>Passphrase</label>
-              <input type="password" class="input" id="enc-passphrase" placeholder="Enter passphrase" autocomplete="off" autocapitalize="off" spellcheck="false">
+              ${this.passphraseControl('enc-passphrase', 'Enter passphrase')}
             </div>
             <div id="enc-error" class="fs-12 text-danger mb-md" style="display:none;"></div>
             <button class="btn btn-primary btn-block" data-action="App._checkPassphrase">Unlock</button>
             <div class="fs-11 text-tertiary text-center mt-10" >Decrypting can take a few seconds on older iPhones — tap Unlock once and wait.</div>
           </div>
-        `, { onOpen: () => document.getElementById('enc-passphrase')?.focus() });
+        `, { className: 'passphrase-gate', onOpen: () => document.getElementById('enc-passphrase')?.focus() });
         // Same as the set button: the router isn't attached yet, so wire the
         // Unlock button directly (this modal also keeps its Enter-key path).
         const unlockBtn = document.querySelector('[data-action="App._checkPassphrase"]');
@@ -258,7 +295,7 @@ const App = {
             if (btn) { btn.disabled = false; btn.innerHTML = 'Unlock'; }
             if (input) input.value = '';
           };
-          const passphrase = input ? input.value : '';
+          const passphrase = input ? input.value.replace(/[\r\n]/g, '') : '';
           if (!passphrase) { fail('Please enter your passphrase'); return; }
           // WebCrypto needs a secure context. Opening the app over plain
           // http:// (e.g. a LAN address on a phone) leaves crypto.subtle
@@ -277,6 +314,7 @@ const App = {
               const verified = await decryptField(JSON.parse(verifyRaw));
               if (verified !== 'advisoros-enc-verify') throw new Error('Passphrase verification failed');
             }
+            await this.rememberUnlock(passphrase);
             this._unlockInProgress = false;
             this.closeModal();
             delete App._checkPassphrase;
@@ -288,9 +326,113 @@ const App = {
         };
         // Allow Enter key to submit
         document.getElementById('enc-passphrase').addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') App._checkPassphrase();
+          if (e.key === 'Enter') { e.preventDefault(); App._checkPassphrase(); }
         });
       });
+    }
+  },
+
+  unlockTimeoutMinutes() {
+    try {
+      const saved = JSON.parse(localStorage.getItem('advisoros_config') || '{}');
+      const value = Number(saved.unlockTimeoutMinutes);
+      return [0, 15, 30, 60, 240, 480, 720, 1440].includes(value) ? value : 60;
+    } catch (e) {
+      return 60;
+    }
+  },
+
+  _openUnlockCache() {
+    return new Promise((resolve, reject) => {
+      if (!window.indexedDB) return reject(new Error('IndexedDB unavailable'));
+      const request = indexedDB.open('beelo-unlock-cache', 1);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains('cache')) db.createObjectStore('cache', { keyPath: 'id' });
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error || new Error('Unlock cache unavailable'));
+    });
+  },
+
+  async _unlockCacheRecord(id, value) {
+    const db = await this._openUnlockCache();
+    try {
+      return await new Promise((resolve, reject) => {
+        const tx = db.transaction('cache', value === undefined ? 'readonly' : 'readwrite');
+        const store = tx.objectStore('cache');
+        const request = value === undefined ? store.get(id) : store.put({ id, value });
+        request.onsuccess = () => resolve(value === undefined ? request.result?.value : value);
+        request.onerror = () => reject(request.error);
+      });
+    } finally {
+      db.close();
+    }
+  },
+
+  async _unlockDeviceKey() {
+    let key = await this._unlockCacheRecord('device-key');
+    if (!key) {
+      key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+      await this._unlockCacheRecord('device-key', key);
+    }
+    return key;
+  },
+
+  async rememberUnlock(passphrase) {
+    try {
+      const key = await this._unlockDeviceKey();
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const wrapped = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(passphrase));
+      const minutes = this.unlockTimeoutMinutes();
+      await this._unlockCacheRecord('session', {
+        iv: Array.from(iv),
+        wrapped: Array.from(new Uint8Array(wrapped)),
+        expiresAt: Date.now() + (minutes * 60000),
+        activeVisitUntil: 0
+      });
+    } catch (e) {
+      // Private browsing and some managed devices block durable CryptoKeys.
+      // Falling back to the normal passphrase prompt is safer than weakening it.
+      console.warn('Secure unlock grace could not be saved:', e);
+    }
+  },
+
+  async tryRememberedUnlock() {
+    try {
+      const record = await this._unlockCacheRecord('session');
+      if (!record) return false;
+      const now = Date.now();
+      if (!(Number(record.expiresAt) > now || Number(record.activeVisitUntil) > now)) return false;
+      const key = await this._unlockDeviceKey();
+      const plain = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: new Uint8Array(record.iv) },
+        key,
+        new Uint8Array(record.wrapped)
+      );
+      const passphrase = new TextDecoder().decode(plain);
+      await initEncryption(passphrase);
+      const verifyRaw = localStorage.getItem('advisoros_enc_verify');
+      if (verifyRaw && await decryptField(JSON.parse(verifyRaw)) !== 'advisoros-enc-verify') return false;
+      return true;
+    } catch (e) {
+      console.warn('Remembered unlock was unavailable:', e);
+      return false;
+    }
+  },
+
+  // Called by the on-site timer. A visit may keep the secure wrapper usable
+  // for up to 12 hours; leaving the customer restarts the selected timeout.
+  async setActiveVisitUnlock(active) {
+    try {
+      const record = await this._unlockCacheRecord('session');
+      if (!record) return;
+      const now = Date.now();
+      record.activeVisitUntil = active ? now + (12 * 60 * 60000) : 0;
+      if (!active) record.expiresAt = now + (this.unlockTimeoutMinutes() * 60000);
+      await this._unlockCacheRecord('session', record);
+    } catch (e) {
+      console.warn('Visit unlock grace could not be updated:', e);
     }
   },
 
@@ -330,18 +472,20 @@ const App = {
       status.warning = 'This browser is not giving the app reliable storage. Export backups often or try Safari without private browsing.';
     }
 
-    // Check storage quota (once per session)
+    // Only warn when storage is genuinely critical. Photos make a fixed 4MB
+    // threshold noisy on healthy phones, so use the browser's real quota.
     if (!this._storageQuotaWarned) {
       try {
         if (navigator.storage && navigator.storage.estimate) {
           const estimate = await navigator.storage.estimate();
           const usageMB = estimate.usage ? Math.round(estimate.usage / 1024 / 1024 * 10) / 10 : 0;
           const quotaMB = estimate.quota ? Math.round(estimate.quota / 1024 / 1024 * 10) / 10 : 0;
-          // Warn at ~4MB usage or 80% of quota, whichever is lower
-          const warnThreshold = Math.min(4, quotaMB * 0.8 || 4);
-          if (usageMB >= warnThreshold) {
+          const ratio = estimate.quota ? estimate.usage / estimate.quota : 0;
+          const remainingMB = Math.max(0, quotaMB - usageMB);
+          const critical = ratio >= 0.90 || (ratio >= 0.75 && remainingMB <= 50);
+          if (critical) {
             this._storageQuotaWarned = true;
-            const msg = `Storage usage: ${usageMB}MB${quotaMB ? ` of ${quotaMB}MB` : ''}. Consider exporting a backup.`;
+            const msg = `Beelo storage is nearly full: ${usageMB}MB${quotaMB ? ` of ${quotaMB}MB` : ''}. Export a backup and remove unneeded photos.`;
             console.warn('AdvisorOS storage quota warning:', msg);
             Toast.show(msg, 'warning', 10000);
           }
@@ -357,8 +501,13 @@ const App = {
       // console.warn is invisible on a phone with no devtools attached -
       // this is the one piece of information most likely to explain "my
       // data isn't there", so it needs to reach the actual screen.
-      if (typeof Toast !== 'undefined') {
+      const today = new Date().toISOString().slice(0, 10);
+      const noticeKey = 'advisoros_storage_notice_day';
+      let alreadyShown = false;
+      try { alreadyShown = localStorage.getItem(noticeKey) === today; } catch (e) {}
+      if (!alreadyShown && typeof Toast !== 'undefined') {
         Toast.show(status.warning, 'warning', 8000);
+        try { localStorage.setItem(noticeKey, today); } catch (e) {}
       }
     }
     return status;
@@ -393,6 +542,12 @@ const App = {
       } else {
         CONFIG.commission = { mode: 'two_stage', simpleRate: 10, saleReductionRate: 20, netCommissionRate: 15.25, tiers: null };
       }
+    }
+    if (!['ask', 'apple', 'google', 'waze'].includes(CONFIG.navigationApp)) {
+      CONFIG.navigationApp = 'ask';
+    }
+    if (![0, 15, 30, 60, 240, 480, 720, 1440].includes(Number(CONFIG.unlockTimeoutMinutes))) {
+      CONFIG.unlockTimeoutMinutes = 60;
     }
     this.setBranding();
   },
@@ -465,6 +620,47 @@ const App = {
     console.log(`Feature registered: ${feature.id}`);
   },
 
+  registerLazyFeature(definition) {
+    const proxy = {
+      id: definition.id,
+      name: definition.name,
+      icon: definition.icon,
+      route: definition.route === true,
+      _lazy: true,
+      async render(params = {}) {
+        await App.loadScripts(definition.scripts);
+        const loaded = App.features.get(definition.id);
+        if (!loaded || loaded === proxy || loaded._lazy) {
+          throw new Error(`${definition.name} failed to load`);
+        }
+        // Keep the object App.navigate() already selected, but promote it to
+        // the real implementation so activate/deactivate and later renders
+        // use the loaded feature without a second navigation or layout jump.
+        Object.assign(proxy, loaded, { _lazy: false });
+        App.features.set(definition.id, proxy);
+        return proxy.render(params);
+      }
+    };
+    this.registerFeature(proxy);
+  },
+
+  loadScripts(urls = []) {
+    return urls.reduce((chain, url) => chain.then(() => {
+      if (document.querySelector(`script[data-lazy-src="${url}"]`)) return;
+      return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = url;
+        script.dataset.lazySrc = url;
+        script.onload = resolve;
+        script.onerror = () => {
+          script.remove();
+          reject(new Error(`Could not load ${url}`));
+        };
+        document.head.appendChild(script);
+      });
+    }), Promise.resolve());
+  },
+
   // Navigation
   navigate(featureId, params = {}) {
     // Handle hash params
@@ -496,6 +692,14 @@ const App = {
         this.navigate('today');
       }
       return;
+    }
+
+    // Dismiss any iOS keyboard/focused form control before replacing the
+    // screen. Otherwise Safari can carry the old visual viewport offset into
+    // the next route even when #main.scrollTop is reset correctly.
+    const active = document.activeElement;
+    if (active && active !== document.body && typeof active.blur === 'function') {
+      try { active.blur(); } catch (e) { /* detached control */ }
     }
 
     this.closeModal({ all: true, silent: true });
@@ -605,8 +809,31 @@ const App = {
       window.location.hash = targetHash;
     }
 
-    // Scroll to top
-    main.scrollTop = 0;
+    // Reset both the app scroller and the document viewport. Repeat after the
+    // next paint and after iOS finishes closing its keyboard; a single
+    // synchronous #main.scrollTop assignment does not reliably clear Safari's
+    // visual-viewport carry-over from a long form.
+    this.resetNavigationScroll(main);
+    requestAnimationFrame(() => {
+      if (this.currentHash === targetHash) this.resetNavigationScroll(main);
+    });
+    setTimeout(() => {
+      if (this.currentHash === targetHash) this.resetNavigationScroll(main);
+    }, 180);
+  },
+
+  resetNavigationScroll(main) {
+    if (main) {
+      main.scrollTop = 0;
+      if (typeof main.scrollTo === 'function') main.scrollTo(0, 0);
+    }
+    if (typeof document !== 'undefined') {
+      if (document.documentElement) document.documentElement.scrollTop = 0;
+      if (document.body) document.body.scrollTop = 0;
+    }
+    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
+      window.scrollTo(0, 0);
+    }
   },
 
   // The app's forms use a loose "label next to control" pattern — 100+ labels
@@ -685,7 +912,7 @@ const App = {
     const objpath = m[1];
     const arglist = m[2].trim();
     const root = objpath.split('.')[0];
-    const KNOWN = ['App', 'AppointmentsFeature', 'SettingsFeature', 'MoneyFeature', 'TalkFeature', 'MeasureFeature', 'OnboardingFeature', 'RouteFeature', 'OrdersFeature', 'ContactFeature', 'HomeScreenController', 'CompanionFeature', 'ExportService', 'OCRFeature', 'ControlFeature', 'TodayFeature', 'Geo', 'CustomerFeature', 'FollowupsFeature', 'LeadsFeature', 'QuotesFeature', 'JobsFeature', 'InvoicesFeature', 'SuppliersFeature', 'CapacityFeature', 'ProfitabilityFeature', 'RetentionFeature', 'CommunicationsFeature'];
+    const KNOWN = ['App', 'AppointmentsFeature', 'SettingsFeature', 'MoneyFeature', 'TalkFeature', 'MeasureFeature', 'OnboardingFeature', 'RouteFeature', 'OrdersFeature', 'ContactFeature', 'HomeScreenController', 'CompanionFeature', 'ExportService', 'OCRFeature', 'ControlFeature', 'TodayFeature', 'Geo', 'CustomerFeature', 'FollowupsFeature', 'LeadsFeature', 'QuotesFeature', 'JobsFeature', 'InvoicesFeature', 'SuppliersFeature', 'CapacityFeature', 'ProfitabilityFeature', 'RetentionFeature', 'CommunicationsFeature', 'VoiceNotes'];
     if (!KNOWN.includes(root)) return '';
     // Convert the JS-ish argument list into a JSON array string:
     //   'appointments', {tab: 'upcoming'}  ->  ["appointments", {"tab": "upcoming"}]
@@ -749,10 +976,12 @@ const App = {
     // data-key support is scoped to the legacy pattern
     //   if(event.key==='Enter'||event.key===' '){...}
     // which becomes data-key="Enter, " (comma-separated accepted keys).
-    const ACTION_OBJECTS = {
+    // Resolve on dispatch rather than snapshotting at boot: secondary
+    // features are loaded only when their route is opened.
+    const actionObject = name => ({
       App,
       AppointmentsFeature,
-      SettingsFeature,
+      SettingsFeature: typeof SettingsFeature === 'undefined' ? null : SettingsFeature,
       MoneyFeature,
       TalkFeature,
       MeasureFeature,
@@ -770,18 +999,19 @@ const App = {
       CustomerFeature,
       FollowupsFeature,
       LeadsFeature,
-      QuotesFeature,
-      JobsFeature,
-      InvoicesFeature,
-      SuppliersFeature,
-      CapacityFeature,
-      ProfitabilityFeature,
-      RetentionFeature,
+      QuotesFeature: typeof QuotesFeature === 'undefined' ? null : QuotesFeature,
+      JobsFeature: typeof JobsFeature === 'undefined' ? null : JobsFeature,
+      InvoicesFeature: typeof InvoicesFeature === 'undefined' ? null : InvoicesFeature,
+      SuppliersFeature: typeof SuppliersFeature === 'undefined' ? null : SuppliersFeature,
+      CapacityFeature: typeof CapacityFeature === 'undefined' ? null : CapacityFeature,
+      ProfitabilityFeature: typeof ProfitabilityFeature === 'undefined' ? null : ProfitabilityFeature,
+      RetentionFeature: typeof RetentionFeature === 'undefined' ? null : RetentionFeature,
       CommunicationsFeature,
+      VoiceNotes: typeof VoiceNotes === 'undefined' ? null : VoiceNotes,
       InstallPrompt,
       Legal,
       ConsentPrompt
-    };
+    })[name];
 
     const runAction = (el, event) => {
       const action = el.getAttribute('data-action');
@@ -835,7 +1065,7 @@ const App = {
       const dot = action.lastIndexOf('.');
       const objName = dot > 0 ? action.slice(0, dot) : '';
       const method = dot > 0 ? action.slice(dot + 1) : action;
-      const obj = ACTION_OBJECTS[objName];
+      const obj = actionObject(objName);
       if (!obj) {
         console.error(`[action] unknown object "${objName}" from ${action}`);
         return false;
@@ -921,6 +1151,10 @@ const App = {
     // navigator.onLine lies (flaky WiFi, captive portals) and the banner
     // would otherwise never appear even though the app IS offline.
     navigator.serviceWorker?.addEventListener('message', e => {
+      if (e.data && e.data.type === 'notification-click' && e.data.data?.appointmentId) {
+        this.navigate('appointments', { id: e.data.data.appointmentId });
+        return;
+      }
       if (e.data && e.data.type === 'beelo-offline') {
         applyOfflineState(true);
         if (typeof navigator !== 'undefined' && navigator.onLine) {
@@ -995,10 +1229,12 @@ const App = {
     }
 
     sheet.innerHTML = content;
+    overlay.classList.toggle('passphrase-gate', options.className === 'passphrase-gate');
     sheet.scrollTop = 0;
     this._associateLabels(sheet);
     sheet.setAttribute('role', 'dialog');
     sheet.setAttribute('aria-modal', 'true');
+    this._nameDialog(sheet, options);
     overlay.classList.add('active');
     document.body.style.overflow = 'hidden';
 
@@ -1052,6 +1288,7 @@ const App = {
       const previous = this.modalStack.pop();
       sheet.innerHTML = previous.content;
       sheet.scrollTop = previous.scrollTop || 0;
+      this._nameDialog(sheet);
       this.focusFirstControl(sheet);
       this.trapFocus(sheet);
       return;
@@ -1061,11 +1298,14 @@ const App = {
     this._untrapFocus();
     if (overlay) {
       overlay.classList.remove('active');
+      overlay.classList.remove('passphrase-gate');
     }
     if (sheet) {
       sheet.innerHTML = '';
       sheet.removeAttribute('role');
       sheet.removeAttribute('aria-modal');
+      sheet.removeAttribute('aria-label');
+      sheet.removeAttribute('aria-labelledby');
     }
     document.body.style.overflow = '';
 
@@ -1084,6 +1324,7 @@ const App = {
     this._associateLabels(modal);
     modal.setAttribute('role', 'dialog');
     modal.setAttribute('aria-modal', 'true');
+    this._nameDialog(modal, options);
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
 
@@ -1100,6 +1341,8 @@ const App = {
       modal.classList.remove('active');
       modal.removeAttribute('role');
       modal.removeAttribute('aria-modal');
+      modal.removeAttribute('aria-label');
+      modal.removeAttribute('aria-labelledby');
     }
     this._untrapFocus();
     document.body.style.overflow = '';
@@ -1119,16 +1362,82 @@ const App = {
     });
   },
 
+  // Every dialog needs an accessible name. Most call sites already include a
+  // visible heading, so associate it automatically and allow explicit labels
+  // for the few deliberately heading-free sheets.
+  _nameDialog(container, options = {}) {
+    container.removeAttribute('aria-label');
+    container.removeAttribute('aria-labelledby');
+    if (options.ariaLabel) {
+      container.setAttribute('aria-label', options.ariaLabel);
+      return;
+    }
+    const heading = container.querySelector('h1, h2, h3, [data-dialog-title]');
+    if (heading) {
+      if (!heading.id) heading.id = `dialog-title-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      container.setAttribute('aria-labelledby', heading.id);
+      return;
+    }
+    container.setAttribute('aria-label', 'Dialog');
+  },
+
   // Service worker
   async setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       try {
+        // Browser suites deliberately seed this flag before boot. Capture it
+        // before the asynchronous registration so a waiting worker cannot
+        // cover the install/onboarding UI those suites are exercising.
+        const suppressUpdateUI = localStorage.getItem('advisoros_enc_test') === '1';
         const registration = await navigator.serviceWorker.register('sw.js');
         console.log('Service Worker registered:', registration.scope);
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (suppressUpdateUI || refreshing) return;
+          refreshing = true;
+          window.location.reload();
+        });
+
+        const offerUpdate = worker => {
+          if (suppressUpdateUI || !worker || !navigator.serviceWorker.controller || this._updateOffered) return;
+          this._updateOffered = true;
+          this.openModal(`
+            <div class="sheet-handle"></div>
+            <div class="sheet-header"><h3>Update ready</h3></div>
+            <div class="sheet-body p-md">
+              <p class="text-secondary mb-lg">A new version of Beelo is ready. Update now to load it safely.</p>
+              <button class="btn btn-primary btn-block" data-action="App.applyServiceWorkerUpdate">Update and reload</button>
+              <button class="btn btn-ghost btn-block mt-sm" data-action="App.closeModal">Later</button>
+            </div>`);
+        };
+
+        this._waitingServiceWorker = registration.waiting || null;
+        if (registration.waiting) offerUpdate(registration.waiting);
+        registration.addEventListener('updatefound', () => {
+          const worker = registration.installing;
+          if (!worker) return;
+          worker.addEventListener('statechange', () => {
+            if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+              this._waitingServiceWorker = worker;
+              offerUpdate(worker);
+            }
+          });
+        });
       } catch (err) {
         console.log('Service Worker registration failed:', err);
       }
     }
+  },
+
+  applyServiceWorkerUpdate() {
+    const worker = this._waitingServiceWorker;
+    if (!worker) return;
+    const button = document.querySelector('[data-action="App.applyServiceWorkerUpdate"]');
+    if (button) {
+      button.disabled = true;
+      button.textContent = 'Updating…';
+    }
+    worker.postMessage({ type: 'SKIP_WAITING' });
   },
 };
 

@@ -440,7 +440,7 @@ const FollowupsFeature = {
 
     return `
       <div class="fade-in">
-        ${App.renderTopHeader({ title: 'Follow-ups', actions: `<button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='${JSON.stringify(["leads"])}'><span class="material-symbols-rounded fs-18">inbox</span>Leads</button><button class="btn btn-primary btn-sm" data-action="FollowupsFeature.openNewTask"><span class="material-symbols-rounded fs-18">add</span>New task</button>` })}
+        ${App.renderTopHeader({ title: 'Follow-ups', actions: `<button class="btn btn-outline btn-sm followups-header-action" title="Open leads" aria-label="Open leads" data-action="App.navigate" data-args='${JSON.stringify(["leads"])}'><span class="material-symbols-rounded fs-18">inbox</span><span class="header-action-text">Leads</span></button><button class="btn btn-primary btn-sm followups-header-action" title="Create new task" aria-label="Create new task" data-action="FollowupsFeature.openNewTask"><span class="material-symbols-rounded fs-18">add</span><span class="header-action-text">New task</span></button>` })}
         <div class="px-md pb-lg" >
           ${due.length === 0 && later.length === 0 && snoozed.length === 0 ? `
             <div class="empty-state empty-state-lg" >

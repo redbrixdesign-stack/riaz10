@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { CONTENT } from '../data/content';
 import { Section } from './Section';
 import { Reveal } from './Reveal';
@@ -10,16 +10,18 @@ const EMPTY: PilotFormData = {
   phone: '',
   trade: '',
   area: '',
+  ukResident: false,
   worksAlone: 'yes',
   currentTools: '',
   biggestProblem: '',
   partnerInterest: false
 };
 
-type Status = 'idle' | 'sending' | 'success' | 'error';
+type Status = 'idle' | 'sending' | 'success' | 'error' | 'uk-only';
 
-/** Pilot application form — functional, with a mock handler by default. */
+/** Pilot application form. */
 export function Pilot() {
+  const formOpenedAt = useRef(Date.now());
   const [data, setData] = useState<PilotFormData>(EMPTY);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<Status>('idle');
@@ -31,13 +33,19 @@ export function Pilot() {
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    const website = String(new FormData(e.currentTarget as HTMLFormElement).get('website') || '');
     const errs = validatePilot(data);
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
     setStatus('sending');
     try {
-      const { ok } = await submitForm({ type: 'pilot', ...data });
-      setStatus(ok ? 'success' : 'error');
+      const { ok, code } = await submitForm({
+        type: 'pilot',
+        website,
+        formElapsedMs: Date.now() - formOpenedAt.current,
+        ...data
+      });
+      setStatus(ok ? 'success' : code === 'uk_only' ? 'uk-only' : 'error');
       if (ok) setData(EMPTY);
     } catch {
       setStatus('error');
@@ -78,6 +86,13 @@ export function Pilot() {
               </div>
             ) : (
               <form onSubmit={onSubmit} noValidate aria-label="Pilot application form">
+                <p className="mb-5 rounded-lg border border-gold/35 bg-gold/10 px-4 py-3 text-[13px] font-medium leading-relaxed text-forest">
+                  UK pilot only — applications are currently open to people who live and work in the United Kingdom.
+                </p>
+                <div className="sr-only" aria-hidden="true">
+                  <label htmlFor="p-website">Website</label>
+                  <input id="p-website" name="website" tabIndex={-1} autoComplete="off" />
+                </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="sm:col-span-2">
                     <label htmlFor="p-name" className="field-label">Name *</label>
@@ -90,7 +105,7 @@ export function Pilot() {
                     {err('email')}
                   </div>
                   <div>
-                    <label htmlFor="p-phone" className="field-label">Phone *</label>
+                    <label htmlFor="p-phone" className="field-label">Phone <span className="text-ink/45">(optional)</span></label>
                     <input id="p-phone" type="tel" className="field" value={data.phone} onChange={(e) => set('phone', e.target.value)} autoComplete="tel" />
                     {err('phone')}
                   </div>
@@ -100,12 +115,24 @@ export function Pilot() {
                     {err('trade')}
                   </div>
                   <div>
-                    <label htmlFor="p-area" className="field-label">Area / postcode *</label>
-                    <input id="p-area" className="field" placeholder="e.g. Stockport, SK1" value={data.area} onChange={(e) => set('area', e.target.value)} />
+                    <label htmlFor="p-area" className="field-label">UK postcode *</label>
+                    <input id="p-area" className="field" placeholder="e.g. SK1 1AA" value={data.area} onChange={(e) => set('area', e.target.value)} autoComplete="postal-code" />
                     {err('area')}
                   </div>
-                  <div>
-                    <span className="field-label">Do you work alone?</span>
+                  <div className="sm:col-span-2">
+                    <label className="flex items-start gap-2.5 text-sm font-medium text-ink/80">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 h-4 w-4 accent-[#153D32]"
+                        checked={data.ukResident}
+                        onChange={(e) => set('ukResident', e.target.checked)}
+                      />
+                      I confirm that I currently live and work in the United Kingdom. *
+                    </label>
+                    {err('ukResident')}
+                  </div>
+                  <div className="sm:col-span-2">
+                    <span className="field-label">Do you usually work alone?</span>
                     <div className="flex flex-wrap gap-2">
                       {(['yes', 'sometimes', 'no'] as const).map((v) => (
                         <label key={v} className="cursor-pointer">
@@ -122,11 +149,6 @@ export function Pilot() {
                         </label>
                       ))}
                     </div>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label htmlFor="p-tools" className="field-label">What do you currently use for appointments, notes and mileage? *</label>
-                    <textarea id="p-tools" rows={2} className="field resize-y" value={data.currentTools} onChange={(e) => set('currentTools', e.target.value)} />
-                    {err('currentTools')}
                   </div>
                   <div className="sm:col-span-2">
                     <label htmlFor="p-problem" className="field-label">Biggest admin problem *</label>
@@ -146,9 +168,11 @@ export function Pilot() {
                   </div>
                 </div>
 
-                {status === 'error' && (
+                {(status === 'error' || status === 'uk-only') && (
                   <p role="alert" className="mt-4 rounded-lg bg-[#FBE9E4] px-4 py-3 text-[13px] text-[#B3422E]">
-                    {CONTENT.pilot.error}
+                    {status === 'uk-only'
+                      ? 'The Beelo pilot is currently available to UK residents only.'
+                      : CONTENT.pilot.error}
                   </p>
                 )}
 
@@ -162,6 +186,8 @@ export function Pilot() {
                     CONTENT.pilot.cta
                   )}
                 </button>
+                <p className="mt-3 text-xs leading-relaxed text-ink/55">{CONTENT.pilot.reassurance}</p>
+                <p id="pilot-privacy" className="mt-2 scroll-mt-24 text-xs leading-relaxed text-ink/45">{CONTENT.pilot.privacy}</p>
               </form>
             )}
           </div>
