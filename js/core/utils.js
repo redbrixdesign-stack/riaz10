@@ -427,6 +427,25 @@ const Utils = {
     return stripped.split(/\s+/)[0] || 'there';
   },
 
+  // Imported records sometimes store only an honorific in firstName while
+  // retaining the useful full name on the customer or appointment.
+  customerFirstName(customer, fallbackName = '') {
+    const rawFirst = String(customer?.firstName || '').trim();
+    const titleOnly = /^(mr|mrs|ms|miss|mstr|dr|prof|rev|sir|lady|dame)\.?$/i.test(rawFirst);
+    const candidates = [
+      titleOnly ? '' : rawFirst,
+      customer?.fullName,
+      fallbackName,
+      [customer?.firstName, customer?.lastName].filter(Boolean).join(' ')
+    ];
+    for (const candidate of candidates) {
+      if (!String(candidate || '').trim()) continue;
+      const first = this.firstNameFrom(candidate);
+      if (first !== 'there' && !/^(mr|mrs|ms|miss|mstr|dr|prof|rev|sir|lady|dame)\.?$/i.test(first)) return first;
+    }
+    return 'there';
+  },
+
   escapeJsString(value) {
     return String(value ?? '')
       .replace(/\\/g, '\\\\')

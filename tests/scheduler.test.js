@@ -86,6 +86,7 @@ function loadScheduler({ uk, aiEnabled = false, autoMessages, appointments = [],
   sandbox.DB = {
     getUpcomingAppointments: async () => appointments,
     getAppointment: async id => apptById[id],
+    getCustomer: async () => ({ id: 1, firstName: 'Alice', phone: '07700123456' }),
     db: { appointments: { get: async id => apptById[id] } }
   };
   sandbox.TalkFeature = {
@@ -108,6 +109,7 @@ function loadScheduler({ uk, aiEnabled = false, autoMessages, appointments = [],
       stage: 'day_before',
       ...pending
     }),
+    buildIntroMessage: async () => "Hi Alice, I'm Tom Advisor, your window coverings adviser, and I'll be with you tomorrow at 11:00.",
     openPreviewSheet: function (message, pending, hint) { this.lastSheet = { message, pending, hint }; }
   };
   sandbox.AIService = {
@@ -135,7 +137,7 @@ function ukDay(y, m, d) {
 }
 
 function appt(id, dateISO, phone = '07700123456') {
-  return { id, customerId: 1, phone, address: '12 Example Street, M14 7FZ', date: dateISO };
+  return { id, customerId: 1, phone, address: '12 Example Street, M14 7FZ', date: dateISO, introSent: true };
 }
 
 (async () => {
@@ -150,6 +152,8 @@ function appt(id, dateISO, phone = '07700123456') {
     ok('Dr title skipped', Utils.firstNameFrom('Dr Sarah Jones') === 'Sarah');
     ok('Mrs title skipped', Utils.firstNameFrom('Mrs Jane Doe') === 'Jane');
     ok('Mr title skipped', Utils.firstNameFrom('Mr. John Doe') === 'John');
+    ok('customer greeting skips a title-only firstName and uses scanned full name', Utils.customerFirstName({ firstName: 'Miss' }, 'Miss Aisha Khan') === 'Aisha');
+    ok('customer greeting strips a title from profile fullName', Utils.customerFirstName({ firstName: 'Mr', fullName: 'Mr Ahmed Khan' }) === 'Ahmed');
     ok('empty falls back to "there"', Utils.firstNameFrom('') === 'there');
     ok('missing falls back to "there"', Utils.firstNameFrom(null) === 'there');
   }
@@ -217,6 +221,20 @@ function appt(id, dateISO, phone = '07700123456') {
   }
 
   console.log('\nTest F: AI draft path (AI on)');
+  {
+    const firstContact = { ...appt(9, ukDay(2026, 8, 12)), introSent: false };
+    const s = loadScheduler({
+      uk: { year: 2026, month: 8, day: 11, hour: 18, minute: 30, second: 0 },
+      appointments: [firstContact]
+    });
+    await s.reschedule();
+    await s.sandbox.timers[0].fn();
+    const sheet = s.sandbox.TalkFeature.lastSheet;
+    ok('first contact tomorrow uses combined introduction + confirmation', sheet?.pending?.templateKey === 'intro_day_before' && /I'm Tom Advisor/.test(sheet.message), sheet);
+    ok('combined communication carries explicit review hint', /Combined first introduction/.test(sheet?.hint || ''), sheet?.hint);
+  }
+
+  console.log('\nTest G: AI draft path (AI on)');
   {
     const s = loadScheduler({
       uk: { year: 2026, month: 8, day: 11, hour: 7, minute: 0, second: 0 },
@@ -345,7 +363,7 @@ function appt(id, dateISO, phone = '07700123456') {
     ok('booking confirmation tiers tomorrow correctly', tomorrowMsg.includes('tomorrow') && tomorrowMsg.includes('measurement'), tomorrowMsg);
     // Visit four UK days out = the "later" tier with the reminder promise.
     const laterMsg = vm.runInContext('NotificationService.buildBookingConfirmationMessage({ firstName: "Sam", dateLabel: "15 Aug", time: "at 09:00", address: "", type: "consultation", advisorName: "Tom", date: new Date("2026-08-15T08:00:00Z") });', s.sandbox);
-    ok('booking confirmation tiers later with the reminder promise', laterMsg.includes("little way off") && laterMsg.includes('reminder'), laterMsg);
+    ok('booking confirmation tiers later with the reminder promise', laterMsg.includes('visit arranged') && laterMsg.includes('reminder'), laterMsg);
     // DST boundary: 23:30Z on 24 Oct 2026 is 00:30 BST on the 25th in the UK,
     // so a visit booked for 25 Oct is TODAY's visit, not tomorrow's.
     const s2 = loadScheduler({

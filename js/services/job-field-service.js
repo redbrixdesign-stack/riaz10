@@ -45,18 +45,21 @@ const JobFieldService = {
   },
 
   openAddIssue(jobId) {
-    App.openModal(`<div class="sheet-handle"></div><div class="sheet-header"><h3>Add job issue</h3><button class="btn btn-ghost btn-sm" aria-label="Close" data-action="App.closeModal"><span class="material-symbols-rounded">close</span></button></div><div class="sheet-body"><div class="form-group"><label for="job-issue-title">Issue</label><input class="input" id="job-issue-title" maxlength="160" required></div><div class="form-group"><label for="job-issue-notes">Details</label><textarea class="textarea" id="job-issue-notes" maxlength="500"></textarea></div><label class="flex items-center gap-sm mb-md"><input type="checkbox" id="job-issue-return">Return visit required</label><button class="btn btn-primary btn-block" data-action="JobsFeature.saveIssue" data-args='${JSON.stringify([jobId])}'>Save issue</button></div>`);
+    if (typeof NoteCapture !== 'undefined') NoteCapture.setRecordings('job-issue-notes', []);
+    App.openModal(`<div class="sheet-handle"></div><div class="sheet-header"><h3>Add job issue</h3><button class="btn btn-ghost btn-sm" aria-label="Close" data-action="App.closeModal"><span class="material-symbols-rounded">close</span></button></div><div class="sheet-body"><div class="form-group"><label for="job-issue-title">Issue</label><input class="input" id="job-issue-title" maxlength="160" required></div><div class="form-group"><label for="job-issue-notes">Details</label><textarea class="textarea" id="job-issue-notes" maxlength="500"></textarea>${typeof NoteCapture !== 'undefined' ? NoteCapture.render('job-issue-notes') : ''}</div><label class="flex items-center gap-sm mb-md"><input type="checkbox" id="job-issue-return">Return visit required</label><button class="btn btn-primary btn-block" data-action="JobsFeature.saveIssue" data-args='${JSON.stringify([jobId])}'>Save issue</button></div>`);
   },
 
   async saveIssue(jobId) {
     const title = document.getElementById('job-issue-title')?.value.trim();
     if (!title) return Toast.show('Describe the issue', 'warning');
-    await DB.addJobIssue(jobId, { title, notes: document.getElementById('job-issue-notes')?.value.trim() || '', requiresReturnVisit: !!document.getElementById('job-issue-return')?.checked, status: 'open' });
+    await DB.addJobIssue(jobId, { title, notes: document.getElementById('job-issue-notes')?.value.trim() || '', audioNotes: typeof NoteCapture !== 'undefined' ? NoteCapture.getRecordings('job-issue-notes') : [], requiresReturnVisit: !!document.getElementById('job-issue-return')?.checked, status: 'open' });
     App.closeModal(); Toast.show('Issue saved', 'success'); App.navigate('jobs', { id: jobId });
   },
 
-  openResolveIssue(issueId, jobId) {
-    App.openModal(`<div class="sheet-handle"></div><div class="sheet-header"><h3>Resolve issue</h3></div><div class="sheet-body"><div class="form-group"><label for="job-issue-resolution">Resolution</label><textarea class="textarea" id="job-issue-resolution" required></textarea></div><label class="flex items-start gap-sm mb-md"><input type="checkbox" id="job-issue-resolved-confirm"><span>I confirm this issue has been resolved.</span></label><button class="btn btn-primary btn-block" data-action="JobsFeature.resolveIssue" data-args='${JSON.stringify([issueId, jobId])}'>Confirm resolution</button><button class="btn btn-outline btn-block mt-sm" data-action="App.closeModal">Cancel</button></div>`);
+  async openResolveIssue(issueId, jobId) {
+    const issue = (await DB.getJobIssues(jobId)).find(row => row.id === Number(issueId));
+    if (typeof NoteCapture !== 'undefined') NoteCapture.setRecordings('job-issue-resolution', issue?.audioNotes || []);
+    App.openModal(`<div class="sheet-handle"></div><div class="sheet-header"><h3>Resolve issue</h3></div><div class="sheet-body"><div class="form-group"><label for="job-issue-resolution">Resolution</label><textarea class="textarea" id="job-issue-resolution" required></textarea>${typeof NoteCapture !== 'undefined' ? NoteCapture.render('job-issue-resolution') : ''}</div><label class="flex items-start gap-sm mb-md"><input type="checkbox" id="job-issue-resolved-confirm"><span>I confirm this issue has been resolved.</span></label><button class="btn btn-primary btn-block" data-action="JobsFeature.resolveIssue" data-args='${JSON.stringify([issueId, jobId])}'>Confirm resolution</button><button class="btn btn-outline btn-block mt-sm" data-action="App.closeModal">Cancel</button></div>`);
   },
 
   async resolveIssue(issueId, jobId) {
@@ -64,7 +67,7 @@ const JobFieldService = {
     const resolution = document.getElementById('job-issue-resolution')?.value.trim();
     if (!confirmed) return Toast.show('Confirm the issue is resolved', 'warning');
     if (!resolution) return Toast.show('Add the resolution', 'warning');
-    await DB.resolveJobIssue(issueId, resolution, { confirmed: true });
+    await DB.resolveJobIssue(issueId, resolution, { confirmed: true, audioNotes: typeof NoteCapture !== 'undefined' ? NoteCapture.getRecordings('job-issue-resolution') : [] });
     App.closeModal(); Toast.show('Issue resolved', 'success'); App.navigate('jobs', jobId ? { id: jobId } : {});
   },
 

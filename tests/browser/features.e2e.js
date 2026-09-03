@@ -24,7 +24,7 @@ const os = require('os');
 const path = require('path');
 
 const CDP_PORT = 9444;
-const BASE = 'http://localhost:8000';
+const BASE = process.env.BEELO_TEST_BASE || 'http://localhost:8000';
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 let failures = 0;

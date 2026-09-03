@@ -56,10 +56,11 @@ const RetentionFeature = {
 
   openAdd(customerId, orderId = null, jobId = null) {
     const due = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+    if (typeof NoteCapture !== 'undefined') NoteCapture.setRecordings('retention-notes', []);
     App.openModal(`<div class="sheet-handle"></div><div class="sheet-header"><h3>New aftercare action</h3><button class="btn btn-ghost btn-sm" data-action="App.closeModal" aria-label="Close"><span class="material-symbols-rounded">close</span></button></div><div class="sheet-body">
       <div class="form-group"><label for="retention-type">Action</label><select class="input" id="retention-type">${Object.entries(this.TYPES).map(([type, value]) => `<option value="${type}">${value[0]}</option>`).join('')}</select></div>
       <div class="form-group"><label for="retention-due">Due date</label><input class="input" id="retention-due" type="date" value="${due}" required></div>
-      <div class="form-group"><label for="retention-notes">Notes</label><textarea class="input" id="retention-notes" rows="3" placeholder="Facts or context only"></textarea></div>
+      <div class="form-group"><label for="retention-notes">Notes</label><textarea class="input" id="retention-notes" rows="3" placeholder="Facts or context only"></textarea>${typeof NoteCapture !== 'undefined' ? NoteCapture.render('retention-notes') : ''}</div>
       <button class="btn btn-primary btn-block" data-action="RetentionFeature.saveNew" data-args='${JSON.stringify([customerId, orderId, jobId])}'>Save action</button>
     </div>`);
   },
@@ -69,19 +70,21 @@ const RetentionFeature = {
     const dueAt = document.getElementById('retention-due')?.value;
     const notes = (document.getElementById('retention-notes')?.value || '').trim();
     if (!this.TYPES[type] || !dueAt) return Toast.show('Choose an action and due date', 'warning');
-    try { await DB.addRetentionRecord({ customerId, type, dueAt, notes, status: 'planned', ...(Number(orderId) ? { orderId: Number(orderId) } : {}), ...(Number(jobId) ? { jobId: Number(jobId) } : {}) }); App.closeModal(); Toast.show('Aftercare action saved', 'success'); App.navigate('retention', { customerId }); }
+    try { await DB.addRetentionRecord({ customerId, type, dueAt, notes, audioNotes: typeof NoteCapture !== 'undefined' ? NoteCapture.getRecordings('retention-notes') : [], status: 'planned', ...(Number(orderId) ? { orderId: Number(orderId) } : {}), ...(Number(jobId) ? { jobId: Number(jobId) } : {}) }); App.closeModal(); Toast.show('Aftercare action saved', 'success'); App.navigate('retention', { customerId }); }
     catch (error) { console.error('Retention save failed:', error); Toast.show('Could not save aftercare action', 'error'); }
   },
 
-  openComplete(id, customerId, type) {
-    App.openModal(`<div class="sheet-handle"></div><div class="sheet-header"><h3>Complete aftercare</h3><button class="btn btn-ghost btn-sm" data-action="App.closeModal" aria-label="Close"><span class="material-symbols-rounded">close</span></button></div><div class="sheet-body">${type === 'satisfaction_check' ? '<div class="form-group"><label for="retention-score">Satisfaction</label><select class="input" id="retention-score"><option value="">Choose score</option><option value="1">1 — very unhappy</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5 — very happy</option></select></div>' : ''}<div class="form-group"><label for="retention-outcome">Outcome</label><textarea class="input" id="retention-outcome" rows="3" placeholder="What happened?"></textarea></div><button class="btn btn-primary btn-block" data-action="RetentionFeature.saveCompletion" data-args='${JSON.stringify([id, customerId, type])}'>Complete action</button></div>`);
+  async openComplete(id, customerId, type) {
+    const existing = (await DB.getRetentionRecords({ customerId })).find(row => row.id === Number(id));
+    if (typeof NoteCapture !== 'undefined') NoteCapture.setRecordings('retention-outcome', existing?.audioNotes || []);
+    App.openModal(`<div class="sheet-handle"></div><div class="sheet-header"><h3>Complete aftercare</h3><button class="btn btn-ghost btn-sm" data-action="App.closeModal" aria-label="Close"><span class="material-symbols-rounded">close</span></button></div><div class="sheet-body">${type === 'satisfaction_check' ? '<div class="form-group"><label for="retention-score">Satisfaction</label><select class="input" id="retention-score"><option value="">Choose score</option><option value="1">1 — very unhappy</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5 — very happy</option></select></div>' : ''}<div class="form-group"><label for="retention-outcome">Outcome</label><textarea class="input" id="retention-outcome" rows="3" placeholder="What happened?"></textarea>${typeof NoteCapture !== 'undefined' ? NoteCapture.render('retention-outcome') : ''}</div><button class="btn btn-primary btn-block" data-action="RetentionFeature.saveCompletion" data-args='${JSON.stringify([id, customerId, type])}'>Complete action</button></div>`);
   },
 
   async saveCompletion(id, customerId, type) {
     const score = Number(document.getElementById('retention-score')?.value || 0);
     const outcome = (document.getElementById('retention-outcome')?.value || '').trim();
     if (type === 'satisfaction_check' && !(score >= 1 && score <= 5)) return Toast.show('Choose a satisfaction score', 'warning');
-    try { await DB.updateRetentionRecord(id, { status: 'completed', completedAt: new Date().toISOString(), ...(score ? { score } : {}), ...(outcome ? { outcome } : {}) }); App.closeModal(); Toast.show('Aftercare action completed', 'success'); App.navigate('retention', { customerId }); }
+    try { await DB.updateRetentionRecord(id, { status: 'completed', completedAt: new Date().toISOString(), audioNotes: typeof NoteCapture !== 'undefined' ? NoteCapture.getRecordings('retention-outcome') : [], ...(score ? { score } : {}), ...(outcome ? { outcome } : {}) }); App.closeModal(); Toast.show('Aftercare action completed', 'success'); App.navigate('retention', { customerId }); }
     catch (error) { console.error('Retention completion failed:', error); Toast.show('Could not complete action', 'error'); }
   },
 

@@ -101,8 +101,10 @@ const CompanionFeature = {
   async customerBriefFor(appt) {
     if (!appt) return { text: 'No customer notes recorded yet.', fingerprint: '' };
     let visits = [appt];
+    let customerNotes = '';
     if (appt.customerId) {
       try { visits = await DB.getAppointmentsByCustomer(appt.customerId); } catch (e) { /* current visit is enough */ }
+      try { customerNotes = String((await DB.getCustomer(appt.customerId))?.notes || ''); } catch (e) { /* visit notes are enough */ }
     }
     const chronological = visits.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
     const noteField = (notes, label) => {
@@ -114,7 +116,7 @@ const CompanionFeature = {
       ['Parking', 'parking'], ['Access', 'access(?: code)?'], ['Pets', 'pets?'], ['Floor', 'floor']
     ];
     for (const [title, pattern] of labels) {
-      const value = chronological.map(v => noteField(v.notes, pattern)).find(Boolean);
+      const value = [noteField(customerNotes, pattern), ...chronological.map(v => noteField(v.notes, pattern))].find(Boolean);
       if (value) facts.push(`${title}: ${value}`);
     }
     const past = chronological.filter(v => v.id !== appt.id && new Date(v.date) < new Date());
@@ -125,7 +127,7 @@ const CompanionFeature = {
     // Preserve a useful unlabelled current-visit note after the operational
     // facts and repeat-customer signal, so those higher-value facts survive
     // the deliberately short five-item Home summary.
-    const freeNote = String(appt.notes || '').split(/\r?\n/)
+    const freeNote = [customerNotes, String(appt.notes || '')].join('\n').split(/\r?\n/)
       .map(s => s.trim()).filter(s => s && !/^(parking|access(?: code)?|pets?|floor)\s*[:\-]/i.test(s))[0];
     if (freeNote) facts.push(freeNote);
     const localText = facts.slice(0, 5).join(' · ') || 'No customer notes recorded yet.';
@@ -687,7 +689,12 @@ const CompanionFeature = {
         date: next.date, // raw instant — lets the renderer show a date when the visit isn't today
         eta: eta || '—',
         travel,
-        briefing: await this.briefingFor(next),
+        briefing: await (async () => {
+          const operational = await this.briefingFor(next);
+          if (operational) return operational;
+          const customerBrief = await this.customerBriefFor(next);
+          return customerBrief.text === 'No customer notes recorded yet.' ? '' : customerBrief.text;
+        })(),
         phone,
         accessNotes: noteField('access'),
         parkingNotes: noteField('parking'),

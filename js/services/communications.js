@@ -15,12 +15,12 @@ const CommunicationService = {
     return !preference || !['opted_out', 'blocked', 'do_not_contact'].includes(preference.status);
   },
 
-  async savePreference(customerId, channel, status, notes = '') {
+  async savePreference(customerId, channel, status, notes = '', audioNotes = []) {
     if (!Number.isInteger(Number(customerId)) || !channel) throw new Error('Customer and channel are required');
     if (!['unknown', 'opted_in', 'opted_out'].includes(status)) throw new Error('Invalid contact preference');
     if (typeof DB.setContactPreference !== 'function') throw new Error('Contact preference storage is unavailable');
     const operationId = this.operationId('preference', customerId);
-    return DB.setContactPreference({ customerId: Number(customerId), channel, status, notes, effectiveAt: new Date().toISOString(), operationId }, operationId);
+    return DB.setContactPreference({ customerId: Number(customerId), channel, status, notes, audioNotes, effectiveAt: new Date().toISOString(), operationId }, operationId);
   },
 
   async recordState(communicationId, customerId, state, provenance = 'advisor') {
@@ -106,10 +106,11 @@ const CommunicationsFeature = {
   },
   async openPreferences(customerId) {
     const pref = await CommunicationService.preference(Number(customerId), 'whatsapp');
-    App.openModal(`<div class="sheet-handle"></div><div class="sheet-header"><h3>Contact preference</h3><button class="btn btn-ghost btn-sm" aria-label="Close" data-action="App.closeModal"><span class="material-symbols-rounded">close</span></button></div><div class="sheet-body"><div class="form-group"><label for="contact-pref-status">WhatsApp</label><select class="select" id="contact-pref-status"><option value="unknown" ${!pref || pref.status === 'unknown' ? 'selected' : ''}>Not recorded</option><option value="opted_in" ${pref?.status === 'opted_in' ? 'selected' : ''}>Customer agrees</option><option value="opted_out" ${pref?.status === 'opted_out' ? 'selected' : ''}>Do not contact</option></select></div><div class="form-group"><label for="contact-pref-notes">Evidence or notes</label><textarea class="textarea" id="contact-pref-notes">${Utils.escapeHtml(pref?.notes || '')}</textarea></div><button class="btn btn-primary btn-block" data-action="CommunicationsFeature.savePreference" data-args='${JSON.stringify([Number(customerId)])}'>Save preference</button></div>`);
+    if (typeof NoteCapture !== 'undefined') NoteCapture.setRecordings('contact-pref-notes', pref?.audioNotes || []);
+    App.openModal(`<div class="sheet-handle"></div><div class="sheet-header"><h3>Contact preference</h3><button class="btn btn-ghost btn-sm" aria-label="Close" data-action="App.closeModal"><span class="material-symbols-rounded">close</span></button></div><div class="sheet-body"><div class="form-group"><label for="contact-pref-status">WhatsApp</label><select class="select" id="contact-pref-status"><option value="unknown" ${!pref || pref.status === 'unknown' ? 'selected' : ''}>Not recorded</option><option value="opted_in" ${pref?.status === 'opted_in' ? 'selected' : ''}>Customer agrees</option><option value="opted_out" ${pref?.status === 'opted_out' ? 'selected' : ''}>Do not contact</option></select></div><div class="form-group"><label for="contact-pref-notes">Evidence or notes</label><textarea class="textarea" id="contact-pref-notes">${Utils.escapeHtml(pref?.notes || '')}</textarea>${typeof NoteCapture !== 'undefined' ? NoteCapture.render('contact-pref-notes') : ''}</div><button class="btn btn-primary btn-block" data-action="CommunicationsFeature.savePreference" data-args='${JSON.stringify([Number(customerId)])}'>Save preference</button></div>`);
   },
   async savePreference(customerId) {
-    await CommunicationService.savePreference(Number(customerId), 'whatsapp', document.getElementById('contact-pref-status')?.value || 'unknown', document.getElementById('contact-pref-notes')?.value.trim() || '');
+    await CommunicationService.savePreference(Number(customerId), 'whatsapp', document.getElementById('contact-pref-status')?.value || 'unknown', document.getElementById('contact-pref-notes')?.value.trim() || '', typeof NoteCapture !== 'undefined' ? NoteCapture.getRecordings('contact-pref-notes') : []);
     App.closeModal(); Toast.show('Contact preference saved', 'success');
   },
   async confirmSent(communicationId, customerId) {

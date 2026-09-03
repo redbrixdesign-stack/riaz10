@@ -2,11 +2,11 @@ import { CONTENT } from '../data/content';
 import { Section } from './Section';
 import { Reveal } from './Reveal';
 
-/** How it works — a simple 4-step sequence. */
+/** How it works — the complete appointment-to-next-action sequence. */
 export function HowItWorks() {
   return (
     <Section id="how" eyebrow="How it works" heading={CONTENT.how.heading}>
-      <ol className="process-line relative mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <ol className="relative mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
         {CONTENT.how.steps.map((step, i) => (
           <Reveal key={step.title} as="li" delay={i * 90}>
             <div className="relative h-full rounded-2xl border border-ink/8 bg-white p-6 shadow-soft lg:pt-9">

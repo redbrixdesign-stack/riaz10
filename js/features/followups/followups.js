@@ -23,6 +23,55 @@ const FollowupsFeature = {
     return (CONFIG.followups && CONFIG.followups.paymentReminderDays) || 3;
   },
 
+  async archiveMissedCommunication(appt, type, dueAt, reason) {
+    const archive = Array.isArray(appt.communicationArchive) ? [...appt.communicationArchive] : [];
+    const key = `${type}:${new Date(dueAt).toISOString()}`;
+    if (archive.some(item => item.key === key)) return false;
+    archive.push({ key, type, status: 'missed', dueAt: new Date(dueAt).toISOString(), archivedAt: new Date().toISOString(), reason });
+    appt.communicationArchive = archive;
+    if (typeof DB.updateAppointment === 'function') await DB.updateAppointment(appt.id, { communicationArchive: archive });
+    return true;
+  },
+
+  async reconcileCommunicationDeadlines(appointments, isFirstVisit, now = new Date()) {
+    const serviceFailures = new Set([...(TalkFeature.SERVICE_OUTCOMES?.fitting || []), ...(TalkFeature.SERVICE_OUTCOMES?.service_call || [])]);
+    for (const appt of appointments) {
+      if (!appt?.date || appt.status === 'cancelled') continue;
+      const visitAt = new Date(appt.date);
+      if (isNaN(visitAt)) continue;
+      const introDeadline = new Date(visitAt.getTime() - 24 * 60 * 60 * 1000);
+      const bookedAt = new Date(appt.createdAt || appt.date);
+      const first = isFirstVisit(appt.customerId);
+      // A booking received before T-24 owed a standalone introduction. Once
+      // missed, that obligation is archived and the active task becomes the
+      // combined recovery message until the visit starts.
+      if (first && !appt.introSent && bookedAt < introDeadline && now >= introDeadline) {
+        await this.archiveMissedCommunication(appt, 'introduction', introDeadline, 'Introduction was not confirmed sent before the 24-hour appointment deadline');
+      }
+      if (now >= visitAt && !appt.dayBeforeSent) {
+        const hadStandaloneWindow = bookedAt < introDeadline;
+        const type = !appt.introSent ? (hadStandaloneWindow ? 'intro_confirmation_recovery' : 'intro_confirmation') : 'day_before_confirmation';
+        await this.archiveMissedCommunication(appt, type, visitAt, 'The appointment started before sending was confirmed');
+      }
+      if (appt.type === 'fitting' && appt.outcome === 'completed' && !appt.postFitSent && now >= new Date(visitAt.getTime() + 7 * 86400000)) {
+        await this.archiveMissedCommunication(appt, 'post_fit_followup', new Date(visitAt.getTime() + 7 * 86400000), 'Post-fitting follow-up was not confirmed within 7 days');
+      }
+      if ((appt.type === 'fitting' || appt.type === 'service_call') && serviceFailures.has(appt.outcome) && !appt.serviceSent && now >= new Date(visitAt.getTime() + 48 * 3600000)) {
+        await this.archiveMissedCommunication(appt, 'service_acknowledgement', new Date(visitAt.getTime() + 48 * 3600000), 'Service acknowledgement was not confirmed within 48 hours');
+      }
+    }
+  },
+
+  async communicationMetrics() {
+    let appointments = [];
+    try { appointments = await DB.getAllAppointments(); } catch (e) { return { missed: 0, recovered: 0, obligations: 0, missedRate: 0, archive: [] }; }
+    const archive = appointments.flatMap(appt => (appt.communicationArchive || []).map(item => ({ ...item, appointment: appt })));
+    const recovered = archive.filter(item => item.type === 'introduction' && item.appointment.introSent && item.appointment.dayBeforeSent).length;
+    const sent = appointments.reduce((count, appt) => count + ['introSent', 'dayBeforeSent', 'postFitSent', 'serviceSent'].filter(flag => appt[flag]).length, 0);
+    const obligations = sent + archive.length;
+    return { missed: archive.length, recovered, obligations, missedRate: obligations ? Math.round(archive.length / obligations * 100) : 0, archive: archive.sort((a, b) => new Date(b.archivedAt) - new Date(a.archivedAt)) };
+  },
+
   async loadDerivedTasks() {
     const now = new Date();
     let pipeline = [];
@@ -139,18 +188,24 @@ const FollowupsFeature = {
       });
     }
 
-    // 4. Tomorrow's visits needing their day-before message.
+    // 4. Tomorrow's visits needing their day-before message. When this is
+    // also the first contact, one introduction + confirmation replaces two
+    // repetitive messages.
+    const combinedIntroIds = new Set();
     for (const appt of upcoming) {
       if (appt.status !== 'confirmed' || appt.dayBeforeSent) continue;
       if (ukDayKey(appt.date) !== tomorrowKey) continue;
       if (!appt.phone && !appt.customerId) continue;
+      const needsCombinedIntro = !appt.introSent;
+      if (needsCombinedIntro) combinedIntroIds.add(appt.id);
       tasks.push({
-        kind: 'visit_tomorrow',
+        kind: needsCombinedIntro ? 'intro_confirmation' : 'visit_tomorrow',
         due: true,
         daysLabel: Utils.formatTime(appt.date),
         appointment: appt,
         customer: appt.customerId ? customerMap.get(appt.customerId) : null,
-        action: 'Day-before reminder not sent',
+        template: needsCombinedIntro ? 'intro_day_before' : 'day_before',
+        action: needsCombinedIntro ? 'Introduction + day-before confirmation not sent' : 'Day-before reminder not sent',
         priority: 'normal',
         inDays: 0
       });
@@ -173,8 +228,10 @@ const FollowupsFeature = {
     } catch (e) { /* treat everyone as first-time */ }
     const isFirstVisit = id => !(id && firstVisitByCustomer[id]?.size);
 
+    await this.reconcileCommunicationDeadlines(allAppts, isFirstVisit, now);
+
     const introCandidates = [...futureAppts, ...todayAppts]
-      .filter(a => a.status === 'confirmed' && !a.introSent && (a.phone || a.customerId))
+      .filter(a => a.status === 'confirmed' && !a.introSent && !combinedIntroIds.has(a.id) && (a.phone || a.customerId))
       .sort((a, b) => new Date(a.date) - new Date(b.date));
     const introSeen = new Set();
     for (const appt of introCandidates) {
@@ -183,6 +240,15 @@ const FollowupsFeature = {
         introSeen.add(appt.customerId);
       }
       if (!isFirstVisit(appt.customerId)) continue;
+      const remainingMs = new Date(appt.date) - now;
+      if (remainingMs <= 0) continue;
+      if (remainingMs <= 24 * 60 * 60 * 1000) {
+        if (!combinedIntroIds.has(appt.id)) {
+          combinedIntroIds.add(appt.id);
+          tasks.push({ kind: 'intro_confirmation', due: true, daysLabel: TalkFeature.apptTimeText(appt), appointment: appt, customer: appt.customerId ? customerMap.get(appt.customerId) : null, template: 'intro_day_before', action: 'Introduction + appointment confirmation', priority: 'high', inDays: 0 });
+        }
+        continue;
+      }
       tasks.push({
         kind: 'intro',
         due: true,
@@ -217,7 +283,8 @@ const FollowupsFeature = {
       if (daysAgo < 0 || daysAgo > 14) continue;
       if (coveredIds.has(appt.id)) continue;
       if (appt.status === 'cancelled') continue;
-      if (appt.type === 'fitting' && appt.outcome === 'completed' && !appt.postFitSent) {
+      const archivedTypes = new Set((appt.communicationArchive || []).map(item => item.type));
+      if (appt.type === 'fitting' && appt.outcome === 'completed' && !appt.postFitSent && !archivedTypes.has('post_fit_followup')) {
         tasks.push({
           kind: 'post_fit',
           due: true,
@@ -229,7 +296,7 @@ const FollowupsFeature = {
           priority: 'normal',
           inDays: 0
         });
-      } else if ((appt.type === 'fitting' || appt.type === 'service_call') && serviceFailures.has(appt.outcome) && !appt.serviceSent) {
+      } else if ((appt.type === 'fitting' || appt.type === 'service_call') && serviceFailures.has(appt.outcome) && !appt.serviceSent && !archivedTypes.has('service_acknowledgement')) {
         tasks.push({
           kind: 'service',
           due: true,
@@ -432,6 +499,7 @@ const FollowupsFeature = {
 
   async renderAsync() {
     const tasks = await this.loadTasks();
+    const metrics = await this.communicationMetrics();
     const due = tasks.filter(t => t.due);
     const snoozed = tasks.filter(t => t.snoozed);
     const later = tasks.filter(t => !t.due && !t.snoozed);
@@ -442,6 +510,7 @@ const FollowupsFeature = {
       <div class="fade-in">
         ${App.renderTopHeader({ title: 'Follow-ups', actions: `<button class="btn btn-outline btn-sm followups-header-action" title="Open leads" aria-label="Open leads" data-action="App.navigate" data-args='${JSON.stringify(["leads"])}'><span class="material-symbols-rounded fs-18">inbox</span><span class="header-action-text">Leads</span></button><button class="btn btn-primary btn-sm followups-header-action" title="Create new task" aria-label="Create new task" data-action="FollowupsFeature.openNewTask"><span class="material-symbols-rounded fs-18">add</span><span class="header-action-text">New task</span></button>` })}
         <div class="px-md pb-lg" >
+          ${metrics.obligations ? `<div class="card mb-md"><div class="flex justify-between items-start gap-md"><div><div class="fw-700">Communication follow-through</div><div class="fs-13 text-secondary mt-2">${metrics.missed} missed${metrics.recovered ? ` · ${metrics.recovered} recovered before the visit` : ''}</div></div><div class="text-right"><div class="fs-20 fw-700">${metrics.missedRate}%</div><div class="fs-11 text-tertiary">missed</div></div></div>${metrics.archive.length ? `<details class="mt-10"><summary class="fs-12 text-secondary cursor-pointer">Missed archive</summary>${metrics.archive.slice(0, 5).map(item => `<div class="fs-12 text-secondary mt-6">${Utils.escapeHtml(item.appointment.clientName || 'Customer')} · ${Utils.escapeHtml(item.type.replace(/_/g, ' '))} · ${Utils.formatDate(item.dueAt, 'short')}</div>`).join('')}</details>` : ''}</div>` : ''}
           ${due.length === 0 && later.length === 0 && snoozed.length === 0 ? `
             <div class="empty-state empty-state-lg" >
               <span class="material-symbols-rounded">mark_email_read</span>
@@ -495,7 +564,7 @@ const FollowupsFeature = {
       ? `${Utils.formatDate(task.appointment.date, 'short')} · ${task.daysLabel}${dueIn}`
       : (task.order ? `${Utils.escapeHtml(task.order.orderNumber || 'Order')} · ${task.daysLabel}${dueIn}` : `${task.daysLabel || ''}${dueIn}`);
 
-    const icons = { quote: 'receipt_long', structured_quote: 'request_quote', quote_expiring: 'event_busy', quote_accepted: 'task_alt', job_issue: 'construction', supplier_issue: 'local_shipping', retention: 'handshake', invoice_overdue: 'request_quote', payment: 'payments', visit_today: 'event_available', visit_tomorrow: 'event', intro: 'waving_hand', post_fit: 'handyman', service: 'build', };
+    const icons = { quote: 'receipt_long', structured_quote: 'request_quote', quote_expiring: 'event_busy', quote_accepted: 'task_alt', job_issue: 'construction', supplier_issue: 'local_shipping', retention: 'handshake', invoice_overdue: 'request_quote', payment: 'payments', visit_today: 'event_available', visit_tomorrow: 'event', intro: 'waving_hand', intro_confirmation: 'mark_chat_unread', post_fit: 'handyman', service: 'build', };
     // Border colour = what the task needs from you. Payment and service issues
     // are urgent (warning/danger); today's visits and intros are primary
     // actions; everything else (quote chases, post-fit thank-yous,
@@ -578,8 +647,8 @@ const FollowupsFeature = {
         </button>
       `;
     }
-    if (task.kind === 'intro' || task.kind === 'post_fit' || task.kind === 'service') {
-      const labels = { intro: 'Send intro', post_fit: 'Send thank-you', service: 'Acknowledge' };
+    if (task.kind === 'intro' || task.kind === 'intro_confirmation' || task.kind === 'post_fit' || task.kind === 'service') {
+      const labels = { intro: 'Send intro', intro_confirmation: 'Introduce & confirm', post_fit: 'Send thank-you', service: 'Acknowledge' };
       return `
         <button class="btn btn-sm btn-primary flex-1"  data-action="TalkFeature.sendMessage" data-args='${Utils.escapeHtml(JSON.stringify([(task.appointment.id), task.template]))}'>
           <span class="material-symbols-rounded fs-16" >send</span>${labels[task.kind]}
@@ -597,6 +666,7 @@ const FollowupsFeature = {
   openNewTask() {
     const tomorrow = new Date(Date.now() + 86400000);
     tomorrow.setMinutes(tomorrow.getMinutes() - tomorrow.getTimezoneOffset());
+    if (typeof NoteCapture !== 'undefined') NoteCapture.setRecordings('task-notes', []);
     App.openModal(`
       <div class="sheet-handle"></div>
       <div class="sheet-header"><h3>New task</h3><button class="btn btn-ghost btn-sm" aria-label="Close" data-action="App.closeModal"><span class="material-symbols-rounded">close</span></button></div>
@@ -604,7 +674,7 @@ const FollowupsFeature = {
         <div class="form-group"><label for="task-title">What needs doing?</label><input class="input" id="task-title" maxlength="160" autocomplete="off" required></div>
         <div class="form-group"><label for="task-due">Due</label><input class="input" id="task-due" type="datetime-local" value="${tomorrow.toISOString().slice(0, 16)}" required></div>
         <div class="form-group"><label for="task-priority">Priority</label><select class="select" id="task-priority"><option value="normal">Normal</option><option value="high">High</option><option value="low">Low</option></select></div>
-        <div class="form-group"><label for="task-notes">Notes (optional)</label><textarea class="textarea" id="task-notes" maxlength="500"></textarea></div>
+        <div class="form-group"><label for="task-notes">Notes (optional)</label><textarea class="textarea" id="task-notes" maxlength="500"></textarea>${typeof NoteCapture !== 'undefined' ? NoteCapture.render('task-notes') : ''}</div>
         <button class="btn btn-primary btn-block" data-action="FollowupsFeature.saveNewTask">Save task</button>
       </div>`);
   },
@@ -619,6 +689,7 @@ const FollowupsFeature = {
         dueAt: document.getElementById('task-due')?.value,
         priority: document.getElementById('task-priority')?.value,
         notes: document.getElementById('task-notes')?.value || '',
+        audioNotes: typeof NoteCapture !== 'undefined' ? NoteCapture.getRecordings('task-notes') : [],
         type: 'other'
       });
       App.closeModal(); Toast.show('Task saved', 'success'); App.navigate('followups');

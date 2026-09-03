@@ -1,8 +1,11 @@
 import { Banner } from './components/Banner';
 import { Hero } from './components/Hero';
 import { Problem } from './components/Problem';
+import { ConnectingThread } from './components/ConnectingThread';
 import { Solution } from './components/Solution';
 import { HowItWorks } from './components/HowItWorks';
+import { Routing } from './components/Routing';
+import { ProductTruth } from './components/ProductTruth';
 import { BuiltForOne } from './components/BuiltForOne';
 import { Founder } from './components/Founder';
 import { Trust } from './components/Trust';
@@ -21,8 +24,11 @@ export default function App() {
       <main>
         <Hero />
         <Problem />
+        <ConnectingThread />
         <Solution />
         <HowItWorks />
+        <Routing />
+        <ProductTruth />
         <BuiltForOne />
         <Founder />
         <Trust />

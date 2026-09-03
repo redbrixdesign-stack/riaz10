@@ -32,7 +32,7 @@ const MeasureFeature = {
 
     let existing = null;
     if (safeMeasurementId) {
-      try { existing = await DB.db.measurements.get(safeMeasurementId); } catch (e) {}
+      try { existing = typeof DB.getMeasurement === 'function' ? await DB.getMeasurement(safeMeasurementId) : await DB.db.measurements.get(safeMeasurementId); } catch (e) {}
       if (existing) {
         this.fittingType = existing.fittingType || 'recess';
         this.photoData = (existing.photos && existing.photos[0]) || null;
@@ -42,6 +42,7 @@ const MeasureFeature = {
       this.fittingType = 'recess';
       this.photoData = null;
     }
+    if (typeof NoteCapture !== 'undefined') NoteCapture.setRecordings('meas-notes', existing?.audioNotes || []);
     const v = (mm) => existing && mm ? this.mmToDisplay(mm) : '';
 
     return `<div class="fade-in">
@@ -52,6 +53,8 @@ const MeasureFeature = {
       })}
       <div class="p-md" >
         <div class="form-group"><label>Window / Location</label><input type="text" class="input" id="meas-name" placeholder="e.g. Living Room Bay - Left" value="${existing ? Utils.escapeHtml(existing.windowName || '') : ''}"></div>
+        <div class="form-group"><label>Product / covering (optional)</label><input type="text" class="input" id="meas-product" placeholder="e.g. Roman blind" value="${existing ? Utils.escapeHtml(existing.productName || '') : ''}"></div>
+        <div class="form-group"><label>Description / specification (optional)</label><textarea class="textarea" id="meas-description" placeholder="e.g. Blackout roller, Slate Grey, Range A, 1 m chain, right control">${existing ? Utils.escapeHtml(existing.description || '') : ''}</textarea><div class="fs-11 text-tertiary mt-4">Blind type, colour, range, chain length, control side or other product details.</div></div>
 
         <div class="form-group"><label>Fitting Type</label>
           <div class="segmented">
@@ -99,7 +102,7 @@ const MeasureFeature = {
         </div>
 
         <div class="form-group"><label>Tolerance (${unit}) — for recess fitting</label><input type="number" class="input" inputmode="decimal" id="meas-tolerance" value="${tolerance}" step="${step}" data-action="MeasureFeature.calculate"></div>
-        <div class="form-group"><label>Notes</label><textarea class="textarea" id="meas-notes" placeholder="e.g. Slight bow in sill, handle obstruction...">${existing ? Utils.escapeHtml(existing.notes || '') : ''}</textarea></div>
+        <div class="form-group"><label>Notes</label><textarea class="textarea" id="meas-notes" placeholder="Type, record or transcribe anything worth remembering...">${existing ? Utils.escapeHtml(existing.notes || '') : ''}</textarea>${typeof NoteCapture !== 'undefined' ? NoteCapture.render('meas-notes') : ''}</div>
 
         <div class="form-group">
           <label>Photo</label>
@@ -287,6 +290,8 @@ const MeasureFeature = {
 
     const data = {
       appointmentId, windowName: name, fittingType: this.fittingType,
+      productName: document.getElementById('meas-product')?.value.trim() || '',
+      description: document.getElementById('meas-description')?.value.trim() || '',
       inputUnit: CONFIG.measurementUnit || 'mm',
       widthTop: values.widthTop,
       widthMiddle: values.widthMiddle,
@@ -298,11 +303,12 @@ const MeasureFeature = {
       diagonalTrBl: values.diagonalTrBl,
       tolerance,
       notes: document.getElementById('meas-notes')?.value || '',
+      audioNotes: typeof NoteCapture !== 'undefined' ? NoteCapture.getRecordings('meas-notes') : [],
       photos: this.photoData ? [this.photoData] : []
     };
 
     if (measurementId) {
-      await DB.db.measurements.update(measurementId, {
+      const update = {
         ...data,
         widthLeast: wGroup.least,
         dropLeast: dGroup.least,
@@ -310,7 +316,9 @@ const MeasureFeature = {
         dropUsed: dGroup.used,
         diagonalVariance: diag.variance,
         isSquare: diag.isSquare
-      });
+      };
+      if (typeof DB.updateMeasurement === 'function') await DB.updateMeasurement(measurementId, update);
+      else await DB.db.measurements.update(measurementId, update);
       Toast.show('Measurement updated', 'success');
     } else {
       await DB.addMeasurement(data);

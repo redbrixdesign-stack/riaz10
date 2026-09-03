@@ -144,7 +144,7 @@ const ukDay = (offsetDays, hour) => {
 };
 
 // Seed: 1 customer, quoted 5d ago, order placed 10d ago (balance due), visit today unlogged, visit tomorrow confirmed
-TABLES.customers.push({ id: 1, firstName: 'Sarah', lastName: 'Johnson', phone: '07700 900123', fullName: 'Sarah Johnson', customerNumber: 'CUS-2026-0001' });
+TABLES.customers.push({ id: 1, firstName: 'Sarah', lastName: 'Johnson', phone: '07700 900123', fullName: 'Sarah Johnson', customerNumber: 'CUS-2026-0001', notes: 'Prefers quiet motors; use the side gate.', audioNotes: [{ id: 'synthetic-audio' }] });
 TABLES.appointments.push(
   { id: 11, customerId: 1, clientName: 'Sarah Johnson', type: 'consultation', outcome: 'quoted', value: 1250, status: 'completed', date: iso(-5) },
   // Today's unlogged visit at 00:00 UK: still "today" for the follow-ups
@@ -178,7 +178,9 @@ loadAll([
   'js/features/talk/talk.js',
   'js/features/followups/followups.js',
   'js/features/orders/orders.js',
-  'js/features/customer/customer.js'
+  'js/features/customer/customer.js',
+  'js/features/today/home-screen-controller.js',
+  '::raw::global.HomeScreenController = HomeScreenController;'
 ]);
 
 const assert = (cond, msg) => { if (!cond) { console.error('FAIL:', msg); process.exitCode = 1; } else console.log('OK:', msg); };
@@ -194,7 +196,7 @@ const assert = (cond, msg) => { if (!cond) { console.error('FAIL:', msg); proces
   const tasks = await Followups.loadTasks();
   const kinds = tasks.map(t => t.kind).sort();
   assert(tasks.length === 4, `loadTasks returns 4 tasks (got ${tasks.length})`);
-  assert(kinds.join(',') === ['payment', 'quote', 'visit_today', 'visit_tomorrow'].join(','), 'All four task kinds present');
+  assert(kinds.join(',') === ['intro_confirmation', 'payment', 'quote', 'visit_today'].join(','), 'All four task kinds present, with tomorrow first contact combined');
   const due = tasks.filter(t => t.due);
   assert(due.length === 4, 'All four tasks are due');
   assert(tasks.find(t => t.kind === 'quote').template === 'follow_up.quote', 'Quote chase carries Talk template');
@@ -215,6 +217,13 @@ const assert = (cond, msg) => { if (!cond) { console.error('FAIL:', msg); proces
   assert(html.includes('Lounge Bay'), 'Measurement row present in profile');
   assert(html.includes('Sarah Johnson'), 'Customer name present');
   assert(!html.includes('<script'), 'No raw script injection in profile');
+
+  // Home: the featured next-visit card must carry the customer memory that
+  // helps the advisor arrive prepared, including saved voice context.
+  const upNext = HomeScreenController.renderUpNextBanner(TABLES.appointments.find(a => a.id === 12), [], TABLES.customers[0]);
+  assert(upNext.includes('Customer context'), 'Next-visit card labels customer context');
+  assert(upNext.includes('Prefers quiet motors; use the side gate.'), 'Next-visit card renders saved customer context');
+  assert(upNext.includes('1 saved voice note'), 'Next-visit card indicates saved voice context');
 
   // Talk: buildAiContext feeds the AI the real facts (quote value, measured
   // windows, order/deposit figures, timings, history) — not generic filler.

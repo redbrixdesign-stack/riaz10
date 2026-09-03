@@ -843,6 +843,7 @@ const AppointmentsFeature = {
       return;
     }
     const name = customer.fullName || `${customer.firstName || ''} ${customer.lastName || ''}`.trim();
+    if (typeof NoteCapture !== 'undefined') NoteCapture.setRecordings('edit-cust-notes', customer.audioNotes || []);
     const content = `
       <div class="sheet-handle"></div>
       <div class="sheet-header">
@@ -869,6 +870,11 @@ const AppointmentsFeature = {
           <input type="text" class="input" id="edit-cust-address" autocomplete="street-address" value="${Utils.escapeHtml(customer.address?.line1 || '')}">
           <div class="hint">Include the postcode here, e.g. "12 Elm Street, Manchester, M14 5AB"</div>
         </div>
+        <div class="form-group">
+          <label>Customer context</label>
+          <textarea class="textarea" id="edit-cust-notes" rows="5" placeholder="Preferences, access, previous conversations, anything useful before the next visit...">${Utils.escapeHtml(customer.notes || '')}</textarea>
+          ${typeof NoteCapture !== 'undefined' ? NoteCapture.render('edit-cust-notes') : ''}
+        </div>
         <button class="btn btn-primary btn-block" data-action="AppointmentsFeature.saveEditCustomer" data-args='${JSON.stringify([(customerId)])}'>
           Save Changes
         </button>
@@ -888,6 +894,7 @@ const AppointmentsFeature = {
     const phone = document.getElementById('edit-cust-phone')?.value.trim() || '';
     const email = document.getElementById('edit-cust-email')?.value.trim() || '';
     const address = document.getElementById('edit-cust-address')?.value.trim() || '';
+    const notes = document.getElementById('edit-cust-notes')?.value.trim() || '';
 
     if (!name || !address) {
       Toast.show('Name and address are required', 'error');
@@ -905,6 +912,8 @@ const AppointmentsFeature = {
         lastName: name.split(' ').slice(1).join(' ') || '',
         phone,
         email,
+        notes,
+        audioNotes: typeof NoteCapture !== 'undefined' ? NoteCapture.getRecordings('edit-cust-notes') : (customer.audioNotes || []),
         postcodeNormalized,
         address: { ...(customer.address || {}), line1: address, postcode, postcodeNormalized }
       });
@@ -1740,31 +1749,27 @@ const AppointmentsFeature = {
         ${measurements.length ? `
           <div class="card card-page" >
             <div class="flex items-center justify-between mb-sm" >
-              <div class="fs-13 fw-600 text-secondary" >Measurements</div>
+              <div class="fs-13 fw-600 text-secondary" >Window measurements (${measurements.length})</div>
               <button class="btn btn-ghost btn-sm" aria-label="Add another measurement" data-action="App.navigate" data-args='${JSON.stringify(["measure", {appointmentId: (appt.id)}])}'>
                 <span class="material-symbols-rounded">add</span>
               </button>
             </div>
-            ${measurements.map(m => `
-              <button class="area-customer-row" data-action="App.navigate" data-args='${JSON.stringify(["measure", {appointmentId: (appt.id), measurementId: (m.id)}])}'>
-                <span class="material-symbols-rounded">straighten</span>
-                <span>
-                  <strong>${Utils.escapeHtml(m.windowName || 'Window')}</strong>
-                  <small>${m.widthUsed ? Utils.formatMeasurement(m.widthUsed) : '--'} × ${m.dropUsed ? Utils.formatMeasurement(m.dropUsed) : '--'} · ${m.fittingType === 'exact' ? 'Exact' : 'Recess'}</small>
-                </span>
-                <span class="material-symbols-rounded">chevron_right</span>
-              </button>
-            `).join('')}
+            <div style="overflow-x:auto;">
+              <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                <thead><tr class="text-secondary" style="border-bottom:1px solid var(--border);"><th scope="col" class="text-left" style="padding:8px 6px;">Window / product</th><th scope="col" class="text-left">Description</th><th scope="col" class="text-right" style="padding:8px 6px;white-space:nowrap;">Least width</th><th scope="col" class="text-right" style="padding:8px 6px;white-space:nowrap;">Least drop</th><th scope="col" style="width:36px;"><span class="sr-only">Edit</span></th></tr></thead>
+                <tbody>${measurements.map(m => `
+                  <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:10px 6px;"><strong style="display:block;">${Utils.escapeHtml(m.windowName || 'Window')}</strong><small class="text-secondary">${m.productName ? Utils.escapeHtml(m.productName) : (m.fittingType === 'exact' ? 'Exact fitting' : 'Recess fitting')}</small></td>
+                    <td class="text-secondary">${m.description ? Utils.escapeHtml(m.description) : '—'}</td>
+                    <td class="text-right fw-600" style="padding:10px 6px;white-space:nowrap;">${m.widthLeast ? Utils.formatMeasurement(m.widthLeast) : '--'}</td>
+                    <td class="text-right fw-600" style="padding:10px 6px;white-space:nowrap;">${m.dropLeast ? Utils.formatMeasurement(m.dropLeast) : '--'}</td>
+                    <td style="padding:6px 0;"><button class="btn btn-ghost btn-sm" aria-label="Edit ${Utils.escapeHtml(m.windowName || 'window')} measurement" data-action="App.navigate" data-args='${JSON.stringify(["measure", {appointmentId: (appt.id), measurementId: (m.id)}])}'><span class="material-symbols-rounded">edit</span></button></td>
+                  </tr>
+                `).join('')}</tbody>
+              </table>
+            </div>
           </div>
         ` : ''}
-
-        <div class="card card-page">
-          <div class="flex items-center justify-between mb-sm">
-            <div class="fs-13 fw-600 text-secondary">Voice notes ${voiceNotes.length ? `(${voiceNotes.length})` : ''}</div>
-            <button class="btn btn-outline btn-sm" data-action="VoiceNotes.openRecorder" data-args='${JSON.stringify([appt.customerId || null, appt.id, appt.jobId || null])}'><span class="material-symbols-rounded fs-16">mic</span>Record</button>
-          </div>
-          ${VoiceNotes.renderList(voiceNotes, { customerId: appt.customerId || null, appointmentId: appt.id })}
-        </div>
 
         <!-- Photos — capture on-site during sales, survey (measure) or fit
              days without leaving the visit screen. Co-lives with the same
@@ -1873,6 +1878,8 @@ const AppointmentsFeature = {
           ` : `
             <div class="fs-13 text-tertiary" >No notes yet.</div>
           `}
+          ${typeof NoteCapture !== 'undefined' ? NoteCapture.renderPlaybackList(`visit-notes-${appt.id}`, appt.audioNotes || []) : ''}
+          ${voiceNotes.length ? `<div class="mt-sm">${VoiceNotes.renderList(voiceNotes, { customerId: appt.customerId || null, appointmentId: appt.id })}</div>` : ''}
         </div>
       </div>
     `;
@@ -1899,6 +1906,7 @@ const AppointmentsFeature = {
     const leadId = Number.isInteger(Number(params.leadId)) && Number(params.leadId) > 0 ? Number(params.leadId) : null;
     const jobId = Number.isInteger(Number(params.jobId)) && Number(params.jobId) > 0 ? Number(params.jobId) : null;
     const jobRole = ['fitting', 'service', 'return_visit'].includes(params.jobRole) ? params.jobRole : null;
+    if (typeof NoteCapture !== 'undefined') NoteCapture.setRecordings('appt-notes', []);
     return `
       <div class="fade-in">
         ${App.renderTopHeader({ 
@@ -1989,6 +1997,7 @@ const AppointmentsFeature = {
           <div class="form-group">
             <label>Notes</label>
             <textarea class="textarea" id="appt-notes" placeholder="Rooms, product interest, objections, future opportunity..."></textarea>
+            ${typeof NoteCapture !== 'undefined' ? NoteCapture.render('appt-notes') : ''}
           </div>
 
           <button class="btn btn-primary btn-block mt-sm" id="appt-save-btn"  data-action="AppointmentsFeature.saveAppointment">
@@ -2114,6 +2123,7 @@ const AppointmentsFeature = {
       source: document.getElementById('appt-source')?.value || 'self_generated',
       access: document.getElementById('appt-access')?.value.trim() || '',
       notes: document.getElementById('appt-notes')?.value.trim() || '',
+      audioNotes: typeof NoteCapture !== 'undefined' ? NoteCapture.getRecordings('appt-notes') : [],
       arrivalStart: windowData.arrivalStart || '',
       arrivalEnd: windowData.arrivalEnd || '',
       arrivalError: windowData.error || '',
@@ -2187,9 +2197,17 @@ const AppointmentsFeature = {
     if (!appt) { App.navigate('appointments'); return; }
     const customer = appt.customerId ? await DB.getCustomer(appt.customerId) : null;
     const phone = customer?.phone || appt.phone;
+    if (!phone) return;
+    // Use the same reviewed communication lifecycle as Follow-ups. A booking
+    // inside 24 hours needs one combined introduction + confirmation; an
+    // earlier booking starts with the introduction only.
+    if (typeof TalkFeature !== 'undefined' && typeof TalkFeature.sendMessage === 'function') {
+      const remainingMs = new Date(appt.date) - new Date();
+      return TalkFeature.sendMessage(appointmentId, remainingMs <= 24 * 60 * 60 * 1000 ? 'intro_day_before' : 'pre_intro');
+    }
     const apptDate = new Date(appt.date);
     const message = NotificationService.buildBookingConfirmationMessage({
-      firstName: customer?.firstName || appt.clientName?.split(' ')[0] || 'there',
+      firstName: Utils.customerFirstName(customer, appt.clientName),
       date: apptDate,
       dateLabel: Utils.formatDate(apptDate, 'long'),
       // time carries its own preposition so a window reads naturally:
@@ -2197,7 +2215,8 @@ const AppointmentsFeature = {
       time: this.getArrivalWindowLabel(appt) || `at ${Utils.formatTime(appt.date)}`,
       address: appt.address || '',
       type: appt.type,
-      advisorName: CONFIG.advisorName || 'Your Advisor'
+      advisorName: CONFIG.advisorName || 'Your Advisor',
+      advisorTitle: CONFIG.advisorTitle || 'window coverings adviser'
     });
     const content = `<div class="sheet-handle"></div>
       <div class="sheet-header"><h3>Send Booking Confirmation?</h3><button class="btn btn-ghost btn-sm" data-action="AppointmentsFeature.skipBookingConfirmation"><span class="material-symbols-rounded">close</span></button></div>
@@ -2246,7 +2265,7 @@ const AppointmentsFeature = {
       Toast.show('Visit form is no longer open. Please check details and try again.', 'error');
       return;
     }
-    const { name, phone, address, date, time, durationSlots, type, source, access, notes, arrivalStart, arrivalEnd, arrivalError, leadId, jobId, jobRole, jobOperationId } = data;
+    const { name, phone, address, date, time, durationSlots, type, source, access, notes, audioNotes, arrivalStart, arrivalEnd, arrivalError, leadId, jobId, jobRole, jobOperationId } = data;
 
 	    if (!name || !address || !date) {
 	      Toast.show('Please fill in required fields', 'error');
@@ -2334,6 +2353,7 @@ const AppointmentsFeature = {
         arrivalStart: arrivalStart || null,
         arrivalEnd: arrivalEnd || null,
         notes: [access ? `Access: ${access}` : '', notes].filter(Boolean).join('\n\n'),
+        audioNotes: audioNotes || [],
         status: 'confirmed'
       };
 
@@ -2649,6 +2669,7 @@ const AppointmentsFeature = {
     const date = Utils.formatDate(appt.date, 'iso');
     const time = this.getTimeKey(appt.date);
     const windowPreset = this.getArrivalWindowPreset(appt);
+    if (typeof NoteCapture !== 'undefined') NoteCapture.setRecordings('move-note', appt.audioNotes || []);
     const content = `
       <div class="sheet-handle"></div>
       <div class="sheet-header">
@@ -2684,6 +2705,7 @@ const AppointmentsFeature = {
         <div class="form-group">
           <label>Reason / note</label>
           <textarea class="textarea" id="move-note" placeholder="Customer requested, route tidy-up, no access..."></textarea>
+          ${typeof NoteCapture !== 'undefined' ? NoteCapture.render('move-note') : ''}
         </div>
         <button class="btn btn-primary btn-block" data-action="AppointmentsFeature.saveReschedule" data-args='${JSON.stringify([(id)])}'>
           Save New Time
@@ -2701,6 +2723,7 @@ const AppointmentsFeature = {
       durationSlots: Math.max(1, parseInt(document.getElementById('move-duration')?.value, 10) || appt.durationSlots || 1),
       type: document.getElementById('move-type')?.value || appt.type,
       reason: document.getElementById('move-note')?.value.trim() || '',
+      audioNotes: typeof NoteCapture !== 'undefined' ? NoteCapture.getRecordings('move-note') : (appt.audioNotes || []),
       address: appt.address || '',
       arrivalStart: windowData.arrivalStart || '',
       arrivalEnd: windowData.arrivalEnd || '',
@@ -2774,6 +2797,7 @@ const AppointmentsFeature = {
       arrivalStart: data.arrivalStart || null,
       arrivalEnd: data.arrivalEnd || null,
       status: 'confirmed',
+      audioNotes: data.audioNotes || appt.audioNotes || [],
       notes: [existingNotes, moveNote].filter(Boolean).join('\n\n')
     });
     App.closeModal();
@@ -2965,6 +2989,7 @@ const AppointmentsFeature = {
       Toast.show('Visit not found', 'error');
       return;
     }
+    if (typeof NoteCapture !== 'undefined') NoteCapture.setRecordings('cancel-note', appt.audioNotes || []);
     const content = `
       <div class="sheet-handle"></div>
       <div class="sheet-header">
@@ -2990,6 +3015,7 @@ const AppointmentsFeature = {
         <div class="form-group">
           <label>Note</label>
           <textarea class="textarea" id="cancel-note" placeholder="Anything useful for the relationship..."></textarea>
+          ${typeof NoteCapture !== 'undefined' ? NoteCapture.render('cancel-note') : ''}
         </div>
         <button class="btn btn-danger btn-block" data-action="AppointmentsFeature.cancelAppointment" data-args='${JSON.stringify([(id)])}'>
           Cancel Visit
@@ -3007,11 +3033,13 @@ const AppointmentsFeature = {
       Toast.show('Visit not found', 'error');
       return;
     }
+    const audioNotes = typeof NoteCapture !== 'undefined' ? NoteCapture.getRecordings('cancel-note') : (appt.audioNotes || []);
     const existingNotes = appt.notes || '';
     const cancelNote = `Cancelled: ${reason.replace(/_/g, ' ')}${note ? ` - ${note}` : ''}`;
     await DB.updateAppointment(id, {
       status: 'cancelled',
       cancellationReason: reason,
+      audioNotes,
       notes: [existingNotes, cancelNote].filter(Boolean).join('\n\n')
     });
     App.closeModal();
@@ -3035,6 +3063,7 @@ const AppointmentsFeature = {
       Toast.show('Visit not found', 'error');
       return;
     }
+    if (typeof NoteCapture !== 'undefined') NoteCapture.setRecordings('edit-appt-notes', appt.audioNotes || []);
     const content = `
       <div class="sheet-handle"></div>
       <div class="sheet-header">
@@ -3046,6 +3075,7 @@ const AppointmentsFeature = {
       <div class="sheet-body">
         <div class="form-group">
           <textarea class="textarea" id="edit-appt-notes" rows="5" placeholder="Anything worth remembering about this visit...">${Utils.escapeHtml(appt.notes || '')}</textarea>
+          ${typeof NoteCapture !== 'undefined' ? NoteCapture.render('edit-appt-notes') : ''}
         </div>
         <button class="btn btn-primary btn-block" data-action="AppointmentsFeature.saveNotes" data-args='${JSON.stringify([(id)])}'>
           Save Notes
@@ -3058,7 +3088,10 @@ const AppointmentsFeature = {
   async saveNotes(id) {
     const notes = document.getElementById('edit-appt-notes')?.value.trim() || '';
     try {
-      await DB.updateAppointment(id, { notes });
+      await DB.updateAppointment(id, {
+        notes,
+        audioNotes: typeof NoteCapture !== 'undefined' ? NoteCapture.getRecordings('edit-appt-notes') : []
+      });
       App.closeModal();
       Toast.show('Notes saved', 'success');
       App.navigate('appointments', { id });
@@ -3074,6 +3107,7 @@ const AppointmentsFeature = {
       Toast.show('Visit not found', 'error');
       return;
     }
+    if (typeof NoteCapture !== 'undefined') NoteCapture.setRecordings('outcome-notes', appt.audioNotes || []);
     const content = `
       <div class="sheet-handle"></div>
       <div class="sheet-header">
@@ -3098,6 +3132,7 @@ const AppointmentsFeature = {
       Toast.show('Visit not found', 'error');
       return;
     }
+    if (typeof NoteCapture !== 'undefined') NoteCapture.setRecordings('outcome-notes', appt.audioNotes || []);
 
     const outcomeConfig = (CONFIG.outcomes[appt.type] || []).find(o => o.id === outcomeId);
     if (!outcomeConfig) return;
@@ -3220,6 +3255,7 @@ const AppointmentsFeature = {
         <div class="form-group">
           <label>Notes</label>
           <textarea class="textarea" id="outcome-notes" placeholder="Any additional notes..."></textarea>
+          ${typeof NoteCapture !== 'undefined' ? NoteCapture.render('outcome-notes') : ''}
         </div>
 
         ${fittingBalance !== null ? `
@@ -3323,6 +3359,7 @@ const AppointmentsFeature = {
       ? TaxCalculator.estimateCommission(value)
       : 0;
     const notes = document.getElementById('outcome-notes')?.value || '';
+    const audioNotes = typeof NoteCapture !== 'undefined' ? NoteCapture.getRecordings('outcome-notes') : [];
     const reason = document.getElementById('outcome-reason')?.value || '';
 
     if (['other_no_sale', 'windows_too_high'].includes(outcomeId) && !reason) {
@@ -3352,6 +3389,7 @@ const AppointmentsFeature = {
         commission: commission > 0 ? commission : null,
         grossValue: discountPct > 0 ? grossValue : null,
         discountPercent: discountPct > 0 ? discountPct : null,
+        audioNotes,
         notes: outcomeNote ? [existingNotes, outcomeNote].filter(Boolean).join('\n\n') : existingNotes,
         // Additive fields (see js/core/geo.js travelStatus comment) — a real
         // completion timestamp instead of inferring "now" from elsewhere,

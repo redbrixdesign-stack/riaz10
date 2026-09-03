@@ -138,7 +138,7 @@ const MessageScheduler = {
       const days = this._daysFromNowUK(appt.date);
       if (days === 1) {
         // Visit tomorrow: evening-before draft fires today, morning-of draft tomorrow.
-        this._schedule(appt, 'evening_before', 0, s.eveningHour);
+        this._schedule(appt, appt.introSent ? 'evening_before' : 'intro_day_before', 0, s.eveningHour);
         this._scheduleMorningOf(appt);
       } else if (days === 0) {
         // Visit today: morning-of draft fires this morning.
@@ -263,6 +263,12 @@ const MessageScheduler = {
   },
 
   async _buildMessage(appt, stage, pending, extra) {
+    if (stage === 'intro_day_before' && typeof TalkFeature.buildIntroMessage === 'function') {
+      let customer = null;
+      try { customer = appt.customerId ? await DB.getCustomer(appt.customerId) : null; } catch (e) {}
+      const combined = await TalkFeature.buildIntroMessage(appt, customer);
+      if (combined) return combined;
+    }
     const context = await TalkFeature.buildMessageContext(pending);
     if (extra.eta) context.eta = extra.eta;
     if (extra.delay) context.delay = extra.delay;
@@ -324,6 +330,7 @@ const MessageScheduler = {
 
     const hints = {
       evening_before: "Auto-drafted for tomorrow's visit — review before sending.",
+      intro_day_before: "Combined first introduction and tomorrow's confirmation — review before sending.",
       morning_of: "Auto-drafted for today's visit — review before sending."
     };
     TalkFeature.pendingMessage = pending;

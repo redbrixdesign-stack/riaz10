@@ -85,6 +85,7 @@ const LeadsFeature = {
 
   openAddLead() {
     const today = Utils.formatDate(new Date(), 'iso');
+    if (typeof NoteCapture !== 'undefined') NoteCapture.setRecordings('lead-notes', []);
     App.openModal(`<div class="sheet-handle"></div>
       <div class="sheet-header"><h3>New enquiry</h3><button class="btn btn-ghost btn-sm" data-action="App.closeModal" aria-label="Close"><span class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body">
@@ -93,7 +94,7 @@ const LeadsFeature = {
         <div class="form-group"><label for="lead-address">Address</label><input class="input" id="lead-address" autocomplete="street-address"></div>
         <div class="form-group"><label for="lead-source">Source</label><select class="select" id="lead-source">${CONFIG.leadSources.map(source => `<option value="${source.toLowerCase().replace(/\s+/g, '_')}">${Utils.escapeHtml(source)}</option>`).join('')}</select></div>
         <div class="form-group"><label for="lead-next-action">Next action</label><input class="input" id="lead-next-action" type="date" value="${today}"></div>
-        <div class="form-group"><label for="lead-notes">Notes</label><textarea class="textarea" id="lead-notes" placeholder="What did they ask about?"></textarea></div>
+        <div class="form-group"><label for="lead-notes">Notes</label><textarea class="textarea" id="lead-notes" placeholder="What did they ask about?"></textarea>${typeof NoteCapture !== 'undefined' ? NoteCapture.render('lead-notes') : ''}</div>
         <div class="hint mb-md">Add a name or phone number. You can book the visit later.</div>
         <button class="btn btn-primary btn-block" id="lead-save-btn" data-action="LeadsFeature.saveLead">Save enquiry</button>
       </div>`);
@@ -117,7 +118,8 @@ const LeadsFeature = {
         status: 'new',
         receivedAt: new Date().toISOString(),
         nextActionAt: nextDate ? new Date(`${nextDate}T09:00:00`).toISOString() : null,
-        notes: document.getElementById('lead-notes')?.value.trim() || ''
+        notes: document.getElementById('lead-notes')?.value.trim() || '',
+        audioNotes: typeof NoteCapture !== 'undefined' ? NoteCapture.getRecordings('lead-notes') : []
       });
       App.closeModal();
       Toast.show('Enquiry saved', 'success');

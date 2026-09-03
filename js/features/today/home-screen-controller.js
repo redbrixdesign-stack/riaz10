@@ -150,10 +150,12 @@ const HomeScreenController = {
       const active = dayAppts.find(a => a.status !== 'completed' && !a.outcome);
       if (active) {
         let bannerPhotos = [];
+        let bannerCustomer = null;
         if (active.customerId) {
           try { bannerPhotos = await DB.getPhotosForCustomer(active.customerId); } catch (e) {}
+          try { bannerCustomer = await DB.getCustomer(active.customerId); } catch (e) {}
         }
-        upNextCardHtml = this.renderUpNextBanner(active, bannerPhotos);
+        upNextCardHtml = this.renderUpNextBanner(active, bannerPhotos, bannerCustomer);
       }
     }
 
@@ -270,11 +272,13 @@ const HomeScreenController = {
   // A compact live-status strip for today's next/current visit - keeps the
   // real-time "running late" awareness from the old Mid-Day dashboard
   // available, just as a banner atop the day's list rather than the whole
-  // screen being taken over by a single visit. When the customer has photos
-  // (captured on-site, or window pictures they shared before the first
-  // visit), up to four small thumbs render underneath so the advisor can
-  // recognise the property while on the way.
-  renderUpNextBanner(appt, photos = []) {
+  // screen being taken over by a single visit. It also surfaces the concise
+  // customer memory needed before the door: customer context first, with
+  // visit notes as a fallback. When the customer has photos (captured
+  // on-site, or window pictures they shared before the first visit), up to
+  // four small thumbs render underneath so the advisor can recognise the
+  // property while on the way.
+  renderUpNextBanner(appt, photos = [], customer = null) {
     const isOnSite = appt.travelStatus === 'on_site';
     const isInTransit = appt.travelStatus === 'in_transit';
     const isLate = !isOnSite && (Date.now() - new Date(appt.date).getTime()) > 5 * 60 * 1000;
@@ -285,6 +289,15 @@ const HomeScreenController = {
         <img src="${Utils.photoDataUrl(p)}" alt="">
       </button>
     `).join('');
+    const context = String(customer?.notes || appt.notes || '').trim();
+    const audioCount = (customer?.audioNotes?.length || 0) + (appt.audioNotes?.length || 0);
+    const contextHtml = (context || audioCount) ? `
+      <div class="hsc-upnext-context">
+        <div class="hsc-upnext-context-label">Customer context</div>
+        ${context ? `<div class="hsc-upnext-context-copy">${Utils.escapeHtml(Utils.truncate(context, 180))}</div>` : ''}
+        ${audioCount ? `<div class="hsc-upnext-context-audio"><span class="material-symbols-rounded">mic</span>${audioCount} saved voice note${audioCount === 1 ? '' : 's'}</div>` : ''}
+      </div>
+    ` : '';
     return `
       <div class="hsc-upnext-banner">
         <div class="hsc-upnext-line">
@@ -293,6 +306,7 @@ const HomeScreenController = {
           <span class="hsc-upnext-name">@${Utils.escapeHtml(appt.clientName || 'Customer')}</span>
           <span class="hsc-upnext-time">${Utils.escapeHtml(Utils.formatTime(appt.date))}</span>
         </div>
+        ${contextHtml}
         ${photoThumbs ? `<div class="hsc-upnext-photos">${photoThumbs}</div>` : ''}
       </div>
     `;

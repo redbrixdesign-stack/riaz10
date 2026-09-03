@@ -83,6 +83,7 @@ const OCRFeature = {
             <div class="form-group"><label>Phone</label><input type="tel" class="input" id="ocr-manual-phone" inputmode="tel" placeholder="Phone number"></div>
             <div class="form-group"><label>Address</label><input type="text" class="input" id="ocr-manual-address" placeholder="House number and street, town"></div>
             <div class="form-group"><label>Postcode</label><input type="text" class="input text-uppercase" id="ocr-manual-postcode" placeholder="e.g. M14 7FZ" ></div>
+            <div class="form-group"><label for="ocr-manual-type">Appointment type</label><select class="select" id="ocr-manual-type">${CONFIG.appointmentTypes.map(type => `<option value="${Utils.escapeHtml(type.id)}">${Utils.escapeHtml(type.name)}</option>`).join('')}</select></div>
             <button class="btn btn-primary btn-block" data-action="OCRFeature.saveManual">Save Customer</button>
           </div>
         </div>
@@ -206,10 +207,13 @@ const OCRFeature = {
 
     const orderedKeys = ['name', 'phone', 'address', 'town', 'city', 'postcode', 'customerNumber', 'email', 'appointmentDate', 'appointmentTime'];
     const fieldLabels = { address: 'Address Line 1', town: 'Town', city: 'City' };
+    const resolvedType = this.normalizeAppointmentType(this.extractedData.appointmentType, this.lastRawText);
+    this.extractedData.appointmentType = resolvedType;
     const fieldsHtml = `
       <div id="ocr-save-error" style="display:none;background:var(--danger,#e5484d22);color:var(--danger,#e5484d);border:1px solid var(--danger,#e5484d44);border-radius:8px;padding:10px 12px;font-size:13px;margin-bottom:12px;">
         A required field is missing — the highlighted boxes below must be filled in before saving.
       </div>
+      <div class="form-group"><label for="ocr-appointmentType">Appointment type</label><select class="select" id="ocr-appointmentType">${CONFIG.appointmentTypes.map(type => `<option value="${Utils.escapeHtml(type.id)}" ${type.id === resolvedType ? 'selected' : ''}>${Utils.escapeHtml(type.name)}</option>`).join('')}</select><div class="hint">Check this before saving—the message wording follows this visit type.</div></div>
       ${orderedKeys
         .filter(k => k === 'name' || k === 'postcode' || this.extractedData[k])
         .map(k => {
@@ -253,10 +257,21 @@ const OCRFeature = {
     return false;
   },
 
+  normalizeAppointmentType(value = '', supportingText = '') {
+    const raw = `${value || ''} ${supportingText || ''}`.toLowerCase();
+    if (/\b(service\s*(call|visit)?|repair|fault|remedial|issue)\b/.test(raw)) return 'service_call';
+    if (/\b(fitting|fit\s*only|installation|install)\b/.test(raw)) return 'fitting';
+    if (/\b(survey|measure(?:ment)?|measuring)\b/.test(raw)) return 'measure';
+    if (/\b(review|inspection|check[- ]?up)\b/.test(raw)) return 'review';
+    if (/\b(follow[- ]?up|revisit)\b/.test(raw)) return 'follow_up';
+    return CONFIG.appointmentTypes.some(type => type.id === value) ? value : 'consultation';
+  },
+
   parseText(text, leftColumnText = '', now = new Date()) {
     const rawLines = text.split('\n').map(l => l.trim()).filter(l => l);
     const lines = rawLines.filter(l => !this.isChrome(l));
-    const data = { name: '', phone: '', address: '', town: '', city: '', postcode: '', customerNumber: '', email: '', appointmentDate: '', appointmentTime: '' };
+    const data = { name: '', phone: '', address: '', town: '', city: '', postcode: '', customerNumber: '', email: '', appointmentDate: '', appointmentTime: '', appointmentType: 'consultation' };
+    data.appointmentType = this.normalizeAppointmentType('', lines.join(' '));
 
     const phoneRe = /(\+?44\s?)?(\(?\d{5}\)?\s?\d{3}\s?\d{3}|\(?\d{4}\)?\s?\d{3}\s?\d{3})/;
     const emailRe = /\S+@\S+\.\S+/;
@@ -781,10 +796,8 @@ const OCRFeature = {
         App.navigate('appointments', { id: existing.id });
         return;
       }
-      const allowed = typeof AppointmentsFeature?.getAllowedTypesForDate === 'function'
-        ? AppointmentsFeature.getAllowedTypesForDate(visitDate + 'T00:00:00')
-        : [];
-      const type = (allowed && allowed.length ? allowed[0] : CONFIG.appointmentTypes?.[0]?.id) || 'consultation';
+      const selectedType = document.getElementById('ocr-appointmentType')?.value || this.extractedData.appointmentType;
+      const type = CONFIG.appointmentTypes.some(item => item.id === selectedType) ? selectedType : 'consultation';
 
       const { iso: dateIso } = this.resolveVisitIso(visitDate, visitTime);
 
@@ -892,10 +905,8 @@ const OCRFeature = {
         App.navigate('appointments', { id: existing.id });
         return;
       }
-      const allowed = typeof AppointmentsFeature?.getAllowedTypesForDate === 'function'
-        ? AppointmentsFeature.getAllowedTypesForDate(visitDate + 'T00:00:00')
-        : [];
-      const type = (allowed && allowed.length ? allowed[0] : CONFIG.appointmentTypes?.[0]?.id) || 'consultation';
+      const selectedType = document.getElementById('ocr-manual-type')?.value || 'consultation';
+      const type = CONFIG.appointmentTypes.some(item => item.id === selectedType) ? selectedType : 'consultation';
 
       const appointment = await DB.addAppointment({
         customerId: customer.id,

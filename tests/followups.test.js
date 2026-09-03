@@ -61,6 +61,7 @@ const assert = (cond, msg, extra) => { if (!cond) { console.error('FAIL:', msg, 
 const iso = days => { const d = new Date(); d.setDate(d.getDate() + days); d.setHours(11, 0, 0, 0); return d.toISOString(); };
 
 const Followups = global.App.features.get('followups');
+const talkSource = fs.readFileSync(path.join(__dirname, '..', 'js/features/talk/talk.js'), 'utf8');
 
 (async () => {
   // Far-out booking (10 days), brand-new customer with a phone.
@@ -74,6 +75,17 @@ const Followups = global.App.features.get('followups');
   assert(intro && intro.appointment && intro.appointment.id === 101, 'The intro task points at the far-out booking', intro && intro.appointment);
   assert(intro && intro.due === true && intro.template === 'pre_intro', 'The intro task is due with the pre_intro template', intro);
 
+  // A first contact inside the day-before window is one combined obligation,
+  // not a separate intro and reminder.
+  NEXT5.push({
+    id: 102, customerId: 10, clientName: 'Synthetic Tomorrow', phone: '07700900124',
+    type: 'consultation', date: iso(1), address: '10 Example Road', status: 'confirmed'
+  });
+  tasks = await Followups.loadTasks();
+  const combined = tasks.find(t => t.appointment?.id === 102 && t.kind === 'intro_confirmation');
+  assert(combined?.template === 'intro_day_before', 'Tomorrow first contact combines introduction and confirmation', combined);
+  assert(!tasks.some(t => t.appointment?.id === 102 && t.kind === 'intro'), 'Combined communication suppresses duplicate standalone intro');
+
   // Once the intro is sent it disappears.
   FAR_APPTS[0].introSent = true;
   tasks = await Followups.loadTasks();
@@ -84,6 +96,7 @@ const Followups = global.App.features.get('followups');
   ALL_APPTS.push({ id: 900, customerId: 9, date: iso(-40), status: 'completed', outcome: 'ordered' });
   tasks = await Followups.loadTasks();
   assert(!tasks.some(t => t.kind === 'intro'), 'Returning customers get no intro task');
+  assert(talkSource.includes("intro_day_before: ['introSent', 'dayBeforeSent']"), 'Confirmed combined send clears both communication obligations');
 
   console.log(process.exitCode ? '\nFOLLOWUPS TEST FAILED' : '\nFOLLOWUPS TEST PASSED');
 })();

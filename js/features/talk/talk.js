@@ -65,7 +65,7 @@ const TalkFeature = {
 
   stageForTemplateKey(key) {
     if (key === 'outcome_ordered') return 'outcome_ordered';
-    if (key === 'pre_intro') return 'pre_intro';
+    if (key === 'pre_intro' || key === 'intro_day_before') return 'pre_intro';
     if (key === 'day_before' || key === 'evening_before') return 'day_before';
     if (key === 'morning_of') return 'morning_of';
     if (key === 'on_my_way') return 'on_the_way';
@@ -155,7 +155,8 @@ const TalkFeature = {
   // types, timing from the order/delivery note) so the customer feels known.
   async buildIntroMessage(appt, customer) {
     try {
-      const name = Utils.firstNameFrom(customer?.firstName || appt?.clientName || '') || 'there';
+      const name = Utils.customerFirstName(customer, appt?.clientName);
+      const advisor = CONFIG.advisorName || 'Your Advisor';
       const dayPart = `${Utils.formatDateUK(appt.date, 'weekday-short')} ${Utils.formatDateUK(appt.date, 'short')}`;
       const timePart = this.apptTimeText(appt);
       const addressPart = appt?.address ? ` at ${appt.address}` : '';
@@ -167,19 +168,18 @@ const TalkFeature = {
         const job = (await this.buildJobSummary(appt.customerId) || '').replace(/\.+$/, '');
         const jobLine = job ? ` ${job}.` : '';
         if (appt.type === 'fitting') {
-          return `Hi ${name}, just to confirm — I'll be with you${when}${addressPart} to fit your new blinds.${jobLine} If you can clear the area around the window(s) and take down any existing blinds or curtains beforehand, I'll get straight to it when I arrive. If anything's changed, just reply here.`;
+          return `Hi ${name}, it's ${advisor}. Just to confirm — I'll be with you${when}${addressPart} to fit your new blinds.${jobLine} If you can clear the area around the window(s) and take down any existing blinds or curtains beforehand, I'll get straight to it when I arrive. If anything's changed, just reply here.`;
         }
         if (appt.type === 'service_call') {
-          return `Hi ${name}, just to confirm — I'll be with you${when}${addressPart} to sort out the issue you reported.${jobLine} If anything's changed, just reply here.`;
+          return `Hi ${name}, it's ${advisor}. Just to confirm — I'll be with you${when}${addressPart} to sort out the issue you reported.${jobLine} If anything's changed, just reply here.`;
         }
         if (appt.type === 'review') {
-          return `Hi ${name}, just to confirm — I'll be with you${when}${addressPart} to see how everything's looking.${jobLine} If anything's come up since the fitting, just reply here and I'll take a look.`;
+          return `Hi ${name}, it's ${advisor}. Just to confirm — I'll be with you${when}${addressPart} to see how everything's looking.${jobLine} If anything's come up since the fitting, just reply here and I'll take a look.`;
         }
-        return `Hi ${name}, just to confirm — I'll be with you${when}${addressPart} to follow up.${jobLine} If anything's changed since we last spoke, just reply here.`;
+        return `Hi ${name}, it's ${advisor}. Just to confirm — I'll be with you${when}${addressPart} to follow up.${jobLine} If anything's changed since we last spoke, just reply here.`;
       }
 
       // New-customer stages: introduction with the title + profile-aware asks.
-      const advisor = CONFIG.advisorName || 'Your Advisor';
       const title = CONFIG.advisorTitle || 'independent window coverings expert';
       const TYPE = {
         consultation: {
@@ -529,7 +529,7 @@ const TalkFeature = {
     }
 
     // Resolve template
-    const keys = templateKey.split('.');
+    const keys = (templateKey === 'intro_day_before' ? 'pre_intro' : templateKey).split('.');
     let template = CONFIG.templates;
     for (const k of keys) {
       template = template?.[k];
@@ -571,7 +571,7 @@ const TalkFeature = {
     // profile (title + type-aware prep + known parking/access acknowledged)
     // — falls back to the static pre_intro template if that ever fails.
     let message = null;
-    if (templateKey === 'pre_intro') {
+    if (templateKey === 'pre_intro' || templateKey === 'intro_day_before') {
       message = await this.buildIntroMessage(appt, customer);
     }
     if (!message) {
@@ -584,7 +584,7 @@ const TalkFeature = {
         jobSummary = jobSummary ? ' ' + jobSummary : '';
       }
       message = NotificationService.processTemplate(template, {
-        firstName: Utils.firstNameFrom(customer?.firstName || appt?.clientName),
+        firstName: Utils.customerFirstName(customer, appt?.clientName),
         productType: 'window coverings',
         time: this.apptTimeText(appt),
         address: appt?.address || '',
@@ -877,7 +877,7 @@ const TalkFeature = {
 
     return {
       customerName: customer ? [customer.firstName, customer.lastName].filter(Boolean).join(' ') : (appt?.clientName || 'there'),
-      firstName: Utils.firstNameFrom(customer?.firstName || appt?.clientName),
+      firstName: Utils.customerFirstName(customer, appt?.clientName),
       appointmentDate: appt?.date ? Utils.formatDate(appt.date) : '',
       appointmentDay: appt?.date ? Utils.formatDate(appt.date, 'long') : '',
       appointmentTime: this.apptTimeText(appt),
@@ -924,7 +924,7 @@ const TalkFeature = {
     if (!templateText) return '';
     try {
       return NotificationService.processTemplate(templateText, {
-        firstName: Utils.firstNameFrom(customer?.firstName || appt?.clientName),
+        firstName: Utils.customerFirstName(customer, appt?.clientName),
         time: this.apptTimeText(appt),
         address: appt?.address || '',
         advisorName,
@@ -1031,7 +1031,7 @@ const TalkFeature = {
       advisor_role: CONFIG.advisorTitle || 'window coverings advisor',
       facebook_url: String(CONFIG.socialLinks?.facebook || '').trim(),
       instagram_url: String(CONFIG.socialLinks?.instagram || '').trim(),
-      customer_name: customer ? customer.firstName || customer.lastName : (appt?.clientName || 'there'),
+      customer_name: Utils.customerFirstName(customer, appt?.clientName),
       customer_is_first_visit_at_address: pastVisits.length === 0,
       customer_visit_count: pastVisits.length,
       address: appt?.address || customer?.address?.line1 || '',
@@ -1108,10 +1108,10 @@ const TalkFeature = {
     const pending = this.pendingSentConfirmation;
     if (!pending) return;
     if (pending.communicationId && typeof CommunicationService !== 'undefined') await CommunicationService.advisorConfirmSent(pending.communicationId, pending.customerId);
-    const SENT_FLAGS = { day_before: 'dayBeforeSent', pre_intro: 'introSent', post_fit_followup: 'postFitSent', service_or_issue_followup: 'serviceSent' };
-    const flag = SENT_FLAGS[pending.templateKey];
-    if (flag && pending.appointmentId) {
-      try { await DB.db.appointments.update(pending.appointmentId, { [flag]: true }); } catch (e) {}
+    const SENT_FLAGS = { day_before: ['dayBeforeSent'], evening_before: ['dayBeforeSent'], pre_intro: ['introSent'], intro_day_before: ['introSent', 'dayBeforeSent'], post_fit_followup: ['postFitSent'], service_or_issue_followup: ['serviceSent'] };
+    const flags = SENT_FLAGS[pending.templateKey] || [];
+    if (flags.length && pending.appointmentId) {
+      try { await DB.db.appointments.update(pending.appointmentId, Object.fromEntries(flags.map(flag => [flag, true]))); } catch (e) {}
     }
     this.pendingSentConfirmation = null; App.closeModal(); Toast.show('Message marked as sent by you', 'success');
   },
@@ -1120,8 +1120,9 @@ const TalkFeature = {
     this.pendingSentConfirmation = null; App.closeModal(); Toast.show('Kept as handed off — delivery not assumed', 'info');
   },
 
-  sendDayBefore(appointmentId) {
-    return this.sendMessage(appointmentId, 'day_before');
+  async sendDayBefore(appointmentId) {
+    const appt = await DB.getAppointment(appointmentId);
+    return this.sendMessage(appointmentId, appt && !appt.introSent ? 'intro_day_before' : 'day_before');
   },
 
   async pickTemplateCustomer(key) {

@@ -29,7 +29,7 @@ export function BuiltForOne() {
           <DeviceFrame
             src={tripShot}
             alt="Beelo screen: a live trip being tracked while driving to a visit"
-            caption="Mileage, captured as you drive"
+            caption="Start a trip to capture working mileage"
             captionTone="light"
             className="absolute bottom-8 left-[8%] -rotate-[5deg]"
           />

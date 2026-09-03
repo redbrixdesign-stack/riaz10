@@ -16,22 +16,31 @@ export const CONTENT = {
   },
 
   hero: {
-    /* TODO: replace with the founder's name if you sign the hero */
-    eyebrow: 'Built for solo self-employed home-visit professionals',
-    headline: 'Your business should not live in your head.',
-    sub: 'Beelo keeps your customer notes, follow-ups, mileage and next actions connected—so you can stay organised between appointments and finish the day with less admin.',
+    eyebrow: 'Built for people who work alone between customer appointments',
+    headline: 'The thread connecting your working day.',
+    sub: 'Your appointments may come from a company diary, a calendar, a message, paper or a business card. Beelo connects the person, place, time and next action—then works with the tools you already use.',
+    boundary: 'Keep your company system. Keep your calendar. Keep your maps. Beelo connects them around you.',
     ctaPrimary: 'Apply for the pilot',
     ctaSecondary: 'See how it works',
     pilotNote: 'Small, controlled UK pilot. Places are limited.',
-    proof: ['Works offline', 'You approve every message', 'Built from real field work'],
-    mockupNote: 'Real Beelo screens, tested in the field.'
+    proof: ['Core capture works offline', 'You approve every message', 'Built from real field work'],
+    mockupNote: 'Prototype Beelo screens from founder field testing.'
   },
 
   problem: {
     heading: 'Seven tools. One person holding it all together.',
-    supporting: 'Appointments sit in one system. Conversations sit in WhatsApp. Routes sit in Maps. Photos sit in the camera roll. Receipts sit in a shoebox. The solo advisor becomes the manual integration layer.',
+    supporting: 'Appointments sit in one system. Conversations sit in WhatsApp. Routes sit in Maps. Photos sit in the camera roll. The person doing the work becomes the manual integration layer.',
     chain: ['Company diary', 'WhatsApp', 'Maps', 'Camera roll', 'Notes', 'Receipts', 'Mileage app'],
     collapse: 'You become the system that connects everything.'
+  },
+
+  thread: {
+    heading: 'The tools already work. What is missing is the thread between them.',
+    intro: 'Beelo does not replace the useful tools or official systems in your working day. It carries the relevant context between them, centred on the person doing the work.',
+    sources: ['Company diary', 'Calendar', 'Paper or card', 'Messages'],
+    destinations: ['Contacts', 'Maps', 'Notes', 'Follow-up'],
+    centre: 'The personal continuity layer',
+    principle: 'The tools remain separate and useful. Beelo provides the continuity.'
   },
 
   solution: {
@@ -46,15 +55,15 @@ export const CONTENT = {
       },
       {
         title: 'Arrive with the context',
-        body: 'Keep access notes, customer details and previous conversations connected to the visit.'
+        body: 'Keep access notes, voice notes, customer details and previous conversations connected to the visit.'
       },
       {
         title: 'Follow up without starting over',
         body: 'Review a message drafted from the information you already captured. Nothing sends automatically.'
       },
       {
-        title: 'Keep the money trail clear',
-        body: 'Connect mileage, expenses, expected commission and deductions to the work that created them.'
+        title: 'Carry the memory forward',
+        body: 'Keep what happened, what you promised and what must happen next connected to the visit.'
       }
     ]
   },
@@ -62,16 +71,55 @@ export const CONTENT = {
   how: {
     heading: 'From appointment to next action.',
     steps: [
-      { title: 'Capture', body: 'Photograph or quickly save what happened.' },
-      { title: 'Connect', body: 'Beelo keeps it with the right customer and visit.' },
-      { title: 'Resurface', body: 'The right context appears when the next action is due.' },
-      { title: 'Stay in control', body: 'Review every draft and recommendation before acting.' }
+      { title: 'Capture the appointment', body: 'Scan a company diary, paper record or card—or enter the details manually.' },
+      { title: 'Connect the context', body: 'Keep the person, place, time, notes and relevant history together.' },
+      { title: 'Prepare the day', body: 'See missing details, conflicts, backtracking and actions that need attention.' },
+      { title: 'Use your existing tools', body: 'Open navigation in Maps and review communication drafts before sending.' },
+      { title: 'Carry memory forward', body: 'Retain what happened, what was promised and what should happen next.' }
+    ]
+  },
+
+  routing: {
+    heading: 'Maps optimises a journey. Beelo helps organise the whole day.',
+    intro: 'Company appointments often remain in the order they were booked. Independent workers also add visits as they arrive. Both can produce unnecessary crossing, backtracking and time on the road.',
+    body: 'Beelo is being developed to review the working day around locations, appointment windows and expected duration, then recommend a more practical sequence. The worker reviews the recommendation before changing anything; navigation still happens through the preferred maps app.',
+    bookedLabel: 'Order received',
+    bookedRoute: 'A → D → B → C',
+    suggestedLabel: 'Possible sequence',
+    suggestedRoute: 'A → B → C → D',
+    control: 'Beelo recommends. You decide. Maps navigates.',
+    evidenceTitle: 'Early founder observation',
+    evidenceBody: 'During the founder’s own home-visit work, more deliberate appointment sequencing has avoided approximately five miles on an average working day. Across 220 working days, that would represent around 1,100 miles.',
+    scale: 'If replicated by 1,000 workers: 1.1 million unnecessary miles could be avoided annually.',
+    qualification: 'Founder observation and illustrative extrapolation—not yet a measured result across Beelo users. The pilot must test whether it generalises.',
+    impact: 'Fewer unnecessary miles can mean less travel time, lower fuel and vehicle costs, and lower emissions. At sufficient scale, fewer avoidable vehicle-miles could also reduce pressure on local roads.'
+  },
+
+  truth: {
+    heading: 'What exists now—and what the pilot must prove.',
+    intro: 'Beelo is a pilot-stage prototype. Planned and pilot-validation work is labelled clearly rather than presented as released capability.',
+    columns: [
+      {
+        title: 'Verified in the prototype',
+        status: 'Available now',
+        items: ['Appointment capture and manual entry', 'Connected visit context and next actions', 'Voice note capture within customer profiles', 'Core offline capture', 'User-started trip and mileage records', 'Review-first communication drafts', 'End-of-day review']
+      },
+      {
+        title: 'Being validated',
+        status: 'Pilot evidence needed',
+        items: ['Reliable capture across varied appointment sources', 'Whole-day route recommendations', 'Measured mileage and time reduction', 'Tomorrow preparation across different occupations', 'Practical use during real working days']
+      },
+      {
+        title: 'Future possibilities',
+        status: 'Not current capability',
+        items: ['Deeper calendar and company-system connections', 'Broader localisation and international versions', 'Additional permission-based automation', 'Wider device and service integrations']
+      }
     ]
   },
 
   builtForOne: {
     heading: 'Built for the person doing the work.',
-    body: 'Beelo is designed for the person in the van, on the doorstep or moving between appointments—not for a manager watching a dashboard. Core capture works offline and messages are never sent without your approval.',
+    body: 'Beelo is designed for the person in the van, on the doorstep or moving between appointments—not for a manager watching a dashboard. It can support a self-employed professional or someone receiving work through a company system. Core capture works offline and messages are never sent without your approval.',
     points: [
       'Fast photo and note capture',
       'Offline-first',
@@ -133,14 +181,14 @@ export const CONTENT = {
 
   pilot: {
     heading: 'Help shape Beelo before it launches.',
-    body: 'We are inviting a small group of UK-based, self-employed home-visit professionals to use Beelo during real working days and give honest, structured feedback.',
+    body: 'We are inviting 5–10 UK-based, self-employed home-visit professionals to use Beelo during real working days and give honest, structured feedback. The pilot will assess whether Beelo can reduce missed follow-ups, minimise unpaid administration time, improve record quality, and increase operational confidence for mobile professionals.',
     criteriaTitle: 'The pilot is for people who:',
     criteria: [
       'Currently live and work in the United Kingdom',
       'Work alone',
       'Visit customers at homes or sites',
       'Juggle messaging, maps, photos, notes or mileage',
-      'Want fewer missed follow-ups and less evening admin',
+      'Want fewer missed follow-ups, less unpaid admin time, better records and more day-to-day confidence',
       'Are comfortable giving structured feedback'
     ],
     cta: 'Apply for the pilot',
@@ -176,7 +224,7 @@ export const CONTENT = {
   },
 
   footer: {
-    tagline: 'Built for self-employed home-visit professionals.',
+    tagline: 'Built for people who work alone between customer appointments.',
     /* TODO: replace with the real privacy policy URL */
     privacy: 'Privacy & data handling',
     privacyHref: '#privacy',

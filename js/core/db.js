@@ -13,7 +13,7 @@ const BACKUP_TABLES = ['customers', 'appointments', 'orders', 'expenses', 'trips
 // ============================================
 // Field-level encryption (AES-GCM 256-bit, key from passphrase via PBKDF2)
 // ============================================
-const PII_FIELDS = ['firstName', 'lastName', 'phone', 'email', 'address'];
+const PII_FIELDS = ['firstName', 'lastName', 'phone', 'email', 'address', 'notes'];
 const ADDRESS_PII_FIELDS = ['line1', 'town', 'city', 'postcode', 'postcodeNormalized'];
 // Appointment rows carry their own copy of customer-identifying fields at
 // booking time (the visit card shows them without a customer lookup), plus
@@ -153,6 +153,22 @@ function isEncrypted(value) {
   return value && typeof value === 'object' && 'iv' in value && 'ct' in value;
 }
 
+async function encryptAudioNoteItems(items = []) {
+  return Promise.all(items.map(async item => ({
+    ...item,
+    dataUrl: typeof item.dataUrl === 'string' ? await encryptField(item.dataUrl) : item.dataUrl,
+    transcript: typeof item.transcript === 'string' && item.transcript ? await encryptField(item.transcript) : item.transcript
+  })));
+}
+
+async function decryptAudioNoteItems(items = []) {
+  return Promise.all(items.map(async item => ({
+    ...item,
+    dataUrl: isEncrypted(item.dataUrl) ? await decryptField(item.dataUrl) : item.dataUrl,
+    transcript: isEncrypted(item.transcript) ? await decryptField(item.transcript) : item.transcript
+  })));
+}
+
 async function encryptCustomer(customer) {
   const encrypted = { ...customer };
   for (const field of PII_FIELDS) {
@@ -168,6 +184,7 @@ async function encryptCustomer(customer) {
       encrypted[field] = await encryptField(encrypted[field]);
     }
   }
+  if (Array.isArray(encrypted.audioNotes)) encrypted.audioNotes = await encryptAudioNoteItems(encrypted.audioNotes);
   return encrypted;
 }
 
@@ -187,6 +204,7 @@ async function decryptCustomer(customer) {
       decrypted[field] = await decryptField(decrypted[field]);
     }
   }
+  if (Array.isArray(decrypted.audioNotes)) decrypted.audioNotes = await decryptAudioNoteItems(decrypted.audioNotes);
   return decrypted;
 }
 
@@ -230,6 +248,7 @@ async function encryptAppointment(appointment) {
       encrypted[field] = await encryptField(value);
     }
   }
+  if (Array.isArray(encrypted.audioNotes)) encrypted.audioNotes = await encryptAudioNoteItems(encrypted.audioNotes);
   return encrypted;
 }
 
@@ -241,6 +260,7 @@ async function decryptAppointment(appointment) {
       decrypted[field] = await decryptField(decrypted[field]);
     }
   }
+  if (Array.isArray(decrypted.audioNotes)) decrypted.audioNotes = await decryptAudioNoteItems(decrypted.audioNotes);
   return decrypted;
 }
 
@@ -286,36 +306,48 @@ async function decryptStringFields(record, fields) {
   return decrypted;
 }
 
+async function encryptRecordWithAudio(record, fields) {
+  const out = await encryptStringFields(record, fields);
+  if (Array.isArray(out?.audioNotes)) out.audioNotes = await encryptAudioNoteItems(out.audioNotes);
+  return out;
+}
+
+async function decryptRecordWithAudio(record, fields) {
+  const out = await decryptStringFields(record, fields);
+  if (Array.isArray(out?.audioNotes)) out.audioNotes = await decryptAudioNoteItems(out.audioNotes);
+  return out;
+}
+
 async function encryptLead(lead) {
-  const encrypted = await encryptStringFields(lead, LEAD_PII_FIELDS);
+  const encrypted = await encryptRecordWithAudio(lead, LEAD_PII_FIELDS);
   if (lead && lead.address && typeof lead.address === 'object' && !isEncrypted(lead.address)) {
     encrypted.address = await encryptField(JSON.stringify(lead.address));
   }
   return encrypted;
 }
 async function decryptLead(lead) {
-  const decrypted = await decryptStringFields(lead, LEAD_PII_FIELDS);
+  const decrypted = await decryptRecordWithAudio(lead, LEAD_PII_FIELDS);
   if (decrypted && typeof decrypted.address === 'string' && decrypted.address.startsWith('{')) {
     try { decrypted.address = JSON.parse(decrypted.address); } catch (e) { /* legacy free-text address */ }
   }
   return decrypted;
 }
-const encryptTask = task => encryptStringFields(task, TASK_PII_FIELDS);
-const decryptTask = task => decryptStringFields(task, TASK_PII_FIELDS);
-const encryptQuote = quote => encryptStringFields(quote, QUOTE_PII_FIELDS);
-const decryptQuote = quote => decryptStringFields(quote, QUOTE_PII_FIELDS);
+const encryptTask = task => encryptRecordWithAudio(task, TASK_PII_FIELDS);
+const decryptTask = task => decryptRecordWithAudio(task, TASK_PII_FIELDS);
+const encryptQuote = quote => encryptRecordWithAudio(quote, QUOTE_PII_FIELDS);
+const decryptQuote = quote => decryptRecordWithAudio(quote, QUOTE_PII_FIELDS);
 const encryptQuoteItem = item => encryptStringFields(item, QUOTE_ITEM_PII_FIELDS);
 const decryptQuoteItem = item => decryptStringFields(item, QUOTE_ITEM_PII_FIELDS);
 const encryptJob = job => encryptStringFields(job, JOB_PII_FIELDS);
 const decryptJob = job => decryptStringFields(job, JOB_PII_FIELDS);
 const encryptChecklistResponse = row => encryptStringFields(row, CHECKLIST_RESPONSE_PII_FIELDS);
 const decryptChecklistResponse = row => decryptStringFields(row, CHECKLIST_RESPONSE_PII_FIELDS);
-const encryptJobIssue = row => encryptStringFields(row, JOB_ISSUE_PII_FIELDS);
-const decryptJobIssue = row => decryptStringFields(row, JOB_ISSUE_PII_FIELDS);
+const encryptJobIssue = row => encryptRecordWithAudio(row, JOB_ISSUE_PII_FIELDS);
+const decryptJobIssue = row => decryptRecordWithAudio(row, JOB_ISSUE_PII_FIELDS);
 const encryptPayment = row => encryptStringFields(row, PAYMENT_PII_FIELDS);
 const decryptPayment = row => decryptStringFields(row, PAYMENT_PII_FIELDS);
-async function encryptInvoice(row) { const out = await encryptStringFields(row, INVOICE_PII_FIELDS); if (row?.customerSnapshot && typeof row.customerSnapshot === 'object') out.customerSnapshot = await encryptField(JSON.stringify(row.customerSnapshot)); return out; }
-async function decryptInvoice(row) { const out = await decryptStringFields(row, INVOICE_PII_FIELDS); if (typeof out?.customerSnapshot === 'string' && out.customerSnapshot.startsWith('{')) try { out.customerSnapshot = JSON.parse(out.customerSnapshot); } catch (e) {} return out; }
+async function encryptInvoice(row) { const out = await encryptRecordWithAudio(row, INVOICE_PII_FIELDS); if (row?.customerSnapshot && typeof row.customerSnapshot === 'object') out.customerSnapshot = await encryptField(JSON.stringify(row.customerSnapshot)); return out; }
+async function decryptInvoice(row) { const out = await decryptRecordWithAudio(row, INVOICE_PII_FIELDS); if (typeof out?.customerSnapshot === 'string' && out.customerSnapshot.startsWith('{')) try { out.customerSnapshot = JSON.parse(out.customerSnapshot); } catch (e) {} return out; }
 const encryptInvoiceItem = row => encryptStringFields(row, INVOICE_ITEM_PII_FIELDS);
 const decryptInvoiceItem = row => decryptStringFields(row, INVOICE_ITEM_PII_FIELDS);
 async function encryptCreditNote(row) { const out = await encryptStringFields(row, CREDIT_PII_FIELDS); if (Array.isArray(row?.itemSnapshot)) out.itemSnapshot = await encryptField(JSON.stringify(row.itemSnapshot)); return out; }
@@ -326,10 +358,10 @@ const encryptJobCost = row => encryptStringFields(row, JOB_COST_PII_FIELDS);
 const decryptJobCost = row => decryptStringFields(row, JOB_COST_PII_FIELDS);
 const encryptAvailabilityBlock = row => encryptStringFields(row, AVAILABILITY_PII_FIELDS);
 const decryptAvailabilityBlock = row => decryptStringFields(row, AVAILABILITY_PII_FIELDS);
-const encryptRetentionRecord = row => encryptStringFields(row, RETENTION_PII_FIELDS);
-const decryptRetentionRecord = row => decryptStringFields(row, RETENTION_PII_FIELDS);
-const encryptContactPreference = row => encryptStringFields(row, CONTACT_PREFERENCE_PII_FIELDS);
-const decryptContactPreference = row => decryptStringFields(row, CONTACT_PREFERENCE_PII_FIELDS);
+const encryptRetentionRecord = row => encryptRecordWithAudio(row, RETENTION_PII_FIELDS);
+const decryptRetentionRecord = row => decryptRecordWithAudio(row, RETENTION_PII_FIELDS);
+const encryptContactPreference = row => encryptRecordWithAudio(row, CONTACT_PREFERENCE_PII_FIELDS);
+const decryptContactPreference = row => decryptRecordWithAudio(row, CONTACT_PREFERENCE_PII_FIELDS);
 const encryptCommunicationEvent = row => encryptStringFields(row, COMMUNICATION_EVENT_PII_FIELDS);
 const decryptCommunicationEvent = row => decryptStringFields(row, COMMUNICATION_EVENT_PII_FIELDS);
 async function encryptIntegrationConflict(row) { const copy={...row};for(const field of ['localSnapshot','remoteSnapshot'])if(copy[field]&&typeof copy[field]==='object')copy[field]=JSON.stringify(copy[field]);return encryptStringFields(copy,INTEGRATION_CONFLICT_PII_FIELDS); }
@@ -338,6 +370,16 @@ async function encryptIntegrationOutbox(row) { const copy={...row};if(copy.paylo
 async function decryptIntegrationOutbox(row) { const out=await decryptStringFields(row,INTEGRATION_OUTBOX_PII_FIELDS);if(typeof out?.payload==='string'&&/^[\[{]/.test(out.payload))try{out.payload=JSON.parse(out.payload);}catch(e){}return out; }
 const encryptVoiceNote = row => encryptStringFields(row, VOICE_NOTE_PII_FIELDS);
 const decryptVoiceNote = row => decryptStringFields(row, VOICE_NOTE_PII_FIELDS);
+
+async function encryptMeasurementAudio(row) {
+  if (!row || !Array.isArray(row.audioNotes)) return row;
+  return { ...row, audioNotes: await encryptAudioNoteItems(row.audioNotes) };
+}
+
+async function decryptMeasurementAudio(row) {
+  if (!row || !Array.isArray(row.audioNotes)) return row;
+  return { ...row, audioNotes: await decryptAudioNoteItems(row.audioNotes) };
+}
 
 async function migratePlaintextWorkItems() {
   if (!encryptionKey) return;
@@ -1445,8 +1487,18 @@ const DB = {
       createdAt: new Date().toISOString()
     };
 
-    const id = await this.db.measurements.add(measurement);
+    const encrypted = await encryptMeasurementAudio(measurement);
+    const id = await this.db.measurements.add(encrypted);
     return { ...measurement, id };
+  },
+
+  async getMeasurement(id) {
+    return decryptMeasurementAudio(await this.db.measurements.get(id));
+  },
+
+  async updateMeasurement(id, data) {
+    await this.db.measurements.update(id, await encryptMeasurementAudio(data));
+    return this.getMeasurement(id);
   },
 
   // Communication operations
@@ -2064,6 +2116,14 @@ const DB = {
 
   async deletePrivateSetting(key) {
     await this.db.settings.delete(key);
+  },
+
+  async getDeviceAISecret() {
+    return this.getPrivateSetting(DEVICE_AI_SECRET_SETTING, '');
+  },
+
+  async setDeviceAISecret(value) {
+    return this.setPrivateSetting(DEVICE_AI_SECRET_SETTING, value);
   },
 
   // Schema version of the current database. Real Dexie reports it as `verno`
