@@ -150,4 +150,3 @@ Safe, evidence-backed wording:
 Avoid saying “everything stays on the phone” without explaining service-request
 egress, “offline sync”, automatic communication, live CRM/accounting integration,
 or a distinct Survey workflow.
-
