@@ -1,10 +1,10 @@
 # Beelo comprehensive product audit
 
-**Evidence date:** 3 September 2026  
+**Evidence date:** 3 September 2026
 **Scope:** current working tree, automated tests, local iPhone-size browser journeys,
 production PWA (`beelo.beelestial.co.uk`), public landing page
 (`beelestial.co.uk`), serverless AI endpoints, pilot intake, deployment
-configuration, product positioning, privacy and release governance.  
+configuration, product positioning, privacy and release governance.
 **Method:** read-only product audit. No product fixes, live form submissions, real
 customer data, destructive tests or penetration testing were performed.
 

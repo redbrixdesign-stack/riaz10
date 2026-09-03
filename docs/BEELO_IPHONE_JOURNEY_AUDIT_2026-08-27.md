@@ -63,69 +63,69 @@ No product code or test harness was changed.
 ### P0 — operator/legal details are placeholders
 
 **Reproduction:** open Settings → Privacy Policy or Terms of Service and inspect
-the Operator block.  
+the Operator block.
 **Observed:** name, address, email and company number are `—` in
-`js/core/legal.js`.  
+`js/core/legal.js`.
 **Impact:** not suitable for a public or external pilot onboarding claim; users
-cannot identify/contact the operator from the legal pages.  
-**Evidence:** source plus the existing legal-phase note.  
+cannot identify/contact the operator from the legal pages.
+**Evidence:** source plus the existing legal-phase note.
 **Action:** populate verified operator identity/contact details and obtain an
 appropriate UK privacy/legal review before pilot onboarding.
 
 ### P0 — privacy promise omits material network egress
 
 **Reproduction:** read the one-time consent sheet and Privacy Policy, then compare
-with Route/weather/geoprovider behavior.  
+with Route/weather/geoprovider behavior.
 **Observed:** consent says “everything” stays on the phone and frames Claude as
 the one optional feature sending anything out. The policy mentions map-tile IP
 requests and AI, but not that geocoding can transmit customer addresses/postcodes,
-routing transmits coordinates, and weather uses location context.  
+routing transmits coordinates, and weather uses location context.
 **Impact:** undermines the strongest pilot trust claim and may produce an
-incomplete privacy disclosure.  
+incomplete privacy disclosure.
 **Action:** distinguish local business-record storage from necessary service
 requests; name data categories, providers/purposes, controls and offline behavior.
 
 ### P1 — “offline sync” is an unimplemented claim
 
 **Reproduction:** inspect the landing hero image alt text in
-`landing/src/components/Hero.tsx`.  
+`landing/src/components/Hero.tsx`.
 **Observed:** it describes “offline sync”; the current product has no account,
-remote sync or multi-device sync.  
+remote sync or multi-device sync.
 **Impact:** assistive-technology and metadata users receive a false product claim.
-  
+
 **Action:** replace with “offline access” or another verified description.
 
 ### P1 — “context across existing tools” needs qualification
 
 **Reproduction:** compare landing compatibility copy with Settings/integration
-behavior and `tests/communications.test.js`.  
+behavior and `tests/communications.test.js`.
 **Observed:** Beelo consolidates context entered/imported into Beelo and hands off
 to external apps. It does not currently connect to a company CRM, diary, accounting
 platform or messaging history by default; the manual integration adapter is
-disabled until explicitly connected.  
+disabled until explicitly connected.
 **Impact:** adviser/support conversations could imply interoperability that is not
-shipped.  
+shipped.
 **Action:** say Beelo provides a personal layer for context the adviser captures
 from those tools; name only proven imports/handoffs.
 
 ### P1 — end-to-end backup journey has a stale assertion
 
 **Reproduction:** run `node tests/browser/run-journeys.js`; Journey F fails its
-“every table restored to exported size” check.  
+“every table restored to exported size” check.
 **Observed:** all exported business data restores, but settings changes from one
 row to two because the device AI secret is intentionally preserved; the same
-journey then positively asserts that preservation.  
+journey then positively asserts that preservation.
 **Impact:** release suite reports a failure despite intended behavior, weakening
-signal and encouraging teams to ignore red builds.  
+signal and encouraging teams to ignore red builds.
 **Action:** compare portable settings separately from device-local secrets.
 
 ### P2 — requested “Survey” language does not match the product
 
-**Reproduction:** open New Visit and inspect appointment types.  
+**Reproduction:** open New Visit and inspect appointment types.
 **Observed:** Consultation, Measure, Fitting, Follow Up, Review and Service Call;
-no Survey type.  
+no Survey type.
 **Impact:** adviser demonstrations may create expectation of a distinct survey
-workflow.  
+workflow.
 **Action:** decide whether Measure is the deliberate customer-facing term; if so,
 document the mapping consistently.
 

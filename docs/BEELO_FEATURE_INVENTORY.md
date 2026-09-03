@@ -1,8 +1,8 @@
 # Beelo Verified Feature Inventory and Positioning Audit
 
-**Evidence date:** 27 August 2026  
+**Evidence date:** 27 August 2026
 **Repository baseline:** `7afc26bdcc0088c7c301cdc639d1cc66547c6a3c`
-plus the preserved working tree  
+plus the preserved working tree
 **Scope:** BA-002 and BA-003 documentation audit; this document grants no feature
 approval or product-scope change.
 

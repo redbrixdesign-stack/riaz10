@@ -4,9 +4,9 @@ Living record for product-development work. Update this file when product truth,
 architecture, evidence, risks, or priorities change. Do not describe planned work
 as shipped.
 
-**Record initialized:** 2026-08-25  
+**Record initialized:** 2026-08-25
 **Repository baseline:** `7afc26bdcc0088c7c301cdc639d1cc66547c6a3c`
-(detached working tree)  
+(detached working tree)
 **Status vocabulary:** **Verified** means supported by the current repository or
 named test evidence. **Historical evidence** means recorded by an earlier project
 log but not rerun for this update. **Planned** means not implemented or not yet
