@@ -206,15 +206,15 @@ export const CONTENT = {
 
   privacy: {
     heading: 'Your working data deserves clear boundaries.',
-    intro: 'Beelo may handle sensitive working context, so privacy and control are part of the pilot design—not an afterthought.',
+    intro: 'BEELESTIAL LTD (company 15297106), Apartment 6, 2 Copper Place, Manchester M14 7FZ, is responsible for the Beelo pilot. Privacy questions and deletion requests can be sent to hello@beelestial.co.uk.',
     items: [
       {
         title: 'Purpose is limited',
-        body: 'Pilot application details are used only to assess and contact applicants about the Beelo pilot. They are not sold.'
+        body: 'Pilot application details are used only to assess suitability, contact applicants and administer the Beelo pilot. They are stored in the protected application record and operator email; they are not sold.'
       },
       {
         title: 'Participation is informed',
-        body: 'Before onboarding, participants will receive clear information about what data is collected, why it is needed, how long it is retained and how deletion can be requested.'
+        body: 'Before onboarding, participants will receive the current app data-flow and retention information. Applicants can ask for access, correction or deletion at hello@beelestial.co.uk.'
       },
       {
         title: 'The person stays in control',

@@ -275,6 +275,13 @@ or founder-owned data and describe all modules as prototype capability.
 
 ## Remediation checkpoint — 3 September 2026
 
+- **BCA-001 closed in source:** app consent/privacy now distinguishes local
+  records from OpenAI transcription, Anthropic/Claude, Mapbox or Nominatim/OSRM,
+  Open-Meteo, OpenStreetMap tiles and CDN requests. Existing devices require the
+  new version-2 acknowledgement. Independent legal review remains recommended.
+- **BCA-002 closed in source:** app and landing now identify BEELESTIAL LTD,
+  company 15297106, the verified Manchester service address and
+  `hello@beelestial.co.uk` privacy contact. Deployment remains open.
 - **BCA-003 partially closed:** the exact accumulated product tree was preserved
   in baseline commit `2b410f4`. Publishing/tagging and reconciling the remote
   branch remain open.

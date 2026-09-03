@@ -213,6 +213,25 @@ release readiness still depends on the evidence section.
 
 ## Tests and evidence
 
+### Privacy and operator-identity correction (2026-09-03)
+
+- **Verified identity supplied by Muhammad:** BEELESTIAL LTD, company 15297106,
+  Apartment 6, 2 Copper Place, Manchester M14 7FZ. The existing published
+  privacy contact is `hello@beelestial.co.uk`.
+- **Corrected product truth:** app privacy and consent now distinguish device-
+  local records from maps, address search/routing, weather, OpenAI transcription,
+  optional Anthropic/Claude and runtime code-provider requests. Claims that
+  Beelo has no servers or that Claude is the only egress path were removed.
+- **Consent migration:** material disclosures advance the local acknowledgement
+  to version 2, so previously acknowledged devices see the updated notice.
+- **Landing disclosure:** pilot page now names the responsible company, service
+  address, contact, application purpose and access/correction/deletion route.
+- **Passed:** legal identity/data-flow contract, root build/minification and
+  service-worker token check, landing build, complete root suite, `diff --check`,
+  and the 25-state accessibility sweep including Privacy and Terms.
+- **Not legal advice / not deployed:** obtain proportionate UK privacy review and
+  approve a concrete pilot-application retention schedule before onboarding.
+
 ### Preserved baseline and safe cleanup (2026-09-03)
 
 - **Preserved:** committed the exact accumulated working product as `2b410f4`
