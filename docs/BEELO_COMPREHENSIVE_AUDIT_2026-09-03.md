@@ -272,3 +272,22 @@ and independent OCR/docs suites pass from a clean checkout, the deployed commit
 is identifiable, AI cost controls are durable, and the scan/voice/offline journey
 passes on a physical iPhone. Until then, keep access founder-controlled with mock
 or founder-owned data and describe all modules as prototype capability.
+
+## Remediation checkpoint — 3 September 2026
+
+- **BCA-003 partially closed:** the exact accumulated product tree was preserved
+  in baseline commit `2b410f4`. Publishing/tagging and reconciling the remote
+  branch remain open.
+- **BCA-004 closed in source:** OCR now snapshots the extracted appointment type
+  before asynchronous customer creation. Both duplicate and non-duplicate scan
+  creation/navigation tests pass.
+- **BCA-005 closed:** root development dependencies now declare `dotenv` and
+  `express`; the complete chained `npm test` command passes.
+- Removed the tracked landing TypeScript build cache and ignored future copies.
+  Removed the stale duplicate lazy-feature registry; the established eager path
+  remains, and its test now requires every secondary workflow in both the page
+  and fresh offline shell.
+- Verification after cleanup: root build, complete root suite, landing build,
+  browser migration/AI journey, 25-state accessibility sweep and fresh offline
+  launch/recovery all pass. Production dependency audit remains zero known
+  vulnerabilities. No deployment was made.

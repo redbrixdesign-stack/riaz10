@@ -741,6 +741,9 @@ const OCRFeature = {
   },
 
   async saveToCustomer() {
+    // Keep the extracted type stable while customer lookup/creation awaits.
+    // Rendering or navigation may clear the mutable extraction state.
+    const extractedAppointmentType = this.extractedData?.appointmentType || '';
     const name = document.getElementById('ocr-name')?.value || '';
     const phone = document.getElementById('ocr-phone')?.value || '';
     const address = document.getElementById('ocr-address')?.value || '';
@@ -796,7 +799,7 @@ const OCRFeature = {
         App.navigate('appointments', { id: existing.id });
         return;
       }
-      const selectedType = document.getElementById('ocr-appointmentType')?.value || this.extractedData.appointmentType;
+      const selectedType = document.getElementById('ocr-appointmentType')?.value || extractedAppointmentType;
       const type = CONFIG.appointmentTypes.some(item => item.id === selectedType) ? selectedType : 'consultation';
 
       const { iso: dateIso } = this.resolveVisitIso(visitDate, visitTime);

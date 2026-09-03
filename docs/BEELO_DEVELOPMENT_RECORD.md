@@ -213,6 +213,23 @@ release readiness still depends on the evidence section.
 
 ## Tests and evidence
 
+### Preserved baseline and safe cleanup (2026-09-03)
+
+- **Preserved:** committed the exact accumulated working product as `2b410f4`
+  before cleanup; the earlier recovery stash remains untouched.
+- **Removed as proven generated/duplicate:** tracked
+  `landing/tsconfig.tsbuildinfo` and the stale `lazy-features` registry. Readable
+  and minified application files were retained because both are intentional
+  source/deployment artefacts for the static PWA.
+- **Corrected:** declared the standalone proxy's root test dependencies and fixed
+  the asynchronous OCR appointment-type race. No product module was removed.
+- **Passed after cleanup:** root build and asset-token check; complete `npm test`;
+  landing production build; browser migration/AI integration journey; 25-state
+  axe sweep; fresh offline boot and online/offline recovery; production-only npm
+  audit with zero known vulnerabilities.
+- **Not deployed:** this checkpoint is local and awaits review/commit/push before
+  any production promotion.
+
 ### Comprehensive product audit (2026-09-03)
 
 - **Verdict:** conditionally suitable for founder-controlled internal testing;
