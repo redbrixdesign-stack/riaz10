@@ -13,6 +13,7 @@ import { Faq } from './components/Faq';
 import { Pilot } from './components/Pilot';
 import { Partner } from './components/Partner';
 import { Privacy } from './components/Privacy';
+import { Cookies } from './components/Cookies';
 import { Footer } from './components/Footer';
 import { Header } from './components/Header';
 
@@ -34,6 +35,7 @@ export default function App() {
         <Trust />
         <Faq />
         <Privacy />
+        <Cookies />
         <Pilot />
         <Partner />
       </main>

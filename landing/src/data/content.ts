@@ -245,11 +245,37 @@ export const CONTENT = {
     ]
   },
 
+  cookies: {
+    heading: 'Cookie & Similar Technologies Notice',
+    updated: 'Last updated: 4 September 2026 · Version 1.0',
+    intro: 'This notice explains storage and access technologies used on beelestial.co.uk. The current Beelo landing page does not intentionally use analytics, advertising, profiling or social-media tracking cookies.',
+    sections: [
+      {
+        title: 'What may be essential',
+        body: 'IONOS hosts the website and may use strictly necessary security, network or load-management technologies to deliver and protect the service. These are not used by BEELESTIAL LTD for advertising or behavioural profiling.'
+      },
+      {
+        title: 'Pilot application form',
+        body: 'The application form does not use a cookie to build a marketing profile. It sends the information you deliberately submit to the protected Beelo application handler. The separate Pilot Applicant Privacy Notice explains that processing.'
+      },
+      {
+        title: 'Your choices',
+        body: 'You can block or delete cookies using your browser settings. Blocking a technology that is strictly necessary for security or delivery may affect whether the website works correctly.'
+      },
+      {
+        title: 'Future changes',
+        body: 'BEELESTIAL LTD will not introduce non-essential analytics, advertising or similar tracking without first updating this notice and providing an appropriate consent choice before that technology is activated.'
+      }
+    ]
+  },
+
   footer: {
     tagline: 'Built for people who work alone between customer appointments.',
     /* TODO: replace with the real privacy policy URL */
     privacy: 'Pilot Applicant Privacy Notice',
     privacyHref: '#privacy',
+    cookies: 'Cookie notice',
+    cookiesHref: '#cookies',
     /* TODO: replace with the real LinkedIn URL, or remove the link */
     linkedin: 'LinkedIn',
     linkedinHref: '',

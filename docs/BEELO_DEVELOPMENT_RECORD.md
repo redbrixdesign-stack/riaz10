@@ -263,6 +263,13 @@ release readiness still depends on the evidence section.
   not legal certification. Confirm the registered-office wording, complete the
   ICO fee assessment, verify the IONOS processor/transfer terms and document the
   mailbox deletion routine before independent pilot onboarding.
+- **Cookie transparency:** source review found no landing-page analytics,
+  advertising pixels or browser-storage calls. A versioned Cookie & Similar
+  Technologies Notice now explains the absence of intentional non-essential
+  tracking, possible strictly necessary IONOS hosting/security technologies,
+  browser controls and the requirement to obtain consent before introducing
+  future non-essential analytics or marketing technology. A consent banner is
+  intentionally not shown while there are no optional technologies to control.
 
 ### Preserved baseline and safe cleanup (2026-09-03)
 

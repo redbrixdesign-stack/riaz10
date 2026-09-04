@@ -36,6 +36,9 @@ export function Footer() {
           <a href={CONTENT.footer.privacyHref} className="text-paper/80 transition-colors hover:text-paper">
             {CONTENT.footer.privacy}
           </a>
+          <a href={CONTENT.footer.cookiesHref} className="text-paper/80 transition-colors hover:text-paper">
+            {CONTENT.footer.cookies}
+          </a>
         </nav>
         <a href={`mailto:${CONTENT.email}`} className="text-sm text-paper/80 transition-colors hover:text-paper">
           {CONTENT.email}
