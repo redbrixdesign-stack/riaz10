@@ -210,6 +210,16 @@ release readiness still depends on the evidence section.
 - **Still unverified:** no real or synthetic application was submitted during
   this deployment, so mail delivery, CSV persistence, acknowledgement delivery,
   throttling and operator receipt remain open production evidence gaps.
+- **Verified pilot-privacy deployment — 2026-09-04:** built commit `1f2adee`,
+  retained the earlier production ZIPs, uploaded and extracted
+  `beelo-landing-20260904-privacy.zip` into the IONOS web root. The live document
+  loads hashed asset `index-LVAAdRIT.js` and visibly contains the versioned Pilot
+  Applicant Privacy Notice, outward-postcode form, sensitive-data warning,
+  optional research consent and BEELESTIAL LTD footer disclosures. A live GET to
+  `/api/pilot.php` returned the expected health JSON. No application was
+  submitted. A repeat check of the denied CSV URL was inconclusive because the
+  command encountered transient DNS resolution failure; the deployed API
+  `.htaccess` still contains the explicit deny rule.
 
 ## Tests and evidence
 
