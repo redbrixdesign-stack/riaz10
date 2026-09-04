@@ -42,7 +42,10 @@ export function Footer() {
         </a>
       </div>
       <div className="border-t border-white/10 py-5">
-        <p className="container-page text-xs text-paper/45">© {new Date().getFullYear()} Beelo. {CONTENT.footer.status}</p>
+        <div className="container-page space-y-1 text-xs leading-relaxed text-paper/45">
+          <p>© {new Date().getFullYear()} BEELESTIAL LTD. Beelo is a trading name. {CONTENT.footer.status}</p>
+          <p>Registered in England and Wales · Company number 15297106 · Registered office: Apartment 6, 2 Copper Place, Manchester M14 7FZ</p>
+        </div>
       </div>
     </footer>
   );

@@ -232,6 +232,28 @@ release readiness still depends on the evidence section.
 - **Not legal advice / not deployed:** obtain proportionate UK privacy review and
   approve a concrete pilot-application retention schedule before onboarding.
 
+### Pilot applicant transparency and minimisation (2026-09-04)
+
+- **Implemented in source:** the landing page now provides a versioned Pilot
+  Applicant Privacy Notice at the point of collection. It identifies the
+  controller, purpose, legitimate-interests basis, optional research-contact
+  consent, IONOS recipient category, possible transfer safeguards, six-month
+  retention period, applicant rights, ICO complaint route, required fields and
+  the absence of automated decision-making.
+- **Data minimisation:** the form now requests only the outward postcode area,
+  tells applicants not to enter customer or sensitive information, and makes the
+  separate partnership/research purpose explicit and optional.
+- **Retention control:** each accepted form submission records the privacy-notice
+  version. The protected CSV is pruned to the declared 180-day period whenever a
+  new application is stored. Related mailbox records still require an operator
+  process to review and delete them within the same period.
+- **Company disclosure:** the footer now displays BEELESTIAL LTD, company number
+  15297106, registered office and registration in England and Wales.
+- **Boundary:** these changes materially improve the recruitment surface but are
+  not legal certification. Confirm the registered-office wording, complete the
+  ICO fee assessment, verify the IONOS processor/transfer terms and document the
+  mailbox deletion routine before independent pilot onboarding.
+
 ### Preserved baseline and safe cleanup (2026-09-03)
 
 - **Preserved:** committed the exact accumulated working product as `2b410f4`

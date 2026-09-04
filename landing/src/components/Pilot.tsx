@@ -115,8 +115,9 @@ export function Pilot() {
                     {err('trade')}
                   </div>
                   <div>
-                    <label htmlFor="p-area" className="field-label">UK postcode *</label>
-                    <input id="p-area" className="field" placeholder="e.g. SK1 1AA" value={data.area} onChange={(e) => set('area', e.target.value)} autoComplete="postal-code" />
+                    <label htmlFor="p-area" className="field-label">UK postcode area *</label>
+                    <input id="p-area" className="field" placeholder="e.g. SK1" value={data.area} onChange={(e) => set('area', e.target.value)} autoComplete="postal-code" aria-describedby="p-area-help" />
+                    <p id="p-area-help" className="mt-1 text-xs leading-relaxed text-ink/50">Only the first part is needed; do not enter your full address.</p>
                     {err('area')}
                   </div>
                   <div className="sm:col-span-2">
@@ -152,7 +153,8 @@ export function Pilot() {
                   </div>
                   <div className="sm:col-span-2">
                     <label htmlFor="p-problem" className="field-label">Biggest admin problem *</label>
-                    <textarea id="p-problem" rows={2} className="field resize-y" value={data.biggestProblem} onChange={(e) => set('biggestProblem', e.target.value)} />
+                    <textarea id="p-problem" rows={2} className="field resize-y" value={data.biggestProblem} onChange={(e) => set('biggestProblem', e.target.value)} aria-describedby="p-problem-help" />
+                    <p id="p-problem-help" className="mt-1 text-xs leading-relaxed text-ink/50">Describe the work problem only. Do not include customer names, addresses, health information or other sensitive details.</p>
                     {err('biggestProblem')}
                   </div>
                   <div className="sm:col-span-2">
@@ -163,7 +165,7 @@ export function Pilot() {
                         checked={data.partnerInterest}
                         onChange={(e) => set('partnerInterest', e.target.checked)}
                       />
-                      I am interested in partnership/research support
+                      I consent to BEELESTIAL LTD contacting me separately about Beelo partnership or research opportunities. This is optional and I can withdraw at any time.
                     </label>
                   </div>
                 </div>
@@ -187,7 +189,13 @@ export function Pilot() {
                   )}
                 </button>
                 <p className="mt-3 text-xs leading-relaxed text-ink/55">{CONTENT.pilot.reassurance}</p>
-                <p id="pilot-privacy" className="mt-2 scroll-mt-24 text-xs leading-relaxed text-ink/45">{CONTENT.pilot.privacy}</p>
+                <p id="pilot-privacy" className="mt-2 scroll-mt-24 text-xs leading-relaxed text-ink/55">
+                  {CONTENT.pilot.privacy}{' '}
+                  <a href="#privacy" className="font-semibold text-forest underline decoration-sage decoration-2 underline-offset-2">
+                    Read the Pilot Applicant Privacy Notice
+                  </a>
+                  . Applying is voluntary and does not guarantee acceptance.
+                </p>
               </form>
             )}
           </div>

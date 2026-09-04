@@ -195,7 +195,7 @@ export const CONTENT = {
     success: 'Thank you — your application has been received. We will be in touch about the pilot.',
     error: 'We could not send your application just now. Please try again or email hello@beelestial.co.uk.',
     reassurance: 'No commitment. We will contact you first to confirm whether the pilot is a good fit.',
-    privacy: 'We will only use your details to contact you about the Beelo pilot. We do not sell your information.'
+    privacy: 'BEELESTIAL LTD uses your details to assess and administer your pilot application. Read the Pilot Applicant Privacy Notice for retention, recipients and your rights.'
   },
 
   partner: {
@@ -205,20 +205,42 @@ export const CONTENT = {
   },
 
   privacy: {
-    heading: 'Your working data deserves clear boundaries.',
-    intro: 'BEELESTIAL LTD (company 15297106), Apartment 6, 2 Copper Place, Manchester M14 7FZ, is responsible for the Beelo pilot. Privacy questions and deletion requests can be sent to hello@beelestial.co.uk.',
-    items: [
+    heading: 'Pilot Applicant Privacy Notice',
+    updated: 'Last updated: 4 September 2026 · Version 1.0',
+    intro: 'This notice explains how BEELESTIAL LTD uses personal information submitted through the Beelo pilot application form. It applies to applicants only. Anyone invited into the pilot will receive a separate participant notice before deciding whether to join.',
+    controller: 'BEELESTIAL LTD (company number 15297106), registered in England and Wales. Registered office: Apartment 6, 2 Copper Place, Manchester M14 7FZ. Privacy contact: hello@beelestial.co.uk.',
+    sections: [
       {
-        title: 'Purpose is limited',
-        body: 'Pilot application details are used only to assess suitability, contact applicants and administer the Beelo pilot. They are stored in the protected application record and operator email; they are not sold.'
+        title: 'What we collect',
+        body: 'We collect your name, email address, optional phone number, trade or role, postcode area, UK eligibility confirmation, whether you usually work alone, your description of an admin problem and, if selected, your interest in partnership or research contact. Please do not provide customer details, health information or other sensitive personal information.'
       },
       {
-        title: 'Participation is informed',
-        body: 'Before onboarding, participants will receive the current app data-flow and retention information. Applicants can ask for access, correction or deletion at hello@beelestial.co.uk.'
+        title: 'Why we use it and our lawful basis',
+        body: 'We use application information to assess pilot suitability, respond to you and administer recruitment. Our lawful basis is legitimate interests: testing Beelo with a small, relevant group and managing applications, balanced against the limited information collected and your rights. If you separately choose partnership or research contact, we rely on your consent for that additional contact. You may withdraw that consent at any time without affecting the application.'
       },
       {
-        title: 'The person stays in control',
-        body: 'Beelo is designed around deliberate capture and user approval. Customer communication is never sent automatically.'
+        title: 'Who receives it',
+        body: 'Access is limited to authorised BEELESTIAL LTD personnel and IONOS, which provides the website hosting, form infrastructure and business email used for applications. IONOS processes information to provide those services. We do not sell applicant information and do not use it for unrelated advertising.'
+      },
+      {
+        title: 'Where it is processed',
+        body: 'The application is stored in a protected website record and the company email account. We aim to use UK or EEA processing. If a provider processes information elsewhere, BEELESTIAL LTD will use an approved UK transfer safeguard where required. Contact us for current provider and transfer details.'
+      },
+      {
+        title: 'How long we keep it',
+        body: 'Pilot applications and related application emails are kept for no more than six months after submission, then deleted unless the law requires longer retention. If you join the pilot, information needed for participation is handled under the separate participant notice and its retention period. A withdrawn partnership or research preference will be suppressed promptly.'
+      },
+      {
+        title: 'Your rights',
+        body: 'Depending on the circumstances, you may ask for access, correction, deletion, restriction or portability, and you may object to processing based on legitimate interests. Where processing relies on consent, you may withdraw it at any time. Email hello@beelestial.co.uk. We normally respond within one month and may need to verify your identity.'
+      },
+      {
+        title: 'Complaints and required information',
+        body: 'The fields marked required are needed to assess eligibility; without them we cannot process an application. Applying is voluntary and no automated decision-making or profiling is used. Please contact us first if you have a concern. You also have the right to complain to the UK Information Commissioner’s Office at ico.org.uk/make-a-complaint or by calling 0303 123 1113.'
+      },
+      {
+        title: 'Security and changes',
+        body: 'We use access controls, input validation and protected storage appropriate to this small pilot intake. No online service is risk-free. Material changes will be dated here; if a change significantly affects an existing application, we will explain it directly where practicable.'
       }
     ]
   },
@@ -226,7 +248,7 @@ export const CONTENT = {
   footer: {
     tagline: 'Built for people who work alone between customer appointments.',
     /* TODO: replace with the real privacy policy URL */
-    privacy: 'Privacy & data handling',
+    privacy: 'Pilot Applicant Privacy Notice',
     privacyHref: '#privacy',
     /* TODO: replace with the real LinkedIn URL, or remove the link */
     linkedin: 'LinkedIn',

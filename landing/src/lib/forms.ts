@@ -33,15 +33,15 @@ const ENDPOINT = (import.meta.env.VITE_FORM_ENDPOINT as string | undefined) || '
 export const isValidEmail = (value: string): boolean =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
-export const isValidUkPostcode = (value: string): boolean =>
-  /^(GIR\s?0AA|[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2})$/i.test(value.trim());
+export const isValidUkPostcodeArea = (value: string): boolean =>
+  /^(GIR|[A-Z]{1,2}\d[A-Z\d]?)$/i.test(value.trim().replace(/\s+/g, ''));
 
 export function validatePilot(d: PilotFormData): Record<string, string> {
   const errors: Record<string, string> = {};
   if (!d.name.trim()) errors.name = 'Please enter your name.';
   if (!isValidEmail(d.email)) errors.email = 'Please enter a valid email address.';
   if (!d.trade.trim()) errors.trade = 'Please tell us your trade or role.';
-  if (!isValidUkPostcode(d.area)) errors.area = 'Please enter a valid UK postcode.';
+  if (!isValidUkPostcodeArea(d.area)) errors.area = 'Please enter the first part of a valid UK postcode, such as SK1.';
   if (!d.ukResident) errors.ukResident = 'The Beelo pilot is currently open to UK residents only.';
   if (!d.biggestProblem.trim()) errors.biggestProblem = 'Please describe your biggest admin problem.';
   return errors;
