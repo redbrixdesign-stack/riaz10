@@ -26,7 +26,7 @@ function ok(label, cond, extra) {
 }
 
 const savedEnv = {};
-const envKeys = ['ANTHROPIC_API_KEY', 'AI_SECRET', 'ALLOWED_ORIGIN', 'NODE_ENV', 'RATE_LIMIT_MAX', 'RATE_LIMIT_WINDOW_MS', 'ANTHROPIC_TIMEOUT_MS', 'UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN'];
+const envKeys = ['ANTHROPIC_API_KEY', 'AI_SECRET', 'ALLOWED_ORIGIN', 'NODE_ENV', 'RATE_LIMIT_MAX', 'RATE_LIMIT_WINDOW_MS', 'ANTHROPIC_TIMEOUT_MS', 'UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN', 'KV_REST_API_URL', 'KV_REST_API_TOKEN'];
 for (const k of envKeys) savedEnv[k] = process.env[k];
 process.env.ANTHROPIC_API_KEY = 'test-key';
 delete process.env.AI_SECRET;
@@ -187,19 +187,14 @@ function post(p, { headers = {}, body = {}, method = 'POST' } = {}) {
   // Inject a mock Redis client that records calls and behaves like Upstash.
   const mockRedisCalls = [];
   const mockRedis = {
-    zremrangebyscore: async (key, min, max) => { mockRedisCalls.push({ op: 'zremrangebyscore', key, min, max }); },
-    zcard: async (key) => {
-      mockRedisCalls.push({ op: 'zcard', key });
-      // Return the current count for this key (track in-memory).
+    eval: async (script, keys, args) => {
+      mockRedisCalls.push({ op: 'eval', keys, args });
+      const key = keys[0];
       if (!mockRedis._counts) mockRedis._counts = {};
-      return mockRedis._counts[key] || 0;
-    },
-    zadd: async (key, { score, member }) => {
-      mockRedisCalls.push({ op: 'zadd', key, score, member });
-      if (!mockRedis._counts) mockRedis._counts = {};
+      if ((mockRedis._counts[key] || 0) >= Number(args[1])) return 0;
       mockRedis._counts[key] = (mockRedis._counts[key] || 0) + 1;
-    },
-    expire: async (key, ttl) => { mockRedisCalls.push({ op: 'expire', key, ttl }); }
+      return 1;
+    }
   };
   const { _setRedisClient } = await import('../api/claude.mjs');
   _setRedisClient(mockRedis);
@@ -216,12 +211,21 @@ function post(p, { headers = {}, body = {}, method = 'POST' } = {}) {
 
   ok('server (redis): rate limit allows within window', redisStatuses[0] === 200 && redisStatuses[1] === 200 && redisStatuses[2] === 200, redisStatuses);
   ok('server (redis): rate limit blocks excess with 429', redisStatuses[3] === 429, redisStatuses);
-  ok('server (redis): Redis zadd was called for each allowed request', mockRedisCalls.filter(c => c.op === 'zadd').length === 3, mockRedisCalls.length);
-  ok('server (redis): Redis zremrangebyscore/zcard were called for each request', mockRedisCalls.filter(c => c.op === 'zremrangebyscore' || c.op === 'zcard').length >= 4, mockRedisCalls.length);
+  ok('server (redis): one atomic Redis script runs for every request', mockRedisCalls.filter(c => c.op === 'eval').length >= 4, mockRedisCalls.length);
 
   // Per-client isolation still holds with Redis: a fresh address gets a clean window.
   const r2 = await post('/', { body: { type: 'ping' } });
   ok('server (redis): rate limit is per client address', r2.status === 200, r2.status);
+
+  // A configured production limiter must fail closed during a Redis outage,
+  // otherwise an outage removes the upstream-spend protection entirely.
+  process.env.NODE_ENV = 'production';
+  process.env.ALLOWED_ORIGIN = 'https://app.test';
+  process.env.AI_SECRET = 'test-secret';
+  _setRedisClient({ eval: async () => { throw new Error('simulated Redis outage'); } });
+  const outage = await post('/', { headers: { 'x-forwarded-for': '203.0.113.200' }, body: { type: 'ping' } });
+  ok('server (redis): production outage fails closed', outage.status === 429, outage.status);
+  _setRedisClient(null);
 
   await stop();
 

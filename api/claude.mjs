@@ -39,8 +39,9 @@ Hardening (enforced regardless of mode):
      - upstream calls only ever go to the fixed allowlisted endpoint
      - sliding-window rate limiting per client address — shared across
         serverless instances via Upstash Redis when configured
-        (UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN), falling back
-        to per-instance in-memory state when it isn't
+        (UPSTASH_REDIS_REST_* or Vercel Marketplace KV_REST_API_*); production
+        fails closed if Redis is unavailable, while local development falls
+        back to per-instance in-memory state
 
    Logging policy: this function never logs request bodies, customer
    data, prompts or API keys, and provider error details never leave
@@ -71,9 +72,8 @@ const ANTHROPIC_ENDPOINT = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_TIMEOUT_MS_DEFAULT = 60_000;
 
 // Sliding-window rate limit keyed by client address. Preferred store:
-// Upstash Redis (shared across serverless instances). Without Redis
-// configured it falls back to the per-instance in-memory Map, which is
-// fine for local dev and the standalone server/ deployment.
+// Upstash Redis (shared across serverless instances). Without Redis, production
+// fails closed; local development uses the per-instance in-memory Map.
 const RATE_LIMIT_MAX_DEFAULT = 120;
 const RATE_LIMIT_WINDOW_MS_DEFAULT = 60_000;
 const rateBuckets = new Map(); // in-memory fallback (per function instance)
@@ -81,8 +81,8 @@ const rateBuckets = new Map(); // in-memory fallback (per function instance)
 let redisClient = null;
 function getRedisClient() {
   if (redisClient !== null) return redisClient;
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
   if (!url || !token) {
     redisClient = null;
     return null;
@@ -96,14 +96,13 @@ export function _setRedisClient(client) {
   redisClient = client;
 }
 
-// One-time console warning (same pattern as warnAboutDefaults()): without
-// Redis, the rate limit is per function instance and resets as Vercel
-// spins instances up/down.
+// One-time console warning (same pattern as warnAboutDefaults()) for the
+// development-only in-memory fallback.
 let warnedAboutRedisFallback = false;
 function warnAboutRedisFallback() {
   if (warnedAboutRedisFallback) return;
   warnedAboutRedisFallback = true;
-  console.error('[claude.mjs] UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN not set — rate limiting falls back to per-instance in-memory state. Set both env vars so limits hold across multiple serverless instances.');
+  console.error('[claude.mjs] Redis REST credentials not set — rate limiting falls back to per-instance in-memory state. Connect Upstash and set either UPSTASH_REDIS_REST_* or KV_REST_API_* variables.');
 }
 
 // Redis-backed sliding window: a sorted set holds one entry per request
@@ -115,14 +114,18 @@ async function rateLimitRedis(headers, max, windowMs) {
   const now = Date.now();
   const cutoff = now - windowMs;
   const r = getRedisClient();
-  await r.zremrangebyscore(key, 0, cutoff);
-  const count = await r.zcard(key);
-  if (count >= max) {
-    return { limited: true, retryAfter: Math.ceil(windowMs / 1000) };
-  }
-  await r.zadd(key, { score: now, member: `${now}:${Math.random().toString(36).slice(2)}` });
-  await r.expire(key, Math.ceil(windowMs / 1000) * 2);
-  return { limited: false, retryAfter: Math.ceil(windowMs / 1000) };
+  const member = `${now}:${crypto.randomUUID()}`;
+  // One Lua operation makes prune/count/add atomic across every function
+  // instance. Separate Redis commands can race and exceed the global limit.
+  const allowed = await r.eval(`
+    redis.call('ZREMRANGEBYSCORE', KEYS[1], 0, ARGV[1])
+    local count = redis.call('ZCARD', KEYS[1])
+    if count >= tonumber(ARGV[2]) then return 0 end
+    redis.call('ZADD', KEYS[1], ARGV[3], ARGV[4])
+    redis.call('EXPIRE', KEYS[1], ARGV[5])
+    return 1
+  `, [key], [cutoff, max, now, member, Math.ceil(windowMs / 1000) * 2]);
+  return { limited: Number(allowed) !== 1, retryAfter: Math.ceil(windowMs / 1000) };
 }
 
 function rateLimitInMemory(headers, max, windowMs) {
@@ -154,9 +157,10 @@ async function rateLimit(headers) {
     try {
       return await rateLimitRedis(headers, max, windowMs);
     } catch (err) {
-      // A Redis outage must not take the proxy down with it — fall back to
-      // the in-memory limiter for this request.
-      console.error('[claude.mjs] Redis rate limit failed, falling back to in-memory:', err?.message || err);
+      console.error('[claude.mjs] Redis rate limit failed:', err?.message || err);
+      // In production fail closed: an infrastructure outage must not expose
+      // uncapped upstream AI spend. Development retains the local fallback.
+      if (process.env.NODE_ENV === 'production') return { limited: true, retryAfter: 30 };
     }
   } else {
     warnAboutRedisFallback();
