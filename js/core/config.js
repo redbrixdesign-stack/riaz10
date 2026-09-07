@@ -264,8 +264,8 @@ const CONFIG = {
     // consultation questions ("how many windows, which blinds") sent to the
     // wrong visit, which is what the old flat strings did to every type.
     evening_before: {
-      consultation: "Hi {{firstName}}, just a quick one — I'm with you tomorrow at {{time}} at {{address}}. It'd help to know how many windows you're looking at and if you have specific blinds in mind. Any parking or anything else I should know about too? See you tomorrow! — {{advisorName}}",
-      measure: "Hi {{firstName}}, just a quick one — I'll be with you tomorrow at {{time}} at {{address}} to measure up. If you can make sure the windows we're measuring are clear, that'll help me get accurate sizes. Any parking or access (gates, stairs, pets) I should know about? See you tomorrow! — {{advisorName}}",
+      consultation: "Hi {{firstName}}, a quick reminder that I'll see you tomorrow at {{time}} at {{address}}. To help me arrive prepared, please reply with roughly how many windows or blinds you're considering, which rooms they're in, and any styles, colours or inspiration photos you like. Please also mention any parking or access considerations. — {{advisorName}}",
+      measure: "Hi {{firstName}}, a quick reminder that I'll be with you tomorrow at {{time}} at {{address}} for the survey. Please clear the area around each window we're measuring so I can take accurate sizes, and let me know if parking or access has changed. — {{advisorName}}",
       // Known-customer stage: the advisor knows this customer — no intro, no
       // parking/basic asks. {{jobSummary}} (from the order/delivery note)
       // names the actual job and timing when available.
@@ -275,8 +275,8 @@ const CONFIG = {
       service_call: "Hi {{firstName}}, just to confirm — I'll be with you tomorrow at {{time}} at {{address}} to sort out the issue you reported.{{jobSummary}} If anything's changed, just reply here. See you tomorrow! — {{advisorName}}"
     },
     morning_of: {
-      consultation: "Hi {{firstName}}, looking forward to seeing you today at {{time}}. If you get a chance, let me know how many windows and which blinds you're thinking of — and any parking or access notes. See you shortly! — {{advisorName}}",
-      measure: "Hi {{firstName}}, looking forward to measuring up today at {{time}}. If you can make sure the windows are clear before I arrive, that's all I need — let me know about parking or access too. See you shortly! — {{advisorName}}",
+      consultation: "Hi {{firstName}}, looking forward to seeing you today at {{time}}. If you haven't already, please send the number of windows or blinds, the rooms, and any inspiration photos; it helps me bring the right ideas. I'll message again when I'm on my way. — {{advisorName}}",
+      measure: "Hi {{firstName}}, looking forward to completing your survey today at {{time}}. Please keep the area around each window clear so I can measure accurately. I'll message again when I'm on my way. — {{advisorName}}",
       fitting: "Hi {{firstName}}, looking forward to fitting today at {{time}}.{{jobSummary}} If you can clear the area around the window(s) and take down any existing blinds or curtains, I'll get straight to it when I arrive. See you shortly! — {{advisorName}}",
       follow_up: "Hi {{firstName}}, looking forward to seeing you today at {{time}} to follow up. Let me know if anything's changed. See you shortly! — {{advisorName}}",
       review: "Hi {{firstName}}, looking forward to seeing you today at {{time}} to see how everything's looking. If anything's come up, just reply here. See you shortly! — {{advisorName}}",
@@ -292,8 +292,8 @@ const CONFIG = {
     // customer 360 profile (parking/access notes, window history) and only
     // asks for what isn't already known.
     pre_intro: {
-      consultation: "Hi {{firstName}}, I'm {{advisorName}}, an {{advisorTitle}}, and I'll be with you on {{day}} at {{time}} for your {{visitType}} at {{address}}. If you can let me know about parking, access (gates, stairs, pets) and which windows you'd like me to focus on, that would help me be fully prepared. Any questions, just reply here.",
-      measure: "Hi {{firstName}}, I'm {{advisorName}}, an {{advisorTitle}}, and I'll be with you on {{day}} at {{time}} to measure up for your window coverings at {{address}}. If you can make sure the windows we're measuring are clear, that would help me get accurate sizes. Any parking or access (gates, stairs, pets) to let me know about? Any questions, just reply here.",
+      consultation: "Hi {{firstName}}, I'm {{advisorName}}, an {{advisorTitle}}, and I'll see you on {{day}} at {{time}} for your consultation at {{address}}. To help me bring the right ideas, please reply with roughly how many windows or blinds you're considering, which rooms they're in, and any styles, colours or inspiration photos you like. Please also mention parking or access considerations, such as gates, stairs or pets.",
+      measure: "Hi {{firstName}}, I'm {{advisorName}}, an {{advisorTitle}}, and I'll see you on {{day}} at {{time}} for your survey at {{address}}. Before the visit, please clear the area around each window we're measuring so I can take accurate sizes. Please also let me know about parking or access considerations, such as gates, stairs or pets.",
       // Fitting / service / review / follow-up = the advisor already knows
       // the customer: no title intro, no parking/basic asks — confirm the
       // job ({{jobSummary}} names the blinds + timing when known).

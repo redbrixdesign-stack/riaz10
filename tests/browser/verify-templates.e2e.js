@@ -14,7 +14,7 @@
 'use strict';
 
 const { chromium } = require('playwright');
-const BASE = 'http://localhost:8000';
+const BASE = process.env.BASE_URL || 'http://localhost:8000';
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 let failures = 0;
@@ -90,7 +90,7 @@ const ok = (label, cond, extra) => {
   console.log('\n=== measure appointment ===');
   const mEb = await draft(ids.measure, 'evening_before');
   console.log('  evening_before: ' + mEb);
-  ok('measure evening-before is about measuring up / clear windows', /measure up|windows we're measuring are clear/.test(mEb), mEb);
+  ok('measure evening-before names the survey and clear-window preparation', /survey/.test(mEb) && /clear the area around each window/.test(mEb), mEb);
   ok('measure never asks which blinds (consultation question)', !/which blinds/.test(mEb), mEb);
 
   console.log('\n=== service call appointment ===');
@@ -100,7 +100,7 @@ const ok = (label, cond, extra) => {
 
   console.log('\n=== consultation appointment ===');
   const cEb = await draft(ids.consultation, 'evening_before');
-  ok('consultation still asks how many windows + blinds', /how many windows/.test(cEb) && /blinds in mind/.test(cEb), cEb);
+  ok('consultation asks for scope, rooms and inspiration', /how many windows or blinds/.test(cEb) && /which rooms/.test(cEb) && /inspiration photos/.test(cEb), cEb);
 
   console.log('\n=== pre_intro (first-visit intro): known-customer vs new-customer ===');
   const pFit = await draft(ids.fitting, 'pre_intro');
@@ -115,6 +115,7 @@ const ok = (label, cond, extra) => {
   console.log('  pre_intro consultation (new customer): ' + pCon);
   ok('consultation pre_intro introduces with the title (Independent Hillarys Window Coverings Expert)', /an Independent Hillarys Window Coverings Expert/.test(pCon), pCon);
   ok('consultation pre_intro is profile-aware: acknowledges the parking note (on-street)', /on-street/.test(pCon) && !/Any parking or access/.test(pCon), pCon);
+  ok('consultation pre_intro explains why details help and asks for rooms + inspiration', /bring the right ideas/.test(pCon) && /which rooms/.test(pCon) && /inspiration photos/.test(pCon), pCon);
   ok('pre_intro uses a real date/time (no literal {{day}} braces)', !/\{\{day\}\}/.test(pFit + pCon) && /\d{1,2} [A-Z][a-z]{2}/.test(pCon), pCon);
 
   ok('no console errors', errs.length === 0, errs);

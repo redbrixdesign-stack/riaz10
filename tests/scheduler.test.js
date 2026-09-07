@@ -300,7 +300,7 @@ function appt(id, dateISO, phone = '07700123456') {
     ok('fitting evening-before asks to clear the area + remove existing blinds', /clear the area around the window/.test(msgs['fitting:evening_before']) && /(remove|take down) any existing blinds or curtains/.test(msgs['fitting:evening_before']), msgs['fitting:evening_before']);
     ok('fitting morning-of asks to clear the area + take down blinds', /clear the area/.test(msgs['fitting:morning_of']) && /take down any existing blinds/.test(msgs['fitting:morning_of']), msgs['fitting:morning_of']);
     ok('measure never asks which blinds (consultation question)', !/which blinds/.test(msgs['measure:evening_before'] + msgs['measure:morning_of']), msgs['measure:evening_before']);
-    ok('consultation still asks how many windows / which blinds', /how many windows/.test(msgs['consultation:evening_before']) && /which blinds/.test(msgs['consultation:morning_of']), msgs['consultation:evening_before']);
+    ok('consultation asks for scope, rooms and inspiration', /how many windows or blinds/.test(msgs['consultation:evening_before']) && /which rooms/.test(msgs['consultation:evening_before']) && /inspiration photos/.test(msgs['consultation:morning_of']), msgs['consultation:evening_before']);
     ok('service_call references the reported issue, not a generic compliment', /sort out the issue/.test(msgs['service_call:evening_before'] + msgs['service_call:morning_of']), msgs['service_call:evening_before']);
     const unique = new Set(Object.values(msgs));
     ok('all 12 type × stage combinations produce genuinely distinct copy', unique.size === 12 && Object.values(msgs).every(m => typeof m === 'string' && m.length > 0), { unique: unique.size });
@@ -326,7 +326,7 @@ function appt(id, dateISO, phone = '07700123456') {
     ok('pre_intro introduces with the advisor title placeholder (consultation)', /an \{\{advisorTitle\}\}/.test(resolve('pre_intro', 'consultation')), resolve('pre_intro', 'consultation'));
     ok('pre_intro known-customer stages do NOT carry the title (fitting)', !/\{\{advisorTitle\}\}/.test(fit), fit);
     ok('pre_intro measure asks for clear windows, not blinds preference', !/which blinds/.test(resolve('pre_intro', 'measure')), resolve('pre_intro', 'measure'));
-    ok('pre_intro unknown type falls back to consultation', resolve('pre_intro', 'something_else').includes('which windows you'), resolve('pre_intro', 'something_else'));
+    ok('pre_intro unknown type falls back to the professional consultation discovery', resolve('pre_intro', 'something_else').includes('how many windows or blinds') && resolve('pre_intro', 'something_else').includes('inspiration photos'), resolve('pre_intro', 'something_else'));
     ok('outcome-keyed maps are untouched by per-type resolution', resolve('follow_up.quote', 'quote') === vm.runInContext('CONFIG.templates.follow_up.quote;', sandbox));
   }
 
@@ -344,7 +344,7 @@ function appt(id, dateISO, phone = '07700123456') {
     ok('popup-blocked send falls back to tab navigation', sent === true && String(vm.runInContext('window.location.href', s.sandbox)).includes('wa.me/447700900123'), vm.runInContext('window.location.href', s.sandbox));
     // UK-day tiers: visit on 12 Aug (frozen now 11 Aug, UK clock) = tomorrow.
     const tomorrowMsg = vm.runInContext('NotificationService.buildBookingConfirmationMessage({ firstName: "Sam", dateLabel: "12 Aug", time: "at 09:00", address: "", type: "measure", advisorName: "Tom", date: new Date("2026-08-12T08:00:00Z") });', s.sandbox);
-    ok('booking confirmation tiers tomorrow correctly', tomorrowMsg.includes('tomorrow') && tomorrowMsg.includes('measurement'), tomorrowMsg);
+    ok('booking confirmation tiers tomorrow correctly', tomorrowMsg.includes('tomorrow') && tomorrowMsg.includes('survey') && tomorrowMsg.includes('accurate sizes'), tomorrowMsg);
     // Visit four UK days out = the "later" tier with the reminder promise.
     const laterMsg = vm.runInContext('NotificationService.buildBookingConfirmationMessage({ firstName: "Sam", dateLabel: "15 Aug", time: "at 09:00", address: "", type: "consultation", advisorName: "Tom", date: new Date("2026-08-15T08:00:00Z") });', s.sandbox);
     ok('booking confirmation tiers later with the reminder promise', laterMsg.includes("little way off") && laterMsg.includes('reminder'), laterMsg);

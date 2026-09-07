@@ -264,7 +264,7 @@ const MessageScheduler = {
     let jobSummary = '';
     if (['fitting', 'service_call'].includes(appt?.type) && appt?.customerId && typeof TalkFeature.buildJobSummary === 'function') {
       try { jobSummary = ((await TalkFeature.buildJobSummary(appt.customerId)) || '').replace(/\.+$/, ''); } catch (e) {}
-      jobSummary = jobSummary ? ' ' + jobSummary : '';
+      jobSummary = jobSummary ? ' ' + jobSummary + '.' : '';
     }
     return NotificationService.processTemplate(template, {
       firstName: Utils.firstNameFrom(context.customer_name),

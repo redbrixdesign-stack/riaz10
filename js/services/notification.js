@@ -55,9 +55,9 @@ const NotificationService = {
     };
 
     const asks = {
-      consultation: "It'd help if the windows we'll be looking at are clear of anything in the way — and if there's anywhere specific you'd like me to park, just let me know.",
-      measure: 'For accurate measurements, could you make sure the windows we\'re measuring are clear? Let me know if there\'s somewhere specific to park too.',
-      fitting: 'Could you clear the area around the windows being fitted before I arrive? Let me know about parking or anything else useful.',
+      consultation: "To help me bring the right ideas, please reply with roughly how many windows or blinds you're considering, which rooms they're in, and any styles, colours or inspiration photos you like. Please also mention any parking or access considerations.",
+      measure: 'For the survey, please clear the area around each window we\'re measuring so I can take accurate sizes. Let me know about any parking or access considerations too.',
+      fitting: 'Before the fitting, please clear the area around the windows and take down any existing blinds or curtains. If parking or access has changed, just let me know.',
       review: "Let me know if there's anywhere specific to park, or anything in particular you'd like me to take a look at.",
       service_call: "Could you make sure the area's clear so I can get straight to it? Let me know about parking too."
     };

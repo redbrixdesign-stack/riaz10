@@ -185,11 +185,11 @@ const TalkFeature = {
       const TYPE = {
         consultation: {
           verb: 'for a consultation',
-          ask: 'If you can let me know which windows you\'d like me to focus on, that would help me be fully prepared.'
+          ask: ''
         },
         measure: {
           verb: 'to measure up',
-          ask: 'If you can make sure the windows we\'re measuring are clear, that will help me get accurate sizes.'
+          ask: 'Before the survey, please clear the area around each window we\'re measuring so I can take accurate sizes.'
         }
       };
       const t = TYPE[appt?.type] || TYPE.consultation;
@@ -198,12 +198,29 @@ const TalkFeature = {
       // Strip trailing periods so a note ending in "." never produces "..".
       const parking = (this._parseNoteField(appt?.notes || '', 'parking') || '').replace(/\.+$/, '');
       const access = (this._parseNoteField(appt?.notes || '', 'access') || '').replace(/\.+$/, '');
+      const rooms = (this._parseNoteField(appt?.notes || '', 'rooms') || '').replace(/\.+$/, '');
+      const windows = (this._parseNoteField(appt?.notes || '', 'windows') || this._parseNoteField(appt?.notes || '', 'blinds') || '').replace(/\.+$/, '');
+      const inspiration = (this._parseNoteField(appt?.notes || '', 'inspiration') || this._parseNoteField(appt?.notes || '', 'style') || '').replace(/\.+$/, '');
       let profile = '';
       if (parking && access) profile = ` I can see parking is ${parking} and I've noted ${access} for access.`;
       else if (parking) profile = ` I can see parking is ${parking}.`;
       else if (access) profile = ` I've noted ${access} for access.`;
-      else profile = ' Any parking or access (gates, stairs, pets) I should know about?';
-      return `Hi ${name}, I'm ${advisor}, an ${title}, and I'll be with you${when}${addressPart} ${t.verb}. ${t.ask}${profile} Any questions, just reply here.`;
+      else profile = ' Please also let me know about parking or access considerations, such as gates, stairs or pets.';
+
+      let ask = t.ask;
+      if (appt?.type !== 'measure') {
+        const gaps = [];
+        if (!windows) gaps.push('roughly how many windows or blinds you are considering');
+        if (!rooms) gaps.push('which rooms they are in');
+        if (!inspiration) gaps.push('any styles, colours or inspiration photos you like');
+        const gapList = gaps.length > 2
+          ? `${gaps.slice(0, -1).join(', ')}, and ${gaps[gaps.length - 1]}`
+          : gaps.join(' and ');
+        ask = gaps.length
+          ? `To help me bring the right ideas and make our time useful, could you send me ${gapList}?`
+          : `I've noted the windows, rooms and look you have in mind, so I can come prepared.`;
+      }
+      return `Hi ${name}, I'm ${advisor}, an ${title}, and I'll be with you${when}${addressPart} ${t.verb}.\n\n${ask}${profile}\n\nIf anything changes or you have a question before the visit, just reply here.`;
     } catch (e) {
       return null; // caller falls back to the static template
     }
