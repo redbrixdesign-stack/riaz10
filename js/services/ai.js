@@ -361,6 +361,37 @@ const AIService = {
     return { ok: true, text: parsed.draft_message || rawText, nudge: parsed.nudge || '', rawText, usage: result.data.usage };
   },
 
+  async createSocialPosts(fields = {}) {
+    const clean = key => String(fields[key] || '').trim().slice(0, key === 'benefit' ? 120 : 80);
+    const context = { room: clean('room'), product: clean('product'), benefit: clean('benefit'), area: clean('area') };
+    const result = await this._request({
+      type: 'social_post',
+      model: this.config().draftModel,
+      socialContext: JSON.stringify(context)
+    }, 20000);
+    if (!result.ok) return result;
+    const drafts = this._parseSocialPosts(result.data.text || '');
+    return drafts ? { ok: true, drafts, usage: result.data.usage } : { ok: false, reason: 'invalid_response' };
+  },
+
+  _parseSocialPosts(rawText) {
+    const parse = text => {
+      try {
+        const value = JSON.parse(text);
+        if (!value || typeof value !== 'object') return null;
+        const caption = key => typeof value[key] === 'string' ? value[key].trim().slice(0, 1000) : '';
+        const hashtags = Array.isArray(value.hashtags)
+          ? value.hashtags.map(v => String(v || '').trim()).filter(v => /^#[A-Za-z0-9_]+$/.test(v)).slice(0, 6)
+          : [];
+        const drafts = { warm: caption('warm'), professional: caption('professional'), short: caption('short'), hashtags };
+        return drafts.warm && drafts.professional && drafts.short ? drafts : null;
+      } catch (e) { return null; }
+    };
+    return parse(rawText)
+      || parse(String(rawText).replace(/```(?:json)?\s*/gi, '').replace(/```/g, '').trim())
+      || (() => { const first = String(rawText).indexOf('{'); const last = String(rawText).lastIndexOf('}'); return first >= 0 && last > first ? parse(String(rawText).slice(first, last + 1)) : null; })();
+  },
+
   // Optional phrasing for Home's customer brief. The caller supplies only
   // already-extracted operational facts — never names, phone numbers,
   // addresses, postcodes or raw Customer 360 records.

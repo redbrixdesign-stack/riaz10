@@ -1735,6 +1735,8 @@ const AppointmentsFeature = {
 
         ${this.renderOnSiteCard(appt)}
 
+        ${appt.type === 'fitting' ? `<div class="card card-page"><div class="flex items-start gap-sm"><span class="material-symbols-rounded text-brand">campaign</span><div class="flex-1"><div class="fw-700">Share your finished work</div><div class="fs-13 text-secondary mt-2">Turn a customer-approved photo or video into an editable social post.</div></div></div><button class="btn btn-outline btn-block mt-sm" data-action="App.navigate" data-args='${JSON.stringify(['social', { appointmentId: appt.id }])}'><span class="material-symbols-rounded">auto_awesome</span>Create Social Post</button></div>` : ''}
+
         ${orderCardOrder ? this.renderLinkedOrderCard(orderCardOrder) : ''}
 
         ${measurements.length ? `
@@ -3382,11 +3384,25 @@ const AppointmentsFeature = {
         return;
       }
 
+      if (appt.type === 'fitting' && outcomeId === 'completed') {
+        this.offerSocialPost(appt);
+        return;
+      }
+
       App.navigate('appointments', {id});
     } catch (e) {
       console.error('Save outcome error:', e);
       Toast.show('Failed to save outcome', 'error');
     }
+  },
+
+  offerSocialPost(appt) {
+    App.openModal(`<div class="sheet-handle"></div><div class="sheet-header"><h3>Worth sharing?</h3><button class="btn btn-ghost btn-sm" data-action="AppointmentsFeature.skipSocialPost" data-args='${JSON.stringify([appt.id])}' aria-label="Close"><span class="material-symbols-rounded">close</span></button></div><div class="sheet-body"><div class="center-box"><span class="material-symbols-rounded fs-48 text-brand">photo_camera</span><div class="fw-700 mt-sm">That fitting could inspire your next customer.</div><div class="fs-13 text-secondary mt-sm lh-145">If the customer is happy for you to share the finished room, Beelo can turn a photo or short video into three editable post ideas.</div></div><button class="btn btn-primary btn-block mt-md" data-action="App.navigate" data-args='${JSON.stringify(['social', { appointmentId: appt.id }])}'><span class="material-symbols-rounded">auto_awesome</span>Create a post</button><button class="btn btn-outline btn-block mt-sm" data-action="AppointmentsFeature.skipSocialPost" data-args='${JSON.stringify([appt.id])}'>Not now</button></div>`);
+  },
+
+  skipSocialPost(appointmentId) {
+    App.closeModal();
+    App.navigate('appointments', { id: appointmentId });
   },
 
   offerServiceCallBooking(appt) {

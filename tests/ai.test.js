@@ -269,6 +269,17 @@ async function proxyTests() {
   r = await req('POST', {}, { type: 'quick_capture', image: 'QUJD', mediaType: 'image/jpeg' });
   ok('proxy: quick capture image request succeeds', r.status === 200 && JSON.parse(r.body).type === 'quick_capture');
 
+  r = await req('POST', {}, { type: 'social_post' });
+  ok('proxy: social post without approved context 400', r.status === 400);
+  stubbedAnthropic = o => {
+    const parsed = JSON.parse(o.body);
+    ok('proxy: social prompt prohibits invented testimonials and precise addresses', parsed.system.includes('Never invent a customer quote') && parsed.system.includes('precise address'));
+    ok('proxy: social request carries only the approved context string', parsed.messages[0].content[0].text.includes('Roman blinds'));
+    return anthropicOk('{"warm":"Warm option","professional":"Professional option","short":"Short option","hashtags":["#Blinds"]}');
+  };
+  r = await req('POST', {}, { type: 'social_post', socialContext: '{"room":"lounge","product":"Roman blinds","benefit":"privacy","area":"Stockport"}' });
+  ok('proxy: social post request succeeds', r.status === 200 && JSON.parse(r.body).type === 'social_post');
+
   // Assistant type: input validation.
   r = await req('POST', {}, { type: 'assistant' });
   ok('proxy: assistant without snapshot 400', r.status === 400);
@@ -546,6 +557,13 @@ async function clientTests() {
   ok('client: quick capture classifies and normalizes visit data', quickCapture.ok && quickCapture.fields.kind === 'visit' && quickCapture.fields.name === 'Sarah' && quickCapture.fields.postcode === 'M14 7FZ' && quickCapture.fields.appointmentTime === '15:00-18:00' && quickCapture.fields.appointmentType === 'measure', quickCapture.fields);
   const invalidQuickType = svcQuickCapture._parseQuickCapture('{"kind":"visit","appointmentType":"delivery"}');
   ok('client: unknown appointment type is safely left blank', invalidQuickType.appointmentType === '', invalidQuickType);
+
+  const svcSocial = loadAiClient({ responder: async payload => {
+    ok('client: social post sends only approved descriptive fields', payload.type === 'social_post' && !payload.socialContext.includes('customer') && payload.socialContext.includes('Roman'));
+    return responseLike({ text: '```json\n{"warm":" Warm caption ","professional":"Pro caption","short":"Short caption","hashtags":["#Blinds","bad tag","#Stockport"]}\n```', type: 'social_post' });
+  }});
+  const social = await svcSocial.createSocialPosts({ room: 'lounge', product: 'Roman', benefit: 'privacy', area: 'Stockport', customer: 'must not travel' });
+  ok('client: social captions and safe hashtags are normalized', social.ok && social.drafts.warm === 'Warm caption' && social.drafts.hashtags.length === 2 && !social.drafts.hashtags.includes('bad tag'), social);
 
   // extractReceipt: an invented category id falls back to "other".
   const svcBadCat = loadAiClient({

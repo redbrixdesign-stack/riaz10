@@ -9,5 +9,6 @@
   { id: 'capacity', name: 'Availability', icon: 'event_busy', scripts: ['js/features/capacity/capacity.min.js?v=1'] },
   { id: 'profitability', name: 'Profitability', icon: 'monitoring', scripts: ['js/features/profitability/profitability.min.js?v=1'] },
   { id: 'retention', name: 'Retention', icon: 'handshake', scripts: ['js/features/retention/retention.min.js?v=1'] },
+  { id: 'social', name: 'Create Social Post', icon: 'campaign', scripts: ['js/features/social/social.min.js?v=1'] },
   { id: 'settings', name: 'Settings', icon: 'settings', scripts: ['js/features/settings/settings.min.js?v=23'] }
 ].forEach(definition => App.registerLazyFeature(definition));
