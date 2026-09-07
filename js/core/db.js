@@ -1398,6 +1398,25 @@ const DB = {
   },
 
   // Trip operations
+  async completeTrackedTrip(data) {
+    if (!data.operationId) throw new Error('Trip operation id is required');
+    return this._runWrite(['trips', 'appointments'], async () => {
+      // A recovered draft may be retried after the original transaction committed.
+      const existing = (await this.db.trips.toArray()).find(row => row.operationId === data.operationId);
+      // The fallback engine has no cross-table transactions. On retry, repair
+      // its appointment update without inserting the already-saved trip again.
+      if (existing && typeof this.db.transaction === 'function') return existing;
+      const saved = existing || await this.addTrip(data);
+      if (data.appointmentId) {
+        await this.db.appointments.update(data.appointmentId, {
+          travelStatus: 'on_site', arrivedAt: Date.now(), leftAt: null,
+          onSiteDurationMinutes: null
+        });
+      }
+      return saved;
+    });
+  },
+
   async addTrip(data) {
     const trip = {
       ...data,

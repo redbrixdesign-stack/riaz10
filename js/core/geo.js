@@ -13,9 +13,7 @@ const Geo = {
     try {
       return JSON.parse(str);
     } catch (e) {
-      const preview = str.slice(0, 500);
       console.error(`JSON.parse failed for localStorage key "${key}":`, e.message);
-      console.error(`Corrupted value preview: ${preview}`);
       try { localStorage.removeItem(key); } catch (err) {}
       throw e;
     }
@@ -39,8 +37,8 @@ const Geo = {
   // permission is requested only from a user action that needs it (start trip,
   // live ETA, route map without a base), or when resuming a trip the user
   // explicitly started earlier.
-  init() {
-    this.restoreActiveTrip();
+  async init() {
+    await this.restoreActiveTrip();
 
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible' && this.activeTrip) {
@@ -50,7 +48,7 @@ const Geo = {
   },
 
   async checkArrivalOnResume() {
-    if (!this.activeTrip) return;
+    if (!this.activeTrip || this.finishingTrip || this.activeTrip.saveFailed) return;
     try {
       const pos = await this.getCurrentPosition();
       const last = this.activeTrip.lastPos;
@@ -138,7 +136,11 @@ const Geo = {
       path: [{ lat: startPos.lat, lng: startPos.lng }],
       lastPos: { lat: startPos.lat, lng: startPos.lng }
     };
-    this.persistActiveTrip();
+    if (!await this.persistActiveTrip()) {
+      this.activeTrip = null;
+      Toast.show('Mileage tracking could not start: secure recovery storage is unavailable. Navigation is still available.', 'error', 6000);
+      return null;
+    }
 
     if (appointmentId) {
       try {
@@ -156,6 +158,7 @@ const Geo = {
     );
 
     this.renderTripBanner();
+    if (appointmentId && typeof MessageScheduler !== 'undefined') MessageScheduler.startDelayChecker(appointmentId);
     Toast.show(destination ? "Trip started — I'll check for arrival whenever you reopen Beelo" : 'Trip started', 'success');
     return this.activeTrip;
   },
@@ -186,7 +189,7 @@ const Geo = {
   },
 
   onTripPositionUpdate(position) {
-    if (!this.activeTrip) return;
+    if (!this.activeTrip || this.finishingTrip || this.activeTrip.saveFailed) return;
     const lat = position.coords.latitude;
     const lng = position.coords.longitude;
     const last = this.activeTrip.lastPos;
@@ -224,14 +227,15 @@ const Geo = {
     const start = trip.path[0];
     const end = trip.lastPos;
     if (start && end) {
-      const roadKm = await this.getDrivingDistanceKm(start.lat, start.lng, end.lat, end.lng);
+      const roadKm = await this.getDrivingDistanceKm(start.lat, start.lng, end.lat, end.lng).catch(() => null);
       if (roadKm !== null && roadKm > distanceKm) {
         distanceKm = roadKm;
       }
     }
 
     try {
-      await DB.addTrip({
+      await DB.completeTrackedTrip({
+        operationId: trip.id,
         date: trip.startTime,
         startLocation: trip.startLocation,
         endLocation: trip.destinationAddress || 'Trip end',
@@ -244,23 +248,19 @@ const Geo = {
       Toast.show(`${auto ? 'Arrived — trip' : 'Trip'} logged: ${distance.toFixed(1)} ${CONFIG.distanceUnit}`, 'success');
     } catch (e) {
       console.error('Failed to save trip:', e);
-      Toast.show('Could not save trip', 'error');
-    }
-
-    if (trip.appointmentId) {
-      try {
-        await DB.db.appointments.update(trip.appointmentId, {
-          travelStatus: 'on_site',
-          arrivedAt: Date.now(),
-          leftAt: null,
-          onSiteDurationMinutes: null
-        });
-      } catch (e) { console.log('travelStatus update (on_site) failed:', e); }
+      trip.saveFailed = true;
+      this.finishingTrip = false;
+      await this.persistActiveTrip();
+      if (typeof MessageScheduler !== 'undefined') MessageScheduler.stopDelayChecker();
+      this.updateTripBanner();
+      Toast.show('Trip not saved. Your recovery draft is retained; tap Retry save.', 'error', 6000);
+      return null;
     }
 
     this.activeTrip = null;
     this.finishingTrip = false;
     this.clearPersistedTrip();
+    if (typeof MessageScheduler !== 'undefined') MessageScheduler.stopDelayChecker();
     this.removeTripBanner();
 
     if (App.currentFeature && ['today', 'money'].includes(App.currentFeature.id)) {
@@ -290,31 +290,53 @@ const Geo = {
     }
     this.activeTrip = null;
     this.clearPersistedTrip();
+    if (typeof MessageScheduler !== 'undefined') MessageScheduler.stopDelayChecker();
     this.removeTripBanner();
     Toast.show('Trip cancelled', 'info');
   },
 
+  _persistQueue: Promise.resolve(),
+  _persistGeneration: 0,
+
   persistActiveTrip() {
-    try { localStorage.setItem('advisoros_active_trip', JSON.stringify(this.activeTrip)); } catch (e) {}
+    const snapshot = JSON.stringify(this.activeTrip);
+    const generation = this._persistGeneration;
+    this._persistQueue = this._persistQueue.then(async () => {
+      const encrypted = await encryptField(snapshot);
+      if (generation !== this._persistGeneration) return true;
+      localStorage.setItem('advisoros_active_trip', JSON.stringify({ version: 1, encrypted }));
+      return true;
+    }).catch(() => {
+      Toast.show('Trip recovery could not be updated. Keep Beelo open and retry saving.', 'warning');
+      return false;
+    });
+    return this._persistQueue;
   },
 
   clearPersistedTrip() {
+    this._persistGeneration++;
     try { localStorage.removeItem('advisoros_active_trip'); } catch (e) {}
   },
 
-  restoreActiveTrip() {
+  async restoreActiveTrip() {
     try {
       const raw = localStorage.getItem('advisoros_active_trip');
       if (!raw) return;
-      const trip = this.safeJSONParse(raw, 'advisoros_active_trip');
+      const stored = this.safeJSONParse(raw, 'advisoros_active_trip');
+      const trip = stored?.version === 1
+        ? JSON.parse(await decryptField(stored.encrypted)) : stored;
       if (!trip) return;
+      if (!trip.id || !Array.isArray(trip.path) || !trip.lastPos) throw new Error('Invalid trip recovery data');
       this.activeTrip = trip;
-      this.watchId = navigator.geolocation.watchPosition(
+      // Migrate legacy plaintext before resuming tracking. Never fall back to plaintext.
+      if (!await this.persistActiveTrip()) { this.activeTrip = null; return; }
+      if (!trip.saveFailed && navigator.geolocation) this.watchId = navigator.geolocation.watchPosition(
         pos => this.onTripPositionUpdate(pos),
         err => console.log('Trip GPS error:', err),
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
       );
       this.renderTripBanner();
+      if (!trip.saveFailed && trip.appointmentId && typeof MessageScheduler !== 'undefined') MessageScheduler.startDelayChecker(trip.appointmentId);
     } catch (e) {
       console.log('Could not restore active trip:', e);
     }
@@ -345,13 +367,13 @@ const Geo = {
       <div class="trip-banner-inner">
         <span class="material-symbols-rounded">directions_car</span>
         <div class="trip-banner-text">
-          <strong>Trip in progress</strong>
+          <strong>${this.activeTrip.saveFailed ? 'Trip needs saving' : 'Trip in progress'}</strong>
           <span>${distance.toFixed(1)} ${CONFIG.distanceUnit}${this.activeTrip.destination ? ' · finishes when you arrive & reopen the app' : ''}</span>
         </div>
         <button class="btn btn-sm btn-ghost" data-action="Geo.cancelTrip" title="Cancel trip">
           <span class="material-symbols-rounded">close</span>
         </button>
-        <button class="btn btn-sm btn-primary" data-action="Geo.finishTrip">Finish</button>
+        <button class="btn btn-sm btn-primary" data-action="Geo.finishTrip">${this.activeTrip.saveFailed ? 'Retry save' : 'Finish'}</button>
       </div>
     `;
   },
@@ -485,7 +507,7 @@ const Geo = {
       console.log('Trip start from navigation skipped:', e);
     }
     if (trip && appointmentId && typeof MessageScheduler !== 'undefined' && typeof MessageScheduler.onDeparture === 'function') {
-      try { MessageScheduler.onDeparture(appointmentId); } catch (e) { /* scheduler optional */ }
+      try { Promise.resolve(MessageScheduler.onDeparture(appointmentId)).catch(() => console.warn('Departure draft unavailable')); } catch (e) { /* scheduler optional */ }
     }
   },
 

@@ -124,6 +124,8 @@ function loadScheduler({ uk, aiEnabled = false, autoMessages, appointments = [],
     sandbox
   );
   MessageScheduler.sandbox = sandbox;
+  // ETA fixtures belong in tests, not in production appointment records.
+  MessageScheduler.getLiveEta = async appt => appt._liveEta !== undefined ? appt._liveEta : null;
   return MessageScheduler;
 }
 

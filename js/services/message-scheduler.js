@@ -88,34 +88,6 @@ const MessageScheduler = {
     return sec * 1000;
   },
 
-  _clearTimers() {
-    for (const t of this.timers.values()) clearTimeout(t);
-    this.timers.clear();
-  },
-
-  // UK calendar-day distance from today to a visit instant (0 = today,
-  // 1 = tomorrow, -1 = yesterday). Both dates are read through the UK
-  // timezone so the "visit day" matches the advisor's calendar.
-  _daysFromNowUK(visitDate) {
-    const now = Utils.ukParts();
-    const tgt = Utils.ukParts(new Date(visitDate));
-    const a = new Date(now.year, now.month - 1, now.day).getTime();
-    const b = new Date(tgt.year, tgt.month - 1, tgt.day).getTime();
-    return Math.round((b - a) / 86400000);
-  },
-
-  // Real ms until a UK wall-clock time on a day offset from today
-  // (offset 0 = today). Returns 0 when the moment is already in the past
-  // so a boot that happens after the slot can still fire (catch-up).
-  _msUntilUKTime(dayOffset, hour, minute) {
-    const p = Utils.ukParts();
-    const secondsNow = p.hour * 3600 + p.minute * 60 + p.second;
-    const targetSec = (hour % 24) * 3600 + (minute || 0) * 60;
-    let sec = targetSec - secondsNow + dayOffset * 86400;
-    if (sec < 0) sec = 0;
-    return sec * 1000;
-  },
-
   // Rebuilds the timer set from the upcoming week's appointments. Runs on
   // boot and after appointment changes, so an edit to a visit re-times its
   // messages automatically.
@@ -191,7 +163,7 @@ const MessageScheduler = {
     if (!message) return;
     TalkFeature.pendingMessage = pending;
     TalkFeature.openPreviewSheet(message, pending, etaText
-      ? `Live ETA from your current position — about ${etaText}. Double-check before sending.`
+      ? `Road estimate from your current position — about ${etaText}, without live traffic. Double-check before sending.`
       : "Couldn't work out a live ETA (location unavailable) - this is a placeholder, edit before sending.");
     // Flag only after the sheet opened — a failed draft retries on the next
     // departure instead of being burned (same policy as _fire).
@@ -199,11 +171,11 @@ const MessageScheduler = {
   },
 
   // Check if trip is significantly delayed (>15 min past ETA) and fire running_late
-  async checkDelay(appt) {
+  async checkDelay(appt, generation = this.delayGeneration) {
     if (!this.isEnabled()) return;
     if (localStorage.getItem(this._flag('running_late', appt.id)) === '1') return;
     const live = await this.getLiveEta(appt);
-    if (!live) return;
+    if (!live || generation !== this.delayGeneration) return;
     const minutesUntil = appt?.date ? (new Date(appt.date) - new Date()) / 60000 : 0;
     const overrun = Math.round(live.etaMin - minutesUntil);
     if (overrun > 15) {
@@ -212,54 +184,41 @@ const MessageScheduler = {
       const pending = { customerId: appt.customerId || 0, phone, appointmentId: appt.id, templateKey: 'running_late' };
       pending.extraVars = { delay: String(overrun) };
       const message = await this._buildMessage(appt, 'running_late', pending, { delay: String(overrun) });
-      if (!message) return;
+      if (!message || generation !== this.delayGeneration) return;
       TalkFeature.pendingMessage = pending;
-      TalkFeature.openPreviewSheet(message, pending, `Live ETA shows ${overrun} min late — double-check before sending.`);
+      TalkFeature.openPreviewSheet(message, pending, `Road estimate suggests ${overrun} min late, without live traffic — double-check before sending.`);
       localStorage.setItem(this._flag('running_late', appt.id), '1');
     }
   },
 
-  // Fires when the trip for a visit starts ("Start Trip" on Today/Visits):
-  // live ETA from the current position -> on-my-way draft.
-  async onDeparture(appointmentId) {
-    if (!this.isEnabled() || !appointmentId) return;
-    const appt = await DB.getAppointment(appointmentId);
-    if (!appt) return;
-    if (localStorage.getItem(this._flag('on_my_way', appt.id)) === '1') return;
-
-    let etaText = '';
-    try {
-      const live = await this.getLiveEta(appt);
-      if (live) etaText = `${live.etaMin} minute${live.etaMin === 1 ? '' : 's'}`;
-    } catch (e) { /* no live ETA — let the AI write without it */ }
-
-    const phone = await this._resolvePhone(appt);
-    if (!phone) return;
-    const pending = { customerId: appt.customerId || 0, phone, appointmentId: appt.id, templateKey: 'on_my_way' };
-    if (etaText) pending.extraVars = { eta: etaText };
-    const message = await this._buildMessage(appt, 'on_my_way', pending, { eta: etaText });
-    if (!message) return;
-    TalkFeature.pendingMessage = pending;
-    TalkFeature.openPreviewSheet(message, pending, etaText
-      ? `Live ETA from your current position — about ${etaText}. Double-check before sending.`
-      : "Couldn't work out a live ETA (location unavailable) - this is a placeholder, edit before sending.");
-    // Flag only after the sheet opened — a failed draft retries on the next
-    // departure instead of being burned (same policy as _fire).
-    localStorage.setItem(this._flag('on_my_way', appt.id), '1');
-  },
-
   // Check for delay periodically during an active trip
-  async startDelayChecker(appointmentId) {
-    if (!this.isEnabled()) return;
-    const checkInterval = setInterval(async () => {
-      const appt = await DB.getAppointment(appointmentId);
-      if (!appt || appt.outcome || appt.status !== 'confirmed') {
-        clearInterval(checkInterval);
-        return;
-      }
-      await this.checkDelay(appt);
-    }, 5 * 60 * 1000); // check every 5 minutes
-    return checkInterval;
+  delayTimer: null,
+  delayGeneration: 0,
+  stopDelayChecker() {
+    if (this.delayTimer !== null) clearInterval(this.delayTimer);
+    this.delayTimer = null;
+    this.delayGeneration++;
+  },
+  startDelayChecker(appointmentId) {
+    this.stopDelayChecker();
+    if (!this.isEnabled() || !appointmentId) return;
+    const generation = this.delayGeneration;
+    let checking = false;
+    this.delayTimer = setInterval(async () => {
+      if (checking) return;
+      checking = true;
+      try {
+        const appt = await DB.getAppointment(appointmentId);
+        if (generation !== this.delayGeneration) return;
+        if (!this.isEnabled() || !appt || appt.outcome || appt.status !== 'confirmed' || Geo.activeTrip?.appointmentId !== appointmentId) {
+          this.stopDelayChecker();
+          return;
+        }
+        await this.checkDelay(appt, generation);
+      } catch (e) { console.warn('Delay check unavailable'); }
+      finally { checking = false; }
+    }, 5 * 60 * 1000);
+    return this.delayTimer;
   },
 
   async _buildMessage(appt, stage, pending, extra) {
@@ -346,20 +305,17 @@ const MessageScheduler = {
     return null;
   },
 
-  // Get live ETA for a visit using the Route feature
+  // Use fresh GPS and road routing, never the configured business base.
   async getLiveEta(appt) {
-    // Test mock support: if appointment has a pre-computed live ETA, use it
-    if (appt._liveEta && typeof appt._liveEta.etaMin === 'number') {
-      return { etaMin: appt._liveEta.etaMin, distanceKm: 0 };
-    }
-    if (!appt.address) return null;
     try {
-      const base = await RouteFeature.getBasePoint();
-      if (!base?.latLng) return null;
-      const distanceKm = RouteFeature.calculateLegKm(base.latLng, appt.latLng);
-      if (!distanceKm || distanceKm <= 0) return null;
-      const etaMin = Math.max(1, Math.round((distanceKm / 35) * 60));
-      return { etaMin, distanceKm };
+      const position = await Geo.getCurrentPosition();
+      if (!position || !Number.isFinite(position.lat) || !Number.isFinite(position.lng) || !Number.isFinite(position.timestamp) || Date.now() - position.timestamp > 60000 || position.accuracy > 1000) return null;
+      const point = appt.latLng || (appt.address ? await Geo.geocode(appt.address) : null);
+      const destination = Array.isArray(point) ? { lat: point[0], lng: point[1] } : point;
+      if (!destination || !Number.isFinite(destination.lat) || !Number.isFinite(destination.lng)) return null;
+      const route = await Geo.getDrivingRouteSummary(position.lat, position.lng, destination.lat, destination.lng);
+      if (!route || route.source !== 'road' || !Number.isFinite(route.durationMin)) return null;
+      return { etaMin: Math.max(1, route.durationMin), distanceKm: route.distanceKm };
     } catch (e) {
       console.log('Live ETA failed:', e);
       return null;

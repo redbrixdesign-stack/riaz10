@@ -148,7 +148,7 @@ const App = {
 
     // Geolocation: warms up current position and resumes any trip left in progress
     if (typeof Geo !== 'undefined') {
-      try { Geo.init(); } catch (e) { console.log('Geo init skipped:', e); }
+      try { await Geo.init(); } catch (e) { console.log('Geo init skipped:', e); }
     }
 
     // Non-blocking - the Home screen's follow-up nudge uses the same learned
@@ -644,20 +644,24 @@ const App = {
     this.registerFeature(proxy);
   },
 
+  scriptLoads: new Map(),
   loadScripts(urls = []) {
     return urls.reduce((chain, url) => chain.then(() => {
-      if (document.querySelector(`script[data-lazy-src="${url}"]`)) return;
-      return new Promise((resolve, reject) => {
+      if (this.scriptLoads.has(url)) return this.scriptLoads.get(url);
+      const pending = new Promise((resolve, reject) => {
         const script = document.createElement('script');
         script.src = url;
         script.dataset.lazySrc = url;
         script.onload = resolve;
         script.onerror = () => {
           script.remove();
+          this.scriptLoads.delete(url);
           reject(new Error(`Could not load ${url}`));
         };
         document.head.appendChild(script);
       });
+      this.scriptLoads.set(url, pending);
+      return pending;
     }), Promise.resolve());
   },
 

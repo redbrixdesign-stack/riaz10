@@ -246,6 +246,18 @@ async function runDbJs(engine, tag) {
   await DB.init();
   await sandbox.initEncryption('test-passphrase-123');
 
+  const tracked = { operationId: 'audit-trip', date: new Date().toISOString(), distanceKm: 2, appointmentId: 1 };
+  const originalUpdate = DB.db.appointments.update.bind(DB.db.appointments);
+  DB.db.appointments.update = async () => { throw new Error('simulated appointment write failure'); };
+  try { await DB.completeTrackedTrip(tracked); ok(engine + ': completion failure propagates', false); }
+  catch (e) { ok(engine + ': completion failure propagates', true); }
+  if (engine === 'dexie') ok(engine + ': failed transaction leaves no trip', !(await DB.db.trips.toArray()).some(t => t.operationId === tracked.operationId));
+  DB.db.appointments.update = originalUpdate;
+  const completedTrip = await DB.completeTrackedTrip(tracked);
+  const retriedTrip = await DB.completeTrackedTrip(tracked);
+  ok(engine + ': trip retry is idempotent', completedTrip.id === retriedTrip.id);
+  ok(engine + ': completion advances appointment', (await DB.db.appointments.get(1)).travelStatus === 'on_site');
+
   // Legacy migration results
   const customers = await DB.db.customers.toArray();
   customers.sort((a, b) => (a.customerNumber < b.customerNumber ? -1 : 1));
