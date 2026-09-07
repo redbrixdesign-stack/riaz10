@@ -31,11 +31,12 @@ const feature = sandbox.ControlFeature;
 
 (async () => {
   const visitFile = { name: 'visit.jpg', type: 'image/jpeg' };
-  feature.pendingQuickCapture = { file: visitFile, fields: { kind: 'visit', name: 'Sarah Jones', phone: '07700 900123', address: '1 Test Street', postcode: 'M1 1AA', appointmentDate: '2026-08-27', appointmentTime: '15:00-18:00' } };
+  feature.pendingQuickCapture = { file: visitFile, fields: { kind: 'visit', name: 'Sarah Jones', phone: '07700 900123', address: '1 Test Street', postcode: 'M1 1AA', appointmentDate: '2026-08-27', appointmentTime: '15:00-18:00', appointmentType: 'measure' } };
   await feature.routeQuickCapture('visit');
   assert.equal(state.navigations.at(-1).feature, 'appointments');
   assert.equal(state.navigations.at(-1).params.name, 'Sarah Jones');
   assert.equal(state.navigations.at(-1).params.time, '15:00');
+  assert.equal(state.navigations.at(-1).params.scannedType, 'measure');
 
   const receiptFile = { name: 'receipt.jpg', type: 'image/jpeg' };
   feature.pendingQuickCapture = { file: receiptFile, fields: { kind: 'expense', amount: '18.40', vendor: 'Shell', category: 'fuel' } };

@@ -1889,9 +1889,11 @@ const AppointmentsFeature = {
     const today = paramDate || Utils.formatDate(new Date(), 'iso');
     const selectedTime = paramTime || '09:00';
     let allowedTypes = this.getAllowedTypesForDate(today);
+    const scannedType = CONFIG.appointmentTypes.some(type => type.id === params.scannedType) ? params.scannedType : null;
+    if (scannedType && !allowedTypes.includes(scannedType)) allowedTypes = [...allowedTypes, scannedType];
     const requestedJobType = params.jobId && CONFIG.appointmentTypes.some(type => type.id === params.type) ? params.type : null;
     if (requestedJobType && !allowedTypes.includes(requestedJobType)) allowedTypes = [...allowedTypes, requestedJobType];
-    const defaultType = requestedJobType || (allowedTypes.includes(params.type) ? params.type : allowedTypes[0]);
+    const defaultType = requestedJobType || scannedType || (allowedTypes.includes(params.type) ? params.type : allowedTypes[0]);
     const mode = this.getDayMode(today + 'T00:00:00');
     const scannedName = params.name || '';
     const scannedPhone = params.phone || '';

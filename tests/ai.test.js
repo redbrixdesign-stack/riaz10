@@ -263,7 +263,7 @@ async function proxyTests() {
 
   stubbedAnthropic = o => {
     const parsed = JSON.parse(o.body);
-    ok('proxy: quick capture uses cautious classification prompt', parsed.system.includes('"unknown"') && parsed.system.includes('expense receipt'));
+    ok('proxy: quick capture uses cautious classification prompt', parsed.system.includes('"unknown"') && parsed.system.includes('expense receipt') && parsed.system.includes('appointmentType') && parsed.system.includes('service_call'));
     return anthropicOk('{"kind":"expense","amount":"18.40","vendor":"Shell"}');
   };
   r = await req('POST', {}, { type: 'quick_capture', image: 'QUJD', mediaType: 'image/jpeg' });
@@ -539,11 +539,13 @@ async function clientTests() {
 
   const svcQuickCapture = loadAiClient({ responder: async payload => {
     ok('client: quick capture uses dedicated request type', payload.type === 'quick_capture');
-    return responseLike({ text: '```json\n{"kind":"visit","name":" Sarah ","postcode":"m14 7fz","appointmentTime":"3pm to 6pm"}\n```', type: 'quick_capture' });
+    return responseLike({ text: '```json\n{"kind":"visit","name":" Sarah ","postcode":"m14 7fz","appointmentTime":"3pm to 6pm","appointmentType":"MEASURE"}\n```', type: 'quick_capture' });
   }});
   svcQuickCapture._toBase64 = async () => ({ base64: 'QUJD', mediaType: 'image/jpeg' });
   const quickCapture = await svcQuickCapture.extractQuickCapture({});
-  ok('client: quick capture classifies and normalizes visit data', quickCapture.ok && quickCapture.fields.kind === 'visit' && quickCapture.fields.name === 'Sarah' && quickCapture.fields.postcode === 'M14 7FZ' && quickCapture.fields.appointmentTime === '15:00-18:00', quickCapture.fields);
+  ok('client: quick capture classifies and normalizes visit data', quickCapture.ok && quickCapture.fields.kind === 'visit' && quickCapture.fields.name === 'Sarah' && quickCapture.fields.postcode === 'M14 7FZ' && quickCapture.fields.appointmentTime === '15:00-18:00' && quickCapture.fields.appointmentType === 'measure', quickCapture.fields);
+  const invalidQuickType = svcQuickCapture._parseQuickCapture('{"kind":"visit","appointmentType":"delivery"}');
+  ok('client: unknown appointment type is safely left blank', invalidQuickType.appointmentType === '', invalidQuickType);
 
   // extractReceipt: an invented category id falls back to "other".
   const svcBadCat = loadAiClient({

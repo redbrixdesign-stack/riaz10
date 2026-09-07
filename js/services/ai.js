@@ -199,7 +199,8 @@ const AIService = {
     const normalize = value => {
       const kind = ['visit', 'expense'].includes(value.kind) ? value.kind : 'unknown';
       const text = key => typeof value[key] === 'string' ? value[key].trim() : '';
-      return { kind, name:text('name'), phone:text('phone'), address:text('address'), town:text('town'), city:text('city'), postcode:text('postcode').toUpperCase(), appointmentDate:text('appointmentDate'), appointmentTime:this._normalizeTimeOrRange(text('appointmentTime')), amount:text('amount').replace(/[^0-9.-]/g, ''), vendor:text('vendor'), expenseDate:text('expenseDate'), description:text('description'), category:text('category').toLowerCase() };
+      const appointmentType = ['consultation', 'measure', 'fitting', 'follow_up', 'review', 'service_call'].includes(text('appointmentType').toLowerCase()) ? text('appointmentType').toLowerCase() : '';
+      return { kind, name:text('name'), phone:text('phone'), address:text('address'), town:text('town'), city:text('city'), postcode:text('postcode').toUpperCase(), appointmentDate:text('appointmentDate'), appointmentTime:this._normalizeTimeOrRange(text('appointmentTime')), appointmentType, amount:text('amount').replace(/[^0-9.-]/g, ''), vendor:text('vendor'), expenseDate:text('expenseDate'), description:text('description'), category:text('category').toLowerCase() };
     };
     const parse = text => { try { const value = JSON.parse(text); return value && typeof value === 'object' ? normalize(value) : null; } catch (error) { return null; } };
     return parse(rawText) || parse(String(rawText).replace(/```(?:json)?\s*/gi, '').replace(/```/g, '').trim()) || (() => { const first=String(rawText).indexOf('{'),last=String(rawText).lastIndexOf('}'); return first>=0&&last>first?parse(String(rawText).slice(first,last+1)):null; })() || normalize({});

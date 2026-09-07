@@ -65,8 +65,8 @@ const ControlFeature = {
       if (hasUsefulDetails) {
         const address = [fields.address, fields.town, fields.city, fields.postcode].filter(Boolean).join(', ');
         const time = String(fields.appointmentTime || '').split(/\s*(?:-|–|—|to)\s*/)[0];
-        App.navigate('appointments', { action: 'add', name: fields.name || '', phone: fields.phone || '', address, date: fields.appointmentDate || '', time });
-        Toast.show('Visit details found — review, then save', 'success');
+        App.navigate('appointments', { action: 'add', name: fields.name || '', phone: fields.phone || '', address, date: fields.appointmentDate || '', time, scannedType: fields.appointmentType || '' });
+        Toast.show(fields.appointmentType ? 'Visit details and type found — review, then save' : 'Visit details found — choose the type, then save', 'success');
       } else {
         App.navigate('ocr');
         setTimeout(() => OCRFeature.processImage({ target: { files: [pending.file] } }), 50);
