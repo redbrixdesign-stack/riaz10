@@ -19,6 +19,7 @@ Thumbs.db
 *.log
 server/.env
 .vercel
+.private/
 .env*
 
 # e2e screenshots

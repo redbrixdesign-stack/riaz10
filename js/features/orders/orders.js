@@ -19,7 +19,7 @@ const OrdersFeature = {
     { id: 'paid', name: 'Paid', icon: 'payments' }
   ],
 
-  QUOTE_OUTCOMES: ['quoted', 'thinking', 'partner', 'compare_quotes', 'expensive', 'customer_no_show', 'advisor_unavailable'],
+  QUOTE_OUTCOMES: ['quoted', 'thinking', 'partner', 'compare_quotes', 'expensive'],
 
   render(params = {}) {
     return this.renderAsync(params);
@@ -35,7 +35,9 @@ const OrdersFeature = {
 
     const now = new Date();
     const orderAppointmentIds = new Set(orders.map(o => o.appointmentId).filter(Boolean));
-    const quoteCards = pipeline.filter(a => this.QUOTE_OUTCOMES.includes(a.outcome) && !orderAppointmentIds.has(a.id));
+    const structuredAppointmentIds = new Set(structuredQuotes.map(q => q.appointmentId).filter(Boolean));
+    const quoteCards = pipeline.filter(a => this.QUOTE_OUTCOMES.includes(a.outcome) && !orderAppointmentIds.has(a.id) && !structuredAppointmentIds.has(a.id));
+    const rebookCount = pipeline.filter(a => ['customer_no_show', 'advisor_unavailable'].includes(a.outcome)).length;
 
     const customerIds = [...new Set(orders.map(o => o.customerId).filter(Boolean))];
     const customerMap = new Map();
@@ -56,7 +58,7 @@ const OrdersFeature = {
       orderByStage[bucket].push(o);
     }
 
-    const liveStructuredQuotes = structuredQuotes.filter(q => ['draft', 'issued', 'accepted'].includes(q.status));
+    const liveStructuredQuotes = structuredQuotes.filter(q => ['issued', 'accepted'].includes(q.status) && !q.orderId && !orderAppointmentIds.has(q.appointmentId));
     const quotedValue = quoteCards.reduce((s, a) => s + (a.value || 0), 0) + liveStructuredQuotes.reduce((s, q) => s + (q.total || 0), 0);
     const orderValue = stage => orderByStage[stage].reduce((s, o) => s + (o.total || 0), 0);
 
@@ -93,6 +95,8 @@ const OrdersFeature = {
             <div class="kanban-summary-label">Owed</div>
           </div>
         </div>
+
+        ${rebookCount ? `<button type="button" class="btn btn-outline btn-block mb-md" data-action="App.navigate" data-args='["followups"]'>${rebookCount} missed or unavailable visit${rebookCount === 1 ? '' : 's'} — review Follow-ups</button>` : ''}
 
         ${quoteCards.length === 0 && liveStructuredQuotes.length === 0 && orders.length === 0 ? `
           <div class="empty-state empty-state-lg" >
@@ -175,7 +179,7 @@ const OrdersFeature = {
   },
 
   outcomeLabel(outcome) {
-    return String(outcome || '').replace(/_/g, ' ');
+    return Object.values(CONFIG.outcomes || {}).flat().find(item => item.id === outcome)?.name || String(outcome || '').replace(/_/g, ' ');
   },
 
   /* ---------- Order detail sheet ---------- */

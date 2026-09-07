@@ -1900,7 +1900,7 @@ body.trip-active .toast-container {
   flex-direction: column;
   gap: 8px;
   padding: 8px;
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--surface);
   border: 1px solid var(--border-light);
   border-top: none;
   border-radius: 0 0 var(--radius-md) var(--radius-md);
@@ -2126,6 +2126,7 @@ body.trip-active .toast-container {
   justify-content: flex-end;
 }
 .hsc-week-icon-btn {
+  color: var(--text-primary);
   width: 44px;
   height: 44px;
   border-radius: 50%;
@@ -2157,6 +2158,7 @@ body.trip-active .toast-container {
   gap: var(--space-sm);
 }
 .hsc-week-nav {
+  color: var(--text-primary);
   width: 44px;
   height: 44px;
   border-radius: 50%;
@@ -2609,9 +2611,26 @@ body.trip-active .toast-container {
    ============================================ */
 .comp-page {
   height: calc(100vh - var(--nav-height) - var(--safe-bottom) - var(--space-md));
+  height: calc(100dvh - var(--nav-height) - var(--safe-bottom) - var(--space-md));
   display: flex;
   flex-direction: column;
 }
+/* Home owns one inner scroller. Safari's toolbars change the visible height;
+   do not let the document itself scroll the composer behind the fixed nav. */
+body:has(.comp-page) {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+#app:has(.comp-page) {
+  height: 100dvh;
+  min-height: 0;
+}
+#main:has(.comp-page) {
+  min-height: 0;
+  overflow: hidden;
+}
+#main > .comp-page { height: 100%; }
 .comp-root {
   --comp-bg: var(--bg);
   --comp-card: var(--bg-elevated);
@@ -2637,7 +2656,10 @@ body.trip-active .toast-container {
    removed and the phone's own status bar already shows the time. */
 .comp-scroll {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y pinch-zoom;
   padding: calc(14px + env(safe-area-inset-top, 0px)) 14px 4px;
   -webkit-overflow-scrolling: touch;
 }
@@ -2891,6 +2913,7 @@ body.trip-active .toast-container {
   justify-content: flex-end;
   margin-bottom: 8px;
 }
+.comp-toolbar[hidden] { display: none; }
 .comp-toggle-label {
   display: inline-flex;
   align-items: center;
@@ -2996,16 +3019,8 @@ body.trip-active .toast-container {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 16px;
-  /* Bottom clearance for the fixed composer (input bar + "Phrase with AI"
-     toggle ≈ 127px at default text size). Kept generous (140px + the 80px
-     spacer below) so the last card/chip still fully clears the composer
-     when scrolled to the bottom even at large accessibility text sizes —
-     previously the padding sat at 80px and relied on the spacer alone. */
-  padding-bottom: calc(16px + var(--safe-bottom, 0px) + 140px);
-  overflow-y: auto;
-  flex: 1;
-  min-height: 0;
+  padding: 8px 0 16px;
+  /* The composer is a flex sibling; only .comp-scroll owns scrolling. */
 }
 
 .comp-home-section {
@@ -3025,7 +3040,7 @@ body.trip-active .toast-container {
 .comp-home-section-label {
   font-size: 11px;
   font-weight: 700;
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.05em;
   color: var(--comp-muted);
 }
@@ -3095,124 +3110,6 @@ body.trip-active .toast-container {
 }
 .comp-home-quick-manual .material-symbols-rounded { font-size: 18px; color: var(--accent); }
 
-/* Today's route stays compact enough for Home while preserving the whole
-   sequence. Finished legs are deliberately greyed rather than removed, so
-   the advisor can understand where they are in the day at a glance. */
-.comp-home-route {
-  gap: 10px;
-  padding: 16px;
-  background: var(--comp-card);
-  border: 1px solid var(--comp-border);
-  border-radius: 18px;
-}
-
-.comp-home-route-header { margin: 0 0 2px; }
-
-.comp-home-route-title {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-
-.comp-home-route-next {
-  overflow: hidden;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--comp-text);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.comp-home-route-open {
-  flex: 0 0 auto;
-  min-height: 42px;
-  padding: 8px 11px;
-  border: 1px solid var(--comp-border);
-  border-radius: 12px;
-  background: transparent;
-  color: var(--accent);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.comp-home-route-legs {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.comp-home-route-leg {
-  width: 100%;
-  min-height: 58px;
-  display: grid;
-  grid-template-columns: 32px minmax(0, 1fr) 24px;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 10px;
-  border: 1px solid var(--comp-border);
-  border-radius: 13px;
-  background: color-mix(in srgb, var(--comp-card) 80%, var(--comp-bg));
-  color: var(--comp-text);
-  font: inherit;
-  text-align: left;
-}
-
-.comp-home-route-leg.active {
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--comp-border));
-  background: color-mix(in srgb, var(--accent) 10%, var(--comp-card));
-}
-
-.comp-home-route-leg.completed {
-  border-color: var(--comp-border);
-  background: var(--comp-bg);
-  color: var(--comp-muted);
-  cursor: default;
-}
-
-.comp-home-route-marker {
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--comp-muted) 14%, transparent);
-  color: var(--comp-text);
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.comp-home-route-leg.active .comp-home-route-marker {
-  background: var(--accent);
-  color: #0a0a0a;
-}
-
-.comp-home-route-leg.completed .comp-home-route-marker {
-  background: color-mix(in srgb, var(--comp-muted) 16%, transparent);
-  color: var(--comp-muted);
-  font-size: 18px;
-}
-
-.comp-home-route-copy {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.comp-home-route-copy strong,
-.comp-home-route-copy small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.comp-home-route-copy strong { font-size: 13px; line-height: 1.25; }
-.comp-home-route-copy small { font-size: 11px; color: var(--comp-muted); }
-.comp-home-route-leg.completed .comp-home-route-copy strong { color: var(--comp-muted); }
-.comp-home-route-action { font-size: 20px; color: var(--comp-muted); }
-.comp-home-route-leg.active .comp-home-route-action { color: var(--accent); }
 
 /* One continuous diary surface: the expanded next visit and every compact
    appointment row belong to the same schedule, rather than looking like
@@ -3894,12 +3791,6 @@ body.trip-active .toast-container {
   background: var(--comp-border);
 }
 
-/* ---------- composer spacer ---------- */
-
-.comp-home-composer-spacer {
-  height: 80px;
-  flex-shrink: 0;
-}
 
 /* ============================================
    OFFLINE BANNER — persistent offline signal.

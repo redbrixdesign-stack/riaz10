@@ -13,7 +13,11 @@ const MeasureFeature = {
 
   render(params = {}) {
     if (params.appointmentId) return this.renderMeasureForm(params.appointmentId, params.measurementId);
-    return `<div class="empty-state"><span class="material-symbols-rounded">straighten</span><div>Select a visit to measure</div></div>`;
+    return this.renderVisitPicker();
+  },
+
+  renderVisitPicker() {
+    return `<div class="empty-state"><span class="material-symbols-rounded" aria-hidden="true">straighten</span><div>Select a visit to measure</div><button type="button" class="btn btn-primary" data-action="ControlFeature.openMeasurePicker">Select visit</button><button type="button" class="btn btn-ghost" data-action="App.navigate" data-args='["today"]'>Back to Home</button></div>`;
   },
 
   async renderMeasureForm(appointmentId, measurementId) {
@@ -24,7 +28,7 @@ const MeasureFeature = {
     const safeAppointmentId = Number.isInteger(Number(appointmentId)) && Number(appointmentId) > 0 ? Number(appointmentId) : null;
     const safeMeasurementId = Number.isInteger(Number(measurementId)) && Number(measurementId) > 0 ? Number(measurementId) : null;
     if (!safeAppointmentId) {
-      return `<div class="empty-state"><span class="material-symbols-rounded">straighten</span><div>Select a visit to measure</div></div>`;
+      return this.renderVisitPicker();
     }
     const unit = this.getUnitLabel();
     let tolerance = this.mmToDisplay(10);

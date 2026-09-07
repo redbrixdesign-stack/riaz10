@@ -201,7 +201,7 @@ const CompanionFeature = {
       <div class="comp-root">
         <div class="comp-scroll" id="comp-scroll"></div>
         <div class="comp-composer">
-          <div class="comp-toolbar">
+          <div class="comp-toolbar" ${AIService.isEnabled() ? '' : 'hidden'}>
             <label class="comp-toggle-label ${AIService.isEnabled() ? '' : 'disabled'}">
               <input type="checkbox" id="comp-ai-toggle" ${this.aiPrefEnabled() ? 'checked' : ''} ${AIService.isEnabled() ? '' : 'disabled'}>
               <span class="comp-toggle-track"><span class="comp-toggle-thumb"></span></span>
@@ -296,7 +296,6 @@ const CompanionFeature = {
           </div>
           <div class="comp-home-empty">Loading your visits…</div>
         </div>
-        <div class="comp-home-composer-spacer"></div>
       </div>`;
   },
 
@@ -378,53 +377,6 @@ const CompanionFeature = {
     // B. TODAY'S ROUTE — a compact, actionable sequence using the same
     // time-ordered legs as the full Route screen. Completed stops remain in
     // context but are muted; the active leg is highlighted as the next move.
-    let routePlanHtml = '';
-    const routePlan = homeData.routePlan;
-    if (routePlan && Array.isArray(routePlan.legs) && routePlan.legs.length > 0) {
-      const activeIndex = routePlan.activeLeg ? routePlan.activeLeg.index : null;
-      const legsHtml = routePlan.legs.map(leg => {
-        const destination = leg.to || {};
-        const appointment = destination.appointment || null;
-        const completed = !!appointment && (appointment.status === 'completed' || !!appointment.outcome);
-        const active = leg.index === activeIndex;
-        const stateClass = completed ? 'completed' : (active ? 'active' : 'upcoming');
-        const fromLabel = (leg.from && leg.from.label) || 'Start';
-        const toLabel = destination.label || (leg.isReturn ? 'Base' : 'Next stop');
-        const routeFacts = [];
-        if (completed) routeFacts.push('Completed');
-        else if (active) routeFacts.push('Next move');
-        else if (leg.isReturn) routeFacts.push('Return');
-        if (!completed && leg.distanceKm > 0) routeFacts.push(Utils.formatDistance(leg.distanceKm));
-        if (!completed && leg.etaMin > 0) routeFacts.push(`${leg.etaMin} min`);
-        if (!completed && leg.unresolvedPoint) routeFacts.push('Check address');
-        const marker = completed ? 'check' : (leg.isReturn ? 'home' : String(leg.index + 1));
-        return `
-          <button type="button" class="comp-home-route-leg ${stateClass}" data-action="RouteFeature.openLegRoute" data-args='${JSON.stringify([leg.index])}' ${completed ? 'disabled aria-label="Completed route leg"' : ''}>
-            <span class="comp-home-route-marker${completed || leg.isReturn ? ' material-symbols-rounded' : ''}" aria-hidden="true">${marker}</span>
-            <span class="comp-home-route-copy">
-              <strong>${Utils.escapeHtml(fromLabel)} <span aria-hidden="true">→</span> ${Utils.escapeHtml(toLabel)}</strong>
-              <small>${Utils.escapeHtml(routeFacts.join(' · ') || 'Route details')}</small>
-            </span>
-            <span class="material-symbols-rounded comp-home-route-action" aria-hidden="true">${completed ? 'check_circle' : (active ? 'navigation' : 'chevron_right')}</span>
-          </button>`;
-      }).join('');
-      const activeLeg = routePlan.activeLeg;
-      const nextMove = activeLeg
-        ? `${activeLeg.from?.label || 'Start'} → ${activeLeg.to?.label || 'next stop'}`
-        : 'Route complete';
-      routePlanHtml = `
-        <div class="comp-home-section comp-home-route" aria-labelledby="home-route-heading">
-          <div class="comp-home-section-header comp-home-route-header">
-            <div class="comp-home-route-title">
-              <span class="comp-home-section-label" id="home-route-heading">TODAY'S ROUTE</span>
-              <span class="comp-home-route-next">${Utils.escapeHtml(nextMove)}</span>
-            </div>
-            <button type="button" class="comp-home-route-open" data-action="App.navigate" data-args='${JSON.stringify(["route"])}'>Full route</button>
-          </div>
-          <div class="comp-home-route-legs">${legsHtml}</div>
-        </div>`;
-    }
-
     // C. NEXT / UPCOMING — the appointment feed. The first upcoming visit
     // renders as the featured card (active, full detail + actions +
     // "More about this visit"); the remaining upcoming visits render as
@@ -454,7 +406,7 @@ const CompanionFeature = {
             <button type="button" class="comp-home-next-visit-main" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: (nv.id)}])}'>
               <div class="comp-home-next-visit-time${nv.hasArrivalWindow ? ' is-window' : ''}">${Utils.escapeHtml(timeLabel)}</div>
               <div class="comp-home-next-visit-headline">
-                <div class="comp-home-next-visit-name">@${Utils.escapeHtml(nv.name)}</div>
+                <div class="comp-home-next-visit-name">${Utils.escapeHtml(nv.name)}</div>
                 ${etaText ? `<div class="comp-home-next-visit-eta">${Utils.escapeHtml(etaText)}</div>` : ''}
               </div>
               ${context ? `<div class="comp-home-next-visit-context">${Utils.escapeHtml(context)}</div>` : ''}
@@ -494,7 +446,7 @@ const CompanionFeature = {
           <button type="button" class="comp-home-visit upcoming" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: (v.id)}])}'>
             <span class="comp-home-visit-time${v.hasArrivalWindow ? ' is-window' : ''}">${Utils.escapeHtml(whenText)}</span>
             <div class="comp-home-visit-main">
-              <span class="comp-home-visit-name">@${Utils.escapeHtml(v.name)}</span>
+              <span class="comp-home-visit-name">${Utils.escapeHtml(v.name)}</span>
               <span class="comp-home-visit-area">${Utils.escapeHtml(meta)}</span>
             </div>
           </button>`;
@@ -576,7 +528,6 @@ const CompanionFeature = {
         ${nextVisitHtml}
         ${attentionHtml}
         ${suggestionsHtml}
-        <div class="comp-home-composer-spacer"></div>
       </div>`;
   },
 
@@ -617,12 +568,6 @@ const CompanionFeature = {
       }
     } catch (e) { /* chain degrades to per-visit-from-base below */ }
 
-    let routePlan = null;
-    try {
-      if (todayAppts.length > 0 && typeof RouteFeature.analyseDay === 'function') {
-        routePlan = RouteFeature.analyseDay(todayAppts, today, basePoint);
-      }
-    } catch (e) { /* route overview is optional */ }
     const etaMap = new Map();
     {
       const sorted = [...upcoming].sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -854,7 +799,6 @@ const CompanionFeature = {
           })
       ),
       week,
-      routePlan,
       attention,
       suggestions
     };

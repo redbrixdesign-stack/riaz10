@@ -41,6 +41,10 @@ const ok = (label, cond, extra) => {
         labels,
         hasGreeting: !!document.querySelector('.comp-home-greeting'),
         hasWeekStrip: !!document.querySelector('.comp-home-week-strip'),
+        scrollStyles: (() => {
+          const style = getComputedStyle(document.querySelector('.comp-scroll'));
+          return { minHeight: style.minHeight, overscrollY: style.overscrollBehaviorY, touchAction: style.touchAction };
+        })(),
         visitCount: document.querySelectorAll('.comp-home-visit').length,
         nextName: document.querySelector('.comp-home-next-visit-name')?.textContent.trim() || null,
         anyTimeIsNow: times.some(t => t === nowT)
@@ -49,6 +53,7 @@ const ok = (label, cond, extra) => {
     const p = w + 'px';
     ok(`${p}: no horizontal overflow`, r.overflowX <= 0, r.overflowX);
     ok(`${p}: advisor greeting and weekly calendar strip present`, r.hasGreeting && r.hasWeekStrip, r.labels);
+    ok(`${p}: Home owns scrolling and retains pinch zoom`, r.scrollStyles.minHeight === '0px' && r.scrollStyles.overscrollY === 'contain' && r.scrollStyles.touchAction.includes('pinch-zoom'), r.scrollStyles);
     // THIS WEEK strip → Upcoming (featured card + upcoming rows) → ATTENTION → ASK BEELO
     const iWeek = r.labels.indexOf('THIS WEEK');
     const iNext = r.labels.indexOf('Upcoming');

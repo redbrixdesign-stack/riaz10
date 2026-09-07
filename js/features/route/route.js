@@ -157,8 +157,7 @@ const RouteFeature = {
               <div class="flex items-center gap-md mt-2">
                 <span class="material-symbols-rounded text-tertiary fs-16">directions_car</span>
                 <span class="fw-600">${nextLegDistance > 0 ? Utils.formatDistance(nextLegDistance) : '—'} · ${nextLegEta > 0 ? nextLegEta + ' min' : '—'}</span>
-                <span class="material-symbols-rounded text-tertiary fs-16">arrow_forward</span>
-                <span class="text-tertiary fs-12">${Utils.escapeHtml(Utils.truncate(nextLegFrom, 18))}</span>
+                <span class="text-tertiary fs-12">Estimated from ${Utils.escapeHtml(Utils.truncate(nextLegFrom, 18))}</span>
               </div>
             </div>
             <button class="btn btn-primary btn-sm shrink-0" data-action="RouteFeature.openLegRoute" data-args='${JSON.stringify([(activeLeg.index)])}' style="min-height: 40px;">
@@ -220,6 +219,7 @@ const RouteFeature = {
         </div>
 
         <!-- Route Friend (progressive disclosure) -->
+        <p class="fs-12 text-secondary">Map lines show stop order, not turn-by-turn road directions. Distances and travel times are estimates.</p>
         ${this.renderRoutePlan(plan)}
 
         <!-- Today's Stops List -->
@@ -991,7 +991,7 @@ const RouteFeature = {
       }
       this.map = L.map(mapEl, {
         zoomControl: false,
-        attributionControl: false
+        attributionControl: true
       }).setView(center, zoom);
 
       // Add tile layer (OpenStreetMap)

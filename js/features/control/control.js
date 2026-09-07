@@ -122,17 +122,9 @@ const ControlFeature = {
               <span class="material-symbols-rounded">person_search</span>
               <span>Find Customer</span>
             </button>
-            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["orders"])}'>
-              <span class="material-symbols-rounded">view_kanban</span>
-              <span>Orders Board</span>
-            </button>
-            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["followups"])}'>
-              <span class="material-symbols-rounded">campaign</span>
-              <span>Follow-ups</span>
-            </button>
           `)}
 
-          ${card('Money & Route', `
+          ${card('Business', `
             <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["suppliers"])}'>
               <span class="material-symbols-rounded">local_shipping</span>
               <span>Suppliers</span>
@@ -149,6 +141,9 @@ const ControlFeature = {
               <span class="material-symbols-rounded">receipt_long</span>
               <span>Invoices</span>
             </button>
+          `)}
+
+          ${card('Field tools', `
             <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["route"])}'>
               <span class="material-symbols-rounded">map</span>
               <span>Route Planner</span>
