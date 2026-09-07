@@ -152,6 +152,8 @@ function appt(id, dateISO, phone = '07700123456') {
     ok('Dr title skipped', Utils.firstNameFrom('Dr Sarah Jones') === 'Sarah');
     ok('Mrs title skipped', Utils.firstNameFrom('Mrs Jane Doe') === 'Jane');
     ok('Mr title skipped', Utils.firstNameFrom('Mr. John Doe') === 'John');
+    ok('standalone title never becomes the greeting name', Utils.firstNameFrom('Mrs') === 'there');
+    ok('name parts strip the title before saving', Utils.personNameParts('Miss Amelia Green').firstName === 'Amelia' && Utils.personNameParts('Miss Amelia Green').lastName === 'Green');
     ok('empty falls back to "there"', Utils.firstNameFrom('') === 'there');
     ok('missing falls back to "there"', Utils.firstNameFrom(null) === 'there');
   }

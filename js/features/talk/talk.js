@@ -103,6 +103,15 @@ const TalkFeature = {
     return appt?.date ? Utils.formatTime(appt.date) : '';
   },
 
+  customerGivenName(customer, appt) {
+    const candidates = [customer?.fullName, appt?.clientName, [customer?.firstName, customer?.lastName].filter(Boolean).join(' '), customer?.firstName, customer?.lastName];
+    for (const candidate of candidates) {
+      const first = Utils.firstNameFrom(candidate || '');
+      if (first && first !== 'there') return first;
+    }
+    return 'there';
+  },
+
   // The actual job for a customer, from their order → quote line items
   // (the delivery note): "5 blinds — 2 roman, 3 vertical — about 33 minutes
   // each (around 2h45 in total)". Falls back to the number of windows
@@ -156,7 +165,7 @@ const TalkFeature = {
   // types, timing from the order/delivery note) so the customer feels known.
   async buildIntroMessage(appt, customer) {
     try {
-      const name = Utils.firstNameFrom(customer?.firstName || appt?.clientName || '') || 'there';
+      const name = this.customerGivenName(customer, appt);
       const dayPart = `${Utils.formatDateUK(appt.date, 'weekday-short')} ${Utils.formatDateUK(appt.date, 'short')}`;
       const timePart = this.apptTimeText(appt);
       const addressPart = appt?.address ? ` at ${appt.address}` : '';
@@ -610,7 +619,7 @@ const TalkFeature = {
         jobSummary = jobSummary ? ' ' + jobSummary : '';
       }
       message = NotificationService.processTemplate(template, {
-        firstName: Utils.firstNameFrom(customer?.firstName || appt?.clientName),
+        firstName: this.customerGivenName(customer, appt),
         productType: 'window coverings',
         time: this.apptTimeText(appt),
         address: appt?.address || '',
@@ -903,7 +912,7 @@ const TalkFeature = {
 
     return {
       customerName: customer ? [customer.firstName, customer.lastName].filter(Boolean).join(' ') : (appt?.clientName || 'there'),
-      firstName: Utils.firstNameFrom(customer?.firstName || appt?.clientName),
+      firstName: this.customerGivenName(customer, appt),
       appointmentDate: appt?.date ? Utils.formatDate(appt.date) : '',
       appointmentDay: appt?.date ? Utils.formatDate(appt.date, 'long') : '',
       appointmentTime: this.apptTimeText(appt),
@@ -950,7 +959,7 @@ const TalkFeature = {
     if (!templateText) return '';
     try {
       return NotificationService.processTemplate(templateText, {
-        firstName: Utils.firstNameFrom(customer?.firstName || appt?.clientName),
+        firstName: this.customerGivenName(customer, appt),
         time: this.apptTimeText(appt),
         address: appt?.address || '',
         advisorName,
@@ -1060,7 +1069,7 @@ const TalkFeature = {
       advisor_role: CONFIG.advisorTitle || 'window coverings advisor',
       facebook_url: String(CONFIG.socialLinks?.facebook || '').trim(),
       instagram_url: String(CONFIG.socialLinks?.instagram || '').trim(),
-      customer_name: customer ? customer.firstName || customer.lastName : (appt?.clientName || 'there'),
+      customer_name: this.customerGivenName(customer, appt),
       customer_is_first_visit_at_address: pastVisits.length === 0,
       customer_visit_count: pastVisits.length,
       address: appt?.address || customer?.address?.line1 || '',

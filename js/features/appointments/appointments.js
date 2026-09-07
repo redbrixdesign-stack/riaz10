@@ -899,10 +899,11 @@ const AppointmentsFeature = {
         ? OCRFeature.extractPostcodeFromAddress(address)
         : { postcode: '', postcodeNormalized: '' };
 
+      const nameParts = Utils.personNameParts(name);
       await DB.updateCustomer(customerId, {
         fullName: name,
-        firstName: name.split(' ')[0],
-        lastName: name.split(' ').slice(1).join(' ') || '',
+        firstName: nameParts.firstName,
+        lastName: nameParts.lastName,
         phone,
         email,
         postcodeNormalized,
@@ -2193,7 +2194,7 @@ const AppointmentsFeature = {
     const phone = customer?.phone || appt.phone;
     const apptDate = new Date(appt.date);
     const message = NotificationService.buildBookingConfirmationMessage({
-      firstName: customer?.firstName || appt.clientName?.split(' ')[0] || 'there',
+      firstName: Utils.firstNameFrom(customer?.fullName || appt.clientName || [customer?.firstName, customer?.lastName].filter(Boolean).join(' ')),
       date: apptDate,
       dateLabel: Utils.formatDate(apptDate, 'long'),
       // time carries its own preposition so a window reads naturally:
@@ -2380,9 +2381,10 @@ const AppointmentsFeature = {
         const { postcode, postcodeNormalized } = (typeof OCRFeature !== 'undefined' && OCRFeature.extractPostcodeFromAddress)
           ? OCRFeature.extractPostcodeFromAddress(address)
           : { postcode: '', postcodeNormalized: '' };
+        const nameParts = Utils.personNameParts(name);
         const customer = await DB.addCustomer({
-          firstName: name.split(' ')[0],
-          lastName: name.split(' ').slice(1).join(' ') || '',
+          firstName: nameParts.firstName,
+          lastName: nameParts.lastName,
           fullName: name,
           phone,
           postcodeNormalized,
@@ -2944,10 +2946,11 @@ const AppointmentsFeature = {
           ? OCRFeature.extractPostcodeFromAddress(data.address)
           : { postcode: '', postcodeNormalized: '' };
         const customer = await DB.getCustomer(appt.customerId);
+        const nameParts = Utils.personNameParts(data.name);
         await DB.updateCustomer(appt.customerId, {
           fullName: data.name,
-          firstName: data.name.split(' ')[0],
-          lastName: data.name.split(' ').slice(1).join(' ') || '',
+          firstName: nameParts.firstName,
+          lastName: nameParts.lastName,
           phone: data.phone,
           postcodeNormalized,
           address: { ...(customer?.address || {}), line1: data.address, postcode, postcodeNormalized }

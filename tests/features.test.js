@@ -267,6 +267,17 @@ const assert = (cond, msg) => { if (!cond) { console.error('FAIL:', msg); proces
   TABLES.appointments.push({ id: 14, customerId: 2, clientName: 'David Lee', type: 'consultation', outcome: null, status: 'confirmed', date: ukDay(2, 9) });
   const mctxNew = await Talk.buildMessageContext({ customerId: 2, appointmentId: 14, templateKey: 'pre_intro' });
   assert(mctxNew.customer_is_first_visit_at_address === true && mctxNew.customer_visit_count === 0, 'First-time customer flagged');
+  TABLES.customers.find(c => c.id === 2).firstName = 'Miss';
+  TABLES.customers.find(c => c.id === 2).lastName = 'David Lee';
+  TABLES.customers.find(c => c.id === 2).fullName = 'Miss David Lee';
+  const mctxTitled = await Talk.buildMessageContext({ customerId: 2, appointmentId: 14, templateKey: 'pre_intro' });
+  assert(mctxTitled.customer_name === 'David', 'AI greeting receives the given name, never an honorific');
+  TABLES.customers.find(c => c.id === 2).fullName = '';
+  TABLES.customers.find(c => c.id === 2).firstName = 'Mrs';
+  TABLES.customers.find(c => c.id === 2).lastName = 'Lee';
+  TABLES.appointments.find(a => a.id === 14).clientName = 'Mrs David Lee';
+  const mctxLegacyTitle = await Talk.buildMessageContext({ customerId: 2, appointmentId: 14, templateKey: 'pre_intro' });
+  assert(mctxLegacyTitle.customer_name === 'David', 'Legacy title-only firstName recovers the given name from the appointment');
   assert(mctxNew.stage === 'pre_intro', 'pre_intro template maps to pre_intro stage');
   assert(Talk.stageForTemplateKey('day_before') === 'day_before' && Talk.stageForTemplateKey('evening_before') === 'day_before', 'Reminder stages map');
   assert(Talk.stageForTemplateKey('on_my_way') === 'on_the_way' && Talk.stageForTemplateKey('running_late') === 'late', 'ETA stages map');

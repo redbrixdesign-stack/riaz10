@@ -2,9 +2,9 @@
    existing classic scripts stay independently cacheable/offline-capable and
    are evaluated only when the advisor opens that workflow. */
 [
-  { id: 'quotes', name: 'Quotes', icon: 'request_quote', scripts: ['js/services/quote-document.min.js?v=2', 'js/features/quotes/quotes.min.js?v=1'] },
+  { id: 'quotes', name: 'Quotes', icon: 'request_quote', scripts: ['js/services/quote-document.min.js?v=3', 'js/features/quotes/quotes.min.js?v=1'] },
   { id: 'jobs', name: 'Jobs', icon: 'construction', scripts: ['js/features/jobs/jobs.min.js?v=3'] },
-  { id: 'invoices', name: 'Invoices', icon: 'receipt_long', scripts: ['js/services/finance-document.min.js?v=2', 'js/features/invoices/invoices.min.js?v=1'] },
+  { id: 'invoices', name: 'Invoices', icon: 'receipt_long', scripts: ['js/services/finance-document.min.js?v=3', 'js/features/invoices/invoices.min.js?v=1'] },
   { id: 'suppliers', name: 'Suppliers', icon: 'local_shipping', scripts: ['js/features/suppliers/suppliers.min.js?v=2'] },
   { id: 'capacity', name: 'Availability', icon: 'event_busy', scripts: ['js/features/capacity/capacity.min.js?v=1'] },
   { id: 'profitability', name: 'Profitability', icon: 'monitoring', scripts: ['js/features/profitability/profitability.min.js?v=1'] },

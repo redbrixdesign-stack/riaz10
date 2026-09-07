@@ -419,12 +419,18 @@ const Utils = {
   // "Ms Hilary Taylor" yields "Hilary" — greeting someone as "Hi Ms" is
   // wrong, and it happens whenever the name came from a scan of a card
   // that leads with a title (they almost all do).
-  HONORIFICS: /^(mr|mrs|ms|miss|mstr|dr|prof|rev|sir|lady|dame)\.?\s+/i,
+  HONORIFICS: /^(mr|mrs|ms|miss|mstr|dr|prof|rev|sir|lady|dame)\.?(?:\s+|$)/i,
+
+  personNameParts(name) {
+    const original = String(name || '').trim();
+    const clean = original.replace(this.HONORIFICS, '').trim();
+    const parts = clean.split(/\s+/).filter(Boolean);
+    return { firstName: parts[0] || '', lastName: parts.slice(1).join(' '), fullName: original || clean };
+  },
 
   firstNameFrom(name) {
     if (!name) return 'there';
-    const stripped = String(name).trim().replace(this.HONORIFICS, '');
-    return stripped.split(/\s+/)[0] || 'there';
+    return this.personNameParts(name).firstName || 'there';
   },
 
   escapeJsString(value) {

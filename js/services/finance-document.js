@@ -58,7 +58,7 @@ const FinanceDocumentService = {
   printPending() { if (!this.pending) return Toast.show('Open a document first','info'); const popup=window.open('','_blank'); if(!popup)return Toast.show('Allow pop-ups to print this document','error'); popup.document.open();popup.document.write(this.html(this.pending));popup.document.close();popup.focus();setTimeout(()=>popup.print(),100); },
   reviewMessage() {
     const m=this.pending;if(!m)return Toast.show('Open a document first','info');
-    const first=this.customerName(m.customer).split(/\s+/)[0];
+    const first=Utils.firstNameFrom(this.customerName(m.customer));
     const text=m.type==='invoice'?`Hi ${first}, invoice ${m.number} is ready for ${this.money(m.total)}${m.dueDate?`, due ${this.date(m.dueDate)}`:''}. Please reply if you have any questions.`:m.type==='receipt'?`Hi ${first}, here is confirmation of your ${this.money(m.total)} payment (${m.number}). Thank you.`:`Hi ${first}, credit note ${m.number} has been raised for ${this.money(m.total)}.`;
     App.openModal(`<div class="sheet-handle"></div><div class="sheet-header"><h3>Review WhatsApp message</h3></div><div class="sheet-body"><label for="finance-document-message">Message</label><textarea class="textarea" id="finance-document-message" rows="7">${this.escape(text)}</textarea><p class="hint">This opens WhatsApp only. Confirm the recipient and attach the saved document yourself.</p><button class="btn btn-primary btn-block" data-action="InvoicesFeature.openDocumentWhatsApp">Open WhatsApp</button><button class="btn btn-outline btn-block mt-sm" data-action="App.closeModal">Cancel</button></div>`);
   },

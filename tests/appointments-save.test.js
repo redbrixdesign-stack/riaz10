@@ -25,7 +25,10 @@ global.App = {
 };
 const toasts = [];
 global.Toast = { show(message, type) { toasts.push({ message, type }); } };
-global.Utils = { ukParts() { return { weekday: 3 }; } };
+global.Utils = {
+  ukParts() { return { weekday: 3 }; },
+  personNameParts(name) { const parts = String(name || '').replace(/^(mr|mrs|ms|miss|dr)\.?\s+/i, '').trim().split(/\s+/); return { firstName: parts[0] || '', lastName: parts.slice(1).join(' ') }; }
+};
 global.OCRFeature = {};
 global.MessageScheduler = { reschedule() {} };
 

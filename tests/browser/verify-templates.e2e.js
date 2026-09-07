@@ -53,7 +53,9 @@ const ok = (label, cond, extra) => {
     out.fitting = (await DB.addAppointment({ customerId: byName('Tom Hardcastle').id, clientName: 'Tom Hardcastle', type: 'fitting', date: at(10), status: 'confirmed', phone: '07900 555666', address: '3 Cypress Close, Stockport SK7 5AA', notes: 'Parking: visitors bay only. Access: key safe on the right of the main door.' })).id;
     out.measure = (await DB.addAppointment({ customerId: byName('Sarah Johnson').id, clientName: 'Sarah Johnson', type: 'measure', date: at(11), status: 'confirmed', phone: '07700 900123', address: '14 Beechwood Avenue, Stockport SK1 4AA' })).id;
     out.service = (await DB.addAppointment({ customerId: byName("David O'Leary").id, clientName: "David O'Leary", type: 'service_call', date: at(12), status: 'confirmed', phone: '07900 333444', address: "St Mary's Court, Altrincham M22 2AA", notes: 'Access: key safe on the right of the main door. Blinds jammed after install — bracket bolt sheared.' })).id;
-    out.consultation = (await DB.addAppointment({ customerId: byName('Amelia Green').id, clientName: 'Amelia Green', type: 'consultation', date: at(13), status: 'confirmed', phone: '07711 223344', address: '9 Birch Lane, Wilmslow SK9 5AA', notes: 'Parking: on-street, free after 6pm.' })).id;
+    const amelia = byName('Amelia Green');
+    await DB.updateCustomer(amelia.id, { firstName: 'Miss', lastName: 'Green', fullName: 'Miss Amelia Green' });
+    out.consultation = (await DB.addAppointment({ customerId: amelia.id, clientName: 'Miss Amelia Green', type: 'consultation', date: at(13), status: 'confirmed', phone: '07711 223344', address: '9 Birch Lane, Wilmslow SK9 5AA', notes: 'Parking: on-street, free after 6pm.' })).id;
     // The fitting customer's JOB (the delivery note): a quote with line
     // items → the order, so the known-customer message can name the blinds
     // and timing (2 roman + 3 vertical = 5 blinds × 33 min ≈ 2h45).
@@ -113,6 +115,7 @@ const ok = (label, cond, extra) => {
 
   const pCon = await draft(ids.consultation, 'pre_intro');
   console.log('  pre_intro consultation (new customer): ' + pCon);
+  ok('consultation greeting strips Miss and uses the given name', /^Hi Amelia,/.test(pCon) && !/^Hi Miss,/.test(pCon), pCon);
   ok('consultation pre_intro introduces with the title (Independent Hillarys Window Coverings Expert)', /an Independent Hillarys Window Coverings Expert/.test(pCon), pCon);
   ok('consultation pre_intro is profile-aware: acknowledges the parking note (on-street)', /on-street/.test(pCon) && !/Any parking or access/.test(pCon), pCon);
   ok('consultation pre_intro explains why details help and asks for rooms + inspiration', /bring the right ideas/.test(pCon) && /which rooms/.test(pCon) && /inspiration photos/.test(pCon), pCon);

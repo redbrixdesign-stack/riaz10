@@ -343,7 +343,7 @@ Global rules:
    - review: ask how everything is looking / whether anything has come up since the fitting.
    - service_call: reference the reported issue from visit_notes / notes_from_last_visit (never a generic compliment — name or echo the problem they raised).
    - follow_up: reference the visit's purpose and ask if anything has changed.
-7. Use the customer's first name from customer_name (never the full name/title in the greeting). Targets: first introduction 65-95 words, day-before 40-70 words, morning-of 25-50 words, journey updates 15-35 words. Never add detail merely to reach a target.
+7. Use customer_name exactly as the customer's given name. Never add or address them by an honorific such as Mr, Mrs, Ms, Miss or Dr. Targets: first introduction 65-95 words, day-before 40-70 words, morning-of 25-50 words, journey updates 15-35 words. Never add detail merely to reach a target.
 8. Keep it concise, polished, calm, human, and specific. Avoid generic filler such as "hope you're well", "just touching base", "just a quick one", and excessive exclamation marks. No markdown, no emojis, no quotation marks around the message, no "Dear" style greetings.
 9. Ask at most 2-3 relevant questions, and only for information not already stored in the context.
 10. Always make it easy for the customer to reply ("just reply to this message" style).

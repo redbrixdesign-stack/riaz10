@@ -91,7 +91,7 @@ const QuoteDocumentService = {
   reviewWhatsApp() {
     const model = this.pending;
     if (!model) return Toast.show('Open a quote preview first', 'info');
-    const text = `Hi ${model.customerName.split(/\s+/)[0]}, your quote ${model.number} is ready. Total: ${this.money(model.total)}${model.expiryDate ? `. Valid until ${this.date(model.expiryDate)}` : ''}. Please reply if you would like to discuss anything.`;
+    const text = `Hi ${Utils.firstNameFrom(model.customerName)}, your quote ${model.number} is ready. Total: ${this.money(model.total)}${model.expiryDate ? `. Valid until ${this.date(model.expiryDate)}` : ''}. Please reply if you would like to discuss anything.`;
     this.pendingMessage = text;
     App.openModal(`<div class="sheet-handle"></div><div class="sheet-header"><h3>Review WhatsApp message</h3><button class="btn btn-ghost btn-sm" aria-label="Close message review" data-action="App.closeModal"><span class="material-symbols-rounded">close</span></button></div><div class="sheet-body"><label for="quote-whatsapp-message">Message</label><textarea class="textarea" id="quote-whatsapp-message" rows="7">${this.escape(text)}</textarea><p class="hint">This opens WhatsApp only. Confirm the recipient and attach the saved quote yourself.</p><button class="btn btn-primary btn-block mt-md" data-action="QuotesFeature.openQuoteWhatsApp">Open WhatsApp</button></div>`);
   },
