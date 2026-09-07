@@ -38,6 +38,7 @@ const FAR_APPTS = [];
 const NEXT5 = [];
 const TODAY_APPTS = [];
 const ALL_APPTS = [];
+const COMMUNICATIONS = [];
 
 global.DB = {
   getPipeline: async () => [],
@@ -47,6 +48,7 @@ global.DB = {
     orders: { toArray: async () => [] },
     customers: { bulkGet: async ids => [] },
     appointments: { toArray: async () => ALL_APPTS }
+    ,communications: { toArray: async () => COMMUNICATIONS }
   },
   getAllAppointments: async () => ALL_APPTS
 };
@@ -79,6 +81,13 @@ const Followups = global.App.features.get('followups');
   tasks = await Followups.loadTasks();
   assert(!tasks.some(t => t.kind === 'intro'), 'Intro task drops once introSent is set');
   FAR_APPTS[0].introSent = false;
+
+  // A confirmed message in the customer timeline is authoritative even if
+  // an imported/legacy appointment never had introSent updated.
+  COMMUNICATIONS.push({ id: 1, customerId: 9, direction: 'outbound', sentAt: new Date().toISOString() });
+  tasks = await Followups.loadTasks();
+  assert(!tasks.some(t => t.kind === 'intro'), 'Intro task drops when customer communication history shows a sent message');
+  COMMUNICATIONS.length = 0;
 
   // Existing customer with a prior completed visit: not first-time.
   ALL_APPTS.push({ id: 900, customerId: 9, date: iso(-40), status: 'completed', outcome: 'ordered' });

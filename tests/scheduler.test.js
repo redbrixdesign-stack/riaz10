@@ -45,7 +45,7 @@ function makeLocalStorage() {
 // uk: {year, month, day, hour, minute, second} wall-clock values for now.
 // nowMs: optional frozen "new Date()" instant (all Date-constructed "now"
 // calls return this instant; parsed dates still work normally).
-function loadScheduler({ uk, aiEnabled = false, autoMessages, appointments = [], apptById = {}, nowMs } = {}) {
+function loadScheduler({ uk, aiEnabled = false, autoMessages, appointments = [], apptById = {}, communications = [], nowMs } = {}) {
   const sandbox = {
     console, Math, JSON, Date, Promise, Map, Set, Array, Object,
     Number, String, Boolean, RegExp, Error, parseInt, parseFloat, isNaN,
@@ -86,7 +86,10 @@ function loadScheduler({ uk, aiEnabled = false, autoMessages, appointments = [],
   sandbox.DB = {
     getUpcomingAppointments: async () => appointments,
     getAppointment: async id => apptById[id],
-    db: { appointments: { get: async id => apptById[id] } }
+    db: {
+      appointments: { get: async id => apptById[id] },
+      communications: { where: () => ({ equals: customerId => ({ toArray: async () => communications.filter(row => row.customerId === customerId) }) }) }
+    }
   };
   sandbox.TalkFeature = {
     pendingMessage: null,
@@ -232,6 +235,19 @@ function appt(id, dateISO, phone = '07700123456') {
     const sheet = s.sandbox.TalkFeature.lastSheet;
     ok('AI text used', sheet && sheet.message === 'AI DRAFT: no eta', sheet && sheet.message);
     ok('AI got appointment context', s.sandbox.draftContexts && s.sandbox.draftContexts[0].appointmentId === 2);
+  }
+
+  console.log('\nTest F2: morning prompt skips customers already contacted');
+  {
+    const visit = appt(61, ukDay(2026, 8, 11));
+    const s = loadScheduler({
+      uk: { year: 2026, month: 8, day: 11, hour: 8, minute: 0, second: 0 },
+      apptById: { 61: visit },
+      communications: [{ id: 1, customerId: 1, direction: 'outbound', sentAt: '2026-08-10T17:00:00Z' }]
+    });
+    await s._fire(visit, 'morning_of');
+    ok('confirmed earlier message suppresses the morning popup', !s.sandbox.TalkFeature.lastSheet);
+    ok('suppressed morning stage is marked handled', s.sandbox.localStorage.getItem(s._flag('morning_of', visit.id)) === '1');
   }
 
   console.log('\nTest G: on-departure (on my way) trigger');

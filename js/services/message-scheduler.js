@@ -280,6 +280,23 @@ const MessageScheduler = {
   async _fire(appt, stage) {
     if (localStorage.getItem(this._flag(stage, appt.id)) === '1') return;
 
+    // The morning prompt is a safety net for customers who have not been
+    // contacted. Do not interrupt the advisor again when a confirmed
+    // outbound message already exists for this visit/customer.
+    if (stage === 'morning_of' && appt.customerId) {
+      try {
+        let rows = await DB.db.communications.where('customerId').equals(appt.customerId).toArray();
+        if (typeof CommunicationService !== 'undefined') rows = await CommunicationService.decorate(rows);
+        const alreadyContacted = rows.some(row => row.direction !== 'inbound' && (
+          typeof CommunicationService !== 'undefined' ? CommunicationService.isConfirmed(row) : !!row.sentAt
+        ));
+        if (alreadyContacted) {
+          localStorage.setItem(this._flag(stage, appt.id), '1');
+          return;
+        }
+      } catch (e) { /* if history is unavailable, keep the reminder */ }
+    }
+
     const phone = await this._resolvePhone(appt);
     if (!phone) {
       console.warn('MessageScheduler: no phone for appointment', appt.id);

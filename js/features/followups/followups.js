@@ -44,6 +44,21 @@ const FollowupsFeature = {
     // gets no intro task and its customer is never messaged.
     try { futureAppts = await DB.getUpcomingAppointments(60); } catch (e) {}
 
+    // A confirmed outbound message is stronger evidence than the legacy
+    // appointment flag. If the advisor has already contacted the customer,
+    // never surface a second "first contact" task after a reload/import.
+    const contactedCustomerIds = new Set();
+    try {
+      let communications = await DB.db.communications.toArray();
+      if (typeof CommunicationService !== 'undefined') communications = await CommunicationService.decorate(communications);
+      for (const row of communications) {
+        const confirmed = typeof CommunicationService !== 'undefined'
+          ? CommunicationService.isConfirmed(row)
+          : !!row.sentAt;
+        if (confirmed && row.direction !== 'inbound' && row.customerId) contactedCustomerIds.add(Number(row.customerId));
+      }
+    } catch (e) { /* retain the appointment-flag fallback */ }
+
     const customerIds = [...new Set([
       ...pipeline.map(a => a.customerId).filter(Boolean),
       ...orders.map(o => o.customerId).filter(Boolean),
@@ -174,7 +189,7 @@ const FollowupsFeature = {
     const isFirstVisit = id => !(id && firstVisitByCustomer[id]?.size);
 
     const introCandidates = [...futureAppts, ...todayAppts]
-      .filter(a => a.status === 'confirmed' && !a.introSent && (a.phone || a.customerId))
+      .filter(a => a.status === 'confirmed' && !a.introSent && !contactedCustomerIds.has(Number(a.customerId)) && (a.phone || a.customerId))
       .sort((a, b) => new Date(a.date) - new Date(b.date));
     const introSeen = new Set();
     for (const appt of introCandidates) {
