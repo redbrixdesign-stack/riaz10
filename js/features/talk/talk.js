@@ -42,17 +42,18 @@ const TalkFeature = {
   // an ad-hoc draft is still honest about the state.
   OUTCOME_STAGE_MAP: {
     ordered: 'outcome_ordered',
-    quoted: 'outcome_needs_to_think',
+    quoted: 'outcome_quoted',
     thinking: 'outcome_needs_to_think',
-    partner: 'outcome_needs_to_think',
-    compare_quotes: 'outcome_needs_to_think',
-    expensive: 'outcome_needs_to_think',
-    spec_mismatch: 'outcome_needs_to_think',
-    not_looking_for: 'outcome_closed_lost',
-    out_of_range: 'outcome_closed_lost',
-    other_no_sale: 'outcome_closed_lost',
-    customer_no_show: 'outcome_closed_lost',
-    advisor_unavailable: 'outcome_closed_lost'
+    partner: 'outcome_talk_to_partner',
+    compare_quotes: 'outcome_comparing_quotes',
+    expensive: 'outcome_too_expensive',
+    spec_mismatch: 'outcome_spec_mismatch',
+    not_looking_for: 'outcome_not_what_they_wanted',
+    out_of_range: 'outcome_not_in_range',
+    other_no_sale: 'outcome_other_no_sale',
+    windows_too_high: 'outcome_windows_too_high',
+    customer_no_show: 'outcome_customer_no_show',
+    advisor_unavailable: 'outcome_advisor_could_not_attend'
   },
 
   // Fitting/service-call outcomes that mean "something is wrong and the
@@ -63,7 +64,7 @@ const TalkFeature = {
     service_call: ['parts_needed', 'revisit_needed', 'access_issue']
   },
 
-  stageForTemplateKey(key) {
+  stageForTemplateKey(key, outcome = '') {
     if (key === 'outcome_ordered') return 'outcome_ordered';
     if (key === 'pre_intro') return 'pre_intro';
     if (key === 'day_before' || key === 'evening_before') return 'day_before';
@@ -73,7 +74,7 @@ const TalkFeature = {
     if (key === 'post_fit_followup') return 'post_fit_followup';
     if (key === 'service_or_issue_followup') return 'service_or_issue_followup';
     if (key.startsWith('confirmation.')) return 'new_booking';
-    if (key.startsWith('follow_up.')) return 'outcome_needs_to_think';
+    if (key.startsWith('follow_up.')) return this.OUTCOME_STAGE_MAP[outcome] || 'outcome_needs_to_think';
     if (key.startsWith('post_sale.')) return 'outcome_ordered';
     return key;
   },
@@ -516,6 +517,14 @@ const TalkFeature = {
       customer = appt?.customerId ? await DB.getCustomer(appt.customerId) : null;
     } catch (e) {}
 
+    if (customer?.id && typeof CommunicationService !== 'undefined') {
+      const preference = await CommunicationService.preference(customer.id, 'whatsapp');
+      if (!CommunicationService.canContact(preference)) {
+        Toast.show('WhatsApp is blocked by this customer’s contact preference', 'warning');
+        return;
+      }
+    }
+
     if (!customer?.phone && !appt?.phone) {
       Toast.show('No phone number available', 'error');
       return;
@@ -663,7 +672,7 @@ const TalkFeature = {
       .reduce((m, [outcome, meta]) => { m[meta.template] = outcome; return m; }, {});
 
     const content = `<div class="sheet-handle"></div>
-      <div class="sheet-header"><h3>Preview Message</h3><button class="btn btn-ghost btn-sm" data-action="App.closeModal"><span class="material-symbols-rounded">close</span></button></div>
+      <div class="sheet-header"><h3>Preview Message</h3><button class="btn btn-ghost btn-sm" aria-label="Close message preview" data-action="TalkFeature.dismissPreview"><span class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body">
         <div class="fs-12 text-secondary mt-6" id="talk-nudge" style="display:none"></div>
         <textarea class="textarea" id="talk-message-preview" aria-label="Message preview (editable)" style="min-height:110px;">${Utils.escapeHtml(message)}</textarea>
@@ -819,18 +828,18 @@ const TalkFeature = {
       if (appt?.id) measurements = await DB.db.measurements.where('appointmentId').equals(appt.id).toArray();
     } catch (e) { /* draft without measurements */ }
 
-    // Last few messages, for continuity ("following up on our last chat…").
-    // Each carries its sentAt date so a draft can honestly say "messaged you
-    // a few days back" — the customer reply itself isn't tracked, so the
-    // summary stays factual about what WE sent, never claims to know what
-    // happened on the customer's side.
+    // Last confirmed outbound messages, for continuity and duplicate checks.
+    // Unconfirmed hand-offs are deliberately excluded; manually recorded
+    // inbound replies join the richer AI conversation context below.
     let allMessages = [];
     let recentMessages = [];
     try {
       if (customerId) {
         allMessages = await DB.db.communications.where('customerId').equals(customerId).toArray();
-        allMessages.sort((a, b) => new Date(b.sentAt || 0) - new Date(a.sentAt || 0));
-        recentMessages = allMessages.slice(0, 4)
+        if (typeof CommunicationService !== 'undefined') allMessages = await CommunicationService.decorate(allMessages);
+        allMessages = allMessages.filter(c => typeof CommunicationService === 'undefined' ? !!c.sentAt : CommunicationService.isConfirmed(c));
+        allMessages.sort((a, b) => new Date(b.sentAt || b.receivedAt || b.createdAt || 0) - new Date(a.sentAt || a.receivedAt || a.createdAt || 0));
+        recentMessages = allMessages.filter(c => c.direction !== 'inbound').slice(0, 4)
           .map(c => ({ content: String(c.content || '').trim(), sentAt: c.sentAt || null }))
           .filter(c => c.content);
       }
@@ -914,7 +923,7 @@ const TalkFeature = {
         when: m.sentAt ? Utils.formatDate(m.sentAt, 'short') : ''
       })),
       lastSentDaysAgo,
-      totalMessagesSent: allMessages.length
+      totalMessagesSent: allMessages.filter(c => c.direction !== 'inbound').length
     };
   },
 
@@ -987,12 +996,15 @@ const TalkFeature = {
       if (customerId) {
         orders = await DB.db.orders.where('customerId').equals(customerId).toArray();
         allMessages = await DB.db.communications.where('customerId').equals(customerId).toArray();
+        if (typeof CommunicationService !== 'undefined') allMessages = await CommunicationService.decorate(allMessages);
+        allMessages = allMessages.filter(c => typeof CommunicationService === 'undefined' ? !!c.sentAt : CommunicationService.isConfirmed(c));
       }
     } catch (e) { /* draft without order/message history */ }
     orders.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-    allMessages.sort((a, b) => new Date(b.sentAt || 0) - new Date(a.sentAt || 0));
+    allMessages.sort((a, b) => new Date(b.sentAt || b.receivedAt || b.createdAt || 0) - new Date(a.sentAt || a.receivedAt || a.createdAt || 0));
+    const outboundMessages = allMessages.filter(c => c.direction !== 'inbound');
     recentMessages = allMessages.slice(0, 4)
-      .map(c => ({ content: String(c.content || '').trim(), sentAt: c.sentAt || null }))
+      .map(c => ({ content: String(c.content || '').trim(), sentAt: c.sentAt || c.receivedAt || null, direction: c.direction === 'inbound' ? 'customer' : 'advisor' }))
       .filter(c => c.content);
     const latestOrder = orders[0] || null;
     const depositPaid = latestOrder?.depositPaid || 0;
@@ -1045,7 +1057,7 @@ const TalkFeature = {
       blind_count: blindCount,
       window_history_summary: windowHistorySummary,
       window_scope: windowScope,
-      stage: this.stageForTemplateKey(templateKey),
+      stage: this.stageForTemplateKey(templateKey, appt?.outcome),
       eta: String(extra.eta || '').trim(),
       delay_reason: String(extra.delay || '').trim(),
       outcome: appt?.outcome || '',
@@ -1063,10 +1075,10 @@ const TalkFeature = {
       template_text: this._interpolateTemplateText(templateText, customer, appt, advisorName, visitTypeLabel),
       days_since_last_visit: daysSince,
       lead_source: customer?.source || '',
-      recent_messages: recentMessages.map(m => `[${m.sentAt ? Utils.formatDate(m.sentAt, 'short') : 'sometime'}] "${m.content}"`),
-      total_messages_sent: allMessages.length,
-      last_sent_days_ago: recentMessages[0]?.sentAt
-        ? Utils.daysBetween(new Date(), new Date(recentMessages[0].sentAt))
+      recent_messages: recentMessages.map(m => `[${m.sentAt ? Utils.formatDate(m.sentAt, 'short') : 'sometime'}] ${m.direction}: "${m.content}"`),
+      total_messages_sent: outboundMessages.length,
+      last_sent_days_ago: outboundMessages[0]?.sentAt
+        ? Utils.daysBetween(new Date(), new Date(outboundMessages[0].sentAt))
         : null
     };
   },
@@ -1099,9 +1111,47 @@ const TalkFeature = {
     if (customerId > 0) communication = typeof CommunicationService !== 'undefined'
       ? await CommunicationService.recordHandoff({ customerId, appointmentId, type: 'whatsapp_handoff', template: templateKey || null, content: message })
       : await DB.addCommunication({ customerId, type: 'whatsapp_attempted', template: templateKey || null, content: message });
-    this.pendingSentConfirmation = { communicationId: communication?.id || null, customerId, appointmentId, templateKey };
+    this.beginSentConfirmation(communication, { customerId, appointmentId, templateKey });
     App.closeModal();
-    App.openModal(`<div class="sheet-handle"></div><div class="sheet-header"><h3>Did the message send?</h3></div><div class="sheet-body"><p class="text-secondary">Opening WhatsApp is only a hand-off. Confirm only after you can see the message was sent.</p><button class="btn btn-primary btn-block" data-action="TalkFeature.confirmHandoffSent">Yes, I sent it</button><button class="btn btn-outline btn-block mt-sm" data-action="TalkFeature.leaveHandoffUnconfirmed">Not sure yet</button></div>`);
+    this.openSentConfirmation();
+  },
+
+  confirmationStorageKey: 'advisoros_pending_message_confirmation',
+
+  beginSentConfirmation(communication, details = {}) {
+    this.pendingSentConfirmation = { communicationId: communication?.id || null, ...details, handedOffAt: new Date().toISOString() };
+    this.persistSentConfirmation();
+    return this.pendingSentConfirmation;
+  },
+
+  persistSentConfirmation() {
+    try {
+      if (this.pendingSentConfirmation) localStorage.setItem(this.confirmationStorageKey, JSON.stringify(this.pendingSentConfirmation));
+      else localStorage.removeItem(this.confirmationStorageKey);
+    } catch (e) { /* storage warning is handled globally */ }
+  },
+
+  restoreSentConfirmation() {
+    if (this.pendingSentConfirmation) return this.pendingSentConfirmation;
+    try {
+      const value = JSON.parse(localStorage.getItem(this.confirmationStorageKey) || 'null');
+      if (value?.communicationId) this.pendingSentConfirmation = value;
+    } catch (e) { localStorage.removeItem(this.confirmationStorageKey); }
+    return this.pendingSentConfirmation;
+  },
+
+  openSentConfirmation() {
+    if (!this.restoreSentConfirmation()) return Toast.show('No message is waiting for confirmation', 'info');
+    App.openModal(`<div class="sheet-handle"></div><div class="sheet-header"><h3>Did the message send?</h3><button class="btn btn-ghost btn-sm" aria-label="Close confirmation" data-action="App.closeModal"><span class="material-symbols-rounded">close</span></button></div><div class="sheet-body"><p class="text-secondary">Opening WhatsApp is only a hand-off. Confirm only after you can see the message was sent.</p><button class="btn btn-primary btn-block" data-action="TalkFeature.confirmHandoffSent">Yes, I sent it</button><button class="btn btn-outline btn-block mt-sm" data-action="TalkFeature.leaveHandoffUnconfirmed">Not sent — keep reminder</button></div>`);
+  },
+
+  dismissPreview() {
+    const pending = this.pendingMessage;
+    if (pending?.appointmentId && pending?.templateKey && typeof MessageScheduler !== 'undefined') {
+      try { localStorage.removeItem(MessageScheduler._flag(pending.templateKey, pending.appointmentId)); } catch (e) {}
+    }
+    this.pendingMessage = null;
+    App.closeModal();
   },
 
   async confirmHandoffSent() {
@@ -1113,11 +1163,15 @@ const TalkFeature = {
     if (flag && pending.appointmentId) {
       try { await DB.db.appointments.update(pending.appointmentId, { [flag]: true }); } catch (e) {}
     }
-    this.pendingSentConfirmation = null; App.closeModal(); Toast.show('Message marked as sent by you', 'success');
+    this.pendingSentConfirmation = null; this.persistSentConfirmation(); App.closeModal(); Toast.show('Message marked as sent by you', 'success');
   },
 
   leaveHandoffUnconfirmed() {
-    this.pendingSentConfirmation = null; App.closeModal(); Toast.show('Kept as handed off — delivery not assumed', 'info');
+    const pending = this.pendingSentConfirmation;
+    if (pending?.appointmentId && pending?.templateKey && typeof MessageScheduler !== 'undefined') {
+      try { localStorage.removeItem(MessageScheduler._flag(pending.templateKey, pending.appointmentId)); } catch (e) {}
+    }
+    this.pendingSentConfirmation = null; this.persistSentConfirmation(); App.closeModal(); Toast.show('Not marked sent — the reminder stays available', 'info');
   },
 
   sendDayBefore(appointmentId) {

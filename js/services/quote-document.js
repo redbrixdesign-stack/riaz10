@@ -104,10 +104,12 @@ const QuoteDocumentService = {
       const customer = await DB.getCustomer(model.quote.customerId);
       if (!customer?.phone) return Toast.show('Customer has no phone number', 'error');
       const opened = NotificationService.sendWhatsApp(customer.phone, message);
-      if (opened && customer.id && typeof DB.addCommunication === 'function') {
-        await DB.addCommunication({ customerId: customer.id, type: 'whatsapp_attempted', template: null, content: message });
+      if (opened && customer.id && typeof CommunicationService !== 'undefined') {
+        const communication = await CommunicationService.recordHandoff({ customerId: customer.id, type: 'whatsapp_handoff', template: null, content: message });
+        TalkFeature.beginSentConfirmation(communication, { customerId: customer.id, appointmentId: model.quote.appointmentId || null, templateKey: null });
+        App.closeModal(); TalkFeature.openSentConfirmation();
       }
-      if (opened) Toast.show('Opened WhatsApp — check it sent', 'info');
+      if (opened && typeof CommunicationService === 'undefined') Toast.show('Opened WhatsApp — check it sent', 'info');
     } catch (e) { Toast.show('Could not open customer message', 'error'); }
   }
 };

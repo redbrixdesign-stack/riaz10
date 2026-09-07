@@ -1470,13 +1470,28 @@ const DB = {
 
   // Communication operations
   async addCommunication(data) {
+    const now = new Date().toISOString();
     const comm = {
       ...data,
-      sentAt: new Date().toISOString()
+      createdAt: data.createdAt || now,
+      // A WhatsApp/SMS hand-off is not proof that a message was sent.
+      // Callers must provide sentAt explicitly or set it after confirmation.
+      sentAt: data.sentAt || null
     };
 
     const id = await this.db.communications.add(comm);
     return { ...comm, id };
+  },
+
+  async updateCommunication(id, patch = {}) {
+    const current = await this.db.communications.get(Number(id));
+    if (!current) throw new Error('Communication not found');
+    const allowed = {};
+    for (const field of ['sentAt', 'receivedAt', 'status', 'content', 'channel', 'direction']) {
+      if (patch[field] !== undefined) allowed[field] = patch[field];
+    }
+    await this.db.communications.update(Number(id), allowed);
+    return { ...current, ...allowed, id: Number(id) };
   },
 
   // Phase 2 structured quotes -------------------------------------------

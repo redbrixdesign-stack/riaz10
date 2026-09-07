@@ -148,6 +148,10 @@ const MessageScheduler = {
     const appt = await DB.getAppointment(appointmentId);
     if (!appt) return;
     if (localStorage.getItem(this._flag('on_my_way', appt.id)) === '1') return;
+    if (appt.customerId && typeof CommunicationService !== 'undefined') {
+      const preference = await CommunicationService.preference(appt.customerId, 'whatsapp');
+      if (!CommunicationService.canContact(preference)) return;
+    }
 
     let etaText = '';
     try {
@@ -179,6 +183,10 @@ const MessageScheduler = {
     const minutesUntil = appt?.date ? (new Date(appt.date) - new Date()) / 60000 : 0;
     const overrun = Math.round(live.etaMin - minutesUntil);
     if (overrun > 15) {
+      if (appt.customerId && typeof CommunicationService !== 'undefined') {
+        const preference = await CommunicationService.preference(appt.customerId, 'whatsapp');
+        if (!CommunicationService.canContact(preference)) return;
+      }
       const phone = await this._resolvePhone(appt);
       if (!phone) return;
       const pending = { customerId: appt.customerId || 0, phone, appointmentId: appt.id, templateKey: 'running_late' };
@@ -276,6 +284,10 @@ const MessageScheduler = {
     if (!phone) {
       console.warn('MessageScheduler: no phone for appointment', appt.id);
       return;
+    }
+    if (appt.customerId && typeof CommunicationService !== 'undefined') {
+      const preference = await CommunicationService.preference(appt.customerId, 'whatsapp');
+      if (!CommunicationService.canContact(preference)) return;
     }
     const pending = { customerId: appt.customerId || 0, phone, appointmentId: appt.id, templateKey: stage };
     const message = await this._buildMessage(appt, stage, pending, {});

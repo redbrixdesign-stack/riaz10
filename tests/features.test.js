@@ -243,7 +243,9 @@ const assert = (cond, msg) => { if (!cond) { console.error('FAIL:', msg); proces
   assert(mctx.customer_name === 'Sarah', 'Spec context carries customer first name');
   assert(mctx.customer_is_first_visit_at_address === false && mctx.customer_visit_count === 1, 'Repeat customer flagged with correct visit count');
   assert(mctx.blind_count === 1 && mctx.window_history_summary.includes('Lounge Bay'), 'Window history + blind count in spec context');
-  assert(mctx.stage === 'outcome_needs_to_think', 'follow_up.* maps to outcome_needs_to_think stage');
+  assert(mctx.stage === 'outcome_quoted', 'quoted follow-up maps to its distinct outcome stage');
+  assert(Talk.stageForTemplateKey('follow_up.partner', 'partner') === 'outcome_talk_to_partner', 'partner follow-up keeps its distinct outcome stage');
+  assert(Talk.stageForTemplateKey('follow_up.discount', 'expensive') === 'outcome_too_expensive', 'price concern keeps its distinct outcome stage');
   assert(mctx.outcome === 'quoted' && mctx.outcome_label === 'Quoted', 'Outcome + label reach the spec context');
   assert(mctx.quote_amount.includes('1,250'), 'Quote amount in spec context');
   assert(mctx.order_summary.includes('ORD-2026-0001') && mctx.order_summary.includes('deposit'), 'Order summary in spec context');

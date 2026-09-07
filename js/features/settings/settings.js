@@ -134,6 +134,14 @@ const SettingsFeature = {
         description: 'Document scanning & message drafting'
       },
       {
+        id: 'communications',
+        route: 'communications',
+        title: 'Communications',
+        icon: 'forum',
+        summary: 'Preferences, hand-offs & integrations',
+        description: 'Review communication status and connections'
+      },
+      {
         id: 'data',
         title: 'Data & Backup',
         icon: 'backup',
@@ -153,7 +161,7 @@ const SettingsFeature = {
       ${App.renderTopHeader({ title: 'Settings' })}
       <div class="p-md" >
         ${sections.map(s => `
-          <button class="card mb-md" data-action="App.navigate" data-args='${JSON.stringify([`settings?section=${s.id}`])}' style="text-align:left;">
+          <button class="card mb-md" data-action="App.navigate" data-args='${JSON.stringify([s.route || `settings?section=${s.id}`])}' style="text-align:left;">
             <div class="flex items-start gap-md">
               <span class="material-symbols-rounded fs-24 shrink-0" style="color:var(--accent);">${s.icon}</span>
               <div class="flex-1 min-w-0">

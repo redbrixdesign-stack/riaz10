@@ -101,8 +101,7 @@ const TodayFeature = {
       try {
         await DB.addCommunication({
           type: 'note',
-          content: `EOD note: ${note}`,
-          sentAt: new Date().toISOString()
+          content: `EOD note: ${note}`
         });
       } catch (e) { console.log('Could not save EOD note'); }
     }

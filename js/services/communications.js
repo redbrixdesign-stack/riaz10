@@ -2,7 +2,7 @@
    Opening another app is only a hand-off; delivery/reply states require an
    advisor confirmation or a trusted provider event. */
 const CommunicationService = {
-  STATES: ['drafted', 'handed_off', 'advisor_confirmed_sent', 'delivered', 'replied'],
+  STATES: ['drafted', 'handed_off', 'advisor_confirmed_sent', 'delivered', 'replied', 'cancelled'],
 
   async preference(customerId, channel = 'whatsapp') {
     if (typeof DB.getContactPreferences !== 'function') return null;
@@ -26,7 +26,7 @@ const CommunicationService = {
   async recordState(communicationId, customerId, state, provenance = 'advisor') {
     if (!this.STATES.includes(state)) throw new Error('Invalid communication state');
     if (typeof DB.recordCommunicationEvent !== 'function') return null;
-    const storedState = { drafted: 'queued', handed_off: 'attempted', advisor_confirmed_sent: 'sent', delivered: 'delivered', replied: 'read' }[state];
+    const storedState = { drafted: 'queued', handed_off: 'attempted', advisor_confirmed_sent: 'sent', delivered: 'delivered', replied: 'read', cancelled: 'cancelled' }[state];
     const operationId = this.operationId(state, communicationId);
     return DB.recordCommunicationEvent(communicationId, storedState, { customerId: customerId || null, lifecycleState: state, provenance, occurredAt: new Date().toISOString() }, operationId);
   },
@@ -38,7 +38,38 @@ const CommunicationService = {
   },
 
   async advisorConfirmSent(communicationId, customerId) {
+    const sentAt = new Date().toISOString();
+    if (typeof DB.updateCommunication === 'function') {
+      await DB.updateCommunication(communicationId, { sentAt, status: 'advisor_confirmed_sent' });
+    }
     return this.recordState(communicationId, customerId, 'advisor_confirmed_sent', 'advisor_confirmation');
+  },
+
+  async lifecycle(communication) {
+    const events = communication?.id && typeof DB.getCommunicationEvents === 'function'
+      ? await DB.getCommunicationEvents(communication.id)
+      : [];
+    const latest = events[events.length - 1];
+    let state = latest?.lifecycleState || ({ queued: 'drafted', attempted: 'handed_off', sent: 'advisor_confirmed_sent', delivered: 'delivered', read: 'replied' }[latest?.state]);
+    if (!state) state = communication?.type === 'note' ? 'note' : communication?.direction === 'inbound' ? 'replied' : (communication?.sentAt ? 'advisor_confirmed_sent' : 'handed_off');
+    return { ...communication, lifecycleState: state, events };
+  },
+
+  async decorate(rows = []) {
+    return Promise.all(rows.map(row => this.lifecycle(row)));
+  },
+
+  isConfirmed(communication) {
+    return ['advisor_confirmed_sent', 'delivered', 'replied'].includes(communication?.lifecycleState);
+  },
+
+  async recordReply(customerId, content, channel = 'whatsapp') {
+    const text = String(content || '').trim();
+    if (!Number.isInteger(Number(customerId)) || !text) throw new Error('Customer and reply are required');
+    const receivedAt = new Date().toISOString();
+    const communication = await DB.addCommunication({ customerId: Number(customerId), type: `${channel}_reply`, channel, direction: 'inbound', content: text, receivedAt, status: 'replied' });
+    await this.recordState(communication.id, Number(customerId), 'replied', 'advisor_recorded_reply');
+    return communication;
   },
 
   async timeline(communicationId) {
@@ -87,8 +118,11 @@ const CommunicationsFeature = {
   async render() {
     const outbox = typeof DB.getIntegrationOutbox === 'function' ? await DB.getIntegrationOutbox({}) : [];
     const conflicts = typeof DB.getIntegrationConflicts === 'function' ? await DB.getIntegrationConflicts({ status: 'open' }) : [];
+    let communications = [];
+    try { communications = await CommunicationService.decorate((await DB.db.communications.toArray()).sort((a,b) => new Date(b.createdAt || b.sentAt || 0) - new Date(a.createdAt || a.sentAt || 0)).slice(0, 20)); } catch (e) {}
     const adapters = IntegrationAdapterRegistry.list();
-    return `<div class="fade-in">${App.renderTopHeader({ title: 'Communications & integrations', showBack: true, backHref: 'settings' })}<div class="p-md"><div class="card card-page"><div class="section-label">Providers</div>${adapters.map(adapter => `<div class="flex justify-between items-center py-8"><div><strong>${Utils.escapeHtml(adapter.name)}</strong><div class="fs-12 text-tertiary">${adapter.enabled ? 'Connected' : 'Off by default'} · local records remain available</div></div>${adapter.enabled ? `<button class="btn btn-outline btn-sm" data-action="CommunicationsFeature.disconnect" data-args='${JSON.stringify([adapter.id])}'>Disconnect</button>` : `<button class="btn btn-outline btn-sm" data-action="CommunicationsFeature.connect" data-args='${JSON.stringify([adapter.id])}'>Enable</button>`}</div>`).join('')}</div><div class="card card-page"><div class="flex justify-between"><span>Outbox</span><strong>${outbox.filter(row => !['completed', 'cancelled'].includes(row.status)).length}</strong></div>${outbox.filter(row => !['completed', 'cancelled'].includes(row.status)).slice(0,5).map(row => `<div class="fs-12 text-secondary mt-4">${Utils.escapeHtml(row.action)} · ${Utils.escapeHtml(row.status)}</div>`).join('')}<div class="flex justify-between mt-sm"><span>Conflicts needing review</span><strong>${conflicts.length}</strong></div>${conflicts.map(row => `<div class="inset-dark p-sm mt-sm"><div class="fs-13">Local and provider versions differ.</div><div class="flex gap-sm mt-sm"><button class="btn btn-outline btn-sm" data-action="CommunicationsFeature.resolveConflict" data-args='${JSON.stringify([row.id, "keep_local"])}'>Keep local</button><button class="btn btn-outline btn-sm" data-action="CommunicationsFeature.resolveConflict" data-args='${JSON.stringify([row.id, "accept_remote"])}'>Use provider copy</button></div></div>`).join('')}<p class="hint mt-sm">Changes are saved locally first. A provider connection never becomes the only copy.</p></div></div></div>`;
+    const labels = { handed_off: 'Opened — confirmation needed', advisor_confirmed_sent: 'Confirmed sent', delivered: 'Delivered', replied: 'Customer reply', cancelled: 'Not sent', note: 'Internal note' };
+    return `<div class="fade-in">${App.renderTopHeader({ title: 'Communications', showBack: true, backHref: 'settings' })}<div class="p-md"><div class="card card-page"><div class="section-label">Recent activity</div>${communications.length ? communications.map(row => `<div class="py-8"><div class="flex justify-between gap-sm"><div class="min-w-0"><strong class="fs-13">${Utils.escapeHtml(labels[row.lifecycleState] || row.lifecycleState || 'Message')}</strong><div class="fs-12 text-tertiary ellipsis">${Utils.escapeHtml(row.content || row.type || '')}</div></div>${row.lifecycleState === 'handed_off' ? `<button class="btn btn-primary btn-sm" data-action="CommunicationsFeature.confirmSent" data-args='${JSON.stringify([row.id, row.customerId || 0])}'>Confirm sent</button>` : ''}</div></div>`).join('') : '<div class="fs-13 text-tertiary">No communication activity yet.</div>'}</div><div class="card card-page"><div class="section-label">Providers &amp; integrations</div>${adapters.map(adapter => `<div class="flex justify-between items-center py-8"><div><strong>${Utils.escapeHtml(adapter.name)}</strong><div class="fs-12 text-tertiary">${adapter.enabled ? 'Connected' : 'Off by default'} · local records remain available</div></div>${adapter.enabled ? `<button class="btn btn-outline btn-sm" data-action="CommunicationsFeature.disconnect" data-args='${JSON.stringify([adapter.id])}'>Disconnect</button>` : `<button class="btn btn-outline btn-sm" data-action="CommunicationsFeature.connect" data-args='${JSON.stringify([adapter.id])}'>Enable</button>`}</div>`).join('')}</div><div class="card card-page"><div class="flex justify-between"><span>Outbox</span><strong>${outbox.filter(row => !['completed', 'cancelled'].includes(row.status)).length}</strong></div>${outbox.filter(row => !['completed', 'cancelled'].includes(row.status)).slice(0,5).map(row => `<div class="fs-12 text-secondary mt-4">${Utils.escapeHtml(row.action)} · ${Utils.escapeHtml(row.status)}</div>`).join('')}<div class="flex justify-between mt-sm"><span>Conflicts needing review</span><strong>${conflicts.length}</strong></div>${conflicts.map(row => `<div class="inset-dark p-sm mt-sm"><div class="fs-13">Local and provider versions differ.</div><div class="flex gap-sm mt-sm"><button class="btn btn-outline btn-sm" data-action="CommunicationsFeature.resolveConflict" data-args='${JSON.stringify([row.id, "keep_local"])}'>Keep local</button><button class="btn btn-outline btn-sm" data-action="CommunicationsFeature.resolveConflict" data-args='${JSON.stringify([row.id, "accept_remote"])}'>Use provider copy</button></div></div>`).join('')}<p class="hint mt-sm">Changes are saved locally first. A provider connection never becomes the only copy.</p></div></div></div>`;
   },
   async connect(provider) {
     const adapter = IntegrationAdapterRegistry.get(provider); if (!adapter) return Toast.show('Integration not found', 'error');
@@ -113,7 +147,7 @@ const CommunicationsFeature = {
     App.closeModal(); Toast.show('Contact preference saved', 'success');
   },
   async confirmSent(communicationId, customerId) {
-    await CommunicationService.advisorConfirmSent(communicationId, customerId); Toast.show('Marked as sent by advisor', 'success');
+    await CommunicationService.advisorConfirmSent(communicationId, customerId); Toast.show('Marked as sent by advisor', 'success'); App.navigate('communications');
   }
 };
 App.registerFeature(CommunicationsFeature);

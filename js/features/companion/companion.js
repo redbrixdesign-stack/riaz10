@@ -654,6 +654,21 @@ const CompanionFeature = {
     // waiting), messages owed (a visit at risk), then money.
     const attention = [];
 
+    // WhatsApp can suspend or reload an installed PWA while the advisor is
+    // checking the external app. Keep the hand-off visible until they
+    // explicitly confirm it or return it to the reminder queue.
+    try {
+      if (typeof TalkFeature !== 'undefined' && TalkFeature.restoreSentConfirmation()) {
+        attention.push({
+          icon: 'mark_chat_unread',
+          label: 'Message needs confirmation',
+          value: 'You opened a message in WhatsApp',
+          action: 'TalkFeature.openSentConfirmation()',
+          actionLabel: 'Confirm'
+        });
+      }
+    } catch (e) { /* optional recovery card */ }
+
     // Unlogged outcomes today
     const unloggedToday = todayAppts.filter(a => !a.outcome && a.status !== 'completed');
     if (unloggedToday.length > 0) {

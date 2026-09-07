@@ -201,11 +201,24 @@ const settle = (page, ms = 2200) => page.waitForTimeout(ms);
   await shot(A, '15-settings.png', 'Settings — profile/target/business');
   await full(A, '15-settings-full.png', 'Settings full page');
 
+  // 15b Communications lifecycle screen
+  await app(A, 'communications');
+  await settle(A, 1200);
+  await shot(A, '15b-communications.png', 'Communications — lifecycle activity and integrations');
+
   // 16 Customer 360
   await app(A, 'customer', { id: 1 });
   await settle(A, 1800);
   await shot(A, '16-customer-360.png', 'Customer 360 — Sarah Johnson (quotes, order, measurements)');
   await full(A, '16-customer-360-full.png', 'Customer 360 full page');
+
+  // 16b Manual inbound reply capture
+  const replyBtn = A.locator('button[data-action="CustomerFeature.openReplyModal"]').first();
+  await replyBtn.click();
+  await A.waitForSelector('.modal-overlay.active', { timeout: 10000 }).catch(() => {});
+  await settle(A, 500);
+  await shot(A, '16b-modal-log-reply.png', 'Customer 360 — log inbound reply');
+  await A.evaluate(() => App.closeModal({ all: true }));
 
   // 25 Edit customer modal
   const editBtn = A.locator('button[data-action*="openEditCustomerModal"]').first();

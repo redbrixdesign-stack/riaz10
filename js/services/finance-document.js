@@ -66,7 +66,7 @@ const FinanceDocumentService = {
     const message=document.getElementById('finance-document-message')?.value.trim();if(!this.pending||!message)return Toast.show('Message cannot be empty','error');
     const customer=this.pending.customer;if(!customer?.phone)return Toast.show('Customer has no phone number','error');
     const opened=NotificationService.sendWhatsApp(customer.phone,message);
-    if(opened&&customer.id&&typeof DB.addCommunication==='function')await DB.addCommunication({customerId:customer.id,type:'whatsapp_attempted',template:null,content:message});
-    if(opened)Toast.show('Opened WhatsApp — check it sent','info');
+    if(opened&&customer.id&&typeof CommunicationService!=='undefined'){const communication=await CommunicationService.recordHandoff({customerId:customer.id,type:'whatsapp_handoff',template:null,content:message});TalkFeature.beginSentConfirmation(communication,{customerId:customer.id,appointmentId:this.pending.invoice?.appointmentId||null,templateKey:null});App.closeModal();TalkFeature.openSentConfirmation();}
+    if(opened&&typeof CommunicationService==='undefined')Toast.show('Opened WhatsApp — check it sent','info');
   }
 };

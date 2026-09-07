@@ -120,6 +120,9 @@ const ok = (label, cond, extra) => {
   }
   if (onCustomer) {
     ok('Customer 360', await runAxe('10-customer-360'));
+    await click('button[data-action="CustomerFeature.openReplyModal"]');
+    ok('Log customer reply modal', await runAxe('10a-log-reply'));
+    await page.evaluate(() => App.closeModal({ all: true, silent: true }));
   } else {
     console.log('  ! could not reach Customer 360 via search — skipping');
   }
@@ -177,6 +180,8 @@ const ok = (label, cond, extra) => {
   ok('Scan', await runAxe('14-scan'));
   await nav('settings');
   ok('Settings', await runAxe('15-settings'));
+  await nav('communications');
+  ok('Communications', await runAxe('15a-communications'));
   await nav('legal', { page: 'privacy' });
   ok('Privacy Policy page', await runAxe('17-privacy'));
   await nav('legal', { page: 'terms' });

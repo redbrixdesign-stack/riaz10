@@ -42,9 +42,11 @@ const CustomerFeature = {
     let invoices = [];
     let payments = [];
     let retention = [];
+    let whatsappPreference = null;
     try { appts = await DB.getAppointmentsByCustomer(customerId); } catch (e) {}
     try { orders = await DB.db.orders.where('customerId').equals(customerId).toArray(); } catch (e) {}
     try { comms = await DB.db.communications.where('customerId').equals(customerId).toArray(); } catch (e) {}
+    try { if (typeof CommunicationService !== 'undefined') comms = await CommunicationService.decorate(comms); } catch (e) {}
     try { photos = await DB.getPhotosForCustomer(customerId); } catch (e) {}
     try { voiceNotes = await DB.getVoiceNotes({ customerId }); } catch (e) {}
     try { if (typeof DB.getQuotes === 'function') structuredQuotes = await DB.getQuotes({ customerId }); } catch (e) {}
@@ -52,6 +54,7 @@ const CustomerFeature = {
     try { if (typeof DB.getInvoices === 'function') invoices = await DB.getInvoices({ customerId }); } catch (e) {}
     try { if (typeof DB.getLedgerEntries === 'function') payments = await DB.getLedgerEntries({ customerId }); } catch (e) {}
     try { if (typeof DB.getRetentionRecords === 'function') retention = await DB.getRetentionRecords({ customerId }); } catch (e) {}
+    try { if (typeof CommunicationService !== 'undefined') whatsappPreference = await CommunicationService.preference(customerId, 'whatsapp'); } catch (e) {}
 
     appts.sort((a, b) => new Date(a.date) - new Date(b.date));
     const firstVisit = appts[0];
@@ -91,13 +94,15 @@ const CustomerFeature = {
         subtitle: `${this.orderStageLabel(o)} · ${Utils.formatCurrency(o.total || 0)}`,
         onclick: `OrdersFeature.openOrderSheet(${o.id})`
       })),
-      ...comms.map(c => ({
-        date: c.sentAt,
-        icon: 'chat',
-        title: 'Follow-up sent',
-        subtitle: Utils.escapeHtml((c.template || c.type || '').replace(/_/g, ' ')),
+      ...comms.map(c => {
+        const labels = { drafted: 'Message drafted', handed_off: 'Opened in WhatsApp', advisor_confirmed_sent: 'Message confirmed sent', delivered: 'Message delivered', replied: 'Customer reply', note: 'Internal note' };
+        return {
+        date: c.receivedAt || c.sentAt || c.createdAt,
+        icon: c.direction === 'inbound' ? 'mark_chat_read' : 'chat',
+        title: labels[c.lifecycleState] || (c.sentAt ? 'Message sent' : 'Message activity'),
+        subtitle: c.direction === 'inbound' ? Utils.escapeHtml(Utils.truncate(c.content || '', 90)) : Utils.escapeHtml((c.template || c.type || '').replace(/_/g, ' ')),
         onclick: ''
-      }))
+      }})
     ].filter(item => item.date).sort((a, b) => new Date(b.date) - new Date(a.date));
 
     const phone = customer.phone || '';
@@ -128,6 +133,7 @@ const CustomerFeature = {
 
           ${address ? `<div class="mt-12 fs-13 text-secondary flex items-center gap-sm" ><span class="material-symbols-rounded fs-16" >location_on</span>${Utils.escapeHtml(address)}</div>` : ''}
           ${customer.email ? `<div class="mt-6 fs-13 text-secondary flex items-center gap-sm" ><span class="material-symbols-rounded fs-16" >mail</span>${Utils.escapeHtml(customer.email)}</div>` : ''}
+          ${whatsappPreference?.status === 'opted_out' || whatsappPreference?.status === 'blocked' ? `<div class="badge badge-danger mt-sm"><span class="material-symbols-rounded fs-14">block</span> Do not contact on WhatsApp</div>` : whatsappPreference?.status === 'opted_in' ? `<div class="badge badge-success mt-sm"><span class="material-symbols-rounded fs-14">verified</span> WhatsApp agreed</div>` : ''}
 
           <div class="flex gap-sm mt-md" >
             ${phone ? `
@@ -150,6 +156,10 @@ const CustomerFeature = {
               <span class="material-symbols-rounded fs-18" >add</span>
               Visit
             </button>
+          </div>
+          <div class="flex gap-sm mt-sm">
+            <button class="btn btn-ghost btn-sm flex-1" data-action="CommunicationsFeature.openPreferences" data-args='${JSON.stringify([customerId])}'><span class="material-symbols-rounded fs-16">privacy_tip</span>Contact preference</button>
+            <button class="btn btn-ghost btn-sm flex-1" data-action="CustomerFeature.openReplyModal" data-args='${JSON.stringify([customerId])}'><span class="material-symbols-rounded fs-16">move_to_inbox</span>Log reply</button>
           </div>
         </div>
 
@@ -309,6 +319,20 @@ const CustomerFeature = {
 
   scrollToHistory() {
     document.getElementById('customer-history-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  },
+
+  openReplyModal(customerId) {
+    App.openModal(`<div class="sheet-handle"></div><div class="sheet-header"><h3>Log customer reply</h3><button class="btn btn-ghost btn-sm" aria-label="Close" data-action="App.closeModal"><span class="material-symbols-rounded">close</span></button></div><div class="sheet-body"><div class="form-group"><label for="customer-reply-channel">Channel</label><select class="select" id="customer-reply-channel"><option value="whatsapp">WhatsApp</option><option value="sms">SMS</option><option value="phone">Phone call</option><option value="email">Email</option></select></div><div class="form-group"><label for="customer-reply-text">What did the customer say?</label><textarea class="textarea" id="customer-reply-text" rows="5" placeholder="Short factual summary"></textarea></div><button class="btn btn-primary btn-block" data-action="CustomerFeature.saveReply" data-args='${JSON.stringify([Number(customerId)])}'>Save reply</button></div>`);
+  },
+
+  async saveReply(customerId) {
+    const text = document.getElementById('customer-reply-text')?.value.trim() || '';
+    const channel = document.getElementById('customer-reply-channel')?.value || 'whatsapp';
+    if (!text) return Toast.show('Add the customer reply first', 'warning');
+    try {
+      await CommunicationService.recordReply(Number(customerId), text, channel);
+      App.closeModal(); Toast.show('Customer reply added to history', 'success'); App.navigate('customer', { id: Number(customerId) });
+    } catch (e) { Toast.show('Could not save the reply', 'error'); }
   },
 
   orderStageLabel(order) {
