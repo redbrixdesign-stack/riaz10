@@ -1,6 +1,6 @@
 'use strict';
 const { chromium } = require('playwright');
-const BASE = 'https://beelo.beelestial.co.uk';
+const BASE = process.env.BEELO_BASE_URL || 'https://beelo.beelestial.co.uk';
 let failures = 0;
 const ok = (l, c, x) => { console.log((c ? '  OK   ' : '  FAIL ') + l + (!c && x ? ' — ' + JSON.stringify(x) : '')); if (!c) failures++; };
 (async () => {
@@ -20,10 +20,13 @@ const ok = (l, c, x) => { console.log((c ? '  OK   ' : '  FAIL ') + l + (!c && x
     await page.waitForFunction(() => App.currentHash === 'today', null, { timeout: 30000 });
   }
   await page.waitForFunction(() => App.currentHash === 'today', null, { timeout: 45000 });
-  await page.evaluate(() => localStorage.removeItem('advisoros_enc_test'));
+  await page.evaluate(() => {
+    localStorage.removeItem('advisoros_enc_test');
+    ConsentPrompt._show();
+  });
   await page.waitForFunction(() => {
     const s = document.getElementById('bottom-sheet');
-    return s && /data stays on this phone/.test(s.textContent);
+    return s && /records stay on this phone/i.test(s.textContent);
   }, null, { timeout: 25000 });
   ok('live: one-time consent sheet shows', true);
   // Element-level click: page.click() on a fixed bottom sheet can land on

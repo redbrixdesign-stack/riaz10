@@ -16,22 +16,31 @@ export const CONTENT = {
   },
 
   hero: {
-    /* TODO: replace with the founder's name if you sign the hero */
-    eyebrow: 'Built for solo self-employed home-visit professionals',
-    headline: 'Your business should not live in your head.',
-    sub: 'Beelo keeps your customer notes, follow-ups, mileage and next actions connected—so you can stay organised between appointments and finish the day with less admin.',
+    eyebrow: 'Built for people who work alone between customer appointments',
+    headline: 'The thread connecting your working day.',
+    sub: 'Your appointments may come from a company diary, a calendar, a message, paper or a business card. Beelo connects the person, place, time and next action—then works with the tools you already use.',
+    boundary: 'Keep your company system. Keep your calendar. Keep your maps. Beelo connects them around you.',
     ctaPrimary: 'Apply for the pilot',
     ctaSecondary: 'See how it works',
     pilotNote: 'Small, controlled UK pilot. Places are limited.',
-    proof: ['Works offline', 'You approve every message', 'Built from real field work'],
-    mockupNote: 'Real Beelo screens, tested in the field.'
+    proof: ['Core capture works offline', 'You approve every message', 'Built from real field work'],
+    mockupNote: 'Prototype Beelo screens from founder field testing.'
   },
 
   problem: {
     heading: 'Seven tools. One person holding it all together.',
-    supporting: 'Appointments sit in one system. Conversations sit in WhatsApp. Routes sit in Maps. Photos sit in the camera roll. Receipts sit in a shoebox. The solo advisor becomes the manual integration layer.',
+    supporting: 'Appointments sit in one system. Conversations sit in WhatsApp. Routes sit in Maps. Photos sit in the camera roll. The person doing the work becomes the manual integration layer.',
     chain: ['Company diary', 'WhatsApp', 'Maps', 'Camera roll', 'Notes', 'Receipts', 'Mileage app'],
     collapse: 'You become the system that connects everything.'
+  },
+
+  thread: {
+    heading: 'The tools already work. What is missing is the thread between them.',
+    intro: 'Beelo does not replace the useful tools or official systems in your working day. It carries the relevant context between them, centred on the person doing the work.',
+    sources: ['Company diary', 'Calendar', 'Paper or card', 'Messages'],
+    destinations: ['Contacts', 'Maps', 'Notes', 'Follow-up'],
+    centre: 'The personal continuity layer',
+    principle: 'The tools remain separate and useful. Beelo provides the continuity.'
   },
 
   solution: {
@@ -46,15 +55,15 @@ export const CONTENT = {
       },
       {
         title: 'Arrive with the context',
-        body: 'Keep access notes, customer details and previous conversations connected to the visit.'
+        body: 'Keep access notes, voice notes, customer details and previous conversations connected to the visit.'
       },
       {
         title: 'Follow up without starting over',
         body: 'Review a message drafted from the information you already captured. Nothing sends automatically.'
       },
       {
-        title: 'Keep the money trail clear',
-        body: 'Connect mileage, expenses, expected commission and deductions to the work that created them.'
+        title: 'Carry the memory forward',
+        body: 'Keep what happened, what you promised and what must happen next connected to the visit.'
       }
     ]
   },
@@ -62,16 +71,55 @@ export const CONTENT = {
   how: {
     heading: 'From appointment to next action.',
     steps: [
-      { title: 'Capture', body: 'Photograph or quickly save what happened.' },
-      { title: 'Connect', body: 'Beelo keeps it with the right customer and visit.' },
-      { title: 'Resurface', body: 'The right context appears when the next action is due.' },
-      { title: 'Stay in control', body: 'Review every draft and recommendation before acting.' }
+      { title: 'Capture the appointment', body: 'Scan a company diary, paper record or card—or enter the details manually.' },
+      { title: 'Connect the context', body: 'Keep the person, place, time, notes and relevant history together.' },
+      { title: 'Prepare the day', body: 'See missing details, conflicts, backtracking and actions that need attention.' },
+      { title: 'Use your existing tools', body: 'Open navigation in Maps and review communication drafts before sending.' },
+      { title: 'Carry memory forward', body: 'Retain what happened, what was promised and what should happen next.' }
+    ]
+  },
+
+  routing: {
+    heading: 'Maps optimises a journey. Beelo helps organise the whole day.',
+    intro: 'Company appointments often remain in the order they were booked. Independent workers also add visits as they arrive. Both can produce unnecessary crossing, backtracking and time on the road.',
+    body: 'Beelo is being developed to review the working day around locations, appointment windows and expected duration, then recommend a more practical sequence. The worker reviews the recommendation before changing anything; navigation still happens through the preferred maps app.',
+    bookedLabel: 'Order received',
+    bookedRoute: 'A → D → B → C',
+    suggestedLabel: 'Possible sequence',
+    suggestedRoute: 'A → B → C → D',
+    control: 'Beelo recommends. You decide. Maps navigates.',
+    evidenceTitle: 'Early founder observation',
+    evidenceBody: 'During the founder’s own home-visit work, more deliberate appointment sequencing has avoided approximately five miles on an average working day. Across 220 working days, that would represent around 1,100 miles.',
+    scale: 'If replicated by 1,000 workers: 1.1 million unnecessary miles could be avoided annually.',
+    qualification: 'Founder observation and illustrative extrapolation—not yet a measured result across Beelo users. The pilot must test whether it generalises.',
+    impact: 'Fewer unnecessary miles can mean less travel time, lower fuel and vehicle costs, and lower emissions. At sufficient scale, fewer avoidable vehicle-miles could also reduce pressure on local roads.'
+  },
+
+  truth: {
+    heading: 'What exists now—and what the pilot must prove.',
+    intro: 'Beelo is a pilot-stage prototype. Planned and pilot-validation work is labelled clearly rather than presented as released capability.',
+    columns: [
+      {
+        title: 'Verified in the prototype',
+        status: 'Available now',
+        items: ['Appointment capture and manual entry', 'Connected visit context and next actions', 'Voice note capture within customer profiles', 'Core offline capture', 'User-started trip and mileage records', 'Review-first communication drafts', 'End-of-day review']
+      },
+      {
+        title: 'Being validated',
+        status: 'Pilot evidence needed',
+        items: ['Reliable capture across varied appointment sources', 'Whole-day route recommendations', 'Measured mileage and time reduction', 'Tomorrow preparation across different occupations', 'Practical use during real working days']
+      },
+      {
+        title: 'Future possibilities',
+        status: 'Not current capability',
+        items: ['Deeper calendar and company-system connections', 'Broader localisation and international versions', 'Additional permission-based automation', 'Wider device and service integrations']
+      }
     ]
   },
 
   builtForOne: {
     heading: 'Built for the person doing the work.',
-    body: 'Beelo is designed for the person in the van, on the doorstep or moving between appointments—not for a manager watching a dashboard. Core capture works offline and messages are never sent without your approval.',
+    body: 'Beelo is designed for the person in the van, on the doorstep or moving between appointments—not for a manager watching a dashboard. It can support a self-employed professional or someone receiving work through a company system. Core capture works offline and messages are never sent without your approval.',
     points: [
       'Fast photo and note capture',
       'Offline-first',
@@ -133,21 +181,21 @@ export const CONTENT = {
 
   pilot: {
     heading: 'Help shape Beelo before it launches.',
-    body: 'We are inviting a small group of UK-based, self-employed home-visit professionals to use Beelo during real working days and give honest, structured feedback.',
+    body: 'We are inviting 5–10 UK-based, self-employed home-visit professionals to use Beelo during real working days and give honest, structured feedback. The pilot will assess whether Beelo can reduce missed follow-ups, minimise unpaid administration time, improve record quality, and increase operational confidence for mobile professionals.',
     criteriaTitle: 'The pilot is for people who:',
     criteria: [
       'Currently live and work in the United Kingdom',
       'Work alone',
       'Visit customers at homes or sites',
       'Juggle messaging, maps, photos, notes or mileage',
-      'Want fewer missed follow-ups and less evening admin',
+      'Want fewer missed follow-ups, less unpaid admin time, better records and more day-to-day confidence',
       'Are comfortable giving structured feedback'
     ],
     cta: 'Apply for the pilot',
     success: 'Thank you — your application has been received. We will be in touch about the pilot.',
     error: 'We could not send your application just now. Please try again or email hello@beelestial.co.uk.',
     reassurance: 'No commitment. We will contact you first to confirm whether the pilot is a good fit.',
-    privacy: 'We will only use your details to contact you about the Beelo pilot. We do not sell your information.'
+    privacy: 'BEELESTIAL LTD uses your details to assess and administer your pilot application. Read the Pilot Applicant Privacy Notice for retention, recipients and your rights.'
   },
 
   partner: {
@@ -157,29 +205,77 @@ export const CONTENT = {
   },
 
   privacy: {
-    heading: 'Your working data deserves clear boundaries.',
-    intro: 'Beelo may handle sensitive working context, so privacy and control are part of the pilot design—not an afterthought.',
-    items: [
+    heading: 'Pilot Applicant Privacy Notice',
+    updated: 'Last updated: 4 September 2026 · Version 1.0',
+    intro: 'This notice explains how BEELESTIAL LTD uses personal information submitted through the Beelo pilot application form. It applies to applicants only. Anyone invited into the pilot will receive a separate participant notice before deciding whether to join.',
+    controller: 'BEELESTIAL LTD (company number 15297106), registered in England and Wales. Registered office: Apartment 6, 2 Copper Place, Manchester M14 7FZ. Privacy contact: hello@beelestial.co.uk.',
+    sections: [
       {
-        title: 'Purpose is limited',
-        body: 'Pilot application details are used only to assess and contact applicants about the Beelo pilot. They are not sold.'
+        title: 'What we collect',
+        body: 'We collect your name, email address, optional phone number, trade or role, postcode area, UK eligibility confirmation, whether you usually work alone, your description of an admin problem and, if selected, your interest in partnership or research contact. Please do not provide customer details, health information or other sensitive personal information.'
       },
       {
-        title: 'Participation is informed',
-        body: 'Before onboarding, participants will receive clear information about what data is collected, why it is needed, how long it is retained and how deletion can be requested.'
+        title: 'Why we use it and our lawful basis',
+        body: 'We use application information to assess pilot suitability, respond to you and administer recruitment. Our lawful basis is legitimate interests: testing Beelo with a small, relevant group and managing applications, balanced against the limited information collected and your rights. If you separately choose partnership or research contact, we rely on your consent for that additional contact. You may withdraw that consent at any time without affecting the application.'
       },
       {
-        title: 'The person stays in control',
-        body: 'Beelo is designed around deliberate capture and user approval. Customer communication is never sent automatically.'
+        title: 'Who receives it',
+        body: 'Access is limited to authorised BEELESTIAL LTD personnel and IONOS, which provides the website hosting, form infrastructure and business email used for applications. IONOS processes information to provide those services. We do not sell applicant information and do not use it for unrelated advertising.'
+      },
+      {
+        title: 'Where it is processed',
+        body: 'The application is stored in a protected website record and the company email account. We aim to use UK or EEA processing. If a provider processes information elsewhere, BEELESTIAL LTD will use an approved UK transfer safeguard where required. Contact us for current provider and transfer details.'
+      },
+      {
+        title: 'How long we keep it',
+        body: 'Pilot applications and related application emails are kept for no more than six months after submission, then deleted unless the law requires longer retention. If you join the pilot, information needed for participation is handled under the separate participant notice and its retention period. A withdrawn partnership or research preference will be suppressed promptly.'
+      },
+      {
+        title: 'Your rights',
+        body: 'Depending on the circumstances, you may ask for access, correction, deletion, restriction or portability, and you may object to processing based on legitimate interests. Where processing relies on consent, you may withdraw it at any time. Email hello@beelestial.co.uk. We normally respond within one month and may need to verify your identity.'
+      },
+      {
+        title: 'Complaints and required information',
+        body: 'The fields marked required are needed to assess eligibility; without them we cannot process an application. Applying is voluntary and no automated decision-making or profiling is used. Please contact us first if you have a concern. You also have the right to complain to the UK Information Commissioner’s Office at ico.org.uk/make-a-complaint or by calling 0303 123 1113.'
+      },
+      {
+        title: 'Security and changes',
+        body: 'We use access controls, input validation and protected storage appropriate to this small pilot intake. No online service is risk-free. Material changes will be dated here; if a change significantly affects an existing application, we will explain it directly where practicable.'
+      }
+    ]
+  },
+
+  cookies: {
+    heading: 'Cookie & Similar Technologies Notice',
+    updated: 'Last updated: 4 September 2026 · Version 1.0',
+    intro: 'This notice explains storage and access technologies used on beelestial.co.uk. The current Beelo landing page does not intentionally use analytics, advertising, profiling or social-media tracking cookies.',
+    sections: [
+      {
+        title: 'What may be essential',
+        body: 'IONOS hosts the website and may use strictly necessary security, network or load-management technologies to deliver and protect the service. These are not used by BEELESTIAL LTD for advertising or behavioural profiling.'
+      },
+      {
+        title: 'Pilot application form',
+        body: 'The application form does not use a cookie to build a marketing profile. It sends the information you deliberately submit to the protected Beelo application handler. The separate Pilot Applicant Privacy Notice explains that processing.'
+      },
+      {
+        title: 'Your choices',
+        body: 'You can block or delete cookies using your browser settings. Blocking a technology that is strictly necessary for security or delivery may affect whether the website works correctly.'
+      },
+      {
+        title: 'Future changes',
+        body: 'BEELESTIAL LTD will not introduce non-essential analytics, advertising or similar tracking without first updating this notice and providing an appropriate consent choice before that technology is activated.'
       }
     ]
   },
 
   footer: {
-    tagline: 'Built for self-employed home-visit professionals.',
+    tagline: 'Built for people who work alone between customer appointments.',
     /* TODO: replace with the real privacy policy URL */
-    privacy: 'Privacy & data handling',
+    privacy: 'Pilot Applicant Privacy Notice',
     privacyHref: '#privacy',
+    cookies: 'Cookie notice',
+    cookiesHref: '#cookies',
     /* TODO: replace with the real LinkedIn URL, or remove the link */
     linkedin: 'LinkedIn',
     linkedinHref: '',

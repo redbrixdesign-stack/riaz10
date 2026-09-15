@@ -9,6 +9,8 @@ const SocialFeature = {
   id: 'social',
   name: 'Create Social Post',
   icon: 'campaign',
+  // Contextual workflow opened from a fitting; it is not a primary nav tab.
+  route: false,
   mediaFile: null,
   appointmentId: null,
   drafts: null,

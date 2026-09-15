@@ -1,167 +1,143 @@
-# AdvisorOS
+# Beelo
 
-A daily-use tool for self-employed field sales/fitting advisors (built around
-window covering sales, but adaptable). Runs as an offline-capable PWA — no
-backend, no login, all data stored locally on the device.
+Beelo is a pilot-stage, offline-capable personal operational-memory tool for
+solo self-employed home-visit professionals. The current prototype helps one
+adviser keep visit, customer, job, follow-up and working-money context together
+on one device.
 
-## Features
+Beelo is not a CRM, accounting system, tax-filing product or Making Tax Digital
+(MTD) filing product. It does not send customer communications autonomously.
 
-- **Today** — daily dashboard: today's visits, weather, weekly sales/earnings progress
-- **Visits** — diary with time-blocked slots, follow-ups, access notes, outcomes
-- **Route** — map view, area grouping, route efficiency scoring
-- **Money** — running UK tax estimate, expense logging, mileage tracking
-- **Talk** — WhatsApp/message template queue, follow-up prompts
-- **Measure** — window measurement tool with squareness check
-- **Scan** — OCR for order screenshots and business cards
-- **Settings** — company/independent mode, targets, data export/import
+## Current prototype
 
-## Stack
+The repository contains working prototype code for:
 
-- Vanilla HTML/CSS/JS, no build step, no framework
-- IndexedDB (via bundled mini-Dexie) is the primary store for all app records
-  (customers, appointments, orders, expenses, trips, measurements). If
-  IndexedDB isn't available, mini-Dexie falls back to `localStorage`
-  automatically. `localStorage` is also used directly for small config/flags
-  (settings, weather cache, morning-brief toggle, in-progress trip state) —
-  it isn't just a fallback path, it's part of the normal storage design.
-- Service worker for offline caching, `manifest.json` for install-as-app
-- Leaflet for maps, Tesseract for OCR (both loaded from CDN with fallback)
-- OSRM + Nominatim for routing/geocoding (free public instances — see Limitations)
-- Claude AI (optional): OCR photo reading + message drafting via your own
-  serverless proxy (Anthropic's API can't be called from a browser)
+- a daily Home/Companion view and visit diary;
+- enquiries/leads, customer records and customer history;
+- consultation, measure, fitting, follow-up, review and service-call visits;
+- scheduling advice, overlap/capacity warnings and visit outcomes;
+- follow-up tasks and editable WhatsApp/SMS message drafts;
+- route planning, navigation handoff and local mileage/trip records;
+- expenses, configurable commission and UK tax-planning estimates;
+- measurements, photos and OCR-assisted capture;
+- structured quotes, orders, operational jobs, invoices, payments, suppliers,
+  purchase orders, profitability and aftercare/retention records;
+- local backup export/import; and
+- an installable progressive web app shell with offline support.
 
-## Claude AI setup (optional)
+These capabilities are prototype modules, not evidence of commercial release,
+pilot approval, regulatory approval, customer adoption or integration with an
+external business system. See
+[`docs/BEELO_FEATURE_INVENTORY.md`](docs/BEELO_FEATURE_INVENTORY.md) for the
+evidence and positioning status of each capability.
 
-The Scan and Talk screens get an AI boost when enabled in Settings → Claude AI:
+## Product boundaries
 
-- **Scan** — photos are read by Claude Sonnet instead of (or before) Tesseract,
-  which is far better with screenshots and business cards. If AI is off,
-  unreachable, or fails, it falls back to Tesseract automatically.
-- **Talk** — an "AI draft" button rewrites the queued template message with the
-  customer's name, visit details, order history, and your last messages as
-  context, so it reads naturally while staying accurate.
+- **Single user and single device:** there are no Beelo accounts, cloud sync,
+  multi-device recovery, team workspace or manager dashboard.
+- **Local-first records:** the operational database is stored in the browser on
+  the device. Clearing browser data or losing the device can destroy records
+  unless the adviser exported a backup.
+- **Offline-capable, not network-free:** core records and cached app assets work
+  offline. Maps, geocoding, routing, weather and optional AI require connectivity
+  for fresh results and may send service requests to their configured providers.
+- **Human-controlled communications:** Beelo prepares an editable preview and
+  requires an explicit handoff to WhatsApp or SMS. Opening another app is not
+  treated as proof that a message was delivered.
+- **Working context, not a CRM integration:** the prototype connects context
+  entered, captured or imported into Beelo. It does not currently provide a
+  verified live connection to a company CRM, accounting platform, calendar or
+  messaging-history service.
+- **Financial planning only:** expenses, mileage, commission, profitability and
+  UK tax figures are working-record and planning aids. Beelo does not keep formal
+  accounts, submit returns, file tax, provide tax advice or support MTD filing.
+- **Pilot status:** the separate landing page invites applications to a
+  controlled UK pilot. An application is not acceptance, and this repository
+  does not establish pilot participation, traction, partnerships or funding.
 
-The app never holds an Anthropic API key — everything goes through **your own**
-serverless function, which you deploy once:
+## Architecture
 
-1. **Vercel**: copy `api/claude.mjs` to an `api/` folder, add `ANTHROPIC_API_KEY`
-   as an environment variable, redeploy. The proxy URL is
-   `https://your-site.vercel.app/api/claude`.
+- Vanilla HTML, CSS and JavaScript static single-page application.
+- IndexedDB is the primary operational store, using bundled Dexie-compatible
+  code; `localStorage` also holds small configuration and transient state.
+- `manifest.json` and `sw.js` provide installability and offline asset caching.
+- Optional network providers include Mapbox or public Nominatim/OSRM for
+  geocoding/routing, Open-Meteo for weather, and an operator-configured Claude
+  proxy for AI-assisted OCR or draft rewriting.
+- The optional AI proxy is implemented by `api/claude.mjs` and the standalone
+  `server/` wrapper. Provider credentials must stay server-side.
+- `landing/` is a separate React/TypeScript/Vite marketing and pilot-application
+  project with its own deployment and personal-data boundary.
 
-Hardening — on Vercel (`NODE_ENV=production`) the proxy **fails closed** with a
-500 config error until configured:
+## Run locally
 
-| Variable                 | Effect                                                       |
-| ------------------------ | ------------------------------------------------------------ |
-| `ALLOWED_ORIGIN`         | **Required in production.** Only requests with this exact `Origin` are accepted |
-| `AI_SECRET`              | **Required in production.** Requests must send it in the `X-AI-Key` header |
-| `RATE_LIMIT_MAX`         | Optional; requests per window per client address (default 120) |
-| `RATE_LIMIT_WINDOW_MS`   | Optional; sliding-window length in ms (default 60000)        |
-
-In development (NODE_ENV unset) `ALLOWED_ORIGIN`/`AI_SECRET` are optional — the
-proxy logs a one-time warning and stays usable for local testing.
-
-Note: the app stores `AI_SECRET` in its own settings, so anyone visiting the
-PWA can read it — treat it as a shared gate against random quota-burning, not
-as true authentication. Real protection comes from `ALLOWED_ORIGIN`, the 2 MB
-image cap, the media-type/model allowlists, the fixed upstream endpoint, and
-the per-address rate limits, all enforced by the proxy. Provider error details
-are never logged or returned to the client.
-
-Then paste the proxy URL into Settings → Claude AI and enable it. The "Test
-connection" button verifies the whole path, and the card shows tokens/cost of
-the last call.
-
-## Project structure
-
-```
-index.html              App shell
-manifest.json           PWA manifest
-sw.js                    Service worker (offline cache)
-css/
-  core.css               Variables, typography, layout
-  components.css         Buttons, cards, modals, nav
-js/
-  core/                   Router, state, DB, config, utils, geo, search, tax
-  services/               Notifications, export
-  features/               One folder per screen (today, appointments, route,
-                            money, talk, measure, ocr, onboarding, settings)
-assets/icons/            PWA icons
-```
-
-## Running locally
+The source app can be served directly:
 
 ```bash
-python -m http.server 8000
-# or
-npx serve .
+python3 -m http.server 8000
 ```
-Open `http://localhost:8000`. No install, no environment variables, no build.
 
-## Deploying
+Open `http://localhost:8000`. HTTPS is required in production for service-worker
+and geolocation behavior.
 
-Any static host works (GitHub Pages, S3 + CloudFront, etc.) — push
-the folder as-is. HTTPS is required for the service worker and geolocation
-to work. The service worker precaches exactly what `index.html` loads
-(the build verifies the `?v=` tokens match), so the installed PWA and
-the deployed fix stay in sync.
+The minified production assets are generated with:
 
-**AI drafting:** the Anthropic key can never live in the client. Deploy
-the hardened proxy — as a Vercel function (already wired:
-`api/claude.mjs`) or the standalone `server/` — and point
-`CONFIG.ai.proxyUrl` at it. See `README-AI.md` for env vars and the
-fail-closed production settings.
+```bash
+npm install
+npm run build
+```
 
-## First use
+## Tests
 
-1. Open the app — first run goes to onboarding.
-2. Set name, trade, weekly target, distance unit (miles/km).
-3. Add a visit from Today or the Visits diary.
-4. Log expenses/mileage as you go; check Money for the running tax estimate.
+```bash
+npm test
+npm run test:browser
+```
 
-## Known limitations
+The repository also contains focused browser journeys, accessibility checks,
+offline checks and timezone tests. A test file or historic result is not current
+release evidence; use [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md)
+and record the exact commit, environment and results.
 
-- **Routing/geocoding** (`js/core/geoprovider.js`) uses a pluggable provider
-  abstraction. The default is **Mapbox** (Directions + Geocoding APIs) when a
-  valid access token is configured in Settings → Routing. Without a token,
-  it automatically falls back to public **OSRM + Nominatim** instances — no
-  SLA, rate-limited, not licensed for commercial traffic. The Mapbox free
-  tier includes 100k requests/month; add a token for production reliability.
-- **Tax calculations** are estimates based on current UK rates and are not a
-  substitute for an accountant.
-- All data is local to the device/browser — there is no sync, no backup
-  server, and no account recovery if local storage is cleared.
+## Optional AI proxy
 
-## Monetization plan
+AI is optional and off by default. The browser never contains the Anthropic API
+key. Production proxy configuration requires an exact allowed origin and shared
+gate in addition to the provider key; request limits, payload limits, allowlists
+and generic error mapping are enforced by the proxy.
 
-Current state: single-user, offline, no accounts, no billing. To turn this
-into a paid product, the likely path is:
+See [`README-AI.md`](README-AI.md) for configuration. The shared browser-side
+gate is quota protection, not user authentication, because a visitor can inspect
+browser configuration.
 
-1. **Add accounts + sync** — a lightweight backend (e.g. Postgres + a thin
-   API) so data isn't trapped on one device and advisors can move between
-   phone/tablet.
-2. **Subscription tiers**
-   - *Free* — single device, core features (Today, Visits, Money, Talk),
-     capped history (e.g. last 90 days).
-   - *Pro* (~£8–15/month) — multi-device sync, unlimited history, PDF/CSV
-     export, priority OCR, paid-tier routing/geocoding included.
-   - *Team/Company* (~£25–40/user/month) — multiple advisors under one
-     account, shared pipeline visibility, manager dashboard, route
-     assignment across a team.
-3. **Usage-based costs to pass through or absorb** — routing/geocoding API
-   calls and OCR are the main variable costs; price Pro to cover them with
-   margin, or meter heavy usage past a fair-use cap.
-4. **Add-on revenue**
-   - Commission/discount calculator tied to actual supplier price lists
-     (partner integrations with blind/curtain suppliers).
-   - Referral or lead-gen fee if the app ever surfaces new customer leads.
-5. **Distribution** — sell direct to independent advisors (self-serve
-   subscription) and separately to companies who want it as a fleet tool for
-   their advisors (seat-based licensing).
+## Known operational risks
 
-None of this is built yet — the current codebase is a single-tenant,
-local-only prototype. Steps 1–2 are the prerequisite for any of the rest.
+- Public Nominatim/OSRM fallbacks have no commercial service-level agreement and
+  may throttle requests.
+- Device-local data has no server recovery path.
+- Optional AI, current maps, geocoding, routing and weather depend on external
+  providers and connectivity.
+- Tax and profitability results depend on configured assumptions and must be
+  independently checked before business or filing decisions.
+- Legal operator details, pilot privacy operations and the intended device matrix
+  must be verified before public pilot onboarding.
+
+## Future concepts — not implemented
+
+Accounts, cloud sync, remote backup/recovery, subscriptions, billing,
+multi-adviser teams, manager dashboards and production integrations with CRM,
+accounting, calendar or messaging platforms are future concepts only. Their
+scope, priority and positioning require explicit product approval.
+
+## Project records
+
+- [`docs/BEELO_DEVELOPMENT_RECORD.md`](docs/BEELO_DEVELOPMENT_RECORD.md) — living
+  product truth, decisions, evidence, risks and next actions.
+- [`docs/BEELO_FEATURE_INVENTORY.md`](docs/BEELO_FEATURE_INVENTORY.md) — verified
+  feature and positioning classification.
+- [`docs/BEELO_IPHONE_JOURNEY_AUDIT_2026-08-27.md`](docs/BEELO_IPHONE_JOURNEY_AUDIT_2026-08-27.md)
+  — latest iPhone journey evidence and defects.
 
 ## License
 
-MIT — free for personal use.
+MIT. Repository licensing does not imply product availability or support.

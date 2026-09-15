@@ -60,13 +60,14 @@ const InvoicesFeature = {
     const customer = order.customerId ? await DB.getCustomer(order.customerId) : null;
     const name = customer?.fullName || [customer?.firstName, customer?.lastName].filter(Boolean).join(' ') || 'Customer';
     const due = new Date(); due.setDate(due.getDate() + 14);
+    if (typeof NoteCapture !== 'undefined') NoteCapture.setRecordings('invoice-notes', []);
     return `<div class="fade-in">${App.renderTopHeader({ title: 'New invoice', showBack: true, backHref: `invoices?orderId=${orderId}` })}<div class="p-md">
       <input type="hidden" id="invoice-order-id" value="${orderId}"><input type="hidden" id="invoice-customer-id" value="${order.customerId}">
       <div class="card inset-dark mb-md"><strong>${Utils.escapeHtml(name)}</strong><div class="fs-12 text-tertiary">${Utils.escapeHtml(order.orderNumber || 'Order')} · ${Utils.formatCurrency(order.total || 0)}</div></div>
       <div class="section-label">Invoice items</div><div id="invoice-items">${this.renderItem({ description: `Order ${order.orderNumber || order.id}`, quantity: 1, unitPrice: order.total || 0 }, 0)}</div>
       <button class="btn btn-outline btn-sm mb-md" data-action="InvoicesFeature.addItem"><span class="material-symbols-rounded">add</span>Add item</button>
       <div class="form-group"><label for="invoice-due-date">Due date</label><input class="input" id="invoice-due-date" type="date" value="${Utils.formatDate(due, 'iso')}"></div>
-      <div class="form-group"><label for="invoice-notes">Notes</label><textarea class="textarea" id="invoice-notes"></textarea></div>
+      <div class="form-group"><label for="invoice-notes">Notes</label><textarea class="textarea" id="invoice-notes"></textarea>${typeof NoteCapture !== 'undefined' ? NoteCapture.render('invoice-notes') : ''}</div>
       <div class="form-group"><label for="invoice-terms">Payment terms</label><textarea class="textarea" id="invoice-terms">Payment due within 14 days.</textarea></div>
       <button class="btn btn-primary btn-block" id="invoice-save" data-action="InvoicesFeature.saveDraft">Save invoice draft</button>
     </div></div>`;
@@ -86,7 +87,7 @@ const InvoicesFeature = {
     if (!items.length || items.some(item => !item.description || item.quantity <= 0 || item.unitPrice < 0)) return Toast.show('Complete every invoice item', 'warning');
     if (button) button.disabled = true;
     try {
-      const result = await DB.createInvoice({ customerId: Number(document.getElementById('invoice-customer-id').value), orderId: Number(document.getElementById('invoice-order-id').value), dueDate: document.getElementById('invoice-due-date')?.value || null, notes: document.getElementById('invoice-notes')?.value.trim() || '', termsSnapshot: document.getElementById('invoice-terms')?.value.trim() || '' }, items);
+      const result = await DB.createInvoice({ customerId: Number(document.getElementById('invoice-customer-id').value), orderId: Number(document.getElementById('invoice-order-id').value), dueDate: document.getElementById('invoice-due-date')?.value || null, notes: document.getElementById('invoice-notes')?.value.trim() || '', audioNotes: typeof NoteCapture !== 'undefined' ? NoteCapture.getRecordings('invoice-notes') : [], termsSnapshot: document.getElementById('invoice-terms')?.value.trim() || '' }, items);
       Toast.show('Invoice draft saved', 'success'); App.navigate('invoices', { id: result.invoice.id });
     } catch (error) { if (button) button.disabled = false; console.error(error); Toast.show('Could not save invoice', 'error'); }
   },

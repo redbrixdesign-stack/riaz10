@@ -83,7 +83,7 @@ window.addEventListener("load", async () => {
   // 1. Day-before scheduling for tomorrow's visit.
   await MessageScheduler.reschedule();
   const key = (stage, id) => 'advisoros_auto_' + stage + '_' + id;
-  step('evening-before scheduled for tomorrow visit', MessageScheduler.timers.has(key('evening_before', tomorrowVisit.id)));
+  step('combined intro/day-before scheduled for tomorrow first visit', MessageScheduler.timers.has(key('intro_day_before', tomorrowVisit.id)));
   step('morning-of scheduled for tomorrow visit', MessageScheduler.timers.has(key('morning_of', tomorrowVisit.id)));
   step('no check-in scheduled for the completed visit',
     !MessageScheduler.timers.has(key('evening_before', doneToday.id)) && !MessageScheduler.timers.has(key('morning_of', doneToday.id)));
@@ -99,8 +99,8 @@ window.addEventListener("load", async () => {
 
   // 3. Task inbox: tomorrow's message task, payment task, quote task.
   const tasks = await FollowupsFeature.loadTasks();
-  const tmrw = tasks.find(t => t.kind === 'visit_tomorrow' && t.appointment && t.appointment.id === tomorrowVisit.id);
-  step('tomorrow visit has a day-before task', !!tmrw && tmrw.due === true, { got: tmrw && tmrw.action });
+  const tmrw = tasks.find(t => t.kind === 'intro_confirmation' && t.appointment && t.appointment.id === tomorrowVisit.id);
+  step('tomorrow first visit has a combined introduction/confirmation task', !!tmrw && tmrw.due === true, { got: tmrw && tmrw.action });
   const payment = tasks.find(t => t.kind === 'payment' && t.order && t.order.id === unpaid.id);
   step('unpaid order has a payment task', !!payment);
   step('payment task is not due before the production reminder day', payment && payment.due === false, { got: payment && payment.due });

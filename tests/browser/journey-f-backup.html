@@ -66,6 +66,9 @@ window.addEventListener("load", async () => {
     advisorName: 'Test Advisor', weeklyTarget: 600,
     ai: { ...(CONFIG.ai || {}), secret: 'test-secret' }
   });
+  // Match the real Settings flow: the device credential is stored privately
+  // before backup, excluded from the file, then preserved across restore.
+  await DB.setPrivateSetting('__device_ai_secret__', 'test-secret');
 
   const customer = await DB.addCustomer({
     firstName: 'Sarah', lastName: 'Johnson', fullName: 'Sarah Johnson', phone: '07700900123',

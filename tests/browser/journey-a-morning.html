@@ -118,8 +118,8 @@ window.addEventListener("load", async () => {
     MessageScheduler.timers.has(key('morning_of', appt1.id)) && MessageScheduler.timers.has(key('morning_of', appt2.id)));
   step('no day-before timer for today visits',
     !MessageScheduler.timers.has(key('evening_before', appt1.id)) && !MessageScheduler.timers.has(key('evening_before', appt2.id)));
-  step('day-before + morning-of scheduled for tomorrow visit',
-    MessageScheduler.timers.has(key('evening_before', appt3.id)) && MessageScheduler.timers.has(key('morning_of', appt3.id)));
+  step('combined intro/day-before + morning-of scheduled for tomorrow first visit',
+    MessageScheduler.timers.has(key('intro_day_before', appt3.id)) && MessageScheduler.timers.has(key('morning_of', appt3.id)));
   step('no on-my-way timers scheduled from the schedule pass',
     !MessageScheduler.timers.has(key('on_my_way', appt1.id)) && !MessageScheduler.timers.has(key('on_my_way', appt2.id)) && !MessageScheduler.timers.has(key('on_my_way', appt3.id)));
 

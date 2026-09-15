@@ -75,14 +75,14 @@ $worksAlone = clean_string($data, 'worksAlone', 20);
 $problem = clean_string($data, 'biggestProblem', 1500);
 $partnerInterest = !empty($data['partnerInterest']) ? 'Yes' : 'No';
 
-$compactPostcode = strtoupper((string)preg_replace('/\s+/', '', $area));
-$validUkPostcode = preg_match('/^(GIR0AA|[A-Z]{1,2}\d[A-Z\d]?\d[A-Z]{2})$/', $compactPostcode) === 1;
-if (!$ukResident || !$validUkPostcode) {
+$postcodeArea = strtoupper((string)preg_replace('/\s+/', '', $area));
+$validUkPostcodeArea = preg_match('/^(GIR|[A-Z]{1,2}\d[A-Z\d]?)$/', $postcodeArea) === 1;
+if (!$ukResident || !$validUkPostcodeArea) {
     http_response_code(422);
     echo json_encode(['ok' => false, 'code' => 'uk_only']);
     exit;
 }
-$area = substr($compactPostcode, 0, -3) . ' ' . substr($compactPostcode, -3);
+$area = $postcodeArea;
 
 if ($name === '' || !$email || $trade === '' || $area === '' || $problem === '' || !in_array($worksAlone, ['yes', 'no', 'sometimes'], true)) {
     http_response_code(422);
@@ -145,16 +145,33 @@ if (!$rateSaved) {
 }
 
 $submittedAt = gmdate('c');
-$row = [$submittedAt, $name, (string)$email, $phone, $trade, $area, $worksAlone, $problem, $partnerInterest];
+$privacyNoticeVersion = '1.0-2026-09-04';
+$row = [$submittedAt, $name, (string)$email, $phone, $trade, $area, $worksAlone, $problem, $partnerInterest, $privacyNoticeVersion];
 $backupSaved = false;
 $csvPath = __DIR__ . '/applications.csv';
-$file = @fopen($csvPath, 'ab');
+$file = @fopen($csvPath, 'c+');
 if ($file) {
     if (flock($file, LOCK_EX)) {
-        if (filesize($csvPath) === 0) {
-            fputcsv($file, ['submitted_at', 'name', 'email', 'phone', 'trade', 'area', 'works_alone', 'biggest_problem', 'partner_interest']);
+        $header = ['submitted_at', 'name', 'email', 'phone', 'trade', 'postcode_area', 'works_alone', 'biggest_problem', 'partner_research_consent', 'privacy_notice_version'];
+        $retained = [];
+        rewind($file);
+        fgetcsv($file);
+        while (($existing = fgetcsv($file)) !== false) {
+            $submitted = strtotime((string)($existing[0] ?? ''));
+            if ($submitted !== false && $submitted >= $now - (180 * 86400)) {
+                // Older rows used the same first nine values. Pad them so a
+                // notice version can be recorded for all new applications.
+                $retained[] = array_pad(array_slice($existing, 0, count($header)), count($header), '');
+            }
         }
-        $backupSaved = fputcsv($file, $row) !== false;
+        rewind($file);
+        ftruncate($file, 0);
+        $written = fputcsv($file, $header) !== false;
+        foreach ($retained as $existing) {
+            $written = $written && fputcsv($file, $existing) !== false;
+        }
+        $backupSaved = $written && fputcsv($file, $row) !== false;
+        fflush($file);
         flock($file, LOCK_UN);
     }
     fclose($file);
@@ -164,8 +181,8 @@ $safeName = str_replace(["\r", "\n"], '', $name);
 $safeEmail = str_replace(["\r", "\n"], '', (string)$email);
 $subject = 'New Beelo pilot application — ' . $safeName;
 $message = "A new application has been submitted through beelestial.co.uk.\n\n"
-    . "Name: {$name}\nEmail: {$email}\nPhone: {$phone}\nTrade / role: {$trade}\nArea / postcode: {$area}\n"
-    . "UK resident and worker: Yes\nUsually works alone: {$worksAlone}\nPartnership/research interest: {$partnerInterest}\n\n"
+    . "Name: {$name}\nEmail: {$email}\nPhone: {$phone}\nTrade / role: {$trade}\nPostcode area: {$area}\n"
+    . "UK resident and worker: Yes\nUsually works alone: {$worksAlone}\nPartnership/research consent: {$partnerInterest}\nPrivacy notice: {$privacyNoticeVersion}\n\n"
     . "Biggest admin problem:\n{$problem}\n\nSubmitted: {$submittedAt}\n";
 $headers = [
     'From: Beelo Website <hello@beelestial.co.uk>',
@@ -183,8 +200,9 @@ $confirmationMessage = "Hello {$name},\n\n"
     . "- We will review whether the pilot is a good fit for your work.\n"
     . "- If it looks suitable, Riaz will contact you personally to discuss the next step.\n"
     . "- There is no commitment at this stage.\n\n"
-    . "We will only use your details to contact you about the Beelo pilot. "
+    . "We use your details to assess and administer your Beelo pilot application. Applications are normally deleted within six months. "
     . "If you did not submit this application, please reply to this email and we will remove your details.\n\n"
+    . "Privacy notice: https://beelestial.co.uk/#privacy\n\n"
     . "Kind regards,\n"
     . "Muhammad Asif Riaz\n"
     . "Founder, Beelo\n"

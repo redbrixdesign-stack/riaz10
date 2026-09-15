@@ -1,8 +1,11 @@
 import { Banner } from './components/Banner';
 import { Hero } from './components/Hero';
 import { Problem } from './components/Problem';
+import { ConnectingThread } from './components/ConnectingThread';
 import { Solution } from './components/Solution';
 import { HowItWorks } from './components/HowItWorks';
+import { Routing } from './components/Routing';
+import { ProductTruth } from './components/ProductTruth';
 import { BuiltForOne } from './components/BuiltForOne';
 import { Founder } from './components/Founder';
 import { Trust } from './components/Trust';
@@ -10,6 +13,7 @@ import { Faq } from './components/Faq';
 import { Pilot } from './components/Pilot';
 import { Partner } from './components/Partner';
 import { Privacy } from './components/Privacy';
+import { Cookies } from './components/Cookies';
 import { Footer } from './components/Footer';
 import { Header } from './components/Header';
 
@@ -21,13 +25,17 @@ export default function App() {
       <main>
         <Hero />
         <Problem />
+        <ConnectingThread />
         <Solution />
         <HowItWorks />
+        <Routing />
+        <ProductTruth />
         <BuiltForOne />
         <Founder />
         <Trust />
         <Faq />
         <Privacy />
+        <Cookies />
         <Pilot />
         <Partner />
       </main>

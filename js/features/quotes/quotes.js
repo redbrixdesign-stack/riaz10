@@ -63,6 +63,7 @@ const QuotesFeature = {
     }
     if (!context.customerId) return `<div class="fade-in">${App.renderTopHeader({ title: 'New quote', showBack: true, backHref: 'orders' })}<div class="empty-state"><span class="material-symbols-rounded">person_search</span><div>Create a quote from a visit or Customer 360 so it stays linked to the right customer.</div></div></div>`;
     const quote = existing?.quote || {};
+    if (typeof NoteCapture !== 'undefined') NoteCapture.setRecordings('quote-notes', quote.audioNotes || []);
     const customerName = context.customer?.fullName || [context.customer?.firstName, context.customer?.lastName].filter(Boolean).join(' ') || context.appointment?.clientName || 'Customer';
     const rows = items.length ? items : [{ description: '', quantity: 1, unit: 'each', unitPrice: 0 }];
     setTimeout(() => this.recalculate(), 0);
@@ -79,7 +80,7 @@ const QuotesFeature = {
         </div>
         <div class="card inset-dark mb-md" id="quote-totals" aria-live="polite"></div>
         <div class="form-group"><label for="quote-expiry">Expiry date</label><input class="input" id="quote-expiry" type="date" value="${quote.expiryDate ? String(quote.expiryDate).slice(0, 10) : ''}"></div>
-        <div class="form-group"><label for="quote-notes">Notes</label><textarea class="textarea" id="quote-notes">${Utils.escapeHtml(quote.notes || '')}</textarea></div>
+        <div class="form-group"><label for="quote-notes">Notes</label><textarea class="textarea" id="quote-notes">${Utils.escapeHtml(quote.notes || '')}</textarea>${typeof NoteCapture !== 'undefined' ? NoteCapture.render('quote-notes') : ''}</div>
         <div class="form-group"><label for="quote-terms">Terms</label><textarea class="textarea" id="quote-terms">${Utils.escapeHtml(quote.termsSnapshot || '')}</textarea></div>
         <button class="btn btn-primary btn-block" id="quote-save" data-action="QuotesFeature.saveDraft">Save draft</button>
       </div>
@@ -166,6 +167,7 @@ const QuotesFeature = {
       taxRate: Number(document.getElementById('quote-tax-rate')?.value || 0),
       expiryDate: document.getElementById('quote-expiry')?.value || null,
       notes: document.getElementById('quote-notes')?.value.trim() || '',
+      audioNotes: typeof NoteCapture !== 'undefined' ? NoteCapture.getRecordings('quote-notes') : [],
       termsSnapshot: document.getElementById('quote-terms')?.value.trim() || ''
     };
   },

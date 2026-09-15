@@ -12,6 +12,7 @@ const TaskService = {
     if (task.kind === 'payment' && orderId) return `payment:order:${orderId}`;
     if (task.kind === 'visit_today' && apptId) return `visit-outcome:appointment:${apptId}`;
     if (task.kind === 'visit_tomorrow' && apptId) return `message:day-before:appointment:${apptId}`;
+    if (task.kind === 'intro_confirmation' && apptId) return `message:intro-day-before:appointment:${apptId}`;
     if (task.kind === 'intro' && apptId) return `message:intro:appointment:${apptId}`;
     if (task.kind === 'post_fit' && apptId) return `message:post-fit:appointment:${apptId}`;
     if (task.kind === 'service' && apptId) return `message:service:appointment:${apptId}`;
