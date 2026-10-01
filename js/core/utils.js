@@ -264,6 +264,11 @@ const Utils = {
     if (!digits) return '';
     if (digits.startsWith('00')) digits = digits.slice(2);
 
+    // UK international notation sometimes retains the optional trunk zero,
+    // e.g. +44 (0)7700 900123. Remove only that zero for a full UK number;
+    // do not strip meaningful zeros from other countries' numbers.
+    digits = digits.replace(/^440([1-9]\d{9})$/, '44$1');
+
     if (defaultCountry === 'GB') {
       if (digits.startsWith('0')) digits = `44${digits.slice(1)}`;
       if (/^7\d{9}$/.test(digits)) digits = `44${digits}`;
