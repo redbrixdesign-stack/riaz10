@@ -269,7 +269,8 @@ assert(norm('random gibberish 123') === 'default', 'unknown routes to default');
   // The reported bug: a booking ten days out, created today.
   APPOINTMENTS.push({ id: 3, customerId: 3, clientName: 'Amelia Green', phone: '07700900123', type: 'consultation', date: aug24.toISOString(), address: '9 Birch Lane', status: 'confirmed' });
   APPOINTMENTS.push({ id: 4, customerId: 1, clientName: 'Sarah Jones', type: 'consultation', date: pastDate.toISOString(), address: '5 Beech Road', status: 'completed', outcome: 'ordered' });
-  APPOINTMENTS.push({ id: 5, customerId: 1, clientName: 'Sarah Jones', phone: '07123456789', type: 'consultation', date: iso(30), address: '5 Beech Road', status: 'confirmed' });
+  const sarahNextVisitDate = iso(30);
+  APPOINTMENTS.push({ id: 5, customerId: 1, clientName: 'Sarah Jones', phone: '07123456789', type: 'consultation', date: sarahNextVisitDate, address: '5 Beech Road', status: 'confirmed' });
 
   assert(norm('messages') === 'messages', '"messages" routes to the message rule');
   assert(norm('who hasn\'t paid') === 'orders', '"who hasn\'t paid" routes to orders');
@@ -292,7 +293,8 @@ assert(norm('random gibberish 123') === 'default', 'unknown routes to default');
 
   // Person lookup.
   const person = await Companion.answerPerson('what about sarah?');
-  assert(person && person.facts.some(f => f.label === 'Next visit' && String(f.value).includes('Sep') || String(f.value).includes('Aug')),
+  const expectedNextVisit = `${global.utilsRef.formatDateUK(sarahNextVisitDate, 'short')} · ${global.utilsRef.formatTimeUK(sarahNextVisitDate)}`;
+  assert(person && person.facts.some(f => f.label === 'Next visit' && f.value === expectedNextVisit),
     'Person lookup carries the next visit', person && person.facts);
   assert(person.facts.some(f => f.label === 'Outstanding' && f.value === '£300.00'), 'Person lookup carries outstanding balance', person.facts);
   assert(person.actions.some(a => a.label === 'Draft intro'), 'Person lookup offers the intro draft', person.actions);

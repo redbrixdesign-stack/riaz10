@@ -191,6 +191,12 @@ const OrdersFeature = {
     let jobs = [];
     try { if (typeof DB.getJobs === 'function') jobs = await DB.getJobs({ orderId }); } catch (e) {}
 
+    let fitting = null;
+    try {
+      const visits = typeof DB.getAppointmentsByCustomer === 'function' ? await DB.getAppointmentsByCustomer(order.customerId) : [];
+      fitting = visits.find(visit => visit.orderId === orderId && visit.type === 'fitting' && visit.status !== 'cancelled') || null;
+    } catch (e) {}
+
     let customer = null;
     try { customer = order.customerId ? await DB.getCustomer(order.customerId) : null; } catch (e) {}
     const name = customer?.fullName || (customer ? `${customer.firstName || ''} ${customer.lastName || ''}`.trim() : '') || 'Unknown';
@@ -238,6 +244,10 @@ const OrdersFeature = {
           <div class="kanban-sheet-cell"><div class="kanban-sheet-label">Stage</div><div class="kanban-sheet-value">${Utils.escapeHtml(this.STAGES.find(s => s.id === stage)?.name || stage)}</div></div>
         </div>
 
+        <div class="card mb-md"><div class="fs-12 text-secondary">Fitting</div><div class="fw-600">${fitting ? `${Utils.escapeHtml(Utils.formatDateUK(fitting.date, 'short'))} · ${Utils.escapeHtml(fitting.arrivalStart && fitting.arrivalEnd ? `${fitting.arrivalStart}–${fitting.arrivalEnd}` : Utils.formatTime(fitting.date))}` : 'Date not agreed yet'}</div>
+          ${fitting ? `<button class="btn btn-outline btn-sm mt-sm" data-close="1" data-action="App.navigate" data-args='${JSON.stringify(['appointments', { id: fitting.id }])}'>Open fitting visit</button>` : `<button class="btn btn-outline btn-sm mt-sm" data-action="OrdersFeature.scheduleFitting" data-args='${JSON.stringify([orderId])}'>Schedule fitting</button>`}
+        </div>
+
         <div class="form-group">
           <label>Supplier order no.</label>
           <input type="text" class="input" id="order-supplier-number" value="${Utils.escapeHtml(order.supplierOrderNumber || '')}" placeholder="e.g. SUP-2026-0042">
@@ -280,6 +290,15 @@ const OrdersFeature = {
       </div>
     `;
     App.openModal(content);
+  },
+
+  scheduleFitting(orderId) {
+    if (typeof AppointmentsFeature === 'undefined') return;
+    App.closeModal();
+    AppointmentsFeature.offerFittingBooking(orderId).catch(error => {
+      console.error('Fitting prompt failed:', error);
+      Toast.show('Could not open fitting planner', 'error');
+    });
   },
 
   async setStage(orderId, stage) {

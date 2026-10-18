@@ -2251,7 +2251,7 @@ const AppointmentsFeature = {
       Toast.show('Visit form is no longer open. Please check details and try again.', 'error');
       return;
     }
-    const { name, phone, address, date, time, durationSlots, type, source, access, notes, arrivalStart, arrivalEnd, arrivalError, leadId, jobId, jobRole, jobOperationId } = data;
+    const { name, phone, address, date, time, durationSlots, type, source, access, notes, arrivalStart, arrivalEnd, arrivalError, leadId, jobId, jobRole, jobOperationId, orderId } = data;
 
 	    if (!name || !address || !date) {
 	      Toast.show('Please fill in required fields', 'error');
@@ -2281,7 +2281,7 @@ const AppointmentsFeature = {
     }
 
     const allowedTypes = this.getAllowedTypesForDate(date + 'T00:00:00');
-    if (data.jobId && CONFIG.appointmentTypes.some(item => item.id === type) && !allowedTypes.includes(type)) allowedTypes.push(type);
+    if ((data.jobId || (orderId && type === 'fitting')) && CONFIG.appointmentTypes.some(item => item.id === type) && !allowedTypes.includes(type)) allowedTypes.push(type);
     if (!allowedTypes.includes(type)) {
       const mode = this.getDayMode(date + 'T00:00:00');
       Toast.show(`${mode.label}: this slot is better kept for ${mode.shortAdvice.toLowerCase()}.`, 'warning');
@@ -2291,6 +2291,18 @@ const AppointmentsFeature = {
     this._saveAppointmentInFlight = true;
     this.setSaveButtonState('working');
     try {
+      let linkedOrder = null;
+      if (orderId) {
+        linkedOrder = await DB.db.orders.get(orderId);
+        if (!linkedOrder?.customerId || type !== 'fitting') throw new Error('Order fitting link is invalid');
+        const linkedVisits = await DB.getAppointmentsByCustomer(linkedOrder.customerId);
+        const alreadyBooked = linkedVisits.find(appt => appt.orderId === orderId && appt.type === 'fitting' && appt.status !== 'cancelled');
+        if (alreadyBooked) {
+          Toast.show('This order already has a fitting visit', 'info');
+          App.navigate('appointments', { id: alreadyBooked.id });
+          return;
+        }
+      }
       const dateTime = new Date(date + 'T' + time);
 
       // A multi-slot visit (e.g. 4 x 15-min slots = 1 hour) occupies every slot it spans,
@@ -2339,7 +2351,8 @@ const AppointmentsFeature = {
         arrivalStart: arrivalStart || null,
         arrivalEnd: arrivalEnd || null,
         notes: [access ? `Access: ${access}` : '', notes].filter(Boolean).join('\n\n'),
-        status: 'confirmed'
+        status: 'confirmed',
+        ...(linkedOrder ? { orderId } : {})
       };
 
       // Lead conversion owns customer resolution, visit creation and lead
@@ -2369,8 +2382,8 @@ const AppointmentsFeature = {
       }
 
       // Create or find customer
-      let customerId = null;
-      if (phone) {
+      let customerId = linkedOrder?.customerId || null;
+      if (!customerId && phone) {
         const existing = await DB.findCustomerByPhone(phone);
         if (existing) {
           customerId = existing.id;
@@ -3387,6 +3400,17 @@ const AppointmentsFeature = {
         return;
       }
 
+      if (outcomeId === 'ordered' && result.order?.id) {
+        try {
+          await this.offerFittingBooking(result.order.id);
+        } catch (error) {
+          console.error('Fitting prompt failed after order save:', error);
+          Toast.show('Order saved. Schedule the fitting from Orders when ready.', 'warning');
+          App.navigate('appointments', { id });
+        }
+        return;
+      }
+
       if (appt.type === 'fitting' && outcomeId === 'completed') {
         this.offerSocialPost(appt);
         return;
@@ -3396,6 +3420,81 @@ const AppointmentsFeature = {
     } catch (e) {
       console.error('Save outcome error:', e);
       Toast.show('Failed to save outcome', 'error');
+    }
+  },
+
+  async offerFittingBooking(orderId) {
+    const order = await DB.db.orders.get(orderId);
+    if (!order) { App.navigate('orders'); return; }
+    if (!order.customerId) {
+      Toast.show('Link this order to a customer before booking the fitting', 'warning');
+      App.navigate('orders', { id: orderId });
+      return;
+    }
+    const linked = await DB.getAppointmentsByCustomer(order.customerId);
+    const fitting = linked.find(appt => appt.orderId === orderId && appt.type === 'fitting' && appt.status !== 'cancelled');
+    if (fitting) { App.navigate('appointments', { id: fitting.id }); return; }
+    const blocks = CONFIG.workingWeek?.blocks || [];
+    const content = `<div class="sheet-handle"></div>
+      <div class="sheet-header"><h3>When is the fitting?</h3><button class="btn btn-ghost btn-sm" data-action="AppointmentsFeature.deferFittingBooking" data-args='${JSON.stringify([orderId])}' aria-label="Close fitting prompt"><span class="material-symbols-rounded">close</span></button></div>
+      <div class="sheet-body">
+        <div class="fs-13 text-secondary mb-md">Order ${Utils.escapeHtml(order.orderNumber || '')} is saved. If the fitting has been agreed, add it to your diary now. Nothing is sent to the customer automatically.</div>
+        <div class="form-group"><label for="fitting-date">Fitting date</label><input type="date" class="input" id="fitting-date" min="${Utils.formatDate(new Date(), 'iso')}"></div>
+        <div class="form-group"><label for="fitting-slot">Arrival time slot</label><select class="select" id="fitting-slot" data-action="AppointmentsFeature.updateFittingSlot"><option value="">Choose a slot…</option>${blocks.map(block => `<option value="${Utils.escapeHtml(block.id)}">${Utils.escapeHtml(block.name)}</option>`).join('')}<option value="custom">Custom slot…</option></select></div>
+        <div class="form-row" id="fitting-custom-window" style="display:none"><div class="form-group"><label for="fitting-slot-start">Slot starts</label><input type="time" class="input" id="fitting-slot-start" step="900"></div><div class="form-group"><label for="fitting-slot-end">Slot ends</label><input type="time" class="input" id="fitting-slot-end" step="900"></div></div>
+        <div class="form-row"><div class="form-group"><label for="fitting-time">Diary time within slot</label><input type="time" class="input" id="fitting-time" step="900"></div><div class="form-group"><label for="fitting-duration">Expected duration</label><select class="select" id="fitting-duration">${this.renderDurationOptions(4)}</select></div></div>
+        <div class="hint mb-md">The slot is the arrival window; the diary time is used for route planning. You can reschedule later.</div>
+        <button class="btn btn-primary btn-block" data-action="AppointmentsFeature.saveFittingBooking" data-args='${JSON.stringify([orderId])}'>Add fitting to diary</button>
+        <button class="btn btn-outline btn-block mt-sm" data-action="AppointmentsFeature.deferFittingBooking" data-args='${JSON.stringify([orderId])}'>Date not agreed yet</button>
+      </div>`;
+    App.openModal(content);
+  },
+  updateFittingSlot() {
+    const slotId = document.getElementById('fitting-slot')?.value;
+    const custom = document.getElementById('fitting-custom-window');
+    if (custom) custom.style.display = slotId === 'custom' ? 'flex' : 'none';
+    const block = (CONFIG.workingWeek?.blocks || []).find(item => item.id === slotId);
+    const time = document.getElementById('fitting-time');
+    if (time) time.value = block?.start || '';
+  },
+  deferFittingBooking(orderId) {
+    App.closeModal();
+    App.navigate('orders', { id: orderId });
+  },
+  async saveFittingBooking(orderId) {
+    const date = document.getElementById('fitting-date')?.value || '';
+    const slotId = document.getElementById('fitting-slot')?.value || '';
+    const time = document.getElementById('fitting-time')?.value || '';
+    const durationSlots = Number(document.getElementById('fitting-duration')?.value) || 4;
+    const block = slotId === 'custom'
+      ? { start: document.getElementById('fitting-slot-start')?.value || '', end: document.getElementById('fitting-slot-end')?.value || '' }
+      : (CONFIG.workingWeek?.blocks || []).find(item => item.id === slotId);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < Utils.formatDate(new Date(), 'iso') || !block || !time) {
+      Toast.show('Choose a future fitting date and time slot', 'warning');
+      return;
+    }
+    if (!block.start || !block.end || block.start >= block.end) {
+      Toast.show('Choose a valid start and end for the fitting slot', 'warning');
+      return;
+    }
+    try {
+      const order = await DB.db.orders.get(orderId);
+      if (!order) { Toast.show('Order not found', 'error'); return; }
+      const customer = await DB.getCustomer(order.customerId);
+      const saleVisit = order.appointmentId ? await DB.getAppointment(order.appointmentId) : null;
+      const name = customer?.fullName || [customer?.firstName, customer?.lastName].filter(Boolean).join(' ') || saleVisit?.clientName || '';
+      const address = saleVisit?.address || (typeof customer?.address === 'string' ? customer.address : [customer?.address?.line1, customer?.address?.town, customer?.address?.postcode].filter(Boolean).join(', '));
+      if (!name || !address) { Toast.show('Add the customer name and address before booking a fitting', 'warning'); return; }
+      await this.saveAppointment(false, {
+        name, phone: customer?.phone || saleVisit?.phone || '', address, date, time, durationSlots,
+        type: 'fitting', source: saleVisit?.source || customer?.source || 'self_generated',
+        access: '', notes: `Fitting for ${order.orderNumber || 'order'}`,
+        arrivalStart: block.start, arrivalEnd: block.end, arrivalError: '',
+        leadId: null, jobId: null, jobRole: null, jobOperationId: null, orderId
+      });
+    } catch (error) {
+      console.error('Fitting booking failed:', error);
+      Toast.show('Could not prepare the fitting visit', 'error');
     }
   },
 
