@@ -1010,6 +1010,7 @@ const App = {
       CapacityFeature: typeof CapacityFeature === 'undefined' ? null : CapacityFeature,
       ProfitabilityFeature: typeof ProfitabilityFeature === 'undefined' ? null : ProfitabilityFeature,
       RetentionFeature: typeof RetentionFeature === 'undefined' ? null : RetentionFeature,
+      SocialFeature: typeof SocialFeature === 'undefined' ? null : SocialFeature,
       CommunicationsFeature,
       VoiceNotes: typeof VoiceNotes === 'undefined' ? null : VoiceNotes,
       NoteCapture: typeof NoteCapture === 'undefined' ? null : NoteCapture,

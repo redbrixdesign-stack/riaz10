@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'advisoros-';
-const CACHE_NAME = 'advisoros-v6-119-integrated-notes';
+const CACHE_NAME = 'advisoros-v6-120-social-media';
 const STATIC_ASSETS = [
   'js/services/note-capture.min.js?v=5','js/services/visit-summaries.min.js?v=1',
   './','index.html','manifest.json?v=3','css/core.css?v=34','css/components.css?v=54',
@@ -7,7 +7,7 @@ const STATIC_ASSETS = [
   'assets/icons/badge-gold-72.png','assets/icons/icon-gold-72.png','assets/icons/icon-gold-96.png','assets/icons/icon-gold-128.png','assets/icons/icon-gold-144.png','assets/icons/icon-gold-152.png','assets/icons/icon-gold-192.png','assets/icons/icon-gold-384.png','assets/icons/icon-gold-512.png','assets/icons/icon-gold-192-maskable.png','assets/icons/icon-gold-512-maskable.png','assets/icons/apple-touch-icon-gold-180.png',
   'assets/img/marker-icon.png','assets/img/marker-icon-2x.png','assets/img/marker-shadow.png',
   'js/vendor/dexie.min.js?v=1','js/vendor/minidexie.min.js?v=12',
-  'js/core/config.min.js?v=16','js/core/utils.min.js?v=10','js/core/db.min.js?v=34','js/core/geoprovider.min.js?v=1','js/core/geo.min.js?v=15','js/core/search.min.js?v=3','js/core/tax.min.js?v=2','js/core/install-prompt.min.js?v=1','js/services/voice-notes.min.js?v=1','js/core/app.min.js?v=39','js/core/lazy-features.min.js?v=6','js/core/legal.min.js?v=3','js/core/contact.min.js?v=4',
+  'js/core/config.min.js?v=16','js/core/utils.min.js?v=10','js/core/db.min.js?v=34','js/core/geoprovider.min.js?v=1','js/core/geo.min.js?v=15','js/core/search.min.js?v=3','js/core/tax.min.js?v=2','js/core/install-prompt.min.js?v=1','js/services/voice-notes.min.js?v=1','js/core/app.min.js?v=40','js/core/lazy-features.min.js?v=6','js/core/legal.min.js?v=3','js/core/contact.min.js?v=4',
   'js/services/ai.min.js?v=13','js/services/notification.min.js?v=10','js/services/message-scheduler.min.js?v=11','js/services/export.min.js?v=11','js/services/weather.min.js?v=3','js/services/tasks.min.js?v=2','js/services/job-field-service.min.js?v=2','js/services/capacity.min.js?v=1','js/services/communications.min.js?v=3',
   'js/features/companion/companion.min.js?v=29','js/features/onboarding/onboarding.min.js?v=7','js/features/today/today.min.js?v=19','js/features/today/home-screen-controller.min.js?v=13','js/features/appointments/appointments.min.js?v=46','js/features/customer/customer.min.js?v=13','js/features/route/route.min.js?v=16',
   'js/features/leads/leads.min.js?v=2','js/features/followups/followups.min.js?v=20','js/features/orders/orders.min.js?v=17',
