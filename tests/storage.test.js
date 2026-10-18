@@ -272,13 +272,44 @@ async function runDbJs(engine, tag) {
   const c = await DB.addCustomer({ firstName: 'Edsger', lastName: 'Dijkstra', phone: '07700 900789' });
   ok(engine + ': sequence guarded', c.customerNumber === `CUS-${new Date().getFullYear()}-0008`, c.customerNumber);
 
+  const audioFixture = [{ id: 'voice-1', dataUrl: 'data:audio/mp4;base64,AAAA', mediaType: 'audio/mp4', transcript: 'Synthetic context' }];
+  await DB.updateCustomer(c.id, { notes: 'Synthetic customer context', audioNotes: audioFixture });
+  const rawCustomerAudio = await DB.db.customers.get(c.id);
+  ok(engine + ': customer transcription audio encrypted at rest', typeof rawCustomerAudio.audioNotes[0].dataUrl === 'object' && typeof rawCustomerAudio.notes === 'object');
+  const readableCustomerAudio = await DB.getCustomer(c.id);
+  ok(engine + ': customer transcription audio decrypts', readableCustomerAudio.audioNotes[0].dataUrl === audioFixture[0].dataUrl && readableCustomerAudio.notes === 'Synthetic customer context');
+
   const search = await DB.searchCustomers('hopp');
   ok(engine + ': search by name', search.length === 1 && search[0].lastName === 'Hopper');
   const searchPost = await DB.searchCustomers('07700 900456');
   ok(engine + ': search by phone', searchPost.length === 1 && searchPost[0].firstName === 'Ada');
 
   const today = new Date().toISOString();
-  const voiceAppt = await DB.addAppointment({ customerId: c.id, date: today, outcome: 'quoted', value: 300, commission: 30 });
+  const voiceAppt = await DB.addAppointment({ customerId: c.id, date: today, outcome: 'quoted', value: 300, commission: 30, notes: 'Synthetic visit context', audioNotes: audioFixture });
+  const rawAppointmentAudio = await DB.db.appointments.get(voiceAppt.id);
+  ok(engine + ': appointment transcription audio encrypted at rest', typeof rawAppointmentAudio.audioNotes[0].dataUrl === 'object' && typeof rawAppointmentAudio.notes === 'object');
+  const readableAppointmentAudio = await DB.getAppointment(voiceAppt.id);
+  const summaryDraft = { mode: 'local-mock', sourceAudioId: 'embedded:synthetic', summary: { requirements: 'Blackout', observations: 'Width 1200 mm', promises: 'Send samples', missing: 'Drop', next: 'Confirm fabric' } };
+  let summaryRejected = false;
+  try { await DB.saveApprovedVisitSummary(voiceAppt.id, summaryDraft, false); } catch { summaryRejected = true; }
+  ok(engine + ': summary requires explicit approval', summaryRejected && !(await DB.getAppointment(voiceAppt.id)).approvedVisitSummary);
+  await DB.saveApprovedVisitSummary(voiceAppt.id, summaryDraft, true);
+  const rawSummary = (await DB.db.appointments.get(voiceAppt.id)).approvedVisitSummary;
+  ok(engine + ': approved summary encrypted at rest', typeof rawSummary === 'object' && !!rawSummary.ct);
+  const summaryAppt = await DB.getAppointment(voiceAppt.id);
+  ok(engine + ': approved summary decrypts without changing notes/audio', JSON.parse(summaryAppt.approvedVisitSummary).summary.observations === 'Width 1200 mm' && summaryAppt.notes === 'Synthetic visit context' && summaryAppt.audioNotes[0].dataUrl === audioFixture[0].dataUrl);
+  ok(engine + ': summary is available through customer query', (await DB.getAppointmentsByCustomer(c.id)).some(row => row.id === voiceAppt.id && row.approvedVisitSummary === summaryAppt.approvedVisitSummary));
+  const audioMeasurement = await DB.addMeasurement({ appointmentId: voiceAppt.id, windowName: 'Synthetic bedroom', audioNotes: audioFixture });
+  const summaryBackup = await DB.exportAll();
+  const exportedMeasurement = summaryBackup.measurements.find(row => row.id === audioMeasurement.id);
+  ok(engine + ': measurement backup contains portable audio, not old-key ciphertext', exportedMeasurement.audioNotes[0].dataUrl === audioFixture[0].dataUrl);
+  await DB.importAll(summaryBackup);
+  ok(engine + ': restored measurement audio is re-encrypted and readable', typeof (await DB.db.measurements.get(audioMeasurement.id)).audioNotes[0].dataUrl === 'object' && (await DB.getMeasurement(audioMeasurement.id)).audioNotes[0].transcript === audioFixture[0].transcript);
+  ok(engine + ': summary survives backup restore encrypted', (await DB.getAppointment(voiceAppt.id)).approvedVisitSummary === summaryAppt.approvedVisitSummary && typeof (await DB.db.appointments.get(voiceAppt.id)).approvedVisitSummary === 'object');
+  await DB.updateAppointment(voiceAppt.id, { audioNotes: [] });
+  ok(engine + ': deleting audio preserves approved summary', (await DB.getAppointment(voiceAppt.id)).approvedVisitSummary === summaryAppt.approvedVisitSummary);
+  await DB.updateAppointment(voiceAppt.id, { audioNotes: audioFixture });
+  ok(engine + ': appointment transcription audio decrypts', readableAppointmentAudio.audioNotes[0].dataUrl === audioFixture[0].dataUrl && readableAppointmentAudio.notes === 'Synthetic visit context');
   await DB.addAppointment({ customerId: c.id, date: today, outcome: null, value: 0, status: 'cancelled' });
   const todayAppts = await DB.getAppointmentsForDate(new Date());
   ok(engine + ': getAppointmentsForDate excludes cancelled', todayAppts.length === 1, todayAppts.length);

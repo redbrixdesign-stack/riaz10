@@ -184,7 +184,8 @@ console.log('normalizeDateField');
 
 console.log('rollStaleYearForward');
 {
-  const recent = new Date(Date.now() - 30 * 86400000);
+  vm.runInContext('Date.now = () => new Date(2026, 7, 11, 12).getTime()', sandbox);
+  const recent = new Date(new Date(2026, 7, 11, 12).getTime() - 30 * 86400000);
   const recentIso = `${recent.getFullYear()}-${String(recent.getMonth() + 1).padStart(2, '0')}-${String(recent.getDate()).padStart(2, '0')}`;
   const cases = {
     '': '',
@@ -200,6 +201,8 @@ console.log('rollStaleYearForward');
     const got = OCRFeature.rollStaleYearForward(input);
     ok(`rollStaleYearForward(${JSON.stringify(input)}) -> ${JSON.stringify(expected)}`, got === expected, got);
   }
+  vm.runInContext('delete Date.now', sandbox);
+  sandbox.Date = Date;
 }
 
 console.log('normalizeTimeField + resolveVisitIso');
@@ -344,4 +347,5 @@ console.log('duplicate prevention (saveToCustomer)');
   ok('non-duplicate scan navigates to the new visit', sandbox.lastNavigate && sandbox.lastNavigate[1] && sandbox.lastNavigate[1].id === 100, sandbox.lastNavigate);
 }
 
+  if (failures) process.exitCode = 1;
 })().catch(e => { console.error('UNEXPECTED ERROR:', e); process.exit(1); });

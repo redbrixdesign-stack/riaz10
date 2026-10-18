@@ -190,7 +190,6 @@ const OrdersFeature = {
     if (!order) { Toast.show('Order not found', 'error'); return; }
     let jobs = [];
     try { if (typeof DB.getJobs === 'function') jobs = await DB.getJobs({ orderId }); } catch (e) {}
-
     let fitting = null;
     try {
       const visits = typeof DB.getAppointmentsByCustomer === 'function' ? await DB.getAppointmentsByCustomer(order.customerId) : [];

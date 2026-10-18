@@ -4,25 +4,19 @@
    the operator/company details block, and a one-time consent sheet.
 
    Principles (from the launch audit):
-   - Honest by default: every claim here matches what the app actually
-     does (local-only storage, AES-GCM at rest, optional Claude AI via a
-     user-configured proxy, OSM map tiles, CDN code fetches).
-   - No invented facts: operator details below are placeholders that
-     MUST be filled before public launch (see TODO(launch)).
+   - Honest by default: distinguish device-local records from selected
+     network requests for maps, routing, weather and optional AI tools.
    ============================================ */
 
 const Legal = {
-  /* Operator details. TODO(launch): replace the em-dashes with the real
-     operator's details before any public marketing launch — the audit
-     flagged "company details in footer" as a P0 legal item. */
   COMPANY: {
-    name: '—',
-    address: '—',
-    email: '—',
-    companyNumber: '—'
+    name: 'BEELESTIAL LTD',
+    address: 'Apartment 6, 2 Copper Place, Manchester M14 7FZ',
+    email: 'hello@beelestial.co.uk',
+    companyNumber: '15297106'
   },
 
-  LAST_UPDATED: '18 August 2026',
+  LAST_UPDATED: '3 September 2026',
 
   openPage(page) {
     App.navigate('legal', { page: page === 'terms' ? 'terms' : 'privacy' });
@@ -68,10 +62,11 @@ const Legal = {
       <div class="card mb-md">
         <h2 class="fs-15 fw-700 mb-10" >What we store — and where</h2>
         <div class="fs-13 lh-160 text-secondary">
-          Beelo is an offline-first app. There is no Beelo account and no Beelo server:
-          everything you enter — customers, visits, orders, expenses, photos and
-          messages — is stored <strong>only on your own device</strong>, in this
-          browser's local storage. Nothing is uploaded to us, sold, or shared.
+          Beelo is an offline-first app with no user account or cloud customer
+          database. Your working records — customers, visits, orders, expenses,
+          photos and messages — are stored on your device in the browser's local
+          storage. Beelo does not sell them. Selected network features send only
+          the information described below when you use those features.
         </div>
       </div>
 
@@ -101,17 +96,27 @@ const Legal = {
       <div class="card mb-md">
         <h2 class="fs-15 fw-700 mb-10" >What may leave your device</h2>
         <div class="fs-13 lh-160 text-secondary">
-          Three things, each explained here so there are no surprises:
+          Network features are explained here so there are no surprises:
           <ul class="mt-8" style="padding-left:18px;list-style:disc;">
             <li class="mb-6"><strong>Map tiles.</strong> The Route map loads map tiles
               from OpenStreetMap's servers, so the map view sends a standard tile
               request (which includes your IP address) to openstreetmap.org.</li>
+            <li class="mb-6"><strong>Address search and routing.</strong> When you ask
+              Beelo to locate an address or calculate a journey, the address,
+              postcode or coordinates needed for that request are sent to the
+              configured Mapbox service or the public Nominatim/OSRM services.</li>
+            <li class="mb-6"><strong>Weather.</strong> When weather context is shown,
+              approximate coordinates are sent to Open-Meteo to retrieve the local
+              forecast.</li>
+            <li class="mb-6"><strong>Voice transcription (optional).</strong> When you
+              choose Transcribe, that recording is sent through Beelo's protected
+              serverless proxy to OpenAI for speech-to-text processing. Recording,
+              saving and playback remain available without transcription.</li>
             <li class="mb-6"><strong>Claude AI (optional, off by default).</strong> If you
               turn on AI in Settings, photos you scan and message drafts are sent to
-              the AI proxy URL you configure (for example your own Vercel function),
-              which forwards them to Anthropic's Claude. The app never ships an API
-              key — the key lives in your own proxy. Turn the toggle off at any time
-              to stop this.</li>
+              the configured protected proxy, which forwards them to Anthropic's
+              Claude. Provider API keys are not placed in the browser. Turn the
+              toggle off at any time to stop these Claude requests.</li>
             <li class="mb-6"><strong>Code libraries.</strong> A few open-source scripts
               (Leaflet for maps, Tesseract for offline OCR) load from public CDNs when
               you use those features. This is code, not your data.</li>
@@ -123,8 +128,9 @@ const Legal = {
         <h2 class="fs-15 fw-700 mb-10" >Cookies and tracking</h2>
         <div class="fs-13 lh-160 text-secondary">
           Beelo does not use cookies and has no analytics or advertising tracking.
-          The only "storage" is the app's own local storage on your device, which is
-          essential for the app to work and is never read by third parties.
+          The app uses browser storage that is essential for local records,
+          preferences and offline operation. Beelo does not use that storage for
+          advertising profiles or cross-site tracking.
         </div>
       </div>
 
@@ -141,8 +147,10 @@ const Legal = {
             <li class="mb-6"><strong>Erasure</strong> — Settings → Data &amp; Backup →
               Delete all data erases every record on this device permanently. You can
               also delete individual records at any time.</li>
-            <li class="mb-6"><strong>Withdraw consent</strong> — the optional Claude AI
-              feature is off by default; switch it off in Settings → Claude AI.</li>
+            <li class="mb-6"><strong>Optional network tools</strong> — Claude AI is off
+              by default and can be switched off in Settings. Voice transcription
+              happens only when you tap Transcribe. Maps, routes and weather are
+              requested only when their relevant views/actions are used.</li>
           </ul>
           You may also contact us (details below) or the UK Information
           Commissioner's Office (ico.org.uk) with any concern.
@@ -152,9 +160,10 @@ const Legal = {
       <div class="card mb-md">
         <h2 class="fs-15 fw-700 mb-10" >How long we keep data</h2>
         <div class="fs-13 lh-160 text-secondary">
-          Records are kept until you delete them (individually or via Delete all
-          data). Backups you export are files you control; when you delete a backup
-          file it is gone. We hold nothing on our side to retain or delete.
+          Device records are kept until you delete them (individually or via Delete
+          all data). Backups you export are files you control. Beelo does not keep a
+          cloud copy of the app database. External processors may process selected
+          network requests as described above and under their applicable terms.
         </div>
       </div>
 
@@ -183,7 +192,9 @@ const Legal = {
         <div class="fs-13 lh-160 text-secondary">
           Beelo is an offline-first companion app for self-employed field-service
           professionals to keep their own customer and business records. It is
-          provided free of charge and runs entirely on your device.
+          provided free of charge. Core records remain on your device; selected
+          maps, routing, weather and optional AI tools use network services as
+          described in the Privacy Policy.
         </div>
       </div>
 
@@ -277,8 +288,7 @@ App.registerFeature(LegalFeature);
 /* ============================================
    CONSENT SHEET — shown once, after the user settles on Today.
    Beelo has no cookies/tracking, so this is not a cookie banner: it's a
-   plain-language notice that (a) data stays on the device, and (b) the one
-   optional feature that sends anything out (Claude AI) is off by default.
+   plain-language notice distinguishing local records from explicit network tools.
    Acknowledging records advisoros_consent locally; "Delete all data"
    clears it, so a fresh start asks again.
    ============================================ */
@@ -292,7 +302,10 @@ const ConsentPrompt = {
   },
 
   _acknowledged() {
-    try { return !!localStorage.getItem('advisoros_consent'); } catch { return true; }
+    try {
+      const saved = JSON.parse(localStorage.getItem('advisoros_consent') || 'null');
+      return Number(saved?.v) >= 2;
+    } catch { return false; }
   },
 
   _schedule() {
@@ -318,32 +331,34 @@ const ConsentPrompt = {
     App.openModal(`
       <div class="sheet-handle"></div>
       <div class="sheet-header">
-        <h3>Your data stays on this phone</h3>
+        <h3>Your records stay on this phone</h3>
       </div>
       <div class="sheet-body p-md">
         <p class="text-secondary mb-lg lh-150 fs-14">
-          Beelo has no account and no servers. Every customer, visit and photo lives
-          on <strong>this device</strong>, encrypted — nothing is uploaded or sold.
+          Beelo has no user account or cloud customer database. Your saved customer,
+          visit, photo and audio records live on <strong>this device</strong>, with
+          sensitive fields encrypted. Beelo does not sell them.
         </p>
         <p class="text-secondary mb-lg lh-150 fs-14">
-          The one optional feature that sends anything out is <strong>Claude AI</strong>
-          (photo scanning and message drafting), which is <strong>off by default</strong>
-          and stays off until you switch it on in Settings.
+          Maps, address search, routing and weather use external providers when you
+          request them. Voice audio is sent to OpenAI only when you tap
+          <strong>Transcribe</strong>. Claude photo/drafting tools are
+          <strong>off by default</strong> and use Anthropic only after you enable them.
         </p>
         <button class="btn btn-primary btn-block" data-action="ConsentPrompt.acknowledge">I understand</button>
         <button class="btn btn-ghost btn-block mt-sm" data-action="ConsentPrompt.openPrivacy">Read our privacy policy</button>
-        <div class="fs-11 text-tertiary text-center mt-12" >No cookies · no tracking · nothing leaves your phone unless you choose to</div>
+        <div class="fs-11 text-tertiary text-center mt-12" >No advertising tracking · no autonomous messages · network tools act only when requested</div>
       </div>
     `);
   },
 
   acknowledge() {
     try {
-      localStorage.setItem('advisoros_consent', JSON.stringify({ v: 1, at: new Date().toISOString() }));
+      localStorage.setItem('advisoros_consent', JSON.stringify({ v: 2, at: new Date().toISOString() }));
     } catch (e) {}
     this._shown = true;
     App.closeModal({ all: true, silent: true });
-    Toast.show('Thanks — everything stays on this phone', 'success');
+    Toast.show('Privacy choices acknowledged', 'success');
   },
 
   openPrivacy() {

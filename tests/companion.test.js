@@ -349,7 +349,8 @@ assert(norm('random gibberish 123') === 'default', 'unknown routes to default');
     nextVisit: {
       id: 1, name: 'Mrs Smith', date: new Date().toISOString(), time: '09:30',
       hasArrivalWindow: true, type: 'Fitting', address: '14 Beechwood Avenue', area: 'M33', eta: '18 min',
-      customerBrief: { text: 'Parking: visitor bay · Returning customer · Prefers neutral colours', fingerprint: 'brief-test' }
+      customerBrief: { text: 'Parking: visitor bay · Returning customer · Prefers neutral colours', fingerprint: 'brief-test' },
+      briefing: 'Prefers morning visits · Parking: use visitor bay'
     },
     upcomingVisits: [
       { id: 2, name: 'Mr Khan', date: iso(1), time: '11:00–13:00', hasArrivalWindow: true, type: 'Sales', area: 'Altrincham', eta: '25 min' }
@@ -375,6 +376,7 @@ assert(norm('random gibberish 123') === 'default', 'unknown routes to default');
   assert(!scheduleHtml.includes("TODAY'S ROUTE") && !scheduleHtml.includes('comp-home-route'), 'Home does not render the Route section');
   assert((scheduleHtml.match(/comp-home-schedule"/g) || []).length === 1, 'Home renders one appointment schedule panel');
   assert(scheduleHtml.includes('comp-home-schedule-list') && scheduleHtml.includes('comp-home-next-visit') && scheduleHtml.includes('comp-home-visit upcoming'), 'Schedule contains featured visit and compact rows');
+  assert(scheduleHtml.includes('comp-home-next-visit-context') && scheduleHtml.includes('Prefers morning visits'), 'Featured upcoming appointment renders saved customer context');
   assert(scheduleHtml.includes('09:30') && scheduleHtml.includes('11:00–13:00') && !scheduleHtml.includes('Arrival window') && !scheduleHtml.includes('Window '), 'Schedule shows promised time ranges without redundant labels');
   assert(scheduleHtml.includes('Visit brief') && scheduleHtml.includes('Parking: visitor bay') && scheduleHtml.includes('Returning customer'), 'Featured visit shows concise saved customer context');
   assert(scheduleHtml.includes('Fitting · M33'), 'Featured visit shows sourced visit and area context');
@@ -390,6 +392,11 @@ assert(norm('random gibberish 123') === 'default', 'unknown routes to default');
   const brief = await Companion.customerBriefFor(APPOINTMENTS.find(a => a.id === 71));
   assert(brief.text.includes('Parking: use visitor bay') && brief.text.includes('Access: 2468') && brief.text.includes('Pets: dog in kitchen') && brief.text.includes('Floor: second floor'), 'Local customer brief combines operational facts across Customer 360 history', brief.text);
   assert(brief.text.includes('1 previous visit') && brief.text.includes('last outcome: Fitted'), 'Local brief reports repeat-customer history without inventing detail', brief.text);
+
+  CUSTOMERS.push({ id: 72, notes: 'Access: ring side bell\nCustomer prefers neutral colours' });
+  APPOINTMENTS.push({ id: 72, customerId: 72, date: iso(2), type: 'sales', notes: '' });
+  const profileBrief = await Companion.customerBriefFor(APPOINTMENTS.find(a => a.id === 72));
+  assert(profileBrief.text.includes('Access: ring side bell') && profileBrief.text.includes('Customer prefers neutral colours'), 'Local brief includes context saved directly on the customer profile', profileBrief.text);
 
   // ---------- AI data minimisation ----------
   // Whatever goes to Claude must not carry the customer's most sensitive

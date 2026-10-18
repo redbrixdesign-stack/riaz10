@@ -29,7 +29,7 @@ const NotificationService = {
   // `time` carries its own preposition: "at 09:00" for an exact slot or
   // "between 09:00 and 11:00" for an arrival window — the caller picks, so
   // the phrase "at between …" can never leak into a customer message.
-  buildBookingConfirmationMessage({ firstName, date, dateLabel, time, address, type, advisorName }) {
+  buildBookingConfirmationMessage({ firstName, date, dateLabel, time, address, type, advisorName, advisorTitle }) {
     const name = firstName || 'there';
     const author = advisorName || 'Your Advisor';
     let daysUntil = null;
@@ -47,11 +47,18 @@ const NotificationService = {
     }
     const tier = daysUntil === null ? 'soon' : daysUntil <= 0 ? 'today' : daysUntil === 1 ? 'tomorrow' : daysUntil <= 3 ? 'soon' : 'later';
 
+    const role = advisorTitle || 'window coverings adviser';
+    const purpose = {
+      consultation: 'for your window-coverings consultation', measure: 'to measure your windows',
+      fitting: 'to fit your window coverings', review: 'to review the completed work',
+      service_call: 'to look at the issue you reported', follow_up: 'to follow up on our previous visit'
+    }[type] || 'for your appointment';
+    const when = tier === 'today' ? `today ${time}` : tier === 'tomorrow' ? `tomorrow ${time}` : `${dateLabel} ${time}`;
     const openings = {
-      today: `Hi ${name}, thanks for booking! I'll be with you today ${time}.`,
-      tomorrow: `Hi ${name}, thanks for booking — looking forward to seeing you tomorrow ${time}.`,
-      soon: `Hi ${name}, thanks for booking! I've got you down for ${dateLabel} ${time}.`,
-      later: `Hi ${name}, thanks for booking! You're all set for ${dateLabel} ${time} — that's a little way off yet, so I'll drop you a reminder closer to the day, but wanted to say hello now and flag a couple of things ahead of time:`
+      today: `Hi ${name}, I'm ${author}, your ${role}. I'll be with you ${when} ${purpose}.`,
+      tomorrow: `Hi ${name}, I'm ${author}, your ${role}. Just confirming I'll be with you ${when} ${purpose}.`,
+      soon: `Hi ${name}, I'm ${author}, your ${role}. I have your visit arranged for ${when} ${purpose}.`,
+      later: `Hi ${name}, I'm ${author}, your ${role}. I have your visit arranged for ${when} ${purpose}. I'll send you a shorter reminder closer to the day.`
     };
 
     const asks = {

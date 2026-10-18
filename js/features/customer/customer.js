@@ -164,14 +164,17 @@ const CustomerFeature = {
         </div>
 
         <div class="card card-page">
-          <div class="flex items-center justify-between mb-sm">
-            <div class="fs-13 fw-600 text-secondary">Voice notes ${voiceNotes.length ? `(${voiceNotes.length})` : ''}</div>
-            <button class="btn btn-outline btn-sm" data-action="VoiceNotes.openRecorder" data-args='${JSON.stringify([customerId, null, null])}'><span class="material-symbols-rounded fs-16">mic</span>Record</button>
-          </div>
-          ${VoiceNotes.renderList(voiceNotes, { customerId })}
+            <div class="flex items-center justify-between mb-sm">
+              <div class="fs-13 fw-600 text-secondary">Customer context</div>
+              <button class="btn btn-ghost btn-sm" aria-label="Edit customer context" data-action="AppointmentsFeature.openEditCustomerModal" data-args='${JSON.stringify([(customer.id)])}'><span class="material-symbols-rounded">edit</span></button>
+            </div>
+            ${customer.notes ? `<div class="fs-14 text-secondary prewrap">${Utils.escapeHtml(customer.notes)}</div>` : '<div class="fs-13 text-tertiary">No customer context yet.</div>'}
+            ${typeof NoteCapture !== 'undefined' ? NoteCapture.renderPlaybackList(`customer-context-${customerId}`, customer.audioNotes || []) : ''}
+            ${voiceNotes.length ? `<div class="mt-sm">${VoiceNotes.renderList(voiceNotes, { customerId })}</div>` : ''}
         </div>
 
         <div class="card card-page" >
+          ${typeof VisitSummaries !== 'undefined' ? appts.filter(a => a.approvedVisitSummary).map(a => `<div><p>Visit ${Utils.escapeHtml(a.date || '')}</p>${VisitSummaries.render(a)}</div>`).join('') : ''}
           <div class="hsc-stat-row">
             <div class="hsc-stat hsc-stat-clickable" role="button" tabindex="0" aria-label="View visit history" data-action="CustomerFeature.scrollToHistory" data-key="Enter, space">
               <div class="hsc-stat-value">${appts.length}</div>

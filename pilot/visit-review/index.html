@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'none'; media-src blob:; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Beelo — Local visit-review mock</title>
+<style>body{font:17px system-ui;line-height:1.5;max-width:760px;margin:24px auto;padding:16px;color:#202b33;background:#fafafa}label{display:block;font-weight:600;margin-top:16px}textarea,input{box-sizing:border-box;width:100%;font:inherit}textarea{min-height:100px}button{font:inherit;min-height:44px;margin:12px 8px 12px 0;padding:8px 16px}audio{max-width:100%}input[type=checkbox]{width:auto}aside{background:#fff2cb;padding:16px}#status{min-height:30px}</style></head>
+<body><main><h1>Visit review — local mock</h1>
+<aside><strong>Synthetic test data only. No Azure connection.</strong> This page does not transcribe speech or run AI. It groups labelled mock transcript lines. Nothing is uploaded or added to customer records. Unsaved work is lost on refresh.</aside>
+<label for="audio">1. Select one synthetic voice note (maximum 10 MB)</label><input id="audio" type="file" accept="audio/*">
+<audio id="playback" controls hidden></audio>
+<label for="transcript">2. Mock transcript — type or paste synthetic test text</label>
+<p>Use lines starting Requirement:, Observation:, Promise:, Missing: or Next:. Other lines stay as observations. Measurements are never calculated.</p>
+<textarea id="transcript" maxlength="12000" placeholder="Requirement: Synthetic customer wants blackout blinds&#10;Observation: Bedroom width 1200 mm, drop not recorded&#10;Promise: Send fabric samples&#10;Missing: Confirm drop&#10;Next: Review samples with customer"></textarea>
+<button id="prepare" type="button">Prepare mock review</button><button id="discard" type="button">Discard session</button>
+<p id="status" role="status" aria-live="polite">Select a file to begin. Works without internet once loaded.</p>
+<section id="review" hidden><h2>3. Review and edit</h2><p>Blank sections mean not captured—not that no action is needed. Verify dimensions, units and promises yourself.</p><div id="fields"></div>
+<label><input id="confirm" type="checkbox"> I reviewed all sections, including measurements and missing information.</label>
+<button id="approve" type="button">Approve and download mock JSON</button></section>
+</main><script type="module" src="ui.mjs"></script></body></html>
