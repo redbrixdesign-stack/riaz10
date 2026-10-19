@@ -118,10 +118,11 @@ const TaxCalculator = {
     const appointments = await DB.db.appointments
       .where('date')
       .between(startDate, endDate)
-      .and(a => a.status !== 'cancelled' && a.outcome === 'ordered')
+      .and(a => a.status !== 'cancelled' && (a.outcome === 'ordered' || (a.status === 'completed' && ((a.type === 'measure' && a.outcome === 'measured') || (a.type === 'service_call' && ['resolved', 'parts_needed', 'revisit_needed', 'not_a_fault'].includes(a.outcome))))))
       .toArray();
 
     const totalIncome = appointments.reduce((sum, a) => {
+      if (a.outcome !== 'ordered') return sum + Math.max(0, Number(a.visitEarnings) || 0);
       if (typeof a.commission === 'number' && a.commission > 0) return sum + a.commission;
       return sum + this.estimateCommission(a.value || 0);
     }, 0);
@@ -149,6 +150,14 @@ const TaxCalculator = {
       profit,
       tax: this.calculate(profit)
     };
+  },
+
+  estimateSurveyCommission(orderValue) {
+    const c = CONFIG.commission || {};
+    const value = Math.max(0, Number(orderValue) || 0);
+    const rate = c.mode === 'two_stage' ? c.netCommissionRate : c.mode === 'simple' ? c.simpleRate : c.rate;
+    const basis = c.mode === 'two_stage' ? value * Math.max(0, 1 - (Number(c.saleReductionRate) || 0) / 100) : value;
+    return Math.round(basis * Math.max(0, (Number(rate) || 0) - 2)) / 100;
   },
 
   // Estimate advisor commission from sale value when an exact commission was not recorded.

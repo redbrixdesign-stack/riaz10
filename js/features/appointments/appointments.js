@@ -1849,6 +1849,8 @@ const AppointmentsFeature = {
                 <span class="material-symbols-rounded text-success" >check_circle</span>
                 <div class="flex-1" >
                   <div class="fw-600" >${this.getOutcomeName(appt.outcome, appt.type)}</div>
+                  ${appt.surveyOrderValue > 0 ? `<div class="fs-13">Referred order: ${Utils.formatCurrency(appt.surveyOrderValue)} — not a new sale</div>` : ''}
+                  ${appt.visitEarningsKind ? `<div class="fs-13">${appt.visitEarningsKind === 'survey_commission' ? 'Survey commission' : 'Service visit fee'}: ${Utils.formatCurrency(appt.visitEarnings || 0)}</div>` : ''}
                   ${appt.value > 0 ? `<div class="fs-13 text-success" >${Utils.formatCurrency(appt.value)}</div>` : ''}
                   ${appt.quoteReason ? `<div class="fs-13 text-secondary mt-2" >${Utils.escapeHtml(this.getQuoteReasonLabel(appt.quoteReason))}</div>` : ''}
                 </div>
@@ -3161,6 +3163,8 @@ const AppointmentsFeature = {
     const saleOutcome = outcomeId === 'ordered';
     const valueLabel = saleOutcome ? 'Sale Amount (&pound;)' : 'Quote Amount (&pound;)';
     const commissionHint = this.getCommissionHint();
+    const surveyOutcome = appt.type === 'measure' && outcomeId === 'measured';
+    const serviceFee = appt.type === 'service_call' && ['resolved', 'parts_needed', 'revisit_needed', 'not_a_fault'].includes(outcomeId);
 
     // The door-money hooks: a deposit when the sale is logged, the final
     // payment when the fitting completes. Both read REAL order records, never
@@ -3233,6 +3237,12 @@ const AppointmentsFeature = {
             <div class="hint mt-neg-8 mb-14" >Quote value is kept on the table, but no commission is counted until it becomes an order.</div>
           `}
         ` : ''}
+
+        ${surveyOutcome ? `<div class="hint mb-md">Referred survey: another adviser has already sold this order. Add this new customer's order details here; no previous Beelo order is needed.</div>
+          <div class="form-group"><label for="survey-value">Existing order amount (£)</label><input class="input" type="number" min="0.01" step="0.01" inputmode="decimal" id="survey-value" value="${Number(appt.surveyOrderValue) || ''}" data-action="AppointmentsFeature.updateSurveyCommission"></div>
+          <div id="survey-commission" class="hint">Survey commission: normal sales rate minus 2 percentage points, using the same calculation basis.</div>
+          <div class="hint mb-md">Confirm measurements before saving. Next, confirm the fitting date and arrival slot. This is not counted as a new sale.</div>` : ''}
+        ${serviceFee ? '<div class="hint mb-md">£20 fixed visit fee will be recorded when you save this completed service call.</div>' : ''}
 
         ${outcomeId === 'quoted' ? `
           <div class="form-group">
@@ -3364,6 +3374,12 @@ const AppointmentsFeature = {
     return 'Auto-calculated from your commission settings.';
   },
 
+  updateSurveyCommission() {
+    const amount = Number(document.getElementById('survey-value')?.value) || 0;
+    const el = document.getElementById('survey-commission');
+    if (el) el.textContent = `Survey commission: ${Utils.formatCurrency(TaxCalculator.estimateSurveyCommission(amount))} (sales rate minus 2 percentage points).`;
+  },
+
   async saveOutcome(id, outcomeId) {
     const grossValue = parseFloat(document.getElementById('outcome-value')?.value || 0);
     const discountPct = outcomeId === 'ordered'
@@ -3390,6 +3406,13 @@ const AppointmentsFeature = {
 
     try {
       let appt = await DB.getAppointment(id);
+      const survey = appt.type === 'measure' && outcomeId === 'measured';
+      const surveyOrderValue = survey ? Number(document.getElementById('survey-value')?.value) : null;
+      if (survey && (!appt.customerId || !Number.isFinite(surveyOrderValue) || surveyOrderValue <= 0)) {
+        Toast.show('Link a customer and enter a valid existing order amount', 'warning');
+        return;
+      }
+      const serviceFee = appt.type === 'service_call' && ['resolved', 'parts_needed', 'revisit_needed', 'not_a_fault'].includes(outcomeId);
       const existingNotes = appt.notes || '';
       const reasonText = reason ? `Reason: ${reason.replace(/_/g, ' ')}` : '';
       const discountText = discountPct > 0 ? `Discount: ${discountPct}% off ${Utils.formatCurrency(grossValue)}` : '';
@@ -3402,6 +3425,9 @@ const AppointmentsFeature = {
         appointmentFields: {
         status: 'completed',
         outcome: outcomeId,
+        surveyOrderValue,
+        visitEarnings: survey ? TaxCalculator.estimateSurveyCommission(surveyOrderValue) : serviceFee ? 20 : 0,
+        visitEarningsKind: survey ? 'survey_commission' : serviceFee ? 'service_fee' : null,
         // Fields that are being "cleared" use `null`, NOT `undefined` - the
         // mini-Dexie shim skips undefined values silently while real Dexie
         // deletes them, and `null` behaves identically in both.
@@ -3434,7 +3460,7 @@ const AppointmentsFeature = {
       App.closeModal();
       Toast.show('Outcome saved' + paymentNote, 'success');
 
-      if (outcomeId === 'ordered' && result.order?.id) {
+      if ((outcomeId === 'ordered' || survey) && result.order?.id) {
         try {
           await this.offerFittingBooking(result.order.id);
         } catch (error) {

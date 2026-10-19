@@ -327,6 +327,24 @@ async function runDbJs(engine, tag) {
   const stats = await DB.getWeekStats(new Date(Date.now() - 2 * 86400000).toISOString(), new Date(Date.now() + 86400000).toISOString());
   ok(engine + ': week stats count ordered only', stats.orderedCount === 2 && stats.sales === 900 + 500, stats);
 
+  const referralCustomer = await DB.addCustomer({ firstName: 'SYNTHETIC', lastName: 'Referral' });
+  const surveyVisit = await DB.addAppointment({ customerId: referralCustomer.id, type: 'measure', date: today, status: 'confirmed' });
+  const surveyFields = { status: 'completed', outcome: 'measured', surveyOrderValue: 1000, visitEarnings: 106, visitEarningsKind: 'survey_commission' };
+  const surveyResult = await DB.completeVisitOutcome({ appointmentId: surveyVisit.id, appointmentFields: surveyFields });
+  const surveyRetry = await DB.completeVisitOutcome({ appointmentId: surveyVisit.id, appointmentFields: surveyFields });
+  ok(engine + ': referred survey creates one linked order without a prior order', surveyResult.order.id === surveyRetry.order.id && surveyResult.order.source === 'survey_referral');
+  ok(engine + ': referred survey does not invent a payment balance', surveyResult.order.balanceDue === 0 && surveyResult.order.depositRequired === 0);
+  ok(engine + ': survey retains fitting order link', (await DB.getAppointment(surveyVisit.id)).orderId === surveyResult.order.id);
+  const serviceVisit = await DB.addAppointment({ customerId: referralCustomer.id, type: 'service_call', date: today, status: 'confirmed' });
+  await DB.completeVisitOutcome({ appointmentId: serviceVisit.id, appointmentFields: { status: 'completed', outcome: 'resolved', visitEarnings: 20, visitEarningsKind: 'service_fee' } });
+  const earningStats = await DB.getWeekStats(new Date(Date.now() - 2 * 86400000).toISOString(), new Date(Date.now() + 86400000).toISOString());
+  ok(engine + ': survey and service earnings counted without new sales', earningStats.sales === stats.sales && earningStats.orderedCount === stats.orderedCount && earningStats.earnings === stats.earnings + 126);
+  await DB.updateAppointment(serviceVisit.id, { status: 'cancelled' });
+  const cancelledStats = await DB.getWeekStats(new Date(Date.now() - 2 * 86400000).toISOString(), new Date(Date.now() + 86400000).toISOString());
+  ok(engine + ': cancelled service fee excluded', cancelledStats.earnings === stats.earnings + 106);
+  await DB.updateAppointment(surveyVisit.id, { outcome: 'partial', visitEarnings: 0, visitEarningsKind: null });
+  await DB.deleteCustomer(referralCustomer.id);
+
   const pipeline = await DB.getPipeline();
   ok(engine + ': pipeline includes quoted, not cancelled', pipeline.length >= 1 && pipeline.every(a => a.status !== 'cancelled'));
 

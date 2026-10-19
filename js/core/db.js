@@ -1208,7 +1208,10 @@ const DB = {
         earnings += TaxCalculator.estimateCommission(a.value || 0);
       }
     }
-    return { sales, earnings, orderedCount: appts.length };
+    const visitRows = rows.filter(a => a.status === 'completed' && a.outcome !== 'ordered' && this._inDateWindow(a.date, start, end));
+    const surveyEarnings = visitRows.filter(a => a.type === 'measure' && a.outcome === 'measured').reduce((sum, a) => sum + Math.max(0, Number(a.visitEarnings) || 0), 0);
+    const serviceEarnings = visitRows.filter(a => a.type === 'service_call' && ['resolved', 'parts_needed', 'revisit_needed', 'not_a_fault'].includes(a.outcome)).reduce((sum, a) => sum + Math.max(0, Number(a.visitEarnings) || 0), 0);
+    return { sales, earnings: earnings + surveyEarnings + serviceEarnings, surveyEarnings, serviceEarnings, orderedCount: appts.length };
   },
 
   async getPipeline() {
@@ -1391,7 +1394,21 @@ const DB = {
       linked.sort((a, b) => (a.id || 0) - (b.id || 0));
       let order = linked[0] || null;
       for (const duplicate of linked.slice(1)) await this.db.orders.delete(duplicate.id);
-      if (appointmentFields.outcome === 'ordered' && (appointmentFields.value || 0) > 0) {
+      if (current.type === 'measure' && appointmentFields.outcome === 'measured' && appointmentFields.surveyOrderValue != null) {
+        const total = Number(appointmentFields.surveyOrderValue);
+        if (!customerId || !Number.isFinite(total) || total <= 0) throw new Error('Survey requires a customer and valid order value');
+        // This records an external sale for fitting context, not a new adviser sale
+        // or a customer balance to collect. Re-saving reuses the same order.
+        if (!order) {
+          const seq = await this._nextSequenceUnsafe('order');
+          order = { customerId, appointmentId, total, source: 'survey_referral', orderNumber: `REF-${new Date().getFullYear()}-${String(seq).padStart(4, '0')}`, depositRequired: 0, depositPaid: 0, balanceDue: 0, status: 'confirmed', stage: 'ordered', createdAt: new Date().toISOString() };
+          order.id = await this.db.orders.add(order);
+        } else if (order.source === 'survey_referral') {
+          await this.db.orders.update(order.id, { total });
+          order = { ...order, total };
+        }
+        encryptedFields.orderId = order.id;
+      } else if (appointmentFields.outcome === 'ordered' && (appointmentFields.value || 0) > 0) {
         const total = appointmentFields.value;
         const depositRequired = App.calculateDeposit(total).amount;
         if (order) {

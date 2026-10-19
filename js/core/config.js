@@ -178,7 +178,7 @@ const CONFIG = {
       { id: 'advisor_unavailable', name: 'Advisor Could Not Attend', icon: 'event_busy', nextAction: 'apologise_rebook' }
     ],
     measure: [
-      { id: 'measured', name: 'All Measured', icon: 'check_circle', nextAction: 'prepare_quote' },
+      { id: 'measured', name: 'Survey Confirmed', icon: 'check_circle', nextAction: 'schedule_fitting' },
       { id: 'partial', name: 'Partial Measure', icon: 'timelapse', nextAction: 'schedule_remeasure' },
       { id: 'remeasure', name: 'Re-measure Needed', icon: 'refresh', nextAction: 'schedule_remeasure' },
       { id: 'cancelled', name: 'Cancelled', icon: 'cancel', nextAction: 'close_lost' }

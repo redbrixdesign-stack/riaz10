@@ -67,7 +67,7 @@ const MoneyFeature = {
       <div class="p-md pb-0" >
         <!-- HERO: This Week Earnings -->
         <div class="card" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; border: none;">
-          <div class="fs-13 op-90" >This Week · Earnings (commission)</div>
+          <div class="fs-13 op-90" >This Week · Earnings (commission + visit fees)</div>
           <div class="fs-40 fw-700 mt-4" >${Utils.formatCurrency(weekEarnings)}</div>
           <div class="fs-16 op-90 mt-2" >
             ${targetGap > 0 
