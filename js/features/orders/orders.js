@@ -21,6 +21,13 @@ const OrdersFeature = {
 
   QUOTE_OUTCOMES: ['quoted', 'thinking', 'partner', 'compare_quotes', 'expensive'],
 
+  isReferral(order) { return order.source === 'survey_referral'; },
+
+  displayStage(order) {
+    if (this.isReferral(order)) return ['ordered', 'delivered', 'fitted'].includes(order.stage) ? order.stage : 'ordered';
+    return (order.balanceDue || 0) <= 0 ? 'paid' : (order.stage || 'ordered');
+  },
+
   render(params = {}) {
     return this.renderAsync(params);
   },
@@ -50,7 +57,7 @@ const OrdersFeature = {
 
     const orderByStage = { ordered: [], delivered: [], fitted: [], paid: [] };
     for (const o of orders) {
-      const stage = (o.balanceDue || 0) <= 0 ? 'paid' : (o.stage || 'ordered');
+      const stage = this.displayStage(o);
       // Never drop an order silently: an unexpected stage value (legacy
       // data, hand-edited row) would otherwise make the board undercount.
       const bucket = orderByStage[stage] ? stage : 'ordered';
@@ -160,7 +167,7 @@ const OrdersFeature = {
   renderOrderCard(order, customerMap) {
     const customer = order.customerId ? customerMap.get(order.customerId) : null;
     const name = Utils.escapeHtml(customer?.fullName || (customer ? `${customer.firstName || ''} ${customer.lastName || ''}`.trim() : '') || 'Unknown');
-    const isPaid = (order.balanceDue || 0) <= 0;
+    const isPaid = this.displayStage(order) === 'paid';
     return `
       <button class="kanban-card" type="button" data-action="OrdersFeature.openOrderSheet" data-args='${JSON.stringify([(order.id)])}'>
         <div class="kanban-card-top">
@@ -169,7 +176,7 @@ const OrdersFeature = {
         </div>
         <div class="kanban-card-sub">${Utils.escapeHtml(order.orderNumber || 'Order')}${order.supplierOrderNumber ? ` · ${Utils.escapeHtml(order.supplierOrderNumber)}` : ''}</div>
         <div class="kanban-card-actions">
-          ${isPaid
+          ${this.isReferral(order) ? '<span class="kanban-card-action">Referred order · payment managed externally</span>' : isPaid
             ? `<span class="kanban-card-action"><span class="material-symbols-rounded">check_circle</span>Paid</span>`
             : `<span class="kanban-card-action"><span class="material-symbols-rounded">payments</span>Owes ${Utils.formatCurrency(order.balanceDue || 0)}</span>`}
           <span class="kanban-card-action"><span class="material-symbols-rounded">chevron_right</span></span>
@@ -200,10 +207,12 @@ const OrdersFeature = {
     try { customer = order.customerId ? await DB.getCustomer(order.customerId) : null; } catch (e) {}
     const name = customer?.fullName || (customer ? `${customer.firstName || ''} ${customer.lastName || ''}`.trim() : '') || 'Unknown';
     const phone = customer?.phone || '';
-    const isPaid = (order.balanceDue || 0) <= 0;
-    const stage = isPaid ? 'paid' : (order.stage || 'ordered');
+    const referral = this.isReferral(order);
+    const stage = this.displayStage(order);
+    const isPaid = stage === 'paid';
     const stageIndex = this.STAGES.findIndex(s => s.id === stage);
-    const commission = typeof order.commission === 'number' && order.commission > 0
+    const surveyVisit = referral && order.appointmentId ? await DB.getAppointment(order.appointmentId) : null;
+    const commission = referral ? (Number(surveyVisit?.visitEarnings) || 0) : typeof order.commission === 'number' && order.commission > 0
       ? order.commission
       : (typeof TaxCalculator !== 'undefined' ? TaxCalculator.estimateCommission(order.total || 0) : 0);
 
@@ -236,10 +245,11 @@ const OrdersFeature = {
 
         <div class="kanban-sheet-grid">
           <div class="kanban-sheet-cell"><div class="kanban-sheet-label">Total</div><div class="kanban-sheet-value">${Utils.formatCurrency(order.total || 0)}</div></div>
-          <div class="kanban-sheet-cell"><div class="kanban-sheet-label">Deposit</div><div class="kanban-sheet-value">${Utils.formatCurrency(order.depositRequired || 0)}</div></div>
+          ${!referral ? `<div class="kanban-sheet-cell"><div class="kanban-sheet-label">Deposit</div><div class="kanban-sheet-value">${Utils.formatCurrency(order.depositRequired || 0)}</div></div>
           <div class="kanban-sheet-cell"><div class="kanban-sheet-label">Deposit paid</div><div class="kanban-sheet-value">${Utils.formatCurrency(order.depositPaid || 0)}</div></div>
           <div class="kanban-sheet-cell"><div class="kanban-sheet-label">Balance due</div><div class="kanban-sheet-value" style="color:${isPaid ? 'var(--secondary)' : 'var(--warning)'};">${Utils.formatCurrency(order.balanceDue || 0)}</div></div>
-          <div class="kanban-sheet-cell"><div class="kanban-sheet-label">Commission</div><div class="kanban-sheet-value">${Utils.formatCurrency(commission)}</div></div>
+          ` : ''}
+          <div class="kanban-sheet-cell"><div class="kanban-sheet-label">${referral ? 'Survey earnings' : 'Commission'}</div><div class="kanban-sheet-value">${Utils.formatCurrency(commission)}</div></div>
           <div class="kanban-sheet-cell"><div class="kanban-sheet-label">Stage</div><div class="kanban-sheet-value">${Utils.escapeHtml(this.STAGES.find(s => s.id === stage)?.name || stage)}</div></div>
         </div>
 
@@ -260,7 +270,7 @@ const OrdersFeature = {
           `).join('')}
         </div>
 
-        ${!isPaid ? `
+        ${referral ? '<div class="card mb-md">Payment is managed externally. Beelo has not recorded this order as paid.</div>' : !isPaid ? `
           <div class="divider-text">Record payment</div>
           <div class="form-row mb-12" >
             <div class="form-group mb-0" >
@@ -326,6 +336,7 @@ const OrdersFeature = {
   async recordPayment(orderId) {
     const order = await DB.db.orders.get(orderId);
     if (!order) return;
+    if (this.isReferral(order)) return Toast.show('Payment is managed externally for this referred order', 'info');
     const amount = parseFloat(document.getElementById('order-payment-amount')?.value);
     if (!(amount > 0)) {
       Toast.show('Enter an amount first', 'warning');
@@ -349,6 +360,7 @@ const OrdersFeature = {
     let order = null;
     try { order = await DB.db.orders.get(orderId); } catch (e) {}
     if (!order) { Toast.show('Order not found', 'error'); return; }
+    if (this.isReferral(order)) return Toast.show('Payment is managed externally for this referred order. Contact the customer from their profile.', 'info');
     if (!order.appointmentId) {
       let customer = null;
       try { customer = order.customerId ? await DB.getCustomer(order.customerId) : null; } catch (e) {}
@@ -369,6 +381,7 @@ const OrdersFeature = {
   async recordFullPayment(orderId) {
     const order = await DB.db.orders.get(orderId);
     if (!order) return;
+    if (this.isReferral(order)) return Toast.show('Payment is managed externally for this referred order', 'info');
     try {
       await DB.setOrderPaid(orderId);
       Toast.show('Order marked fully paid', 'success');

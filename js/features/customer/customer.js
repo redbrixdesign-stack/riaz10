@@ -339,6 +339,7 @@ const CustomerFeature = {
   },
 
   orderStageLabel(order) {
+    if (order.source === 'survey_referral') return `Referred · ${['ordered', 'delivered', 'fitted'].includes(order.stage) ? order.stage : 'ordered'} · payment managed externally`;
     if ((order.balanceDue || 0) <= 0) return 'Paid';
     return (order.stage || 'ordered').replace(/_/g, ' ');
   },
