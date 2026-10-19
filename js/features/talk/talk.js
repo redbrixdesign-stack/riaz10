@@ -660,6 +660,15 @@ const TalkFeature = {
   // a vacuum.
   async openPreviewSheet(message, pending, hint = null) {
     const { phone, templateKey } = pending;
+    if (pending.appointmentId && typeof DB.getPrivateSetting === 'function') {
+      const raw = await DB.getPrivateSetting(this.draftStorageKey(pending), null);
+      let saved = null;
+      try { saved = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch (e) {}
+      if (saved && typeof saved.text === 'string') {
+        message = saved.text;
+        hint = 'Saved unsent draft restored. Check the appointment details before sending.';
+      }
+    }
     this._aiDraftPrev = null;
 
     let context = null;
@@ -701,7 +710,7 @@ const TalkFeature = {
       <div class="sheet-header"><h3>Preview Message</h3><button class="btn btn-ghost btn-sm" aria-label="Close message preview" data-action="TalkFeature.dismissPreview"><span class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body">
         <div class="fs-12 text-secondary mt-6" id="talk-nudge" style="display:none"></div>
-        <textarea class="textarea" id="talk-message-preview" aria-label="Message preview (editable)" style="min-height:110px;">${Utils.escapeHtml(message)}</textarea>
+        <textarea class="textarea" id="talk-message-preview" aria-label="Message preview (editable)" data-action="TalkFeature.savePreviewDraft" data-event="input" style="min-height:110px;">${Utils.escapeHtml(message)}</textarea>
 
         <div class="flex items-center gap-sm mt-sm wrap" >
           <button class="btn btn-sm ${AIService.isEnabled() ? 'btn-outline' : 'btn-ghost'}" data-action="TalkFeature.aiDraft">
@@ -759,6 +768,7 @@ const TalkFeature = {
   // the alternative template. The follow-up outcomes only get alternatives
   // that make sense for their situation (defined in openPreviewSheet).
   async switchTemplate(key) {
+    if (await this.savePreviewDraft() === false) return;
     const pending = this.pendingMessage;
     App.closeModal();
     if (pending?.appointmentId) this.sendMessage(pending.appointmentId, key);
@@ -1120,6 +1130,7 @@ const TalkFeature = {
       Toast.show('Message cannot be empty', 'error');
       return;
     }
+    if (await this.savePreviewDraft() === false) return;
     const { customerId, phone, appointmentId, templateKey } = pending;
     if (customerId > 0 && typeof CommunicationService !== 'undefined') {
       const preference = await CommunicationService.preference(customerId, 'whatsapp');
@@ -1171,7 +1182,36 @@ const TalkFeature = {
     App.openModal(`<div class="sheet-handle"></div><div class="sheet-header"><h3>Did the message send?</h3><button class="btn btn-ghost btn-sm" aria-label="Close confirmation" data-action="App.closeModal"><span class="material-symbols-rounded">close</span></button></div><div class="sheet-body"><p class="text-secondary">Opening WhatsApp is only a hand-off. Confirm only after you can see the message was sent.</p><button class="btn btn-primary btn-block" data-action="TalkFeature.confirmHandoffSent">Yes, I sent it</button><button class="btn btn-outline btn-block mt-sm" data-action="TalkFeature.leaveHandoffUnconfirmed">Not sent — keep reminder</button></div>`);
   },
 
-  dismissPreview() {
+  draftStorageKey(pending) {
+    return `communication-draft:${pending.appointmentId}:${pending.templateKey}`;
+  },
+
+  async openSavedDrafts(appointmentId = null) {
+    await (this._draftSave || Promise.resolve()).catch(() => {});
+    const settings = await DB.db.settings.toArray();
+    const rows = [];
+    for (const setting of settings.filter(s => s.key.startsWith('communication-draft:'))) {
+      const [, id, templateKey] = setting.key.split(':');
+      if (appointmentId && Number(id) !== Number(appointmentId)) continue;
+      const appt = await DB.getAppointment(Number(id));
+      if (!appt) continue;
+      rows.push(`<button class="btn btn-outline btn-block mb-sm" data-action="TalkFeature.sendMessage" data-args='${Utils.escapeHtml(JSON.stringify([Number(id), templateKey]))}'>Resume draft · ${Utils.escapeHtml(appt.clientName || 'Customer')} · ${Utils.escapeHtml(templateKey.replace(/_/g, ' '))}</button>`);
+    }
+    App.openModal(`<div class="sheet-header"><h3>Saved unsent drafts</h3><button class="btn btn-ghost" data-action="App.closeModal">Close</button></div><div class="sheet-body"><p>Check dates and details before sending. Drafts are not confirmed messages.</p>${rows.join('') || '<p>No saved drafts.</p>'}</div>`);
+  },
+
+  async savePreviewDraft() {
+    const pending = this.pendingMessage;
+    const field = document.getElementById('talk-message-preview');
+    if (!pending?.appointmentId || !field || typeof DB.setPrivateSetting !== 'function') return;
+    const key = this.draftStorageKey(pending);
+    const value = { text: field.value, updatedAt: new Date().toISOString() };
+    this._draftSave = (this._draftSave || Promise.resolve()).catch(() => {}).then(() => DB.setPrivateSetting(key, JSON.stringify(value)));
+    try { await this._draftSave; return true; } catch (e) { Toast.show('Draft could not be saved. Keep this screen open and copy your text.', 'error'); return false; }
+  },
+
+  async dismissPreview() {
+    if (await this.savePreviewDraft() === false) return;
     const pending = this.pendingMessage;
     if (pending?.appointmentId && pending?.templateKey && typeof MessageScheduler !== 'undefined') {
       try { localStorage.removeItem(MessageScheduler._flag(pending.templateKey, pending.appointmentId)); } catch (e) {}
@@ -1184,6 +1224,10 @@ const TalkFeature = {
     const pending = this.pendingSentConfirmation;
     if (!pending) return;
     if (pending.communicationId && typeof CommunicationService !== 'undefined') await CommunicationService.advisorConfirmSent(pending.communicationId, pending.customerId);
+    if (typeof DB.setPrivateSetting === 'function') {
+      await (this._draftSave || Promise.resolve()).catch(() => {});
+      await DB.setPrivateSetting(this.draftStorageKey(pending), null);
+    }
     const SENT_FLAGS = { day_before: ['dayBeforeSent'], evening_before: ['dayBeforeSent'], pre_intro: ['introSent'], intro_day_before: ['introSent', 'dayBeforeSent'], post_fit_followup: ['postFitSent'], service_or_issue_followup: ['serviceSent'] };
     const flags = SENT_FLAGS[pending.templateKey] || [];
     if (flags.length && pending.appointmentId) {

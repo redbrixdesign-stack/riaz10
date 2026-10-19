@@ -1672,6 +1672,7 @@ const AppointmentsFeature = {
         })}
 
         <!-- Customer Info -->
+        <button class="btn btn-outline card-page-gap" data-action="TalkFeature.openSavedDrafts" data-args='${JSON.stringify([appt.id])}'>Resume saved message</button>
         <div class="card card-page-gap" >
           <div class="flex items-center gap-md" >
             <div style="display:flex;align-items:center;gap:16px;flex:1;min-width:0;${customer ? 'cursor:pointer;' : ''}" ${customer ? `role="button" tabindex="0" aria-label="View customer profile" data-action="App.navigate" data-args='${JSON.stringify(["customer", {id: (customer.id)}])}' data-key="Enter, space"` : ''}>

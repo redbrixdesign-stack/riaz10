@@ -2262,7 +2262,7 @@ const DB = {
     if(data.voiceNotes?.length)data.voiceNotes=await Promise.all(data.voiceNotes.map(decryptVoiceNote));
     if(data.measurements?.length)data.measurements=await Promise.all(data.measurements.map(decryptMeasurementAudio));
     const RUNTIME_SETTING_KEYS = ['__v6_legacy_migrated__', '__storage_probe__', 'pitchDemoSeeded', DEVICE_AI_SECRET_SETTING];
-    data.settings = (await this.db.settings.toArray()).filter(s => !RUNTIME_SETTING_KEYS.includes(s.key));
+    data.settings = (await this.db.settings.toArray()).filter(s => !RUNTIME_SETTING_KEYS.includes(s.key) && !s.key.startsWith('communication-draft:'));
     data.sequences = await this.db.sequences.toArray();
     return data;
   },
