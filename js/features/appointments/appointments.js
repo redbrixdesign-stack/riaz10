@@ -19,6 +19,7 @@ const AppointmentsFeature = {
   },
 
   render(params = {}) {
+    if (params.action === 'tomorrow') return this.renderTomorrowPlan();
     if (params.action === 'add') {
       return this.renderAddForm(params);
     }
@@ -40,6 +41,51 @@ const AppointmentsFeature = {
       setTimeout(() => { try { this.switchTab(requested); } catch (e) {} }, 0);
     }
     return this.renderList();
+  },
+
+  async renderTomorrowPlan() {
+    const tomorrow = Utils.getTomorrow();
+    const header = App.renderTopHeader({ title: 'Plan tomorrow', showBack: true });
+    let visits;
+    try {
+      visits = (await DB.getAppointmentsForDate(tomorrow.toISOString()))
+        .filter(a => a.status !== 'cancelled' && !a.outcome)
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+    } catch (error) {
+      return `${header}<div class="card card-page-mb"><p>Could not load tomorrow’s visits. Your appointments have not been changed.</p><button class="btn btn-outline" data-action="App.navigate" data-args='["appointments",{"action":"tomorrow"}]'>Try again</button></div>`;
+    }
+    const cards = await Promise.all(visits.map(async (visit, index) => {
+      let customer = null;
+      try { if (visit.customerId) customer = await DB.getCustomer(visit.customerId); } catch (_) {}
+      const type = CONFIG.appointmentTypes.find(t => t.id === visit.type)?.name || visit.type || 'Visit';
+      const context = [
+        visit.access ? `Access: ${visit.access}` : '',
+        visit.notes || '',
+        customer?.notes ? `Customer: ${customer.notes}` : ''
+      ].filter(Boolean);
+      const args = Utils.escapeHtml(JSON.stringify(['appointments', { id: visit.id }]));
+      const messageArgs = Utils.escapeHtml(JSON.stringify([visit.id]));
+      return `<article class="card mb-md" style="overflow-wrap:anywhere">
+        <h2 class="fs-18">${index + 1}. ${Utils.escapeHtml(visit.clientName || 'Customer')}</h2>
+        <p>${Utils.formatTime(visit.date)} · ${Utils.escapeHtml(type)}</p>
+        ${visit.arrivalStart && visit.arrivalEnd ? `<p>Arrival window: ${Utils.escapeHtml(visit.arrivalStart)}–${Utils.escapeHtml(visit.arrivalEnd)}</p>` : ''}
+        <p>${Utils.escapeHtml(visit.address || 'Address not recorded — check before travelling')}</p>
+        <p class="text-secondary">${context.length ? context.map(text => Utils.escapeHtml(Utils.truncate(text, 220))).join('<br>') : 'No context saved yet. Open the visit to add useful details.'}</p>
+        <p class="fs-13">${visit.dayBeforeSent ? 'Reminder marked sent — this does not confirm customer agreement.' : visit.introSent ? 'Introduction marked sent · Reminder not marked sent' : 'Introduction and reminder not marked sent'}</p>
+        <div class="flex gap-sm" style="flex-wrap:wrap">
+          <button class="btn btn-outline" data-action="App.navigate" data-args='${args}'>Review visit</button>
+          <button class="btn btn-outline" data-action="TalkFeature.sendDayBefore" data-args='${messageArgs}'>${visit.dayBeforeSent ? 'Review reminder' : 'Prepare reminder'}</button>
+          <button class="btn btn-ghost" data-action="TalkFeature.openSavedDrafts" data-args='${messageArgs}'>Saved messages</button>
+        </div>
+      </article>`;
+    }));
+    return `<div class="fade-in">${header}<div class="px-md" id="tomorrow-plan">
+      <p>${Utils.formatDate(tomorrow, 'weekday-day-month')} · ${visits.length} planned visit${visits.length === 1 ? '' : 's'}</p>
+      <p class="text-secondary">Review in booked-time order. Nothing here changes appointment times or sends messages. Agree changes directly with your customers.</p>
+      ${cards.length ? cards.join('') : '<div class="card"><p>No active visits booked for tomorrow.</p><p>Use Scan to add on Home, or add a visit below.</p></div>'}
+      <button class="btn btn-primary mb-md" data-action="App.navigate" data-args='["appointments",{"action":"add"}]'>Add visit</button>
+      <p class="text-tertiary fs-13">Route reordering and proposed-time planning are not available in this view yet.</p>
+    </div></div>`;
   },
 
   async renderList() {
