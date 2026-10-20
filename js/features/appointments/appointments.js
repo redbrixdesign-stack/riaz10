@@ -51,6 +51,11 @@ const AppointmentsFeature = {
       visits = (await DB.getAppointmentsForDate(tomorrow.toISOString()))
         .filter(a => a.status !== 'cancelled' && !a.outcome)
         .sort((a, b) => new Date(a.date) - new Date(b.date));
+      this._tomorrowKey = `visit-plan:${Utils.formatDate(tomorrow, 'iso')}`;
+      const saved = JSON.parse(await DB.getPrivateSetting(this._tomorrowKey, 'null'));
+      const rank = new Map((Array.isArray(saved) ? saved : []).map((id, i) => [String(id), i]));
+      visits.sort((a, b) => (rank.get(String(a.id)) ?? Infinity) - (rank.get(String(b.id)) ?? Infinity));
+      this._tomorrowIds = visits.map(a => a.id);
     } catch (error) {
       return `${header}<div class="card card-page-mb"><p>Could not load tomorrow’s visits. Your appointments have not been changed.</p><button class="btn btn-outline" data-action="App.navigate" data-args='["appointments",{"action":"tomorrow"}]'>Try again</button></div>`;
     }
@@ -65,9 +70,14 @@ const AppointmentsFeature = {
       ].filter(Boolean);
       const args = Utils.escapeHtml(JSON.stringify(['appointments', { id: visit.id }]));
       const messageArgs = Utils.escapeHtml(JSON.stringify([visit.id]));
-      return `<article class="card mb-md" style="overflow-wrap:anywhere">
+      return `<article class="card mb-md" data-plan-index="${index}" style="overflow-wrap:anywhere">
         <h2 class="fs-18">${index + 1}. ${Utils.escapeHtml(visit.clientName || 'Customer')}</h2>
-        <p>${Utils.formatTime(visit.date)} · ${Utils.escapeHtml(type)}</p>
+        <div class="flex gap-sm" style="flex-wrap:wrap">
+          <button class="btn btn-outline" data-plan-drag="${index}" style="touch-action:none" aria-label="Drag ${Utils.escapeHtml(visit.clientName || 'visit')} to reorder">Drag to reorder</button>
+          <button class="btn btn-outline" ${index === 0 ? 'disabled' : ''} data-action="AppointmentsFeature.moveTomorrowVisit" data-args='[${index},${index - 1}]' aria-label="Move visit ${index + 1} up">↑</button>
+          <button class="btn btn-outline" ${index === visits.length - 1 ? 'disabled' : ''} data-action="AppointmentsFeature.moveTomorrowVisit" data-args='[${index},${index + 1}]' aria-label="Move visit ${index + 1} down">↓</button>
+        </div>
+        <p>Booked: ${Utils.formatTime(visit.date)} · ${Utils.escapeHtml(type)}</p>
         ${visit.arrivalStart && visit.arrivalEnd ? `<p>Arrival window: ${Utils.escapeHtml(visit.arrivalStart)}–${Utils.escapeHtml(visit.arrivalEnd)}</p>` : ''}
         <p>${Utils.escapeHtml(visit.address || 'Address not recorded — check before travelling')}</p>
         <p class="text-secondary">${context.length ? context.map(text => Utils.escapeHtml(Utils.truncate(text, 220))).join('<br>') : 'No context saved yet. Open the visit to add useful details.'}</p>
@@ -81,11 +91,67 @@ const AppointmentsFeature = {
     }));
     return `<div class="fade-in">${header}<div class="px-md" id="tomorrow-plan">
       <p>${Utils.formatDate(tomorrow, 'weekday-day-month')} · ${visits.length} planned visit${visits.length === 1 ? '' : 's'}</p>
-      <p class="text-secondary">Review in booked-time order. Nothing here changes appointment times or sends messages. Agree changes directly with your customers.</p>
+      <p class="text-secondary">Proposed visit order only — booked times and navigation routes stay unchanged. Agree time changes directly with customers before editing the bookings.</p>
+      <p id="plan-order-status" role="status" aria-live="polite">Changes save on this device. New visits appear at the end of a saved plan.</p>
+      ${visits.length > 1 ? '<button class="btn btn-outline mb-md" data-action="AppointmentsFeature.resetTomorrowOrder">Reset to booked-time order</button>' : ''}
       ${cards.length ? cards.join('') : '<div class="card"><p>No active visits booked for tomorrow.</p><p>Use Scan to add on Home, or add a visit below.</p></div>'}
       <button class="btn btn-primary mb-md" data-action="App.navigate" data-args='["appointments",{"action":"add"}]'>Add visit</button>
-      <p class="text-tertiary fs-13">Route reordering and proposed-time planning are not available in this view yet.</p>
+      <p class="text-tertiary fs-13">This is not an optimised route. Proposed times and customer agreement tracking come next.</p>
     </div></div>`;
+  },
+
+  async moveTomorrowVisit(from, to) {
+    if (this._planSaving || !this._tomorrowIds || !Number.isInteger(from) || !Number.isInteger(to) || from < 0 || from >= this._tomorrowIds.length || from === to || to < 0 || to >= this._tomorrowIds.length) return;
+    const ids = [...this._tomorrowIds];
+    ids.splice(to, 0, ids.splice(from, 1)[0]);
+    this._planSaving = true;
+    try {
+      await DB.setPrivateSetting(this._tomorrowKey, JSON.stringify(ids));
+      await App.navigate('appointments', { action: 'tomorrow' });
+      Toast.show('Proposed order saved — booked times unchanged', 'success');
+    } catch (_) { Toast.show('Could not save order. Please try again.', 'error'); }
+    finally { this._planSaving = false; }
+  },
+
+  async resetTomorrowOrder() {
+    if (this._planSaving) return;
+    this._planSaving = true;
+    try {
+      await DB.setPrivateSetting(this._tomorrowKey, 'null');
+      await App.navigate('appointments', { action: 'tomorrow' });
+    } catch (_) { Toast.show('Could not reset order. Please try again.', 'error'); }
+    finally { this._planSaving = false; }
+  },
+
+  setupTomorrowDrag() {
+    const root = document.getElementById('tomorrow-plan');
+    if (!root) return;
+    root.querySelectorAll('[data-plan-drag]').forEach(handle => {
+      let drag = null;
+      handle.addEventListener('pointerdown', event => {
+        if (event.button !== 0 || this._planSaving) return;
+        drag = { from: Number(handle.dataset.planDrag), to: Number(handle.dataset.planDrag) };
+        handle.setPointerCapture(event.pointerId);
+      });
+      handle.addEventListener('pointermove', event => {
+        if (!drag) return;
+        const card = document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-plan-index]');
+        if (card && root.contains(card)) {
+          drag.to = Number(card.dataset.planIndex);
+          root.querySelector('#plan-order-status').textContent = `Move visit ${drag.from + 1} to position ${drag.to + 1}. Release to save.`;
+        }
+      });
+      handle.addEventListener('pointerup', () => {
+        if (!drag) return;
+        const { from, to } = drag;
+        drag = null;
+        this.moveTomorrowVisit(from, to);
+      });
+      handle.addEventListener('pointercancel', () => {
+        drag = null;
+        root.querySelector('#plan-order-status').textContent = 'Reorder cancelled. Saved order unchanged.';
+      });
+    });
   },
 
   async renderList() {
@@ -3816,6 +3882,7 @@ const AppointmentsFeature = {
   },
 
   activate(params = {}) {
+    if (params.action === 'tomorrow') this.setupTomorrowDrag();
     // Auto-refresh when activated
     this.setupTabKeyboard();
     if (params.tab) {

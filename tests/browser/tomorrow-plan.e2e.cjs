@@ -42,6 +42,32 @@ const assert = require('node:assert/strict');
     assert.equal(await page.locator('#tomorrow-plan').getByText('Side gate', { exact: false }).count(), 2);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.screenshot({ path: '/private/tmp/beelo-tomorrow-plan.png', fullPage: true, animations: 'disabled' });
+    const originalDates = await page.evaluate(async ids => Promise.all(ids.map(async id => (await DB.getAppointment(id)).date)), ids);
+    await page.getByRole('button', { name: 'Move visit 1 down', exact: true }).click();
+    await page.waitForFunction(() => document.querySelector('#tomorrow-plan h2')?.textContent.includes('Later'));
+    await page.reload();
+    await page.waitForFunction(() => !!App.currentHash);
+    await page.evaluate(() => App.navigate('appointments', { action: 'tomorrow' }));
+    await page.waitForFunction(() => document.querySelector('#tomorrow-plan h2')?.textContent.includes('Later'));
+    assert.deepEqual(await page.evaluate(async ids => Promise.all(ids.map(async id => (await DB.getAppointment(id)).date)), ids), originalDates);
+    await page.getByRole('button', { name: 'Reset to booked-time order', exact: true }).click();
+    await page.waitForFunction(() => document.querySelector('#tomorrow-plan h2')?.textContent.includes('Earlier'));
+    // Pointer events exercise the same touch/mouse handle path without native HTML drag.
+    await page.evaluate(() => {
+      const handle = document.querySelector('[data-plan-drag="0"]');
+      const target = document.querySelector('[data-plan-index="1"]');
+      target.scrollIntoView({ block: 'center' });
+      const rect = target.getBoundingClientRect();
+      const capture = handle.setPointerCapture;
+      handle.setPointerCapture = () => {}; // Synthetic pointer has no active OS pointer.
+      handle.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 1, button: 0 }));
+      handle.dispatchEvent(new PointerEvent('pointermove', { pointerId: 1, clientX: rect.x + 20, clientY: rect.y + 40 }));
+      handle.dispatchEvent(new PointerEvent('pointerup', { pointerId: 1 }));
+      handle.setPointerCapture = capture;
+    });
+    await page.waitForFunction(() => document.querySelector('#tomorrow-plan h2')?.textContent.includes('Later'));
+    await page.getByRole('button', { name: 'Reset to booked-time order', exact: true }).click();
+    await page.waitForFunction(() => document.querySelector('#tomorrow-plan h2')?.textContent.includes('Earlier'));
     await page.getByRole('button', { name: 'Prepare reminder', exact: true }).first().click();
     await page.locator('#talk-message-preview').waitFor();
     assert(await page.locator('#talk-message-preview').inputValue());
