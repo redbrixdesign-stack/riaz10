@@ -78,6 +78,9 @@ const AppointmentsFeature = {
           <button class="btn btn-outline" ${index === visits.length - 1 ? 'disabled' : ''} data-action="AppointmentsFeature.moveTomorrowVisit" data-args='[${index},${index + 1}]' aria-label="Move visit ${index + 1} down">↓</button>
         </div>
         <p>Booked: ${Utils.formatTime(visit.date)} · ${Utils.escapeHtml(type)}</p>
+        ${visit.timeProposal?.status === 'pending' ? `<p class="fw-700">Proposed: ${Utils.escapeHtml(visit.timeProposal.time)} — awaiting customer agreement</p>` : ''}
+        ${visit.timeProposal?.status === 'agreed' ? '<p>Time change recorded as agreed by customer</p>' : ''}
+        <button class="btn btn-outline mb-sm" data-action="AppointmentsFeature.openTimeProposal" data-args='${messageArgs}'>${visit.timeProposal?.status === 'pending' ? 'Review time proposal' : 'Propose another time'}</button>
         ${visit.arrivalStart && visit.arrivalEnd ? `<p>Arrival window: ${Utils.escapeHtml(visit.arrivalStart)}–${Utils.escapeHtml(visit.arrivalEnd)}</p>` : ''}
         <p>${Utils.escapeHtml(visit.address || 'Address not recorded — check before travelling')}</p>
         <p class="text-secondary">${context.length ? context.map(text => Utils.escapeHtml(Utils.truncate(text, 220))).join('<br>') : 'No context saved yet. Open the visit to add useful details.'}</p>
@@ -96,8 +99,85 @@ const AppointmentsFeature = {
       ${visits.length > 1 ? '<button class="btn btn-outline mb-md" data-action="AppointmentsFeature.resetTomorrowOrder">Reset to booked-time order</button>' : ''}
       ${cards.length ? cards.join('') : '<div class="card"><p>No active visits booked for tomorrow.</p><p>Use Scan to add on Home, or add a visit below.</p></div>'}
       <button class="btn btn-primary mb-md" data-action="App.navigate" data-args='["appointments",{"action":"add"}]'>Add visit</button>
-      <p class="text-tertiary fs-13">This is not an optimised route. Proposed times and customer agreement tracking come next.</p>
+      <p class="text-tertiary fs-13">This is not an optimised route. A proposed time only changes the booking after you confirm customer agreement and review scheduling checks.</p>
     </div></div>`;
+  },
+
+  async openTimeProposal(id) {
+    const visit = await DB.getAppointment(id);
+    if (!visit || visit.outcome || visit.status === 'cancelled') return Toast.show('This visit is no longer active', 'warning');
+    const proposal = visit.timeProposal;
+    const pending = proposal?.status === 'pending';
+    const stale = pending && proposal.originalDate !== visit.date;
+    App.openModal(`<div class="sheet-header"><h3>Propose a time</h3><button class="btn btn-ghost" aria-label="Close time proposal" data-action="App.closeModal">Close</button></div>
+      <div class="sheet-body">
+        <p>${Utils.escapeHtml(visit.clientName || 'Customer')} · ${Utils.formatDate(visit.date, 'weekday-day-month')}</p>
+        <p>Booked time: ${Utils.formatTime(visit.date)}. Saving a proposal does not change this booking or send anything.</p>
+        ${stale ? '<p role="alert">The booking changed since this proposal. Save a fresh proposal before proceeding.</p>' : ''}
+        <label for="proposal-time">Proposed time (UK time, same day)</label>
+        <input class="input" type="time" step="900" id="proposal-time" value="${Utils.escapeHtml(pending ? proposal.time : Utils.formatTime(visit.date))}">
+        <button class="btn btn-primary mt-md" data-action="AppointmentsFeature.saveTimeProposal" data-args='${JSON.stringify([id])}'>Save proposal</button>
+        ${pending ? `<p>Awaiting agreement. Contact the customer directly; sending a message is not agreement.</p>
+          <label for="proposal-copy">Suggested message — edit before copying</label>
+          <textarea class="textarea" id="proposal-copy">Would ${Utils.escapeHtml(proposal.time)} on ${Utils.formatDate(visit.date, 'weekday-day-month')} work for your visit instead of ${Utils.formatTime(visit.date)}? Your current booking stays in place until we agree the change.</textarea>
+          <button class="btn btn-outline mt-md" data-action="AppointmentsFeature.copyTimeProposal">Copy message</button>
+          <label class="mt-md" style="display:block"><input type="checkbox" id="proposal-agreed" ${stale ? 'disabled' : ''}> The customer explicitly agreed to this saved proposed time</label>
+          <button class="btn btn-primary mt-md" ${stale ? 'disabled' : ''} data-action="AppointmentsFeature.reviewAgreedProposal" data-args='${JSON.stringify([id])}'>Review agreed booking change</button>
+          <button class="btn btn-ghost mt-md" data-action="AppointmentsFeature.discardTimeProposal" data-args='${JSON.stringify([id])}'>Discard proposal — keep booking</button>` : ''}
+      </div>`);
+  },
+
+  async saveTimeProposal(id) {
+    const time = document.getElementById('proposal-time')?.value;
+    if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time || '') || !this.isQuarterHour(time)) return Toast.show('Choose a valid 15-minute time', 'warning');
+    try {
+      const visit = await DB.getAppointment(id);
+      if (!visit || visit.outcome || visit.status === 'cancelled') return Toast.show('Visit is no longer active', 'warning');
+      const instant = this.proposalInstant(Utils.formatDate(visit.date, 'iso'), time);
+      if (!instant || Date.parse(instant) <= Date.now()) return Toast.show('Choose an unambiguous future UK time', 'warning');
+      if (time === Utils.formatTime(visit.date)) return Toast.show('Choose a different time from the current booking', 'warning');
+      await DB.updateAppointment(id, { timeProposal: { status: 'pending', time, originalDate: visit.date, createdAt: new Date().toISOString() } });
+      await this.openTimeProposal(id);
+      Toast.show('Proposal saved. Booking unchanged.', 'success');
+    } catch (_) { Toast.show('Could not save proposal', 'error'); }
+  },
+
+  proposalInstant(date, time) {
+    // London is UTC or UTC+1. Reject missing/ambiguous DST wall-clock times.
+    const utc = Date.parse(`${date}T${time}:00Z`);
+    if (!Number.isFinite(utc)) return null;
+    const matches = [utc, utc - 3600000].map(ms => new Date(ms))
+      .filter(d => Utils.formatDate(d, 'iso') === date && Utils.formatTime(d) === time);
+    return matches.length === 1 ? matches[0].toISOString() : null;
+  },
+
+  async copyTimeProposal() {
+    try {
+      await navigator.clipboard.writeText(document.getElementById('proposal-copy')?.value || '');
+      Toast.show('Copied — review and send it yourself', 'success');
+    } catch (_) { Toast.show('Could not copy. Select and copy the message manually.', 'warning'); }
+  },
+
+  async discardTimeProposal(id) {
+    try {
+      await DB.updateAppointment(id, { timeProposal: null });
+      App.closeModal();
+      App.navigate('appointments', { action: 'tomorrow' });
+    } catch (_) { Toast.show('Could not discard proposal', 'error'); }
+  },
+
+  async reviewAgreedProposal(id) {
+    if (!document.getElementById('proposal-agreed')?.checked) return Toast.show('Confirm that the customer agreed first', 'warning');
+    const visit = await DB.getAppointment(id);
+    const proposal = visit?.timeProposal;
+    if (!visit || visit.outcome || visit.status === 'cancelled' || proposal?.status !== 'pending' || proposal.originalDate !== visit.date) return Toast.show('Booking or proposal changed. Review it again.', 'warning');
+    if (document.getElementById('proposal-time')?.value !== proposal.time) return Toast.show('Save the changed proposal and obtain agreement first', 'warning');
+    await this.openRescheduleModal(id);
+    document.getElementById('move-time').value = proposal.time;
+    document.getElementById('move-note').value = 'Customer explicitly agreed to proposed time.';
+    // Preserve the standard scheduling checks. Exact proposal is rechecked at save.
+    this._agreedProposal = { id, createdAt: proposal.createdAt, originalDate: proposal.originalDate, time: proposal.time };
+    Toast.show('Review the arrival window and save the agreed time', 'info');
   },
 
   async moveTomorrowVisit(from, to) {
@@ -2569,17 +2649,17 @@ const AppointmentsFeature = {
     }
 	  },
 
-  hasScheduleConflict({ time, durationSlots }, appointments, excludeId = null) {
+  hasScheduleConflict({ time, durationSlots, proposalInstant }, appointments, excludeId = null) {
     const wantedSlots = this.getOccupiedSlots(time, durationSlots);
     return appointments.some(a => {
       if (a.status === 'cancelled' || String(a.id) === String(excludeId)) return false;
-      const occupied = this.getOccupiedSlots(this.getTimeKey(a.date), a.durationSlots || 1);
+      const occupied = this.getOccupiedSlots(proposalInstant ? Utils.formatTime(a.date) : this.getTimeKey(a.date), a.durationSlots || 1);
       return occupied.some(slot => wantedSlots.includes(slot));
     });
   },
 
-  findTravelWarnings({ address, date, time, durationSlots }, appointments, excludeId = null) {
-    const start = new Date(date + 'T' + time);
+  findTravelWarnings({ address, date, time, durationSlots, proposalInstant }, appointments, excludeId = null) {
+    const start = new Date(proposalInstant || date + 'T' + time);
     const slotMinutes = CONFIG.workingWeek?.slotMinutes || 15;
     const end = new Date(start.getTime() + Math.max(1, durationSlots || 1) * slotMinutes * 60000);
     const active = appointments
@@ -2796,6 +2876,7 @@ const AppointmentsFeature = {
   },
 
   async openRescheduleModal(id) {
+    this._agreedProposal = null;
     const appt = await DB.getAppointment(id);
     if (!appt) {
       Toast.show('Visit not found', 'error');
@@ -2876,6 +2957,17 @@ const AppointmentsFeature = {
     // Older queued travel-warning drafts predate editable visit types. Keep
     // those compatible by retaining the appointment's current type.
     const data = { ...rawData, type: rawData.type || appt.type };
+    const agreement = data.proposalAgreement || (this._agreedProposal?.id === id ? this._agreedProposal : null);
+    if (agreement) {
+      const proposal = appt.timeProposal;
+      if (appt.outcome || appt.status === 'cancelled' || proposal?.status !== 'pending' || proposal.createdAt !== agreement.createdAt || appt.date !== agreement.originalDate || data.time !== agreement.time || data.date !== Utils.formatDate(appt.date, 'iso')) {
+        Toast.show('The agreed proposal no longer matches. Review the proposal and customer agreement again.', 'warning');
+        return;
+      }
+      data.proposalAgreement = agreement;
+      data.proposalInstant = this.proposalInstant(data.date, data.time);
+      if (!data.proposalInstant || Date.parse(data.proposalInstant) <= Date.now()) return Toast.show('The proposed time is no longer valid. Review it again.', 'warning');
+    }
 
     if (!data.date || !data.time) {
       Toast.show('Pick a date and time first', 'error');
@@ -2899,14 +2991,14 @@ const AppointmentsFeature = {
       return;
     }
 
-    const existingToday = await DB.getAppointmentsForDate(new Date(data.date + 'T00:00:00').toISOString());
+    const existingToday = await DB.getAppointmentsForDate(agreement ? data.proposalInstant : new Date(data.date + 'T00:00:00').toISOString());
     if (this.hasScheduleConflict(data, existingToday, id)) {
       Toast.show('That time clashes with another visit.', 'warning');
       return;
     }
 
     if (!forceTravel) {
-      const candidateDate = new Date(data.date + 'T' + data.time).toISOString();
+      const candidateDate = agreement ? data.proposalInstant : new Date(data.date + 'T' + data.time).toISOString();
       const capacityWarnings = typeof CapacityService !== 'undefined'
         ? await CapacityService.analyse({ date: candidateDate, durationSlots: data.durationSlots }, existingToday, id)
         : [];
@@ -2921,11 +3013,12 @@ const AppointmentsFeature = {
       }
     }
 
-    const newDate = new Date(data.date + 'T' + data.time).toISOString();
+    const newDate = agreement ? data.proposalInstant : new Date(data.date + 'T' + data.time).toISOString();
     const previous = `${Utils.formatDate(appt.date, 'short')} ${Utils.formatTime(appt.date)}`;
     const existingNotes = appt.notes || '';
     const moveNote = `Moved from ${previous}${data.reason ? `: ${data.reason}` : ''}`;
     await DB.updateAppointment(id, {
+      ...(agreement ? { timeProposal: { ...appt.timeProposal, status: 'agreed', agreedAt: new Date().toISOString() }, dayBeforeSent: false } : {}),
       date: newDate,
       durationSlots: data.durationSlots,
       type: data.type,
@@ -2935,6 +3028,7 @@ const AppointmentsFeature = {
       audioNotes: data.audioNotes || appt.audioNotes || [],
       notes: [existingNotes, moveNote].filter(Boolean).join('\n\n')
     });
+    this._agreedProposal = null;
     App.closeModal();
     Toast.show('Visit moved', 'success');
     App.navigate('appointments', { id });
