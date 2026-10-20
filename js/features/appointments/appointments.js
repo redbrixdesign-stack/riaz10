@@ -19,7 +19,7 @@ const AppointmentsFeature = {
   },
 
   render(params = {}) {
-    if (params.action === 'tomorrow') return this.renderTomorrowPlan();
+    if (params.action === 'tomorrow' || params.action === 'today-plan') return this.renderTomorrowPlan(params.action);
     if (params.action === 'add') {
       return this.renderAddForm(params);
     }
@@ -43,9 +43,13 @@ const AppointmentsFeature = {
     return this.renderList();
   },
 
-  async renderTomorrowPlan() {
-    const tomorrow = Utils.getTomorrow();
-    const header = App.renderTopHeader({ title: 'Plan tomorrow', showBack: true });
+  async renderTomorrowPlan(action = 'tomorrow') {
+    const isToday = action === 'today-plan';
+    const tomorrow = isToday ? Utils.getToday() : Utils.getTomorrow();
+    const dayLabel = isToday ? 'today' : 'tomorrow';
+    this._planAction = action;
+    this._planningDay = tomorrow.toISOString();
+    const header = App.renderTopHeader({ title: isToday ? 'Today’s plan' : 'Plan tomorrow', showBack: true });
     let visits;
     try {
       visits = (await DB.getAppointmentsForDate(tomorrow.toISOString()))
@@ -57,7 +61,7 @@ const AppointmentsFeature = {
       visits.sort((a, b) => (rank.get(String(a.id)) ?? Infinity) - (rank.get(String(b.id)) ?? Infinity));
       this._tomorrowIds = visits.map(a => a.id);
     } catch (error) {
-      return `${header}<div class="card card-page-mb"><p>Could not load tomorrow’s visits. Your appointments have not been changed.</p><button class="btn btn-outline" data-action="App.navigate" data-args='["appointments",{"action":"tomorrow"}]'>Try again</button></div>`;
+      return `${header}<div class="card card-page-mb"><p>Could not load the selected day’s visits. Your appointments have not been changed.</p><button class="btn btn-outline" data-action="App.navigate" data-args='${JSON.stringify(['appointments', { action }])}'>Try again</button></div>`;
     }
     const cards = await Promise.all(visits.map(async (visit, index) => {
       let customer = null;
@@ -87,18 +91,19 @@ const AppointmentsFeature = {
         <p class="fs-13">${visit.dayBeforeSent ? 'Reminder marked sent — this does not confirm customer agreement.' : visit.introSent ? 'Introduction marked sent · Reminder not marked sent' : 'Introduction and reminder not marked sent'}</p>
         <div class="flex gap-sm" style="flex-wrap:wrap">
           <button class="btn btn-outline" data-action="App.navigate" data-args='${args}'>Review visit</button>
-          <button class="btn btn-outline" data-action="TalkFeature.sendDayBefore" data-args='${messageArgs}'>${visit.dayBeforeSent ? 'Review reminder' : 'Prepare reminder'}</button>
+          ${!isToday ? `<button class="btn btn-outline" data-action="TalkFeature.sendDayBefore" data-args='${messageArgs}'>${visit.dayBeforeSent ? 'Review reminder' : 'Prepare reminder'}</button>` : '<span class="text-secondary">Open the visit for today’s communication options.</span>'}
           <button class="btn btn-ghost" data-action="TalkFeature.openSavedDrafts" data-args='${messageArgs}'>Saved messages</button>
         </div>
       </article>`;
     }));
     return `<div class="fade-in">${header}<div class="px-md" id="tomorrow-plan">
+      <nav class="flex gap-sm mb-md" aria-label="Planning day"><button class="btn btn-outline" aria-pressed="${isToday}" data-action="App.navigate" data-args='["appointments",{"action":"today-plan"}]'>Today</button><button class="btn btn-outline" aria-pressed="${!isToday}" data-action="App.navigate" data-args='["appointments",{"action":"tomorrow"}]'>Tomorrow</button></nav>
       <p>${Utils.formatDate(tomorrow, 'weekday-day-month')} · ${visits.length} planned visit${visits.length === 1 ? '' : 's'}</p>
       <p class="text-secondary">Proposed visit order only — booked times and navigation routes stay unchanged. Agree time changes directly with customers before editing the bookings.</p>
       <p id="plan-order-status" role="status" aria-live="polite">Changes save on this device. New visits appear at the end of a saved plan.</p>
       ${visits.length ? '<button class="btn btn-primary mb-md" data-action="AppointmentsFeature.openTomorrowRoutePreview">Preview proposed route</button>' : ''}
       ${visits.length > 1 ? '<button class="btn btn-outline mb-md" data-action="AppointmentsFeature.resetTomorrowOrder">Reset to booked-time order</button>' : ''}
-      ${cards.length ? cards.join('') : '<div class="card"><p>No active visits booked for tomorrow.</p><p>Use Scan to add on Home, or add a visit below.</p></div>'}
+      ${cards.length ? cards.join('') : `<div class="card"><p>No active visits booked for ${dayLabel}.</p><p>Use Scan to add on Home, or add a visit below.</p></div>`}
       <button class="btn btn-primary mb-md" data-action="App.navigate" data-args='["appointments",{"action":"add"}]'>Add visit</button>
       <p class="text-tertiary fs-13">This is not an optimised route. A proposed time only changes the booking after you confirm customer agreement and review scheduling checks.</p>
     </div></div>`;
@@ -106,7 +111,7 @@ const AppointmentsFeature = {
 
   async openTomorrowRoutePreview() {
     try {
-      const day = Utils.getTomorrow();
+      const day = this._planningDay ? new Date(this._planningDay) : Utils.getTomorrow();
       const booked = (await DB.getAppointmentsForDate(day.toISOString())).filter(v => v.status !== 'cancelled' && !v.outcome).sort((a, b) => new Date(a.date) - new Date(b.date));
       const saved = JSON.parse(await DB.getPrivateSetting(`visit-plan:${Utils.formatDate(day, 'iso')}`, 'null'));
       const rank = new Map((Array.isArray(saved) ? saved : []).map((id, i) => [String(id), i]));
@@ -121,7 +126,7 @@ const AppointmentsFeature = {
         <p>${after.hasBase ? 'Includes departure from and return to your saved business base.' : 'Between visits only. Business-base travel is excluded because its location is not saved.'}</p>
         ${backwards ? '<p role="alert">This order goes backwards through booked times. Agree and save time changes before following it.</p>' : ''}
         ${proposed.some(v => v.timeProposal?.status === 'pending') ? '<p role="alert">Some time proposals are still awaiting customer agreement.</p>' : ''}
-        ${!booked.length ? '<p>No active visits for tomorrow.</p>' : `<p>Booked order estimate: <strong>${before.totalKm === null ? 'Unavailable — incomplete location data' : Utils.formatDistance(before.totalKm)}</strong></p>
+        ${!booked.length ? '<p>No active visits for this day.</p>' : `<p>Booked order estimate: <strong>${before.totalKm === null ? 'Unavailable — incomplete location data' : Utils.formatDistance(before.totalKm)}</strong></p>
         <p>Proposed order estimate: <strong>${after.totalKm === null ? 'Unavailable — incomplete location data' : Utils.formatDistance(after.totalKm)}</strong></p>`}
         <ol>${proposed.map(v => `<li>${Utils.escapeHtml(v.clientName || 'Customer')} — booked ${Utils.formatTime(v.date)}<br>${Utils.escapeHtml(v.address || 'Address not recorded')}</li>`).join('')}</ol>
         <h4>Travel legs</h4>
@@ -190,7 +195,8 @@ const AppointmentsFeature = {
     try {
       await DB.updateAppointment(id, { timeProposal: null });
       App.closeModal();
-      App.navigate('appointments', { action: 'tomorrow' });
+      if (document.getElementById('tomorrow-plan')) App.navigate('appointments', { action: this._planAction || 'tomorrow' });
+      else App.navigate('appointments', { id });
     } catch (_) { Toast.show('Could not discard proposal', 'error'); }
   },
 
@@ -215,7 +221,7 @@ const AppointmentsFeature = {
     this._planSaving = true;
     try {
       await DB.setPrivateSetting(this._tomorrowKey, JSON.stringify(ids));
-      await App.navigate('appointments', { action: 'tomorrow' });
+      await App.navigate('appointments', { action: this._planAction || 'tomorrow' });
       Toast.show('Proposed order saved — booked times unchanged', 'success');
     } catch (_) { Toast.show('Could not save order. Please try again.', 'error'); }
     finally { this._planSaving = false; }
@@ -226,7 +232,7 @@ const AppointmentsFeature = {
     this._planSaving = true;
     try {
       await DB.setPrivateSetting(this._tomorrowKey, 'null');
-      await App.navigate('appointments', { action: 'tomorrow' });
+      await App.navigate('appointments', { action: this._planAction || 'tomorrow' });
     } catch (_) { Toast.show('Could not reset order. Please try again.', 'error'); }
     finally { this._planSaving = false; }
   },
@@ -1893,6 +1899,7 @@ const AppointmentsFeature = {
 
         <!-- Customer Info -->
         <button class="btn btn-outline card-page-gap" data-action="TalkFeature.openSavedDrafts" data-args='${JSON.stringify([appt.id])}'>Resume saved message</button>
+        ${appt.timeProposal?.status === 'pending' && !appt.outcome && appt.status !== 'cancelled' ? `<div class="card card-page-gap"><p>Pending time proposal: ${Utils.escapeHtml(appt.timeProposal.time)}. The booking is unchanged until agreement is recorded.</p><button class="btn btn-outline" data-action="AppointmentsFeature.openTimeProposal" data-args='${JSON.stringify([appt.id])}'>Review pending time proposal</button></div>` : ''}
         <div class="card card-page-gap" >
           <div class="flex items-center gap-md" >
             <div style="display:flex;align-items:center;gap:16px;flex:1;min-width:0;${customer ? 'cursor:pointer;' : ''}" ${customer ? `role="button" tabindex="0" aria-label="View customer profile" data-action="App.navigate" data-args='${JSON.stringify(["customer", {id: (customer.id)}])}' data-key="Enter, space"` : ''}>
@@ -4004,7 +4011,7 @@ const AppointmentsFeature = {
   },
 
   activate(params = {}) {
-    if (params.action === 'tomorrow') this.setupTomorrowDrag();
+    if (params.action === 'tomorrow' || params.action === 'today-plan') this.setupTomorrowDrag();
     // Auto-refresh when activated
     this.setupTabKeyboard();
     if (params.tab) {

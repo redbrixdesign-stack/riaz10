@@ -72,7 +72,7 @@ const assert = require('node:assert/strict');
     await open();
     assert(await page.locator('#proposal-agreed').isDisabled());
     await page.getByRole('button', { name: 'Discard proposal — keep booking', exact: true }).click();
-    await page.locator('#tomorrow-plan').waitFor();
+    await page.locator('#proposal-time').waitFor({ state: 'detached' });
     assert.equal(await page.evaluate(async id => (await DB.getAppointment(id)).timeProposal, fixture.id), null);
     console.log('PASS proposal persists without booking mutation; explicit agreement; overlap block; UK time on US device; agreed history; stale guard; discard');
   } finally { await browser.close(); }

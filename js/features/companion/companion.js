@@ -331,7 +331,8 @@ const CompanionFeature = {
         </label>
         <input class="native-file-input" type="file" id="home-quick-capture" accept="image/*" capture="environment" data-event="change" data-action="ControlFeature.handleQuickCapture" data-args='${JSON.stringify(["__event__"])}'>
         <div class="comp-home-quick-manual">
-          <button type="button" style="grid-column:1/-1" data-action="App.navigate" data-args='["appointments",{"action":"tomorrow"}]'><span class="material-symbols-rounded" aria-hidden="true">event_note</span>Plan tomorrow</button>
+          <button type="button" data-action="App.navigate" data-args='["appointments",{"action":"today-plan"}]'><span class="material-symbols-rounded" aria-hidden="true">event_note</span>Today’s plan</button>
+          <button type="button" data-action="App.navigate" data-args='["appointments",{"action":"tomorrow"}]'><span class="material-symbols-rounded" aria-hidden="true">event_note</span>Plan tomorrow</button>
           <button type="button" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {action: "add"}])}'><span class="material-symbols-rounded">event</span>Add visit manually</button>
           <button type="button" data-action="MoneyFeature.openExpenseModal"><span class="material-symbols-rounded">receipt_long</span>Add expense manually</button>
         </div>

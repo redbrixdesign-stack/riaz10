@@ -108,7 +108,32 @@ const assert = require('node:assert/strict');
     await context.setOffline(false);
     await page.getByRole('button', { name: 'Review visit', exact: true }).first().click();
     await page.waitForFunction(() => !document.querySelector('#tomorrow-plan'));
-    console.log('PASS tomorrow entry, empty state, date/status filtering, order, context, reminder preview, mobile width, offline reload, unsent flags and detail navigation');
+    // Model next morning: the same calendar-date plan must now be accessible as Today.
+    await page.evaluate(async ids => {
+      const visit = await DB.getAppointment(ids[1]);
+      await DB.updateAppointment(ids[1], { timeProposal: { status: 'pending', time: '11:00', originalDate: visit.date, createdAt: new Date().toISOString() } });
+      await DB.setPrivateSetting(`visit-plan:${Utils.formatDate(Utils.getTomorrow(), 'iso')}`, JSON.stringify([ids[0], ids[1]]));
+      const nextDay = Utils.getTomorrow().getTime();
+      Utils.getToday = () => new Date(nextDay);
+      Utils.getTomorrow = () => new Date(nextDay + 86400000);
+      App.navigate('appointments', { action: 'today-plan' });
+    }, ids);
+    await page.getByRole('button', { name: 'Today', exact: true }).waitFor();
+    assert.equal(await page.getByRole('button', { name: 'Today', exact: true }).getAttribute('aria-pressed'), 'true');
+    assert.deepEqual(await page.locator('#tomorrow-plan h2').allTextContents(), ['1. SYNTHETIC Later', '2. SYNTHETIC Earlier']);
+    assert.equal(await page.getByRole('button', { name: 'Prepare reminder', exact: true }).count(), 0);
+    await page.getByRole('button', { name: 'Move visit 1 down', exact: true }).click();
+    await page.waitForFunction(() => document.querySelector('#tomorrow-plan h2')?.textContent.includes('Earlier'));
+    assert.equal(await page.getByRole('button', { name: 'Today', exact: true }).getAttribute('aria-pressed'), 'true');
+    await page.getByRole('button', { name: 'Preview proposed route', exact: true }).click();
+    await page.locator('#planning-route-preview').waitFor();
+    assert.match(await page.locator('#planning-route-preview').innerText(), /SYNTHETIC Earlier/);
+    await page.getByRole('button', { name: 'Close route preview', exact: true }).click();
+    await page.getByRole('button', { name: 'Review visit', exact: true }).first().click();
+    await page.getByRole('button', { name: 'Review pending time proposal', exact: true }).click();
+    await page.locator('#proposal-time').waitFor();
+    assert.equal(await page.locator('#proposal-time').inputValue(), '11:00');
+    console.log('PASS planning, route, offline reload, next-morning access, selected-day reorder and pending proposal from visit details');
   } finally {
     await browser.close();
   }
