@@ -96,11 +96,39 @@ const AppointmentsFeature = {
       <p>${Utils.formatDate(tomorrow, 'weekday-day-month')} · ${visits.length} planned visit${visits.length === 1 ? '' : 's'}</p>
       <p class="text-secondary">Proposed visit order only — booked times and navigation routes stay unchanged. Agree time changes directly with customers before editing the bookings.</p>
       <p id="plan-order-status" role="status" aria-live="polite">Changes save on this device. New visits appear at the end of a saved plan.</p>
+      ${visits.length ? '<button class="btn btn-primary mb-md" data-action="AppointmentsFeature.openTomorrowRoutePreview">Preview proposed route</button>' : ''}
       ${visits.length > 1 ? '<button class="btn btn-outline mb-md" data-action="AppointmentsFeature.resetTomorrowOrder">Reset to booked-time order</button>' : ''}
       ${cards.length ? cards.join('') : '<div class="card"><p>No active visits booked for tomorrow.</p><p>Use Scan to add on Home, or add a visit below.</p></div>'}
       <button class="btn btn-primary mb-md" data-action="App.navigate" data-args='["appointments",{"action":"add"}]'>Add visit</button>
       <p class="text-tertiary fs-13">This is not an optimised route. A proposed time only changes the booking after you confirm customer agreement and review scheduling checks.</p>
     </div></div>`;
+  },
+
+  async openTomorrowRoutePreview() {
+    try {
+      const day = Utils.getTomorrow();
+      const booked = (await DB.getAppointmentsForDate(day.toISOString())).filter(v => v.status !== 'cancelled' && !v.outcome).sort((a, b) => new Date(a.date) - new Date(b.date));
+      const saved = JSON.parse(await DB.getPrivateSetting(`visit-plan:${Utils.formatDate(day, 'iso')}`, 'null'));
+      const rank = new Map((Array.isArray(saved) ? saved : []).map((id, i) => [String(id), i]));
+      const proposed = [...booked].sort((a, b) => (rank.get(String(a.id)) ?? Infinity) - (rank.get(String(b.id)) ?? Infinity));
+      const base = CONFIG.businessAddress ? CONFIG.businessLatLng : null;
+      const before = RouteFeature.planningDistancePreview(booked, base);
+      const after = RouteFeature.planningDistancePreview(proposed, base);
+      const backwards = proposed.some((v, i) => i > 0 && new Date(v.date) < new Date(proposed[i - 1].date));
+      App.openModal(`<div class="sheet-header"><h3>Proposed route preview</h3><button class="btn btn-ghost" aria-label="Close route preview" data-action="App.closeModal">Close</button></div><div class="sheet-body" id="planning-route-preview" style="overflow-wrap:anywhere">
+        <p>${Utils.formatDate(day, 'weekday-day-month')} · ${proposed.length} visits</p>
+        <p>Planning estimate only: saved coordinates, straight-line distance × 1.3. Not road directions, live traffic or a guaranteed saving. No locations are looked up or shared by this preview.</p>
+        <p>${after.hasBase ? 'Includes departure from and return to your saved business base.' : 'Between visits only. Business-base travel is excluded because its location is not saved.'}</p>
+        ${backwards ? '<p role="alert">This order goes backwards through booked times. Agree and save time changes before following it.</p>' : ''}
+        ${proposed.some(v => v.timeProposal?.status === 'pending') ? '<p role="alert">Some time proposals are still awaiting customer agreement.</p>' : ''}
+        ${!booked.length ? '<p>No active visits for tomorrow.</p>' : `<p>Booked order estimate: <strong>${before.totalKm === null ? 'Unavailable — incomplete location data' : Utils.formatDistance(before.totalKm)}</strong></p>
+        <p>Proposed order estimate: <strong>${after.totalKm === null ? 'Unavailable — incomplete location data' : Utils.formatDistance(after.totalKm)}</strong></p>`}
+        <ol>${proposed.map(v => `<li>${Utils.escapeHtml(v.clientName || 'Customer')} — booked ${Utils.formatTime(v.date)}<br>${Utils.escapeHtml(v.address || 'Address not recorded')}</li>`).join('')}</ol>
+        <h4>Travel legs</h4>
+        ${after.legs.length ? after.legs.map(l => `<p>${Utils.escapeHtml(l.from)} → ${Utils.escapeHtml(l.to)}<br><strong>${l.km === null ? 'Unknown — location missing or implausible' : Utils.formatDistance(l.km) + ' estimated'}</strong></p>`).join('') : '<p>No between-visit travel to estimate.</p>'}
+        <p>Missing locations are not skipped to produce a misleading total. Bookings, navigation and mileage tracking are unchanged.</p>
+      </div>`);
+    } catch (_) { Toast.show('Could not load route preview. Your plan is unchanged.', 'error'); }
   },
 
   async openTimeProposal(id) {

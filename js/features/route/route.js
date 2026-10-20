@@ -16,6 +16,21 @@ const RouteFeature = {
 
   init() {},
 
+  planningDistancePreview(visits, baseCoords = null) {
+    const valid = p => Array.isArray(p) && p.length === 2 && p.every(Number.isFinite) && Math.abs(p[0]) <= 90 && Math.abs(p[1]) <= 180;
+    const hasBase = valid(baseCoords);
+    const points = visits.map(v => ({ label: v.clientName || 'Customer', coords: v.latLng, date: v.date }));
+    if (hasBase) { points.unshift({ label: 'Business base', coords: baseCoords }); points.push({ label: 'Business base', coords: baseCoords }); }
+    const legs = points.slice(1).map((to, i) => {
+      const from = points[i];
+      const raw = valid(from.coords) && valid(to.coords) ? Geo.calculateDistance(...from.coords, ...to.coords) : null;
+      const km = raw !== null && Number.isFinite(raw) && raw <= this.MAX_PLAUSIBLE_LEG_KM ? raw * 1.3 : null;
+      return { from: from.label, to: to.label, km };
+    });
+    const complete = visits.length > 0 && visits.every(v => valid(v.latLng)) && legs.every(l => l.km !== null);
+    return { hasBase, legs, totalKm: complete ? legs.reduce((n, l) => n + l.km, 0) : null };
+  },
+
   // Leaflet is only needed when the advisor opens the Route map. Loading it
   // during feature registration put the whole third-party library on every
   // first-screen critical path, even when the map was never visited.
