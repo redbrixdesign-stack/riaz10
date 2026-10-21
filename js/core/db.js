@@ -1051,9 +1051,17 @@ const DB = {
   // Update an appointment row, encrypting PII fields so updates never write
   // plaintext into the encrypted columns (mirrors updateCustomer).
   async updateAppointment(id, fields) {
-    const encrypted = await encryptAppointment(fields);
+    const affectsSchedule = ['date', 'status', 'outcome'].some(key => Object.prototype.hasOwnProperty.call(fields, key));
+    const previous = affectsSchedule ? await this.db.appointments.get(id) : null;
+    const changedTime = previous && fields.date && fields.date !== previous.date;
+    const updatedFields = changedTime ? { ...fields, scheduleChangedAt: new Date().toISOString() } : fields;
+    const encrypted = await encryptAppointment(updatedFields);
     await this.db.appointments.update(id, encrypted);
     if (typeof NotificationService !== 'undefined') NotificationService.queueVisitReminderRefresh();
+    if (previous && typeof MessageScheduler !== 'undefined' && typeof MessageScheduler.onAppointmentChanged === 'function') {
+      try { await MessageScheduler.onAppointmentChanged(previous, { ...previous, ...updatedFields }); }
+      catch (error) { console.warn('Visit saved, but message schedule refresh failed', error); }
+    }
   },
 
   // Explicitly reviewed local summary; audio ownership/lifecycle is unchanged.

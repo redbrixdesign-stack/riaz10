@@ -43,6 +43,21 @@ const MessageScheduler = {
     return `advisoros_auto_${stage}_${apptId}`;
   },
 
+  async onAppointmentChanged(previous, current) {
+    if (previous?.date !== current?.date) {
+      for (const stage of ['evening_before', 'intro_day_before', 'morning_of', 'on_my_way', 'running_late']) {
+        localStorage.removeItem(this._flag(stage, current.id));
+      }
+    }
+    await this.reschedule();
+  },
+
+  async _fireCurrent(captured, stage) {
+    const current = await DB.getAppointment(captured.id);
+    if (!current || current.status === 'cancelled' || current.outcome || current.date !== captured.date) return;
+    await this._fire(current, stage);
+  },
+
   _clearTimers() {
     for (const t of this.timers.values()) clearTimeout(t);
     this.timers.clear();
@@ -92,6 +107,7 @@ const MessageScheduler = {
   // boot and after appointment changes, so an edit to a visit re-times its
   // messages automatically.
   async reschedule() {
+    const generation = this._generation = (this._generation || 0) + 1;
     this._clearTimers();
     if (!this.isEnabled()) return;
     const s = this.settings();
@@ -102,11 +118,12 @@ const MessageScheduler = {
       console.warn('MessageScheduler: could not read upcoming appointments', e);
       return;
     }
+    if (generation !== this._generation) return;
     for (const appt of upcoming) {
       // A visit with an outcome already logged has already happened — no
       // check-in draft for a completed visit (e.g. outcome logged at 09:00,
       // app reopened at 10:00, would otherwise fire a stale morning_of).
-      if (appt.outcome) continue;
+      if (appt.outcome || appt.status === 'cancelled') continue;
       const days = this._daysFromNowUK(appt.date);
       if (days === 1) {
         // Visit tomorrow: evening-before draft fires today, morning-of draft tomorrow.
@@ -127,7 +144,7 @@ const MessageScheduler = {
     if (localStorage.getItem(this._flag(stage, appt.id)) === '1') return;
     const delay = this._msUntilUKTime(dayOffset, hour, 0);
     const timer = setTimeout(async () => {
-      try { await this._fire(appt, stage); } catch (e) { console.warn('MessageScheduler ' + stage + ' failed:', e); }
+      try { await this._fireCurrent(appt, stage); } catch (e) { console.warn('MessageScheduler ' + stage + ' failed:', e); }
     }, delay);
     this.timers.set(this._flag(stage, appt.id), timer);
   },
@@ -136,7 +153,7 @@ const MessageScheduler = {
     if (localStorage.getItem(this._flag('morning_of', appt.id)) === '1') return;
     const delay = this._msUntilMorningOf(appt);
     const timer = setTimeout(async () => {
-      try { await this._fire(appt, 'morning_of'); } catch (e) { console.warn('MessageScheduler morning_of failed:', e); }
+      try { await this._fireCurrent(appt, 'morning_of'); } catch (e) { console.warn('MessageScheduler morning_of failed:', e); }
     }, delay);
     this.timers.set(this._flag('morning_of', appt.id), timer);
   },
@@ -293,7 +310,7 @@ const MessageScheduler = {
       try {
         let rows = await DB.db.communications.where('customerId').equals(appt.customerId).toArray();
         if (typeof CommunicationService !== 'undefined') rows = await CommunicationService.decorate(rows);
-        const alreadyContacted = rows.some(row => row.direction !== 'inbound' && (
+        const alreadyContacted = rows.some(row => (!appt.scheduleChangedAt || (String(row.appointmentId) === String(appt.id) && Date.parse(row.sentAt) >= Date.parse(appt.scheduleChangedAt))) && row.direction !== 'inbound' && (
           typeof CommunicationService !== 'undefined' ? CommunicationService.isConfirmed(row) : !!row.sentAt
         ));
         if (alreadyContacted) {
@@ -315,6 +332,10 @@ const MessageScheduler = {
     const pending = { customerId: appt.customerId || 0, phone, appointmentId: appt.id, templateKey: stage };
     const message = await this._buildMessage(appt, stage, pending, {});
     if (!message) return;
+    // Draft generation may await an external provider; do not surface a draft
+    // for a booking changed or cancelled while that request was in flight.
+    const current = await DB.getAppointment(appt.id);
+    if (!current || current.date !== appt.date || current.status === 'cancelled' || current.outcome) return;
 
     const hints = {
       evening_before: "Auto-drafted for tomorrow's visit — review before sending.",
@@ -322,7 +343,7 @@ const MessageScheduler = {
       morning_of: "Auto-drafted for today's visit — review before sending."
     };
     TalkFeature.pendingMessage = pending;
-    TalkFeature.openPreviewSheet(message, pending, hints[stage] || null);
+    await TalkFeature.openPreviewSheet(message, pending, hints[stage] || null);
     // Flag only AFTER the draft actually reached the review sheet. A fire
     // that failed earlier (no phone, AI down AND template missing) leaves
     // the flag unset, so the next boot's catch-up retries it instead of

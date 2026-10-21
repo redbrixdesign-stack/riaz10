@@ -85,7 +85,7 @@ function loadScheduler({ uk, aiEnabled = false, autoMessages, appointments = [],
   // Stub collaborators.
   sandbox.DB = {
     getUpcomingAppointments: async () => appointments,
-    getAppointment: async id => apptById[id],
+    getAppointment: async id => apptById[id] || appointments.find(a => a.id === id),
     getCustomer: async () => ({ id: 1, firstName: 'Alice', phone: '07700123456' }),
     db: {
       appointments: { get: async id => apptById[id] },
@@ -197,6 +197,34 @@ function appt(id, dateISO, phone = '07700123456') {
     ok('morning-of for today fires now (past 08:00 catch-up)', !!morningToday);
   }
 
+  console.log('\nTest C2: a changed booking must not retain fired-stage suppression');
+  {
+    const old = appt(90, ukDay(2026, 8, 12));
+    const moved = { ...old, date: new Date(Date.parse(old.date) + 3600000).toISOString() };
+    const s = loadScheduler({ uk: { year: 2026, month: 8, day: 11, hour: 12, minute: 0, second: 0 }, appointments: [moved] });
+    s.sandbox.localStorage.setItem(s._flag('morning_of', 90), '1');
+    if (s.onAppointmentChanged) await s.onAppointmentChanged(old, moved);
+    else await s.reschedule();
+    ok('time change clears the old morning-stage flag', s.sandbox.localStorage.getItem(s._flag('morning_of', 90)) === null);
+    ok('time change schedules morning prompt again', s.timers.has(s._flag('morning_of', 90)));
+    s.sandbox.localStorage.setItem(s._flag('morning_of', 90), '1');
+    await s.onAppointmentChanged(moved, { ...moved, notes: 'changed' });
+    ok('unchanged time retains single-fire protection', s.sandbox.localStorage.getItem(s._flag('morning_of', 90)) === '1');
+    s.sandbox.DB.getAppointment = async () => moved;
+    await s._fireCurrent(old, 'evening_before');
+    ok('old callback cannot open a moved booking draft', !s.sandbox.TalkFeature.lastSheet);
+    s.sandbox.DB.getAppointment = async () => ({ ...moved, status: 'cancelled' });
+    await s._fireCurrent(moved, 'evening_before');
+    ok('cancelled visit cannot open scheduled draft', !s.sandbox.TalkFeature.lastSheet);
+    s.sandbox.DB.getAppointment = async () => moved;
+    s._buildMessage = async () => {
+      s.sandbox.DB.getAppointment = async () => ({ ...moved, status: 'cancelled' });
+      return 'SYNTHETIC delayed draft';
+    };
+    await s._fire(moved, 'evening_before');
+    ok('cancellation during draft generation prevents preview', !s.sandbox.TalkFeature.lastSheet);
+  }
+
   console.log('\nTest D: disabled config schedules nothing');
   {
     const s = loadScheduler({
@@ -269,6 +297,12 @@ function appt(id, dateISO, phone = '07700123456') {
   }
 
   console.log('\nTest G: on-departure (on my way) trigger');
+  {
+    const visit = { ...appt(62, ukDay(2026, 8, 11)), scheduleChangedAt: '2026-08-11T07:00:00Z' };
+    const s = loadScheduler({ uk: { year: 2026, month: 8, day: 11, hour: 8, minute: 0, second: 0 }, apptById: { 62: visit }, communications: [{ id: 1, customerId: 1, appointmentId: 62, direction: 'outbound', sentAt: '2026-08-10T17:00:00Z' }] });
+    await s._fire(visit, 'morning_of');
+    ok('a message before the time change does not suppress the new morning prompt', !!s.sandbox.TalkFeature.lastSheet);
+  }
   {
     const s = loadScheduler({
       uk: { year: 2026, month: 8, day: 11, hour: 12, minute: 0, second: 0 },
