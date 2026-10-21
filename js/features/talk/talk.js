@@ -660,12 +660,20 @@ const TalkFeature = {
   // a vacuum.
   async openPreviewSheet(message, pending, hint = null) {
     const { phone, templateKey } = pending;
+    let currentBooking = null;
+    try { currentBooking = pending.appointmentId ? await this.draftBookingSnapshot(pending.appointmentId) : null; }
+    catch (_) { return Toast.show('Could not check the booking. Please try again.', 'error'); }
+    this._draftBookingSnapshot = currentBooking;
+    this._previewBookingSnapshot = currentBooking;
+    let needsBookingReview = false;
     if (pending.appointmentId && typeof DB.getPrivateSetting === 'function') {
       const raw = await DB.getPrivateSetting(this.draftStorageKey(pending), null);
       let saved = null;
       try { saved = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch (e) {}
       if (saved && typeof saved.text === 'string') {
         message = saved.text;
+        this._draftBookingSnapshot = saved.bookingSnapshot || null;
+        needsBookingReview = this._draftBookingSnapshot !== currentBooking;
         hint = 'Saved unsent draft restored. Check the appointment details before sending.';
       }
     }
@@ -709,6 +717,11 @@ const TalkFeature = {
     const content = `<div class="sheet-handle"></div>
       <div class="sheet-header"><h3>Preview Message</h3><button class="btn btn-ghost btn-sm" aria-label="Close message preview" data-action="TalkFeature.dismissPreview"><span class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body">
+        <div id="draft-booking-review" class="card mb-md" ${needsBookingReview ? '' : 'hidden'}>
+          <p role="alert">This draft may contain old booking details. Your wording has been preserved. Check and edit it against the current booking before sharing.</p>
+          <p id="draft-booking-current">${Utils.escapeHtml(this.bookingSnapshotLabel(currentBooking))}</p>
+          <label><input type="checkbox" id="draft-booking-checked"> I have checked the date, time, visit details and recipient in this draft</label>
+        </div>
         <div class="fs-12 text-secondary mt-6" id="talk-nudge" style="display:none"></div>
         <textarea class="textarea" id="talk-message-preview" aria-label="Message preview (editable)" data-action="TalkFeature.savePreviewDraft" data-event="input" style="min-height:110px;">${Utils.escapeHtml(message)}</textarea>
 
@@ -761,6 +774,7 @@ const TalkFeature = {
           <span class="material-symbols-rounded">chat</span>Open WhatsApp
         </button>
       </div>`;
+    this._reviewBookingCandidate = currentBooking;
     App.openModal(content);
   },
 
@@ -1130,6 +1144,30 @@ const TalkFeature = {
       Toast.show('Message cannot be empty', 'error');
       return;
     }
+    if (pending.appointmentId) {
+      let current;
+      try { current = await this.draftBookingSnapshot(pending.appointmentId); }
+      catch (_) { return Toast.show('Could not verify current booking details. Nothing opened.', 'error'); }
+      if (!current || JSON.parse(current).status === 'cancelled') return Toast.show('This visit is missing or cancelled. Review it before contacting the customer.', 'warning');
+      if (current !== this._draftBookingSnapshot) {
+        const checked = document.getElementById('draft-booking-checked');
+        if (this._reviewBookingCandidate !== current || !checked?.checked) {
+          this._reviewBookingCandidate = current;
+          const warning = document.getElementById('draft-booking-review');
+          if (warning) warning.hidden = false;
+          const details = document.getElementById('draft-booking-current');
+          if (details) details.textContent = this.bookingSnapshotLabel(current);
+          if (checked) checked.checked = false;
+          return Toast.show('Booking details changed. Review the draft and tick the confirmation before sharing.', 'warning');
+        }
+        // Recipient changes require reopening so the normal contact/consent flow
+        // resolves the current recipient; a checkbox cannot authorize an old one.
+        const old = this._previewBookingSnapshot ? JSON.parse(this._previewBookingSnapshot) : null;
+        const fresh = JSON.parse(current);
+        if (old && (old.phone !== fresh.phone || old.customerId !== fresh.customerId)) return Toast.show('Recipient changed. Close and reopen the message to refresh the recipient.', 'warning');
+        this._draftBookingSnapshot = current;
+      }
+    }
     if (await this.savePreviewDraft() === false) return;
     const { customerId, phone, appointmentId, templateKey } = pending;
     if (customerId > 0 && typeof CommunicationService !== 'undefined') {
@@ -1186,6 +1224,20 @@ const TalkFeature = {
     return `communication-draft:${pending.appointmentId}:${pending.templateKey}`;
   },
 
+  async draftBookingSnapshot(id) {
+    const visit = await DB.getAppointment(id);
+    if (!visit) return null;
+    const customer = visit.customerId ? await DB.getCustomer(visit.customerId) : null;
+    return JSON.stringify({ date: visit.date || '', type: visit.type || '', arrivalStart: visit.arrivalStart || '', arrivalEnd: visit.arrivalEnd || '', address: visit.address || '', customerAddress: customer?.address || '', name: visit.clientName || '', customerName: [customer?.firstName, customer?.lastName].filter(Boolean).join(' '), phone: customer?.phone || visit.phone || '', customerId: visit.customerId || null, status: visit.status || '', outcome: visit.outcome || '' });
+  },
+
+  bookingSnapshotLabel(snapshot) {
+    if (!snapshot) return 'Booking unavailable — review the visit.';
+    const booking = JSON.parse(snapshot);
+    const address = booking.address || (typeof booking.customerAddress === 'string' ? booking.customerAddress : Object.values(booking.customerAddress || {}).filter(v => typeof v === 'string').join(', '));
+    return `Current booking: ${booking.customerName || booking.name} · ${booking.date ? Utils.formatDate(booking.date, 'short') + ' ' + Utils.formatTime(booking.date) : 'No time'} · ${booking.type}${booking.arrivalStart ? ' · ' + booking.arrivalStart + '–' + booking.arrivalEnd : ''} · ${address} · ${booking.phone}`;
+  },
+
   async openSavedDrafts(appointmentId = null) {
     await (this._draftSave || Promise.resolve()).catch(() => {});
     const settings = await DB.db.settings.toArray();
@@ -1205,7 +1257,7 @@ const TalkFeature = {
     const field = document.getElementById('talk-message-preview');
     if (!pending?.appointmentId || !field || typeof DB.setPrivateSetting !== 'function') return;
     const key = this.draftStorageKey(pending);
-    const value = { text: field.value, updatedAt: new Date().toISOString() };
+    const value = { text: field.value, updatedAt: new Date().toISOString(), bookingSnapshot: this._draftBookingSnapshot || null };
     this._draftSave = (this._draftSave || Promise.resolve()).catch(() => {}).then(() => DB.setPrivateSetting(key, JSON.stringify(value)));
     try { await this._draftSave; return true; } catch (e) { Toast.show('Draft could not be saved. Keep this screen open and copy your text.', 'error'); return false; }
   },
