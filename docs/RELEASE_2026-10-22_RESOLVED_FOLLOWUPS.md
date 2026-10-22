@@ -1,0 +1,11 @@
+# Follow-ups resolved by recorded events
+
+Scope: second communication-simplification slice. Pre-visit introductions, confirmations and outcome prompts no longer derive from concluded visits, including imported rows retaining confirmed status. Quote chases stop when an order explicitly links to that appointment; another order for the same customer does not suppress them.
+
+Saved/snoozed source-linked pre-visit reminders reconcile against recorded visit state when Follow-ups loads. Cancelled/concluded visits clear those reminders; confirmed sent flags clear their matching communication purpose. Quote reminders clear on a recorded sales decision or linked non-cancelled order. Resolution is stored atomically with a `source_resolved` task event and reason, retaining history. It never creates sent evidence. No database schema change.
+
+Manual reminders, unresolved service issues and post-fitting care are preserved. Measurement submission, fitting agreement, partial-fitting resolution and issue closure are not inferred from visit completion. Missing records/read errors do not clear saved tasks. Existing missed-message history is retained; no new pre-visit missed obligations are created after an outcome has already been recorded. Existing deadline handling otherwise unchanged.
+
+Verification: task unit coverage includes snoozed resolution, idempotency, manual/issue/post-fit preservation, unrelated/cancelled orders and read failure. Browser synthetic journey exercises actual IndexedDB, audit event, reload persistence and unsent flags. Quiet batch booking and edited/stale saved-draft browser regressions retained. Full suite outcome and production verification are recorded in the development record. Screenshot: `/private/tmp/beelo-resolved-followups.png` (synthetic data only). Cache: `advisoros-v6-133-resolved-followups`.
+
+Limitations: reconciliation runs on inbox load/count refresh, not a background push. Saved message drafts are preserved, not erased by event resolution; their existing stale-context review remains in place. No changes to travel prompts, AI providers, external communications, marketing or customer data migration. Physical iPhone acceptance remains outstanding.

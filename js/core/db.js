@@ -2070,6 +2070,18 @@ const DB = {
     return this._transitionTask(taskId, 'completed', { status: 'completed', completedAt: new Date().toISOString() }, operationId);
   },
 
+  async resolveTask(taskId, reason, operationId) {
+    const task = await this.getTask(taskId);
+    if (!task) throw new Error('Task not found');
+    if (['completed', 'cancelled'].includes(task.status)) return task;
+    // Preserve the reminder and its provenance, without asserting a message
+    // was sent or the adviser manually completed the task.
+    return this._transitionTask(taskId, 'source_resolved', {
+      status: 'completed', completedAt: new Date().toISOString(),
+      resolutionReason: reason, resolutionSource: 'appointment_state'
+    }, operationId);
+  },
+
   async snoozeTask(taskId, snoozedUntil, operationId) {
     const until = new Date(snoozedUntil);
     if (isNaN(until.getTime())) throw new Error('Invalid snooze date');

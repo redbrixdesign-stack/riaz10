@@ -195,19 +195,21 @@ const assert = (cond, msg) => { if (!cond) { console.error('FAIL:', msg); proces
 
   const tasks = await Followups.loadTasks();
   const kinds = tasks.map(t => t.kind).sort();
-  assert(tasks.length === 4, `loadTasks returns 4 tasks (got ${tasks.length})`);
-  assert(kinds.join(',') === ['intro_confirmation', 'payment', 'quote', 'visit_today'].join(','), 'All four task kinds present, with tomorrow first contact combined');
+  assert(tasks.length === 3, `loadTasks returns 3 unresolved tasks (got ${tasks.length})`);
+  assert(kinds.join(',') === ['intro_confirmation', 'payment', 'visit_today'].join(','), 'Linked order replaces obsolete quote chase');
   const due = tasks.filter(t => t.due);
-  assert(due.length === 4, 'All four tasks are due');
-  assert(tasks.find(t => t.kind === 'quote').template === 'follow_up.quote', 'Quote chase carries Talk template');
+  assert(due.length === 3, 'All three unresolved tasks are due');
+  TABLES.orders[0].appointmentId = 999;
+  assert((await Followups.loadTasks()).find(t => t.kind === 'quote').template === 'follow_up.quote', 'Unrelated order does not suppress quote chase');
+  TABLES.orders[0].appointmentId = 11;
   assert(tasks.find(t => t.kind === 'payment').order.id === 21, 'Payment task references order');
   const count = await Followups.getDueCount();
-  assert(count === 4, `getDueCount() === 4 (got ${count})`);
+  assert(count === 3, `getDueCount() === 3 (got ${count})`);
 
   // Orders: stage derivation — balanceDue <= 0 forces Paid column.
   TABLES.orders[0].balanceDue = 0;
   const countAfterPaid = await Followups.getDueCount();
-  assert(countAfterPaid === 3, `Paid order drops out of the inbox (got ${countAfterPaid})`);
+  assert(countAfterPaid === 2, `Paid order drops out of the inbox (got ${countAfterPaid})`);
 
   // Customer profile renders without throwing (renderProfile returns HTML).
   const html = await Customer.renderProfile(1);

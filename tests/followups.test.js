@@ -107,5 +107,10 @@ const talkSource = fs.readFileSync(path.join(__dirname, '..', 'js/features/talk/
   assert(!tasks.some(t => t.kind === 'intro'), 'Returning customers get no intro task');
   assert(talkSource.includes("intro_day_before: ['introSent', 'dayBeforeSent']"), 'Confirmed combined send clears both communication obligations');
 
+  NEXT5[0].outcome = 'measured'; // Imported rows can retain confirmed status.
+  FAR_APPTS[0].outcome = 'ordered';
+  tasks = await Followups.loadTasks();
+  assert(!tasks.some(t => ['intro', 'intro_confirmation', 'visit_tomorrow', 'visit_today'].includes(t.kind)), 'Concluded visits never generate pre-visit follow-ups even with confirmed status');
+
   console.log(process.exitCode ? '\nFOLLOWUPS TEST FAILED' : '\nFOLLOWUPS TEST PASSED');
 })();

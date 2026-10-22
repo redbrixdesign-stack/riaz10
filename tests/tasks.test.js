@@ -80,4 +80,34 @@ const ok = (name, condition, detail) => {
   rows = rows.filter(r => r.id !== linked.id);
   merged = await TaskService.merge([derived]);
   ok('unresolved source suggestion returns after linked record resolves/disappears', merged.some(t => !t.durable && t.derivedKey === key));
+
+  const appointments = new Map([[10, { id: 10, status: 'completed', outcome: 'measured' }], [11, { id: 11, status: 'cancelled' }], [12, { id: 12, outcome: 'quoted' }]]);
+  DB.getAppointment = async id => appointments.get(id);
+  DB.db = { orders: { toArray: async () => [{ id: 99, appointmentId: 12, status: 'deposit_pending' }] } };
+  DB.resolveTask = async (id, reason, op) => {
+    const row = rows.find(r => r.id === id);
+    row.resolutionReason = reason;
+    return DB.completeTask(id, op);
+  };
+  rows = [
+    { id: 201, appointmentId: 10, sourceKey: 'message:intro-day-before:appointment:10', status: 'open', snoozedUntil: tomorrow },
+    { id: 202, appointmentId: 11, sourceKey: 'visit-outcome:appointment:11', status: 'open' },
+    { id: 203, appointmentId: 12, sourceKey: 'quote:appointment:12:follow_up.quote', status: 'open' },
+    { id: 204, appointmentId: 10, title: 'Submit final measurements', status: 'open' },
+    { id: 205, appointmentId: 10, sourceKey: 'message:service:appointment:10', status: 'open' },
+    { id: 206, appointmentId: 10, sourceKey: 'message:post-fit:appointment:10', status: 'open' },
+    { id: 207, appointmentId: 999, sourceKey: 'message:intro:appointment:999', status: 'open' }
+  ];
+  merged = await TaskService.merge([]);
+  ok('completed, cancelled and linked order resolve snoozed/source reminders', [201, 202, 203].every(id => !merged.some(t => t.id === id) && rows.find(t => t.id === id).resolutionReason));
+  ok('manual, service, postfit and missing source reminders preserved', [204, 205, 206, 207].every(id => merged.some(t => t.id === id)));
+  ok('resolution never invents sent flags', !appointments.get(10).introSent && !appointments.get(10).dayBeforeSent);
+  const count = events.size;
+  await TaskService.merge([]);
+  ok('automatic resolution is idempotent', events.size === count);
+  ok('other customer order does not clear a quote', !TaskService.appointmentResolution(key, { id: 42, outcome: 'quoted' }, [{ appointmentId: 43, customerId: 1 }]));
+  ok('cancelled order does not clear a quote', !TaskService.appointmentResolution(key, { id: 42, outcome: 'quoted' }, [{ appointmentId: 42, status: 'cancelled' }]));
+  DB.getAppointment = async () => { throw new Error('Synthetic read failure'); };
+  merged = await TaskService.merge([]);
+  ok('read failure never clears reminders', merged.some(t => t.id === 207));
 })();

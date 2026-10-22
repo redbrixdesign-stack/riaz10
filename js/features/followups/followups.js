@@ -45,10 +45,10 @@ const FollowupsFeature = {
       // A booking received before T-24 owed a standalone introduction. Once
       // missed, that obligation is archived and the active task becomes the
       // combined recovery message until the visit starts.
-      if (first && !appt.introSent && bookedAt < introDeadline && now >= introDeadline) {
+      if (!appt.outcome && appt.status !== 'completed' && first && !appt.introSent && bookedAt < introDeadline && now >= introDeadline) {
         await this.archiveMissedCommunication(appt, 'introduction', introDeadline, 'Introduction was not confirmed sent before the 24-hour appointment deadline');
       }
-      if (now >= visitAt && !appt.dayBeforeSent) {
+      if (!appt.outcome && appt.status !== 'completed' && now >= visitAt && !appt.dayBeforeSent) {
         const hadStandaloneWindow = bookedAt < introDeadline;
         const type = first && !appt.introSent ? (hadStandaloneWindow ? 'intro_confirmation_recovery' : 'intro_confirmation') : 'day_before_confirmation';
         await this.archiveMissedCommunication(appt, type, visitAt, 'The appointment started before sending was confirmed');
@@ -149,6 +149,8 @@ const FollowupsFeature = {
     const skippableIds = new Set([...upcoming, ...todayAppts].filter(a => !a.outcome && a.status !== 'completed').map(a => a.id));
     for (const appt of pipeline) {
       if (skippableIds.has(appt.id)) continue;
+      if (appt.status === 'cancelled' || ['ordered', 'lost', 'not_interested', 'not_looking_for', 'other_no_sale', 'cancelled'].includes(appt.outcome)) continue;
+      if (orders.some(o => String(o.appointmentId) === String(appt.id) && o.status !== 'cancelled' && o.status !== 'cancelled_order' && o.stage !== 'cancelled')) continue;
       const match = (typeof TalkFeature !== 'undefined') ? TalkFeature.getTemplateForOutcome(appt.outcome) : null;
       if (!match) continue;
       const daysSince = Utils.daysBetween(now, new Date(appt.date));
@@ -208,7 +210,7 @@ const FollowupsFeature = {
     // repetitive messages.
     const combinedIntroIds = new Set();
     for (const appt of upcoming) {
-      if (appt.status !== 'confirmed' || appt.dayBeforeSent) continue;
+      if (appt.status !== 'confirmed' || appt.outcome || appt.dayBeforeSent) continue;
       if (ukDayKey(appt.date) !== tomorrowKey) continue;
       if (!appt.phone && !appt.customerId) continue;
       const needsCombinedIntro = !appt.introSent;
@@ -246,7 +248,7 @@ const FollowupsFeature = {
     await this.reconcileCommunicationDeadlines(allAppts, isFirstVisit, now);
 
     const introCandidates = [...futureAppts, ...todayAppts]
-      .filter(a => a.status === 'confirmed' && !a.introSent && !combinedIntroIds.has(a.id) && !contactedCustomerIds.has(Number(a.customerId)) && (a.phone || a.customerId))
+      .filter(a => a.status === 'confirmed' && !a.outcome && !a.introSent && !combinedIntroIds.has(a.id) && !contactedCustomerIds.has(Number(a.customerId)) && (a.phone || a.customerId))
       .sort((a, b) => new Date(a.date) - new Date(b.date));
     const introSeen = new Set();
     for (const appt of introCandidates) {

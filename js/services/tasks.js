@@ -51,7 +51,28 @@ const TaskService = {
   },
 
   async merge(derived = [], now = this.now()) {
-    const durable = await this.getDurableTasks();
+    const durable = [];
+    for (const task of await this.getDurableTasks()) {
+      // Absence from the derived list is not evidence of resolution (a read
+      // may have failed, or the visit may be outside the look-ahead window).
+      let reason = null;
+      try {
+        const key = task.derivedKey || task.sourceKey || '';
+        if (task.appointmentId && /^(message:|visit-outcome:appointment:|quote:appointment:)/.test(key) && typeof DB.getAppointment === 'function') {
+          const appt = await DB.getAppointment(task.appointmentId);
+          if (appt) {
+            let orders = [];
+            if (key.startsWith('quote:appointment:') && DB.db?.orders) orders = await DB.db.orders.toArray();
+            reason = this.appointmentResolution(key, appt, orders);
+          }
+        }
+        if (reason && typeof DB.resolveTask === 'function') {
+          await DB.resolveTask(task.id, reason, `task:resolved:${task.id}:${reason}`);
+          continue;
+        }
+      } catch (e) { console.warn('Tasks: source reconciliation deferred', e); }
+      durable.push(task);
+    }
     const activeByKey = new Map();
     for (const task of durable) {
       const key = task.derivedKey || task.sourceKey;
@@ -75,6 +96,26 @@ const TaskService = {
     const represented = new Set(merged.filter(t => t.durable).map(t => t.id));
     for (const task of durable) if (!represented.has(task.id)) merged.push(this.decorateDurable(task, now));
     return merged;
+  },
+
+  appointmentResolution(key, appt, orders = []) {
+    const cancelled = appt.status === 'cancelled' || appt.outcome === 'cancelled';
+    const preVisit = /^(message:(intro|day-before|intro-day-before):appointment:|visit-outcome:appointment:)/.test(key);
+    if (preVisit) {
+      if (cancelled) return 'visit_cancelled';
+      if (appt.outcome || appt.status === 'completed') return 'visit_concluded';
+      if (key.startsWith('message:intro:') && appt.introSent) return 'message_confirmed_sent';
+      if (key.startsWith('message:day-before:') && appt.dayBeforeSent) return 'message_confirmed_sent';
+      if (key.startsWith('message:intro-day-before:') && appt.introSent && appt.dayBeforeSent) return 'message_confirmed_sent';
+    }
+    if (key.startsWith('quote:appointment:')) {
+      if (cancelled) return 'visit_cancelled';
+      if (['ordered', 'lost', 'not_interested', 'not_looking_for', 'other_no_sale'].includes(appt.outcome)) return 'sales_decision_recorded';
+      if (orders.some(o => String(o.appointmentId) === String(appt.id) && !['cancelled', 'cancelled_order'].includes(o.status) && o.stage !== 'cancelled')) return 'linked_order_recorded';
+    }
+    // Service issues and post-fitting care are separate purposes: completing
+    // the appointment must never silently resolve either of them.
+    return null;
   },
 
   validate(input) {
