@@ -28,6 +28,10 @@ const TaskService = {
 
   isActive(task) { return task && !['completed', 'cancelled'].includes(task.status); },
 
+  canonicalKey(key) {
+    return String(key || '').replace(/^message:(intro|intro-day-before|day-before):appointment:/, 'message:previsit:appointment:');
+  },
+
   decorateDurable(task, now = this.now()) {
     const effectiveDue = this.effectiveDue(task);
     const snoozeDate = task?.snoozedUntil ? new Date(task.snoozedUntil) : null;
@@ -75,25 +79,41 @@ const TaskService = {
     }
     const activeByKey = new Map();
     for (const task of durable) {
-      const key = task.derivedKey || task.sourceKey;
-      if (key) activeByKey.set(key, task);
+      const rawKey = task.derivedKey || task.sourceKey;
+      if (!rawKey) continue;
+      const key = this.canonicalKey(rawKey);
+      const group = activeByKey.get(key) || [];
+      group.push(task);
+      activeByKey.set(key, group);
     }
     const merged = [];
+    const represented = new Set();
     for (const suggestion of derived) {
       const derivedKey = this.derivedKey(suggestion);
-      const linked = derivedKey ? activeByKey.get(derivedKey) : null;
+      const canonical = this.canonicalKey(derivedKey);
+      const group = activeByKey.get(canonical) || [];
+      // Carry the latest explicit snooze across intro -> combined -> reminder.
+      // Keep one reminder; retained task events explain any superseded copies.
+      group.sort((a, b) => (this.effectiveDue(b)?.getTime() || 0) - (this.effectiveDue(a)?.getTime() || 0));
+      const linked = group[0];
       if (linked) {
+        for (const task of group) represented.add(task.id);
+        if (canonical.startsWith('message:previsit:') && typeof DB.resolveTask === 'function') {
+          for (const duplicate of group.slice(1)) {
+            try { await DB.resolveTask(duplicate.id, 'previsit_purpose_consolidated', `task:consolidated:${duplicate.id}:${linked.id}`); }
+            catch (e) { console.warn('Tasks: duplicate reconciliation deferred', e); }
+          }
+        }
         merged.push(this.decorateDurable({
-          ...linked, derivedKey, sourceSuggestion: suggestion,
+          ...linked, kind: suggestion.kind, action: suggestion.action, derivedKey, sourceSuggestion: suggestion,
           customer: suggestion.customer, appointment: suggestion.appointment,
           order: suggestion.order, template: suggestion.template
         }, now));
-        activeByKey.delete(derivedKey);
+        activeByKey.delete(canonical);
       } else {
         merged.push({ ...suggestion, derivedKey, durable: false });
       }
     }
-    const represented = new Set(merged.filter(t => t.durable).map(t => t.id));
     for (const task of durable) if (!represented.has(task.id)) merged.push(this.decorateDurable(task, now));
     return merged;
   },
@@ -104,6 +124,7 @@ const TaskService = {
     if (preVisit) {
       if (cancelled) return 'visit_cancelled';
       if (appt.outcome || appt.status === 'completed') return 'visit_concluded';
+      if (key.startsWith('message:') && appt.date && new Date(appt.date) <= this.now()) return 'previsit_window_closed';
       if (key.startsWith('message:intro:') && appt.introSent) return 'message_confirmed_sent';
       if (key.startsWith('message:day-before:') && appt.dayBeforeSent) return 'message_confirmed_sent';
       if (key.startsWith('message:intro-day-before:') && appt.introSent && appt.dayBeforeSent) return 'message_confirmed_sent';

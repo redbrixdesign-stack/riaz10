@@ -196,7 +196,7 @@ const assert = (cond, msg) => { if (!cond) { console.error('FAIL:', msg); proces
   const tasks = await Followups.loadTasks();
   const kinds = tasks.map(t => t.kind).sort();
   assert(tasks.length === 3, `loadTasks returns 3 unresolved tasks (got ${tasks.length})`);
-  assert(kinds.join(',') === ['intro_confirmation', 'payment', 'visit_today'].join(','), 'Linked order replaces obsolete quote chase');
+  assert(kinds.join(',') === ['payment', 'visit_today', 'visit_tomorrow'].join(','), 'Linked order replaces quote chase; returning customer gets reminder without repeat introduction');
   const due = tasks.filter(t => t.due);
   assert(due.length === 3, 'All three unresolved tasks are due');
   TABLES.orders[0].appointmentId = 999;

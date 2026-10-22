@@ -112,5 +112,19 @@ const talkSource = fs.readFileSync(path.join(__dirname, '..', 'js/features/talk/
   tasks = await Followups.loadTasks();
   assert(!tasks.some(t => ['intro', 'intro_confirmation', 'visit_tomorrow', 'visit_today'].includes(t.kind)), 'Concluded visits never generate pre-visit follow-ups even with confirmed status');
 
+  const fixedNow = new Date('2026-10-22T10:00:00Z');
+  const base = { status: 'confirmed', date: '2026-10-25T10:00:00Z' };
+  assert(Followups.preVisitPlan(base, false, fixedNow)?.template === 'pre_intro', 'Far-out first contact has standalone introduction');
+  const tomorrow = { ...base, date: '2026-10-23T14:00:00Z' };
+  assert(Followups.preVisitPlan(tomorrow, false, fixedNow)?.template === 'intro_day_before', 'Tomorrow combines even outside exact 24 hours');
+  assert(Followups.preVisitPlan(tomorrow, true, fixedNow)?.template === 'day_before', 'Returning customer gets confirmation without another intro');
+  const today = { ...base, date: '2026-10-22T14:00:00Z' };
+  assert(Followups.preVisitPlan(today, false, fixedNow)?.template === 'intro_day_before', 'Same-day first contact gets combined message');
+  assert(Followups.preVisitPlan(today, true, fixedNow)?.template === 'day_before', 'Same-day returning customer still gets reminder');
+  assert(!Followups.preVisitPlan({ ...today, dayBeforeSent: true }, true, fixedNow), 'Confirmed reminder does not repeat');
+  assert(!Followups.preVisitPlan({ ...base, date: fixedNow.toISOString() }, false, fixedNow), 'Pre-visit purpose expires at visit start');
+  assert(!Followups.preVisitPlan({ ...base, status: 'cancelled' }, false, fixedNow), 'Cancelled appointment has no pre-visit message');
+  assert(Followups.preVisitPlan({ ...base, date: '2026-10-26T18:00:00Z' }, false, new Date('2026-10-24T23:30:00Z'))?.template === 'intro_day_before', 'UK tomorrow classification survives autumn clock change');
+
   console.log(process.exitCode ? '\nFOLLOWUPS TEST FAILED' : '\nFOLLOWUPS TEST PASSED');
 })();

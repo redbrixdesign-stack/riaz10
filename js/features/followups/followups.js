@@ -23,6 +23,22 @@ const FollowupsFeature = {
     return (CONFIG.followups && CONFIG.followups.paymentReminderDays) || 3;
   },
 
+  preVisitPlan(appt, introduced, now = new Date()) {
+    const visitAt = new Date(appt.date);
+    if (appt.status !== 'confirmed' || appt.outcome || isNaN(visitAt) || visitAt <= now) return null;
+    const p = Utils.ukParts(now), v = Utils.ukParts(visitAt);
+    const tomorrow = new Date(Date.UTC(p.year, p.month - 1, p.day + 1));
+    const isTomorrow = v.year === tomorrow.getUTCFullYear() && v.month === tomorrow.getUTCMonth() + 1 && v.day === tomorrow.getUTCDate();
+    const reminderWindow = visitAt - now <= 86400000 || isTomorrow;
+    if (!introduced && !appt.introSent) {
+      return reminderWindow && !appt.dayBeforeSent
+        ? { kind: 'intro_confirmation', template: 'intro_day_before', action: 'Introduce yourself and confirm this visit' }
+        : { kind: 'intro', template: 'pre_intro', action: 'Introduce yourself before this visit' };
+    }
+    if (reminderWindow && !appt.dayBeforeSent) return { kind: 'visit_tomorrow', template: 'day_before', action: 'Confirm the upcoming visit' };
+    return null;
+  },
+
   async archiveMissedCommunication(appt, type, dueAt, reason) {
     const archive = Array.isArray(appt.communicationArchive) ? [...appt.communicationArchive] : [];
     const key = `${type}:${new Date(dueAt).toISOString()}`;
@@ -41,7 +57,7 @@ const FollowupsFeature = {
       if (isNaN(visitAt)) continue;
       const introDeadline = new Date(visitAt.getTime() - 24 * 60 * 60 * 1000);
       const bookedAt = new Date(appt.createdAt || appt.date);
-      const first = isFirstVisit(appt.customerId);
+      const first = isFirstVisit(appt.customerId, appt);
       // A booking received before T-24 owed a standalone introduction. Once
       // missed, that obligation is archived and the active task becomes the
       // combined recovery message until the visit starts.
@@ -112,7 +128,8 @@ const FollowupsFeature = {
       ...pipeline.map(a => a.customerId).filter(Boolean),
       ...orders.map(o => o.customerId).filter(Boolean),
       ...upcoming.map(a => a.customerId).filter(Boolean),
-      ...todayAppts.map(a => a.customerId).filter(Boolean)
+      ...todayAppts.map(a => a.customerId).filter(Boolean),
+      ...futureAppts.map(a => a.customerId).filter(Boolean)
     ])];
     const customerMap = new Map();
     if (customerIds.length) {
@@ -131,13 +148,6 @@ const FollowupsFeature = {
       return p.year * 10000 + p.month * 100 + p.day;
     };
     const todayKey = ukDayKey();
-    // UK-anchored tomorrow: building a Date from the UK wall-clock fields
-    // with new Date(y, m-1, d+1) uses the DEVICE's local midnight, so on an
-    // east-of-UTC device (e.g. UTC+14) that instant still lands on today's
-    // UK day and every visit_tomorrow task silently vanishes. getTomorrow()
-    // returns tomorrow's UK midnight instant regardless of the device TZ.
-    const tomorrowKey = ukDayKey(Utils.getTomorrow());
-
     const tasks = [];
 
     // 1. Quote chases from visit outcomes (Talk's timing rules).
@@ -205,77 +215,33 @@ const FollowupsFeature = {
       });
     }
 
-    // 4. Tomorrow's visits needing their day-before message. When this is
-    // also the first contact, one introduction + confirmation replaces two
-    // repetitive messages.
-    const combinedIntroIds = new Set();
-    for (const appt of upcoming) {
-      if (appt.status !== 'confirmed' || appt.outcome || appt.dayBeforeSent) continue;
-      if (ukDayKey(appt.date) !== tomorrowKey) continue;
-      if (!appt.phone && !appt.customerId) continue;
-      const needsCombinedIntro = !appt.introSent;
-      if (needsCombinedIntro) combinedIntroIds.add(appt.id);
-      tasks.push({
-        kind: needsCombinedIntro ? 'intro_confirmation' : 'visit_tomorrow',
-        due: true,
-        daysLabel: Utils.formatTime(appt.date),
-        appointment: appt,
-        customer: appt.customerId ? customerMap.get(appt.customerId) : null,
-        template: needsCombinedIntro ? 'intro_day_before' : 'day_before',
-        action: needsCombinedIntro ? 'Introduction + day-before confirmation not sent' : 'Day-before reminder not sent',
-        priority: 'normal',
-        inDays: 0
-      });
-    }
-
-    // 5. Intro messages (communication spec): first-time customers' upcoming
-    //    bookings — no prior non-cancelled visit at this address — that
-    //    haven't had their intro sent. One task per customer, for the
-    //    earliest booking. appts without a customerId (e.g. phone conversions
-    //    typed straight onto the visit) are treated as first-time too.
-    const firstVisitByCustomer = {};
-    try {
-      for (const a of allAppts) {
-        if (!a.customerId || !a.date) continue;
-        if (a.status === 'cancelled') continue;
-        if (new Date(a.date) >= now) continue;
-        const key = Utils.formatDate(a.date, 'iso');
-        (firstVisitByCustomer[a.customerId] = firstVisitByCustomer[a.customerId] || new Set()).add(key);
-      }
-    } catch (e) { /* treat everyone as first-time */ }
-    const isFirstVisit = id => !(id && firstVisitByCustomer[id]?.size);
+    // One current communication purpose per visit. The visit itself and a
+    // no-show are not evidence that the adviser previously met the customer.
+    const isFirstVisit = (id, current) => !contactedCustomerIds.has(Number(id)) && !allAppts.some(a =>
+      id && String(a.customerId) === String(id) && a.id !== current?.id &&
+      a.status !== 'cancelled' && a.outcome &&
+      !['cancelled', 'customer_no_show', 'advisor_unavailable'].includes(a.outcome) && new Date(a.date) < now);
 
     await this.reconcileCommunicationDeadlines(allAppts, isFirstVisit, now);
 
-    const introCandidates = [...futureAppts, ...todayAppts]
-      .filter(a => a.status === 'confirmed' && !a.outcome && !a.introSent && !combinedIntroIds.has(a.id) && !contactedCustomerIds.has(Number(a.customerId)) && (a.phone || a.customerId))
+    const candidates = [...new Map([...futureAppts, ...upcoming, ...todayAppts].map(a => [a.id, a])).values()]
+      .filter(a => a.phone || a.customerId)
       .sort((a, b) => new Date(a.date) - new Date(b.date));
     const introSeen = new Set();
-    for (const appt of introCandidates) {
-      if (appt.customerId) {
-        if (introSeen.has(appt.customerId)) continue;
-        introSeen.add(appt.customerId);
-      }
-      if (!isFirstVisit(appt.customerId)) continue;
-      const remainingMs = new Date(appt.date) - now;
-      if (remainingMs <= 0) continue;
-      if (remainingMs <= 24 * 60 * 60 * 1000) {
-        if (!combinedIntroIds.has(appt.id)) {
-          combinedIntroIds.add(appt.id);
-          tasks.push({ kind: 'intro_confirmation', due: true, daysLabel: TalkFeature.apptTimeText(appt), appointment: appt, customer: appt.customerId ? customerMap.get(appt.customerId) : null, template: 'intro_day_before', action: 'Introduction + appointment confirmation', priority: 'high', inDays: 0 });
-        }
-        continue;
-      }
+    for (const appt of candidates) {
+      const introduced = !isFirstVisit(appt.customerId, appt) || appt.introSent;
+      const plan = this.preVisitPlan(appt, introduced, now);
+      if (!plan) continue;
+      if (plan.kind === 'intro' && appt.customerId && introSeen.has(appt.customerId)) continue;
+      if (appt.customerId && plan.kind !== 'visit_tomorrow') introSeen.add(appt.customerId);
       tasks.push({
-        kind: 'intro',
+        ...plan,
         due: true,
         // Time only: the card's meta line already prefixes the date, so a
         // date here too would render "16 Aug · 16 Aug · 04:02".
         daysLabel: TalkFeature.apptTimeText(appt),
         appointment: appt,
         customer: appt.customerId ? customerMap.get(appt.customerId) : null,
-        template: 'pre_intro',
-        action: 'Intro message for first visit — not sent yet',
         priority: 'normal',
         inDays: 0
       });
@@ -329,6 +295,12 @@ const FollowupsFeature = {
     }
 
     return tasks;
+  },
+
+  async reviewPreVisit(appointmentId) {
+    const task = (await this.loadDerivedTasks()).find(t => t.appointment?.id === appointmentId && ['intro', 'intro_confirmation', 'visit_tomorrow'].includes(t.kind));
+    if (!task) { Toast.show('This pre-visit message is no longer due', 'info'); return App.navigate('followups'); }
+    return TalkFeature.sendMessage(appointmentId, task.template);
   },
 
   async loadTasks() {
@@ -672,13 +644,13 @@ const FollowupsFeature = {
     if (task.kind === 'intro' || task.kind === 'intro_confirmation' || task.kind === 'post_fit' || task.kind === 'service') {
       const labels = { intro: 'Review introduction', intro_confirmation: 'Review introduction & confirmation', post_fit: 'Review thank-you', service: 'Review acknowledgement' };
       return `
-        <button class="btn btn-sm btn-primary flex-1"  data-action="TalkFeature.sendMessage" data-args='${Utils.escapeHtml(JSON.stringify([(task.appointment.id), task.template]))}'>
+        <button class="btn btn-sm btn-primary flex-1"  data-action="${['intro', 'intro_confirmation'].includes(task.kind) ? 'FollowupsFeature.reviewPreVisit' : 'TalkFeature.sendMessage'}" data-args='${Utils.escapeHtml(JSON.stringify(['intro', 'intro_confirmation'].includes(task.kind) ? [task.appointment.id] : [task.appointment.id, task.template]))}'>
           <span aria-hidden="true" class="material-symbols-rounded fs-16" >edit_note</span>${labels[task.kind]}
         </button>
       `;
     }
     return `
-      <button class="btn btn-sm btn-primary flex-1"  data-action="TalkFeature.sendDayBefore" data-args='${JSON.stringify([(task.appointment.id)])}'>
+      <button class="btn btn-sm btn-primary flex-1"  data-action="FollowupsFeature.reviewPreVisit" data-args='${JSON.stringify([(task.appointment.id)])}'>
         <span aria-hidden="true" class="material-symbols-rounded fs-16" >edit_note</span>Review reminder
       </button>
     `;

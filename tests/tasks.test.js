@@ -110,4 +110,16 @@ const ok = (name, condition, detail) => {
   DB.getAppointment = async () => { throw new Error('Synthetic read failure'); };
   merged = await TaskService.merge([]);
   ok('read failure never clears reminders', merged.some(t => t.id === 207));
+
+  DB.getAppointment = async id => ({ id, status: 'confirmed', date: tomorrow });
+  rows = [
+    { id: 301, appointmentId: 30, sourceKey: 'message:intro:appointment:30', status: 'open', snoozedUntil: tomorrow },
+    { id: 302, appointmentId: 30, sourceKey: 'message:day-before:appointment:30', status: 'open', dueAt: new Date().toISOString() }
+  ];
+  const combined = { kind: 'intro_confirmation', appointment: { id: 30 }, template: 'intro_day_before', due: true };
+  merged = await TaskService.merge([combined]);
+  ok('old intro and reminder consolidate into current combined purpose', merged.length === 1 && merged[0].kind === 'intro_confirmation' && merged[0].template === 'intro_day_before');
+  ok('latest explicit snooze survives purpose transition', merged[0].id === 301 && merged[0].snoozed && !merged[0].due);
+  ok('duplicate history retained with consolidation reason', rows.find(r => r.id === 302).resolutionReason === 'previsit_purpose_consolidated');
+  ok('expired saved previsit reminder is resolved without pretending sent', TaskService.appointmentResolution('message:intro:appointment:30', { date: '2000-01-01', status: 'confirmed' }) === 'previsit_window_closed');
 })();
