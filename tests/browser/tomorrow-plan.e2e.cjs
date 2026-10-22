@@ -90,7 +90,7 @@ const assert = require('node:assert/strict');
     await page.waitForFunction(() => document.querySelector('#tomorrow-plan h2')?.textContent.includes('Later'));
     await page.getByRole('button', { name: 'Reset to booked-time order', exact: true }).click();
     await page.waitForFunction(() => document.querySelector('#tomorrow-plan h2')?.textContent.includes('Earlier'));
-    await page.getByRole('button', { name: 'Prepare reminder', exact: true }).first().click();
+    await page.getByRole('button', { name: 'Review pre-visit message', exact: true }).first().click();
     await page.locator('#talk-message-preview').waitFor();
     assert(await page.locator('#talk-message-preview').inputValue());
     await page.getByRole('button', { name: 'Close message preview' }).click();

@@ -1,0 +1,9 @@
+# Shared pre-visit review entry points
+
+Messages now lists the same due pre-visit purposes as Follow-ups, including far-ahead introductions and same-day/next-day confirmation where appropriate. Snoozed items do not reappear as due in Messages. Cards describe their purpose and date, with a named Review button instead of an icon-only Send button. Outcome-based sales nudges and manual templates are unchanged.
+
+The historical `TalkFeature.sendDayBefore` action delegates to the shared current-purpose check. Tomorrow-planner review and the explicit legacy booking-confirmation action therefore use prior-contact/timing rules too, without guessing from `introSent` alone. Sent, started, cancelled or otherwise resolved purposes do not open a new preview. Saves remain quiet. The planner label is Review pre-visit message rather than promising an inappropriate reminder. Explicit manual templates, saved-draft resume, on-my-way and late-message flows remain unchanged.
+
+Verification: full npm suite. Synthetic Chromium/WebKit journeys exercise shared due count, far introduction, returning reminder through Messages/planner/legacy action, snooze suppression, sent/expired rejection and no invented intro flag. Pre-visit purpose, quiet-booking, stale-draft and tomorrow-planning journeys retained. Screenshots `/private/tmp/beelo-shared-entry-chromium.png` and `/private/tmp/beelo-shared-entry-webkit.png`. Cache `advisoros-v6-136-shared-message-entry`.
+
+Scope/risks: reviewed entry points only, not automatic sending or a rewrite of manually chosen templates. Previously saved drafts retain their own wording and stale-context gate. Existing customer-wide confirmed-history fallback is not proof of individual visit agreement. Outcome-driven sales nudges in Messages retain their prior rules. Physical iPhone acceptance and runtime logs/drains remain unverified. Production outcome recorded in the development record.

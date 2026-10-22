@@ -91,7 +91,7 @@ const AppointmentsFeature = {
         <p class="fs-13">${visit.dayBeforeSent ? 'Reminder marked sent — this does not confirm customer agreement.' : visit.introSent ? 'Introduction marked sent · Reminder not marked sent' : 'Introduction and reminder not marked sent'}</p>
         <div class="flex gap-sm" style="flex-wrap:wrap">
           <button class="btn btn-outline" data-action="App.navigate" data-args='${args}'>Review visit</button>
-          ${!isToday ? `<button class="btn btn-outline" data-action="TalkFeature.sendDayBefore" data-args='${messageArgs}'>${visit.dayBeforeSent ? 'Review reminder' : 'Prepare reminder'}</button>` : '<span class="text-secondary">Open the visit for today’s communication options.</span>'}
+          ${!isToday ? `<button class="btn btn-outline" data-action="TalkFeature.sendDayBefore" data-args='${messageArgs}'>Review pre-visit message</button>` : '<span class="text-secondary">Open the visit for today’s communication options.</span>'}
           <button class="btn btn-ghost" data-action="TalkFeature.openSavedDrafts" data-args='${messageArgs}'>Saved messages</button>
         </div>
       </article>`;
@@ -2433,12 +2433,10 @@ const AppointmentsFeature = {
     const customer = appt.customerId ? await DB.getCustomer(appt.customerId) : null;
     const phone = customer?.phone || appt.phone;
     if (!phone) return;
-    // Use the same reviewed communication lifecycle as Follow-ups. A booking
-    // inside 24 hours needs one combined introduction + confirmation; an
-    // earlier booking starts with the introduction only.
-    if (typeof TalkFeature !== 'undefined' && typeof TalkFeature.sendMessage === 'function') {
-      const remainingMs = new Date(appt.date) - new Date();
-      return TalkFeature.sendMessage(appointmentId, remainingMs <= 24 * 60 * 60 * 1000 ? 'intro_day_before' : 'pre_intro');
+    // Explicit legacy action follows the same timing/prior-contact decision.
+    // Booking saves remain quiet; this does not reintroduce automatic sheets.
+    if (typeof TalkFeature !== 'undefined' && typeof TalkFeature.sendDayBefore === 'function') {
+      return TalkFeature.sendDayBefore(appointmentId);
     }
     const apptDate = new Date(appt.date);
     const message = NotificationService.buildBookingConfirmationMessage({

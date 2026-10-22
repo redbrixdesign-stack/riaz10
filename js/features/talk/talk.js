@@ -338,26 +338,13 @@ const TalkFeature = {
     const now = new Date();
     const queue = [];
 
-    // Day-before reminders: confirmed visits happening tomorrow that haven't
-    // had a reminder sent yet. Kept separate from the outcome-driven nudge
-    // queue below since these aren't about following up on an outcome.
+    // Use the same current purposes and explicit snoozes as Follow-ups.
+    // Do not recreate a separate tomorrow-only queue with different rules.
     let dayBeforeQueue = [];
     try {
-      // UK wall-clock "tomorrow", matching Follow-ups / the message scheduler
-      // (Utils.ukParts) — a device in another timezone must see the same
-      // reminders, or the queue disagrees with what the scheduler drafted.
-      const dayKey = (d) => {
-        const p = Utils.ukParts(d ? new Date(d) : undefined);
-        return p.year * 10000 + p.month * 100 + p.day;
-      };
-      const tomorrowKey = dayKey(Utils.getTomorrow());
-      const upcoming2 = await DB.getUpcomingAppointments(5);
-      dayBeforeQueue = upcoming2.filter(a =>
-        a.status === 'confirmed' &&
-        !a.dayBeforeSent &&
-        dayKey(a.date) === tomorrowKey &&
-        (a.phone || a.customerId)
-      );
+      if (typeof FollowupsFeature !== 'undefined') {
+        dayBeforeQueue = (await FollowupsFeature.loadTasks()).filter(t => t.due && t.appointment && ['intro', 'intro_confirmation', 'visit_tomorrow'].includes(t.kind));
+      }
     } catch (e) {}
 
     for (const appt of pipeline) {
@@ -387,16 +374,16 @@ const TalkFeature = {
         ${this.renderUrgentActions(nextId, nextName)}
 
         ${dayBeforeQueue.length > 0 ? `
-        <div class="section-label" >Tomorrow's reminders (${dayBeforeQueue.length})</div>
-        ${dayBeforeQueue.map(appt => `
+        <div class="section-label" >Before visits (${dayBeforeQueue.length})</div>
+        ${dayBeforeQueue.map(task => `
         <div class="card mb-sm accent-left" >
           <div class="flex items-center gap-12" >
             <div class="flex-1 min-w-0" >
-              <span class="fw-600 fs-15" >${Utils.escapeHtml(appt.clientName || 'Unknown')}</span>
-              <div class="fs-13 text-secondary mt-2" >Visit tomorrow at ${this.apptTimeText(appt)}</div>
+              <span class="fw-600 fs-15" >${Utils.escapeHtml(task.appointment.clientName || 'Unknown')}</span>
+              <div class="fs-13 text-secondary mt-2" >${Utils.escapeHtml(task.action)} · ${Utils.formatDate(task.appointment.date, 'short')} ${this.apptTimeText(task.appointment)}</div>
             </div>
-            <button class="btn btn-sm btn-primary shrink-0"  data-action="TalkFeature.sendDayBefore" data-args='${JSON.stringify([(appt.id)])}'>
-              <span class="material-symbols-rounded fs-18" >send</span>
+            <button class="btn btn-sm btn-primary shrink-0" aria-label="Review pre-visit message for ${Utils.escapeHtml(task.appointment.clientName || 'customer')}" data-action="TalkFeature.sendDayBefore" data-args='${JSON.stringify([task.appointment.id])}'>
+              <span aria-hidden="true" class="material-symbols-rounded fs-18">edit_note</span>Review
             </button>
           </div>
         </div>`).join('')}` : ''}
@@ -1294,8 +1281,10 @@ const TalkFeature = {
   },
 
   async sendDayBefore(appointmentId) {
-    const appt = await DB.getAppointment(appointmentId);
-    return this.sendMessage(appointmentId, appt && !appt.introSent ? 'intro_day_before' : 'day_before');
+    // Historical action name retained for saved routes and existing buttons.
+    // Recheck the shared purpose at the moment of review, not at render time.
+    if (typeof FollowupsFeature !== 'undefined') return FollowupsFeature.reviewPreVisit(appointmentId);
+    Toast.show('Pre-visit messages are unavailable. Please reload Beelo.', 'info');
   },
 
   async pickTemplateCustomer(key) {
