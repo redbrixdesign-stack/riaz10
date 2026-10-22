@@ -119,7 +119,7 @@ for (const file of ['js/features/appointments/appointments.js', 'js/features/ord
   assert.equal(visits[1].arrivalStart, '09:00');
   assert.equal(visits[1].arrivalEnd, '12:00');
   assert.equal(visits[1].durationSlots, 4);
-  assert.equal(app.confirmationOffered, true, 'customer communication remains a reviewed offer');
+  assert.equal(!!app.confirmationOffered, false, 'fitting save keeps communication in Follow-ups without opening a preview');
 
   await appointments.offerFittingBooking(77);
   assert.equal(app.navigation.params.id, 12, 'reopening the order goes to the existing fitting');

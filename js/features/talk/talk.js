@@ -1264,10 +1264,7 @@ const TalkFeature = {
 
   async dismissPreview() {
     if (await this.savePreviewDraft() === false) return;
-    const pending = this.pendingMessage;
-    if (pending?.appointmentId && pending?.templateKey && typeof MessageScheduler !== 'undefined') {
-      try { localStorage.removeItem(MessageScheduler._flag(pending.templateKey, pending.appointmentId)); } catch (e) {}
-    }
+    // Keep the saved draft without re-arming a scheduled popup.
     this.pendingMessage = null;
     App.closeModal();
   },

@@ -96,7 +96,7 @@ const SettingsFeature = {
         title: 'Automated Messages',
         icon: 'schedule_send',
         summary: autoMsgEnabled ? 'On' : 'Off',
-        description: 'Evening-before & morning-of visit drafts'
+        description: 'Travel drafts; routine reminders stay in Follow-ups'
       },
       {
         id: 'commission',
@@ -424,7 +424,7 @@ const SettingsFeature = {
         <div class="flex items-center justify-between">
           <div>
             <div class="fw-600">Automated Messages</div>
-            <div class="fs-12 text-secondary mt-2">Drafts a message the evening before and morning of each visit (and an "on my way" draft when you start driving). Every draft opens the preview sheet for your review — nothing is ever sent on its own.</div>
+            <div class="fs-12 text-secondary mt-2">Controls on-my-way and delay draft assistance during a trip. Routine introductions and visit reminders stay in Follow-ups for you to review when ready. Nothing sends automatically.</div>
           </div>
           <button class="btn btn-sm ${enabled ? 'btn-primary' : 'btn-outline'}" data-action="SettingsFeature.toggleAutoMessages">
             ${enabled ? 'On' : 'Off'}
@@ -432,16 +432,7 @@ const SettingsFeature = {
         </div>
 
         ${enabled ? `
-        <div class="fs-12 text-tertiary mt-10 lh-150">Drafts wait in the preview sheet until you send them, so even a time you miss while the app is closed is waiting for you the next time you open it. These fire along the same lines as the Morning Brief — best treated as a prompt, not an alarm.</div>
-
-        <div class="form-group mt-10">
-          <label>Evening-before draft (day before the visit)</label>
-          <input type="time" class="input" id="set-msg-evening" value="${String(am.eveningHour ?? 18).padStart(2, '0')}:00" data-action="SettingsFeature.setAutoMessageHour" data-args='${JSON.stringify(["eveningHour", "__value__"])}'>
-        </div>
-        <div class="form-group mb-0">
-          <label>Morning-of draft (visit day)</label>
-          <input type="time" class="input" id="set-msg-morning" value="${String(am.morningHour ?? 8).padStart(2, '0')}:00" data-action="SettingsFeature.setAutoMessageHour" data-args='${JSON.stringify(["morningHour", "__value__"])}'>
-        </div>
+        <div class="fs-12 text-tertiary mt-10 lh-150">Close a message preview to keep its draft for later. Resume it from Follow-ups. Phone background restrictions still apply to travel assistance.</div>
         ` : ''}
       </div>`;
   },

@@ -7,7 +7,8 @@
                      — live-ETA "I'm on my way" message
      running_late    when the trip is significantly delayed — live ETA delay
 
-    Every trigger DRAFTS and opens Talk's preview sheet for review — nothing
+    Routine timed reminders remain in Follow-ups without generating previews.
+    Travel triggers draft and open Talk's preview sheet for review — nothing
     is ever sent automatically (a PWA can't send WhatsApp texts silently, and
     real customer texts shouldn't be fired off without a human tap anyway).
 
@@ -301,54 +302,10 @@ const MessageScheduler = {
   },
 
   async _fire(appt, stage) {
-    if (localStorage.getItem(this._flag(stage, appt.id)) === '1') return;
-
-    // The morning prompt is a safety net for customers who have not been
-    // contacted. Do not interrupt the advisor again when a confirmed
-    // outbound message already exists for this visit/customer.
-    if (stage === 'morning_of' && appt.customerId) {
-      try {
-        let rows = await DB.db.communications.where('customerId').equals(appt.customerId).toArray();
-        if (typeof CommunicationService !== 'undefined') rows = await CommunicationService.decorate(rows);
-        const alreadyContacted = rows.some(row => (!appt.scheduleChangedAt || (String(row.appointmentId) === String(appt.id) && Date.parse(row.sentAt) >= Date.parse(appt.scheduleChangedAt))) && row.direction !== 'inbound' && (
-          typeof CommunicationService !== 'undefined' ? CommunicationService.isConfirmed(row) : !!row.sentAt
-        ));
-        if (alreadyContacted) {
-          localStorage.setItem(this._flag(stage, appt.id), '1');
-          return;
-        }
-      } catch (e) { /* if history is unavailable, keep the reminder */ }
-    }
-
-    const phone = await this._resolvePhone(appt);
-    if (!phone) {
-      console.warn('MessageScheduler: no phone for appointment', appt.id);
-      return;
-    }
-    if (appt.customerId && typeof CommunicationService !== 'undefined') {
-      const preference = await CommunicationService.preference(appt.customerId, 'whatsapp');
-      if (!CommunicationService.canContact(preference)) return;
-    }
-    const pending = { customerId: appt.customerId || 0, phone, appointmentId: appt.id, templateKey: stage };
-    const message = await this._buildMessage(appt, stage, pending, {});
-    if (!message) return;
-    // Draft generation may await an external provider; do not surface a draft
-    // for a booking changed or cancelled while that request was in flight.
-    const current = await DB.getAppointment(appt.id);
-    if (!current || current.date !== appt.date || current.status === 'cancelled' || current.outcome) return;
-
-    const hints = {
-      evening_before: "Auto-drafted for tomorrow's visit — review before sending.",
-      intro_day_before: "Combined first introduction and tomorrow's confirmation — review before sending.",
-      morning_of: "Auto-drafted for today's visit — review before sending."
-    };
-    TalkFeature.pendingMessage = pending;
-    await TalkFeature.openPreviewSheet(message, pending, hints[stage] || null);
-    // Flag only AFTER the draft actually reached the review sheet. A fire
-    // that failed earlier (no phone, AI down AND template missing) leaves
-    // the flag unset, so the next boot's catch-up retries it instead of
-    // silently burning the stage forever.
-    localStorage.setItem(this._flag(stage, appt.id), '1');
+    // Routine introductions and reminders are derived in Follow-ups. A due
+    // timer must never interrupt booking entry or replace a visible draft.
+    // Do not mark them sent/shown or call the AI: the adviser chooses Review.
+    return;
   },
 
   async _resolvePhone(appt) {

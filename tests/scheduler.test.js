@@ -216,13 +216,6 @@ function appt(id, dateISO, phone = '07700123456') {
     s.sandbox.DB.getAppointment = async () => ({ ...moved, status: 'cancelled' });
     await s._fireCurrent(moved, 'evening_before');
     ok('cancelled visit cannot open scheduled draft', !s.sandbox.TalkFeature.lastSheet);
-    s.sandbox.DB.getAppointment = async () => moved;
-    s._buildMessage = async () => {
-      s.sandbox.DB.getAppointment = async () => ({ ...moved, status: 'cancelled' });
-      return 'SYNTHETIC delayed draft';
-    };
-    await s._fire(moved, 'evening_before');
-    ok('cancellation during draft generation prevents preview', !s.sandbox.TalkFeature.lastSheet);
   }
 
   console.log('\nTest D: disabled config schedules nothing');
@@ -237,72 +230,22 @@ function appt(id, dateISO, phone = '07700123456') {
     ok('settings() reports disabled', s.isEnabled() === false);
   }
 
-  console.log('\nTest E: evening-before fires a reviewed draft (static template, AI off)');
+  console.log('\nTest E: due routine reminders stay quiet');
   {
-    const s = loadScheduler({
-      uk: { year: 2026, month: 8, day: 11, hour: 18, minute: 30, second: 0 }, // past 18:00 → catch-up fires now
-      appointments: [appt(1, ukDay(2026, 8, 12))]
-    });
+    const visits = [appt(1, ukDay(2026, 8, 12)), { ...appt(2, ukDay(2026, 8, 12)), introSent: false }];
+    const s = loadScheduler({ uk: { year: 2026, month: 8, day: 11, hour: 19, minute: 0, second: 0 }, aiEnabled: true, appointments: visits });
     await s.reschedule();
-    await s.sandbox.timers[0].fn();
-    const sheet = s.sandbox.TalkFeature.lastSheet;
-    ok('sheet opened', !!sheet);
-    ok('draft names the customer', sheet.message.includes('Alice'), sheet.message);
-    ok('draft names the visit day', /tomorrow/.test(sheet.message), sheet.message);
-    ok('draft carries review hint', sheet.hint.includes('review before sending'), sheet.hint);
-    ok('pending ties to the appointment', sheet.pending.appointmentId === 1 && sheet.pending.templateKey === 'evening_before');
-    ok('flag set after fire', s.sandbox.localStorage.getItem(s._flag('evening_before', 1)) === '1');
-    ok('re-fire blocked by flag', s.sandbox.timers[0].fn ? await (async () => { const before = s.sandbox.TalkFeature.lastSheet.message; await s.sandbox.timers[0].fn(); return s.sandbox.TalkFeature.lastSheet.message === before; })() : false);
+    await Promise.all(s.sandbox.timers.filter(t => t.ms === 0).map(t => t.fn()));
+    await s.reschedule(); // saving the next visit rebuilds due timers
+    await Promise.all(s.sandbox.timers.filter(t => t.ms === 0).map(t => t.fn()));
+    ok('multiple due customers never open a preview', !s.sandbox.TalkFeature.lastSheet);
+    ok('routine timers never spend AI quota', !s.sandbox.draftContexts?.length);
+    ok('quiet evaluation does not mark a message sent or shown', s.sandbox.localStorage.getItem(s._flag('intro_day_before', 2)) === null);
+    for (const stage of ['morning_of', 'evening_before', 'intro_day_before']) await s._fire(visits[0], stage);
+    ok('morning and evening catch-up remain quiet', !s.sandbox.TalkFeature.lastSheet);
   }
 
-  console.log('\nTest F: AI draft path (AI on)');
-  {
-    const firstContact = { ...appt(9, ukDay(2026, 8, 12)), introSent: false };
-    const s = loadScheduler({
-      uk: { year: 2026, month: 8, day: 11, hour: 18, minute: 30, second: 0 },
-      appointments: [firstContact]
-    });
-    await s.reschedule();
-    await s.sandbox.timers[0].fn();
-    const sheet = s.sandbox.TalkFeature.lastSheet;
-    ok('first contact tomorrow uses combined introduction + confirmation', sheet?.pending?.templateKey === 'intro_day_before' && /I'm Tom Advisor/.test(sheet.message), sheet);
-    ok('combined communication carries explicit review hint', /Combined first introduction/.test(sheet?.hint || ''), sheet?.hint);
-  }
-
-  console.log('\nTest G: AI draft path (AI on)');
-  {
-    const s = loadScheduler({
-      uk: { year: 2026, month: 8, day: 11, hour: 7, minute: 0, second: 0 },
-      aiEnabled: true,
-      appointments: [appt(2, ukDay(2026, 8, 11))]
-    });
-    await s.reschedule();
-    await s.sandbox.timers[0].fn();
-    const sheet = s.sandbox.TalkFeature.lastSheet;
-    ok('AI text used', sheet && sheet.message === 'AI DRAFT: no eta', sheet && sheet.message);
-    ok('AI got appointment context', s.sandbox.draftContexts && s.sandbox.draftContexts[0].appointmentId === 2);
-  }
-
-  console.log('\nTest F2: morning prompt skips customers already contacted');
-  {
-    const visit = appt(61, ukDay(2026, 8, 11));
-    const s = loadScheduler({
-      uk: { year: 2026, month: 8, day: 11, hour: 8, minute: 0, second: 0 },
-      apptById: { 61: visit },
-      communications: [{ id: 1, customerId: 1, direction: 'outbound', sentAt: '2026-08-10T17:00:00Z' }]
-    });
-    await s._fire(visit, 'morning_of');
-    ok('confirmed earlier message suppresses the morning popup', !s.sandbox.TalkFeature.lastSheet);
-    ok('suppressed morning stage is marked handled', s.sandbox.localStorage.getItem(s._flag('morning_of', visit.id)) === '1');
-  }
-
-  console.log('\nTest G: on-departure (on my way) trigger');
-  {
-    const visit = { ...appt(62, ukDay(2026, 8, 11)), scheduleChangedAt: '2026-08-11T07:00:00Z' };
-    const s = loadScheduler({ uk: { year: 2026, month: 8, day: 11, hour: 8, minute: 0, second: 0 }, apptById: { 62: visit }, communications: [{ id: 1, customerId: 1, appointmentId: 62, direction: 'outbound', sentAt: '2026-08-10T17:00:00Z' }] });
-    await s._fire(visit, 'morning_of');
-    ok('a message before the time change does not suppress the new morning prompt', !!s.sandbox.TalkFeature.lastSheet);
-  }
+  console.log('\nTest G: explicit departure flow remains available');
   {
     const s = loadScheduler({
       uk: { year: 2026, month: 8, day: 11, hour: 12, minute: 0, second: 0 },
@@ -326,26 +269,6 @@ function appt(id, dateISO, phone = '07700123456') {
     });
     await s.onDeparture(9);
     ok('placeholder hint when no live ETA', s.sandbox.TalkFeature.lastSheet.hint.includes("Couldn't work out a live ETA"), s.sandbox.TalkFeature.lastSheet.hint);
-  }
-
-  console.log('\nTest I: a failed fire retries instead of burning the stage');
-  {
-    const s = loadScheduler({
-      uk: { year: 2026, month: 8, day: 11, hour: 18, minute: 30, second: 0 },
-      appointments: [appt(1, ukDay(2026, 8, 12))]
-    });
-    await s.reschedule();
-    // Break the static template: the draft cannot be built, so nothing
-    // should be flagged — the next boot's catch-up can retry the stage.
-    vm.runInContext('CONFIG.templates.evening_before = undefined;', s.sandbox);
-    await s.sandbox.timers[0].fn();
-    ok('failed draft opens no sheet', !s.sandbox.TalkFeature.lastSheet);
-    ok('failed draft leaves the flag unset', s.sandbox.localStorage.getItem(s._flag('evening_before', 1)) === null);
-    // Template restored: the same stage (simulating the next boot) fires and flags.
-    vm.runInContext('CONFIG.templates.evening_before = "See you tomorrow {{firstName}} — {{advisorName}}";', s.sandbox);
-    await s.sandbox.timers[0].fn();
-    ok('retry fires the draft once the template exists', !!s.sandbox.TalkFeature.lastSheet && s.sandbox.TalkFeature.lastSheet.message.includes('Alice'), s.sandbox.TalkFeature.lastSheet);
-    ok('retry sets the flag', s.sandbox.localStorage.getItem(s._flag('evening_before', 1)) === '1');
   }
 
   console.log('\nTest K: evening-before / morning-of are per-type (AI off)');

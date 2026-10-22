@@ -73,9 +73,12 @@ function assert(condition, message) {
   assert(appointmentWrites === 1, `expected one appointment, got ${appointmentWrites}`);
   assert(toasts.filter(t => t.message === 'Visit saved').length === 1, 'expected one success toast');
   assert(feature._saveAppointmentInFlight === false, 'single-flight guard should release after save');
+  feature.offerBookingConfirmation = () => { throw new Error('Booking save must not open a message preview'); };
+  await feature.saveAppointment(true, { ...draft, name: 'SYNTHETIC Phone', phone: '07700900111' });
+  assert(appointmentWrites === 2, 'a booking with a phone must save without opening a draft');
 
   await feature.saveAppointment(true, { ...draft, arrivalStart: '12:00', arrivalEnd: '15:00' });
-  assert(customerWrites === 1 && appointmentWrites === 1, 'mismatched arrival window must block all writes');
+  assert(customerWrites === 2 && appointmentWrites === 2, 'mismatched arrival window must block all writes');
   assert(toasts.some(t => /Diary time 10:00 must sit inside/.test(t.message)), 'mismatched window should explain how to correct it');
 
   console.log('APPOINTMENT SAVE TEST PASSED');

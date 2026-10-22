@@ -2612,11 +2612,7 @@ const AppointmentsFeature = {
         const newAppt = result.appointment;
         Toast.show('Enquiry converted and visit saved', 'success');
         if (typeof MessageScheduler !== 'undefined') MessageScheduler.reschedule();
-        const bookingAskTypes = ['consultation', 'measure', 'fitting', 'review', 'service_call'];
-        if (phone && bookingAskTypes.includes(type)) {
-          this.offerBookingConfirmation(newAppt.id);
-          return;
-        }
+        // Communication remains available in Follow-ups without interrupting entry.
         App.navigate('appointments', { id: newAppt.id });
         return;
       }
@@ -2667,11 +2663,7 @@ const AppointmentsFeature = {
 
       Toast.show('Visit saved', 'success');
       if (typeof MessageScheduler !== 'undefined') MessageScheduler.reschedule();
-      const bookingAskTypes = ['consultation', 'measure', 'fitting', 'review', 'service_call'];
-      if (phone && bookingAskTypes.includes(type)) {
-        this.offerBookingConfirmation(newAppt.id);
-        return;
-      }
+      // Communication remains available in Follow-ups without interrupting entry.
       App.navigate('appointments');
     } catch (e) {
       console.error('Save visit error:', e);
