@@ -35,7 +35,9 @@ const context = {
     generateId: prefix => `${prefix}-test`,
     formatDate: (_value, format) => format === 'iso' ? '2026-08-21' : '21 Aug 2026',
     formatTime: () => '09:30',
-    ukParts: date => ({ weekday: date.getUTCDay() })
+    // These fixtures pass local midnight dates; avoid shifting them to the
+    // previous weekday on machines east of UTC.
+    ukParts: date => ({ weekday: date.getDay() })
   },
   document: { getElementById: () => null, querySelectorAll: () => [] },
   App: {
@@ -81,8 +83,14 @@ const feature = context.AppointmentsFeature;
   assert.equal(updated.type, 'service_call');
 
   const fittingDayForm = feature.renderAddForm({ date: '2026-08-21' });
-  assert.doesNotMatch(fittingDayForm, /value="consultation"/);
+  assert.match(fittingDayForm, /value="consultation"/);
+  assert.match(fittingDayForm, /value="measure"/);
   assert.match(fittingDayForm, /value="fitting" selected/);
+  for (const day of ['2026-08-20', '2026-08-21', '2026-08-23']) {
+    assert.deepEqual(Array.from(feature.getAllowedTypesForDate(day)), appointmentTypes.map(type => type.id));
+  }
+  const selectedSurvey = feature.renderAddForm({ date: '2026-08-21', type: 'measure' });
+  assert.match(selectedSurvey, /value="measure" selected/, 'survey remains selectable on a fitting day');
   assert.match(fittingDayForm, /Diary time \*/);
   assert.match(fittingDayForm, /Used for diary order, route planning and travel gaps/);
   assert.match(fittingDayForm, /value="morning" selected/);

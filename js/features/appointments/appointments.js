@@ -1040,9 +1040,7 @@ const AppointmentsFeature = {
   },
 
   getAllowedTypesForDate(dateInput) {
-    const mode = this.getDayMode(dateInput);
-    if (mode.kind === 'fitting') return ['fitting', 'service_call'];
-    if (mode.kind === 'sales') return ['consultation', 'measure', 'follow_up', 'review', 'service_call'];
+    // Working-day preferences guide planning, but cannot prohibit real bookings.
     return CONFIG.appointmentTypes.map(t => t.id);
   },
 
@@ -2134,8 +2132,9 @@ const AppointmentsFeature = {
     if (scannedType && !allowedTypes.includes(scannedType)) allowedTypes = [...allowedTypes, scannedType];
     const requestedJobType = params.jobId && CONFIG.appointmentTypes.some(type => type.id === params.type) ? params.type : null;
     if (requestedJobType && !allowedTypes.includes(requestedJobType)) allowedTypes = [...allowedTypes, requestedJobType];
-    const defaultType = requestedJobType || scannedType || (allowedTypes.includes(params.type) ? params.type : allowedTypes[0]);
     const mode = this.getDayMode(today + 'T00:00:00');
+    const usualType = mode.kind === 'fitting' && allowedTypes.includes('fitting') ? 'fitting' : allowedTypes[0];
+    const defaultType = requestedJobType || scannedType || (allowedTypes.includes(params.type) ? params.type : usualType);
     const scannedName = params.name || '';
     const scannedPhone = params.phone || '';
     const scannedAddress = params.address || '';
@@ -2533,8 +2532,7 @@ const AppointmentsFeature = {
     const allowedTypes = this.getAllowedTypesForDate(date + 'T00:00:00');
     if ((data.jobId || (orderId && type === 'fitting')) && CONFIG.appointmentTypes.some(item => item.id === type) && !allowedTypes.includes(type)) allowedTypes.push(type);
     if (!allowedTypes.includes(type)) {
-      const mode = this.getDayMode(date + 'T00:00:00');
-      Toast.show(`${mode.label}: this slot is better kept for ${mode.shortAdvice.toLowerCase()}.`, 'warning');
+      Toast.show('Choose a supported visit type.', 'warning');
       return;
     }
 
