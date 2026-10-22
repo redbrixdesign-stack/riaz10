@@ -33,7 +33,9 @@ const TaskService = {
   },
 
   contactEvidence(visit) {
-    const history = (visit.contactOutcomes || []).filter(e => e.provenance === 'advisor_recorded' && e.channel === 'phone' && String(e.customerId || '') === String(visit.customerId || ''));
+    const records = Array.isArray(visit.contactOutcomes) ? visit.contactOutcomes : [];
+    const retracted = new Set(records.filter(e => e.outcome === 'retracted' && e.provenance === 'advisor_recorded' && e.channel === 'phone').map(e => e.targetId));
+    const history = records.filter(e => !retracted.has(e.id) && e.provenance === 'advisor_recorded' && e.channel === 'phone' && String(e.customerId || '') === String(visit.customerId || ''));
     const introduced = history.some(e => ['introduced', 'introduced_and_agreed'].includes(e.outcome));
     const snapshot = typeof DB.visitContactSnapshot === 'function' ? DB.visitContactSnapshot(visit) : null;
     const agreed = !!snapshot && history.some(e => e.bookingSnapshot === snapshot && ['visit_agreed', 'introduced_and_agreed'].includes(e.outcome));

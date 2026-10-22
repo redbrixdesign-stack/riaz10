@@ -1195,6 +1195,17 @@ async function runPhoneContactStorage(engine) {
   ok(`${engine}: stale agreement rejected without changing history`, rejected && stored.contactOutcomes.length === 1);
   await DB.recordVisitContact(visit.id, 'no_answer', DB.visitContactSnapshot(stored), 'no-answer');
   ok(`${engine}: unanswered calls retained as separate evidence`, (await DB.getAppointment(visit.id)).contactOutcomes.length === 2);
+  const original = JSON.stringify((await DB.getAppointment(visit.id)).contactOutcomes[0]);
+  await Promise.all([DB.retractVisitContact(visit.id, 'phone-once', 'retract-once'), DB.retractVisitContact(visit.id, 'phone-once', 'retract-once')]);
+  await DB.retractVisitContact(visit.id, 'phone-once', 'retract-again');
+  stored = await DB.getAppointment(visit.id);
+  ok(`${engine}: correction is append-only and duplicate-safe`, stored.contactOutcomes.length === 3 && JSON.stringify(stored.contactOutcomes[0]) === original && stored.contactOutcomes[2].targetId === 'phone-once');
+  rejected = false;
+  try { await DB.retractVisitContact(visit.id, 'missing', 'invalid-target'); } catch (e) { rejected = true; }
+  ok(`${engine}: missing correction target rejected`, rejected && (await DB.getAppointment(visit.id)).contactOutcomes.length === 3);
+  await DB.updateAppointment(visit.id, { status: 'completed' });
+  await DB.retractVisitContact(visit.id, 'no-answer', 'correct-history');
+  ok(`${engine}: ended visits allow history correction without sent flags`, (await DB.getAppointment(visit.id)).contactOutcomes.length === 4 && !(await DB.getAppointment(visit.id)).dayBeforeSent);
 }
 
 async function runPhase1WorkStorage(engine) {

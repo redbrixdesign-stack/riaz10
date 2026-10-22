@@ -312,7 +312,39 @@ const FollowupsFeature = {
     if (!visit) return Toast.show('Visit not found', 'error');
     this.pendingContact = { id: appointmentId, snapshot: DB.visitContactSnapshot(visit), operationId: TaskService.operationId('phone-contact', appointmentId) };
     const labels = { introduced: 'Introduced myself', visit_agreed: 'Visit date/time agreed', introduced_and_agreed: 'Introduced myself and agreed the visit', no_answer: 'No answer / voicemail only' };
-    App.openModal(`<div class="sheet-header"><h3>Record phone contact</h3><button class="btn btn-ghost" aria-label="Close phone contact" data-action="App.closeModal">Close</button></div><div class="sheet-body"><p>${Utils.escapeHtml(visit.clientName || 'Customer')} · ${Utils.formatDate(visit.date, 'long')} · ${TalkFeature.apptTimeText(visit)}</p><p class="fs-13 text-secondary">Record only what happened. An unanswered call does not clear a reminder. This does not place a call or send a message.</p><label for="contact-outcome">What happened?</label><select id="contact-outcome" class="select"><option value="">Choose an outcome</option>${Object.entries(labels).map(([id, label]) => `<option value="${id}">${label}</option>`).join('')}</select><button class="btn btn-primary btn-block mt-md" data-action="FollowupsFeature.saveContactOutcome">Save contact outcome</button>${(visit.contactOutcomes || []).length ? `<details class="mt-md"><summary>Recorded phone contact</summary>${visit.contactOutcomes.slice(-5).reverse().map(e => `<p class="fs-13">${Utils.escapeHtml(labels[e.outcome] || 'Contact recorded')} · ${Utils.formatDate(e.recordedAt, 'short')}</p>`).join('')}</details>` : ''}</div>`);
+    const history = Array.isArray(visit.contactOutcomes) ? visit.contactOutcomes : [];
+    const retracted = new Set(history.filter(e => e.outcome === 'retracted' && e.provenance === 'advisor_recorded' && e.channel === 'phone').map(e => e.targetId));
+    const historyHtml = history.slice().reverse().map(e => {
+      const target = e.outcome === 'retracted' ? history.find(t => t.id === e.targetId) : null;
+      const label = target ? `Correction: ${labels[target.outcome] || 'Phone record'} retracted` : labels[e.outcome] || 'Contact recorded';
+      const correctable = !!labels[e.outcome] && e.id && !retracted.has(e.id) && e.provenance === 'advisor_recorded' && e.channel === 'phone';
+      return `<div class="mt-sm fs-13"><div>${Utils.escapeHtml(label)} · ${Utils.formatDate(e.recordedAt, 'short')}${retracted.has(e.id) ? ' · Retracted (history retained)' : ''}</div>${correctable ? `<button class="btn btn-outline btn-sm mt-sm" aria-label="Correct record: ${Utils.escapeHtml(label)}" data-action="FollowupsFeature.openContactCorrection" data-args='${Utils.escapeHtml(JSON.stringify([appointmentId, e.id]))}'>Correct record</button>` : ''}</div>`;
+    }).join('');
+    App.openModal(`<div class="sheet-header"><h3>Record phone contact</h3><button class="btn btn-ghost" aria-label="Close phone contact" data-action="App.closeModal">Close</button></div><div class="sheet-body"><p>${Utils.escapeHtml(visit.clientName || 'Customer')} · ${Utils.formatDate(visit.date, 'long')} · ${TalkFeature.apptTimeText(visit)}</p><p class="fs-13 text-secondary">Record only what happened. An unanswered call does not clear a reminder. This does not place a call or send a message.</p><label for="contact-outcome">What happened?</label><select id="contact-outcome" class="select"><option value="">Choose an outcome</option>${Object.entries(labels).map(([id, label]) => `<option value="${id}">${label}</option>`).join('')}</select><button class="btn btn-primary btn-block mt-md" data-action="FollowupsFeature.saveContactOutcome">Save contact outcome</button>${history.length ? `<details class="mt-md"><summary>Recorded phone contact</summary>${historyHtml}</details>` : ''}</div>`);
+  },
+
+  async openContactCorrection(appointmentId, targetId) {
+    const visit = await DB.getAppointment(appointmentId);
+    const target = visit?.contactOutcomes?.find(e => e.id === targetId);
+    if (!target) return Toast.show('Phone record not found', 'error');
+    this.pendingContactCorrection = { appointmentId, targetId, operationId: TaskService.operationId('retract-phone', appointmentId) };
+    App.openModal(`<div class="sheet-header"><h3>Correct phone record?</h3><button class="btn btn-ghost" aria-label="Cancel phone correction" data-action="App.closeModal">Cancel</button></div><div class="sheet-body phone-contact-correction"><p>${Utils.escapeHtml(visit.clientName || 'Customer')} · ${Utils.escapeHtml(target.outcome.replace(/_/g, ' '))} · ${Utils.formatDate(target.recordedAt, 'short')}</p><p>This retracts this adviser-recorded outcome, not the real call. The original stays in history. Any still-needed reminder can return; sent messages and other contact records are unchanged.</p><p>If a different outcome is correct, record it separately afterwards.</p><p id="phone-correction-error" role="alert"></p><button class="btn btn-primary btn-block" data-action="FollowupsFeature.confirmContactCorrection">Retract incorrect record</button></div>`);
+  },
+
+  async confirmContactCorrection() {
+    if (!this.pendingContactCorrection || this.savingContactCorrection) return;
+    this.savingContactCorrection = true;
+    try {
+      const pending = this.pendingContactCorrection;
+      await DB.retractVisitContact(pending.appointmentId, pending.targetId, pending.operationId);
+      this.pendingContactCorrection = null; App.closeModal();
+      Toast.show('Correction saved; original history retained', 'success'); App.navigate('followups');
+    } catch (e) {
+      const error = document.getElementById('phone-correction-error');
+      if (error) error.textContent = e.message || 'Could not save correction';
+      else Toast.show(e.message || 'Could not save correction', 'error');
+    }
+    finally { this.savingContactCorrection = false; }
   },
 
   async saveContactOutcome() {

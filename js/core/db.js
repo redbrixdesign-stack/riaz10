@@ -1085,6 +1085,26 @@ const DB = {
     });
   },
 
+  async retractVisitContact(id, targetId, operationId) {
+    if (!targetId || !operationId || typeof operationId !== 'string') throw new Error('Choose a recorded phone outcome');
+    return this._runWrite(['appointments'], async () => {
+      const visit = await this.db.appointments.get(id);
+      if (!visit) throw new Error('Visit not found');
+      const history = Array.isArray(visit.contactOutcomes) ? visit.contactOutcomes : [];
+      if (history.some(e => e.id === operationId)) return;
+      const target = history.find(e => e.id === targetId && e.channel === 'phone' && e.provenance === 'advisor_recorded' && ['introduced', 'visit_agreed', 'introduced_and_agreed', 'no_answer'].includes(e.outcome));
+      if (!target) throw new Error('That phone outcome is not available to correct');
+      if (history.some(e => e.outcome === 'retracted' && e.targetId === targetId && e.provenance === 'advisor_recorded')) return;
+      // Corrections remain possible after a visit ends. They alter evidence,
+      // never the booking, original assertion, sent flags or historic tasks.
+      await this.db.appointments.update(id, { contactOutcomes: [...history, {
+        id: operationId, outcome: 'retracted', targetId,
+        customerId: target.customerId || null, recordedAt: new Date().toISOString(),
+        channel: 'phone', provenance: 'advisor_recorded'
+      }] });
+    });
+  },
+
   // Explicitly reviewed local summary; audio ownership/lifecycle is unchanged.
   async saveApprovedVisitSummary(id, draft, approved) {
     if (approved !== true) throw new Error('Review approval is required');

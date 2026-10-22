@@ -133,4 +133,12 @@ const ok = (name, condition, detail) => {
   ok('changed slot invalidates agreement but retains introduction', TaskService.contactEvidence(visit).introduced && !TaskService.contactEvidence(visit).agreed);
   visit.customerId = 987;
   ok('phone evidence never transfers to a reassigned customer', !TaskService.contactEvidence(visit).introduced && !TaskService.contactEvidence(visit).agreed);
+  const corrected = { date: tomorrow, contactOutcomes: [] };
+  const entry = { id: 'phone-A', outcome: 'introduced_and_agreed', channel: 'phone', provenance: 'advisor_recorded', bookingSnapshot: DB.visitContactSnapshot(corrected) };
+  corrected.contactOutcomes.push(entry);
+  ok('original combined phone record is effective', TaskService.contactEvidence(corrected).introduced && TaskService.contactEvidence(corrected).agreed);
+  corrected.contactOutcomes.push({ id: 'correction-A', targetId: 'phone-A', outcome: 'retracted', channel: 'phone', provenance: 'advisor_recorded' });
+  ok('retracted record no longer fulfills either purpose', !TaskService.contactEvidence(corrected).introduced && !TaskService.contactEvidence(corrected).agreed);
+  corrected.contactOutcomes.push({ ...entry, id: 'phone-B', outcome: 'introduced' });
+  ok('correction does not invalidate another independent introduction', TaskService.contactEvidence(corrected).introduced && !TaskService.contactEvidence(corrected).agreed);
 })();
