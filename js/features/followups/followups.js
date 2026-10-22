@@ -525,15 +525,15 @@ const FollowupsFeature = {
 
     return `
       <div class="fade-in">
-        <button class="btn btn-outline card-page-gap" data-action="TalkFeature.openSavedDrafts">Resume saved messages</button>
-        ${App.renderTopHeader({ title: 'Follow-ups', actions: `<button class="btn btn-outline btn-sm followups-header-action" title="Open leads" aria-label="Open leads" data-action="App.navigate" data-args='${JSON.stringify(["leads"])}'><span class="material-symbols-rounded fs-18">inbox</span><span class="header-action-text">Leads</span></button><button class="btn btn-primary btn-sm followups-header-action" title="Create new task" aria-label="Create new task" data-action="FollowupsFeature.openNewTask"><span class="material-symbols-rounded fs-18">add</span><span class="header-action-text">New task</span></button>` })}
+        ${App.renderTopHeader({ title: 'Follow-ups', actions: `<button class="btn btn-outline btn-sm followups-header-action" title="Open leads" aria-label="Open leads" data-action="App.navigate" data-args='${JSON.stringify(["leads"])}'><span aria-hidden="true" class="material-symbols-rounded fs-18">inbox</span><span class="header-action-text">Leads</span></button><button class="btn btn-primary btn-sm followups-header-action" title="Create new task" aria-label="Create new task" data-action="FollowupsFeature.openNewTask"><span aria-hidden="true" class="material-symbols-rounded fs-18">add</span><span class="header-action-text">New task</span></button>` })}
         <div class="px-md pb-lg" >
-          ${metrics.obligations ? `<div class="card mb-md"><div class="flex justify-between items-start gap-md"><div><div class="fw-700">Communication follow-through</div><div class="fs-13 text-secondary mt-2">${metrics.missed} missed${metrics.recovered ? ` · ${metrics.recovered} recovered before the visit` : ''}</div></div><div class="text-right"><div class="fs-20 fw-700">${metrics.missedRate}%</div><div class="fs-11 text-tertiary">missed</div></div></div>${metrics.archive.length ? `<details class="mt-10"><summary class="fs-12 text-secondary cursor-pointer">Missed archive</summary>${metrics.archive.slice(0, 5).map(item => `<div class="fs-12 text-secondary mt-6">${Utils.escapeHtml(item.appointment.clientName || 'Customer')} · ${Utils.escapeHtml(item.type.replace(/_/g, ' '))} · ${Utils.formatDate(item.dueAt, 'short')}</div>`).join('')}</details>` : ''}</div>` : ''}
+          <p class="fs-13 text-secondary mb-md">Choose the next action. Messages stay drafts until you review and send them.</p>
+          <button class="btn btn-outline btn-sm mb-md" data-action="TalkFeature.openSavedDrafts">Resume saved messages</button>
           ${due.length === 0 && later.length === 0 && snoozed.length === 0 ? `
             <div class="empty-state empty-state-lg" >
-              <span class="material-symbols-rounded">mark_email_read</span>
+              <span aria-hidden="true" class="material-symbols-rounded">mark_email_read</span>
               <div class="fw-600 mb-xs" >All caught up.</div>
-              <div class="fs-13" >Quotes to chase, payments to collect and visit reminders will all land here when they're due.</div>
+              <div class="fs-13" >No pending follow-ups. New visit reminders and tasks will appear here.</div>
             </div>
           ` : ''}
 
@@ -542,21 +542,27 @@ const FollowupsFeature = {
             ${due.map(t => this.renderTaskCard(t)).join('')}
           ` : ''}
 
+          ${!due.length && (later.length || snoozed.length) ? '<p class="fw-600 mb-md">Nothing needs attention now. Your later and snoozed tasks are below.</p>' : ''}
+
           ${later.length ? `
-            <div class="section-label" >Not due yet (${later.length})</div>
+            <details class="fup-group"><summary>Not due yet (${later.length})</summary>
             ${later.map(t => this.renderTaskCard(t, true)).join('')}
+            </details>
           ` : ''}
 
           ${snoozed.length ? `
-            <div class="section-label" >Snoozed (${snoozed.length})</div>
+            <details class="fup-group"><summary>Snoozed (${snoozed.length})</summary>
             ${snoozed.map(t => this.renderTaskCard(t, true)).join('')}
+            </details>
           ` : ''}
+
+          ${metrics.obligations ? `<details class="fup-group"><summary>Communication history · ${metrics.missed} missed</summary><p class="fs-13 text-secondary">${metrics.missedRate}% missed${metrics.recovered ? ` · ${metrics.recovered} recovered before the visit` : ''}. Historical records, not current tasks.</p>${metrics.archive.slice(0, 5).map(item => `<div class="fs-12 text-secondary mt-6">${Utils.escapeHtml(item.appointment.clientName || 'Customer')} · ${Utils.escapeHtml(item.type.replace(/_/g, ' '))} · ${Utils.formatDate(item.dueAt, 'short')}</div>`).join('')}</details>` : ''}
 
           <div class="mt-20" >
             <div class="divider-text">Quick opens</div>
             <div class="grid-2 gap-sm" >
-              <button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='${JSON.stringify(["orders"])}'><span class="material-symbols-rounded">view_kanban</span>Orders board</button>
-              <button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='${JSON.stringify(["talk"])}'><span class="material-symbols-rounded">chat</span>Messages</button>
+              <button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='${JSON.stringify(["orders"])}'><span aria-hidden="true" class="material-symbols-rounded">view_kanban</span>Orders board</button>
+              <button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='${JSON.stringify(["talk"])}'><span aria-hidden="true" class="material-symbols-rounded">chat</span>Messages</button>
             </div>
           </div>
         </div>
@@ -594,12 +600,12 @@ const FollowupsFeature = {
       : 'var(--text-secondary)';
 
     return `
-      <div class="fup-card${muted ? ' fup-card--muted' : ''}" style="border-left:3px solid ${accent};">
+      <article class="fup-card${muted ? ' fup-card--muted' : ''}" style="border-left:3px solid ${accent};" aria-label="Follow-up: ${name}">
         <div class="flex items-start gap-12" >
-          <span class="material-symbols-rounded" style="color:${accent};margin-top:2px;">${icons[task.kind] || 'campaign'}</span>
+          <span aria-hidden="true" class="material-symbols-rounded" style="color:${accent};margin-top:2px;">${icons[task.kind] || 'campaign'}</span>
           <div class="flex-1 min-w-0" >
             <div class="flex items-center gap-sm" >
-              <span class="fw-600 fs-15 ellipsis" >${name}</span>
+              <span class="fw-600 fs-15 fup-name" >${name}</span>
               ${task.kind === 'payment' ? '<span class="badge badge-warning fs-10 shrink-0" >Payment</span>' : ''}
               ${task.kind === 'visit_today' ? '<span class="badge badge-primary fs-10 shrink-0" >Today</span>' : ''}
               ${task.kind === 'intro' ? '<span class="badge badge-primary fs-10 shrink-0" >First visit</span>' : ''}
@@ -611,72 +617,69 @@ const FollowupsFeature = {
             <div class="fs-12 text-tertiary mt-2" >${meta}</div>
           </div>
         </div>
-        <div class="flex gap-sm mt-10" >
-          ${task.durable && !task.sourceSuggestion ? '' : this.renderPrimaryAction(task.sourceSuggestion || task)}
-          ${task.durable ? `<button class="btn btn-sm btn-outline" aria-label="Complete ${name}" data-action="FollowupsFeature.completeDurableTask" data-args='${JSON.stringify([task.id])}'><span class="material-symbols-rounded fs-16">done</span>Done</button>` : ''}
-          <button class="btn btn-sm btn-outline" aria-label="Snooze ${name}" data-action="FollowupsFeature.openSnooze" data-args='${JSON.stringify([task.durable ? task.id : null, task.derivedKey])}'><span class="material-symbols-rounded fs-16">snooze</span>Snooze</button>
-          ${task.customer ? `<button class="btn btn-ghost btn-sm" aria-label="Open customer profile" data-action="App.navigate" data-args='${JSON.stringify(["customer", {id: (task.customer.id)}])}'><span class="material-symbols-rounded fs-18" >person</span></button>` : ''}
+        <div class="fup-primary mt-10">
+          ${task.durable && !task.sourceSuggestion ? `<button class="btn btn-sm btn-primary" aria-label="Complete ${name}" data-action="FollowupsFeature.completeDurableTask" data-args='${JSON.stringify([task.id])}'><span aria-hidden="true" class="material-symbols-rounded fs-16">done</span>Mark done</button>` : this.renderPrimaryAction(task.sourceSuggestion || task)}
         </div>
-      </div>
+        <details class="fup-options"><summary aria-label="More options for ${name}">More options</summary><div class="flex gap-sm mt-10">
+          ${task.appointment ? `<button class="btn btn-sm btn-outline" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: task.appointment.id}])}'>Open visit</button>` : ''}
+          ${task.kind === 'payment' && task.order?.appointmentId ? `<button class="btn btn-sm btn-outline" data-action="OrdersFeature.paymentMessage" data-args='${JSON.stringify([task.order.id])}'>Review payment message</button>` : ''}
+          ${task.durable && task.sourceSuggestion ? `<button class="btn btn-sm btn-outline" aria-label="Complete ${name}" data-action="FollowupsFeature.completeDurableTask" data-args='${JSON.stringify([task.id])}'>Mark task done</button>` : ''}
+          <button class="btn btn-sm btn-outline" aria-label="Snooze ${name}" data-action="FollowupsFeature.openSnooze" data-args='${JSON.stringify([task.durable ? task.id : null, task.derivedKey])}'><span aria-hidden="true" class="material-symbols-rounded fs-16">snooze</span>Snooze</button>
+          ${task.customer ? `<button class="btn btn-ghost btn-sm" aria-label="Open customer profile" data-action="App.navigate" data-args='${JSON.stringify(["customer", {id: (task.customer.id)}])}'><span aria-hidden="true" class="material-symbols-rounded fs-18" >person</span></button>` : ''}
+        </div></details>
+      </article>
     `;
   },
 
   renderPrimaryAction(task) {
     if (task.retentionRecord) {
-      return `<button class="btn btn-sm btn-primary flex-1" data-action="App.navigate" data-args='${JSON.stringify(["retention", {customerId: task.retentionRecord.customerId}])}'><span class="material-symbols-rounded fs-16">handshake</span>Open aftercare</button>`;
+      return `<button class="btn btn-sm btn-primary flex-1" data-action="App.navigate" data-args='${JSON.stringify(["retention", {customerId: task.retentionRecord.customerId}])}'><span aria-hidden="true" class="material-symbols-rounded fs-16">handshake</span>Open aftercare</button>`;
     }
     if (task.purchaseOrder) {
-      return `<button class="btn btn-sm btn-primary flex-1" data-action="App.navigate" data-args='${JSON.stringify(["suppliers", {id: task.purchaseOrder.id}])}'><span class="material-symbols-rounded fs-16">local_shipping</span>Open supplier order</button>`;
+      return `<button class="btn btn-sm btn-primary flex-1" data-action="App.navigate" data-args='${JSON.stringify(["suppliers", {id: task.purchaseOrder.id}])}'><span aria-hidden="true" class="material-symbols-rounded fs-16">local_shipping</span>Open supplier order</button>`;
     }
     if (task.invoice) {
-      return `<button class="btn btn-sm btn-primary flex-1" data-action="App.navigate" data-args='${JSON.stringify(["invoices", {id: task.invoice.id}])}'><span class="material-symbols-rounded fs-16">request_quote</span>Open invoice</button>`;
+      return `<button class="btn btn-sm btn-primary flex-1" data-action="App.navigate" data-args='${JSON.stringify(["invoices", {id: task.invoice.id}])}'><span aria-hidden="true" class="material-symbols-rounded fs-16">request_quote</span>Open invoice</button>`;
     }
     if (task.job) {
-      return `<button class="btn btn-sm btn-primary flex-1" data-action="App.navigate" data-args='${JSON.stringify(["jobs", {id: task.job.id}])}'><span class="material-symbols-rounded fs-16">construction</span>Open job</button>`;
+      return `<button class="btn btn-sm btn-primary flex-1" data-action="App.navigate" data-args='${JSON.stringify(["jobs", {id: task.job.id}])}'><span aria-hidden="true" class="material-symbols-rounded fs-16">construction</span>Open job</button>`;
     }
     if (task.quote) {
-      return `<button class="btn btn-sm btn-primary flex-1" data-action="App.navigate" data-args='${JSON.stringify(["quotes", {id: task.quote.id}])}'><span class="material-symbols-rounded fs-16">${task.kind === 'quote_accepted' ? 'shopping_cart' : 'visibility'}</span>${task.kind === 'quote_accepted' ? 'Review & convert' : 'Review quote'}</button>`;
+      return `<button class="btn btn-sm btn-primary flex-1" data-action="App.navigate" data-args='${JSON.stringify(["quotes", {id: task.quote.id}])}'><span aria-hidden="true" class="material-symbols-rounded fs-16">${task.kind === 'quote_accepted' ? 'shopping_cart' : 'visibility'}</span>${task.kind === 'quote_accepted' ? 'Review & convert' : 'Review quote'}</button>`;
     }
     if (task.kind === 'quote') {
       return `
         <button class="btn btn-sm btn-primary flex-1"  data-action="TalkFeature.sendMessage" data-args='${Utils.escapeHtml(JSON.stringify([(task.appointment.id), task.template]))}'>
-          <span class="material-symbols-rounded fs-16" >send</span>Follow up
+          <span aria-hidden="true" class="material-symbols-rounded fs-16" >edit_note</span>Review follow-up
         </button>
-        <button class="btn btn-sm btn-outline flex-1"  data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: (task.appointment.id)}])}'>Visit</button>
       `;
     }
     if (task.kind === 'payment') {
       const order = task.order;
       return `
         <button class="btn btn-sm btn-primary flex-1"  data-action="OrdersFeature.openOrderSheet" data-args='${JSON.stringify([(order.id)])}'>
-          <span class="material-symbols-rounded fs-16" >payments</span>Collect
+          <span aria-hidden="true" class="material-symbols-rounded fs-16" >payments</span>Review payment
         </button>
-        ${order.appointmentId ? `
-          <button class="btn btn-sm btn-outline flex-1"  data-action="OrdersFeature.paymentMessage" data-args='${JSON.stringify([(order.id)])}'>
-            <span class="material-symbols-rounded fs-16" >send</span>Message
-          </button>
-        ` : ''}
       `;
     }
     if (task.kind === 'visit_today') {
       return `
         <button class="btn btn-sm btn-primary flex-1"  data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: (task.appointment.id)}])}'>
-          <span class="material-symbols-rounded fs-16" >fact_check</span>Log outcome
+          <span aria-hidden="true" class="material-symbols-rounded fs-16" >fact_check</span>Log outcome
         </button>
       `;
     }
     if (task.kind === 'intro' || task.kind === 'intro_confirmation' || task.kind === 'post_fit' || task.kind === 'service') {
-      const labels = { intro: 'Send intro', intro_confirmation: 'Introduce & confirm', post_fit: 'Send thank-you', service: 'Acknowledge' };
+      const labels = { intro: 'Review introduction', intro_confirmation: 'Review introduction & confirmation', post_fit: 'Review thank-you', service: 'Review acknowledgement' };
       return `
         <button class="btn btn-sm btn-primary flex-1"  data-action="TalkFeature.sendMessage" data-args='${Utils.escapeHtml(JSON.stringify([(task.appointment.id), task.template]))}'>
-          <span class="material-symbols-rounded fs-16" >send</span>${labels[task.kind]}
+          <span aria-hidden="true" class="material-symbols-rounded fs-16" >edit_note</span>${labels[task.kind]}
         </button>
-        <button class="btn btn-sm btn-outline flex-1"  data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: (task.appointment.id)}])}'>Visit</button>
       `;
     }
     return `
       <button class="btn btn-sm btn-primary flex-1"  data-action="TalkFeature.sendDayBefore" data-args='${JSON.stringify([(task.appointment.id)])}'>
-        <span class="material-symbols-rounded fs-16" >send</span>Send reminder
+        <span aria-hidden="true" class="material-symbols-rounded fs-16" >edit_note</span>Review reminder
       </button>
     `;
   },
@@ -687,7 +690,7 @@ const FollowupsFeature = {
     if (typeof NoteCapture !== 'undefined') NoteCapture.setRecordings('task-notes', []);
     App.openModal(`
       <div class="sheet-handle"></div>
-      <div class="sheet-header"><h3>New task</h3><button class="btn btn-ghost btn-sm" aria-label="Close" data-action="App.closeModal"><span class="material-symbols-rounded">close</span></button></div>
+      <div class="sheet-header"><h3>New task</h3><button class="btn btn-ghost btn-sm" aria-label="Close" data-action="App.closeModal"><span aria-hidden="true" class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body">
         <div class="form-group"><label for="task-title">What needs doing?</label><input class="input" id="task-title" maxlength="160" autocomplete="off" required></div>
         <div class="form-group"><label for="task-due">Due</label><input class="input" id="task-due" type="datetime-local" value="${tomorrow.toISOString().slice(0, 16)}" required></div>
@@ -731,7 +734,7 @@ const FollowupsFeature = {
     const tomorrow = new Date(Date.now() + 86400000);
     tomorrow.setMinutes(tomorrow.getMinutes() - tomorrow.getTimezoneOffset());
     App.openModal(`
-      <div class="sheet-handle"></div><div class="sheet-header"><h3>Snooze task</h3><button class="btn btn-ghost btn-sm" aria-label="Close" data-action="App.closeModal"><span class="material-symbols-rounded">close</span></button></div>
+      <div class="sheet-handle"></div><div class="sheet-header"><h3>Snooze task</h3><button class="btn btn-ghost btn-sm" aria-label="Close" data-action="App.closeModal"><span aria-hidden="true" class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body"><div class="form-group"><label for="task-snooze-until">Remind me</label><input class="input" id="task-snooze-until" type="datetime-local" value="${tomorrow.toISOString().slice(0, 16)}" required></div><button class="btn btn-primary btn-block" data-action="FollowupsFeature.confirmSnooze">Snooze</button></div>`);
   },
 
@@ -761,6 +764,12 @@ const FollowupsFeature = {
         padding: 12px 14px;
         margin-bottom: 8px;
       }
+      .fup-primary > .btn { width: 100%; white-space: normal; min-height: 44px; }
+      .fup-name { overflow-wrap: anywhere; }
+      .fup-options summary { cursor: pointer; padding: 12px 0 2px; font-size: 13px; color: var(--text-secondary); }
+      .fup-options > div { flex-wrap: wrap; }
+      .fup-group { margin: 16px 0; }
+      .fup-group > summary { cursor: pointer; padding: 12px 0; font-weight: 600; }
     `;
     document.head.appendChild(style);
   }

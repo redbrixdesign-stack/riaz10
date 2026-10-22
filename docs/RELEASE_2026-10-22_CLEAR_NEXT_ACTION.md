@@ -1,0 +1,9 @@
+# Clear next action — Follow-ups presentation slice
+
+Due work is shown first. Each follow-up card has one primary action; message actions explicitly say Review rather than Send. Visit, payment-message, customer, snooze and saved-task completion controls remain under More options. Standalone manual reminders retain Mark done as their main action. No messaging, scheduling or resolution rules changed in this slice.
+
+Later and snoozed groups are collapsed with visible counts and keyboard-operable native disclosure controls. Communication history is separate from current work and collapsed; existing missed statistics are not recalculated or erased. Saved messages remain directly accessible. Empty-state copy distinguishes no tasks from no tasks due now. Customer/task names can wrap, primary buttons wrap at narrow widths, and decorative icons are hidden from assistive technology.
+
+Verification: synthetic Chromium and WebKit journeys exercise a single primary action per visible card, explicit preview/edit/close/resume, manual completion, secondary snooze, reload persistence, keyboard group expansion, 320px horizontal fit and browser page-error capture. Existing resolution, quiet-booking, saved-draft and stale-draft journeys retained. Screenshots: `/private/tmp/beelo-clear-next-action-chromium.png` and `/private/tmp/beelo-clear-next-action-webkit.png`. Deployment outcomes are recorded in the development record. Cache `advisoros-v6-134-clear-next-action`.
+
+Boundaries: this is presentation simplification, not a unified communication lifecycle or new automation. Multiple distinct purposes for the same visit may still appear as separate cards. Historical metrics remain subject to existing definitions. No customer migration, external messages, provider configuration, marketing change or feature removal. WebKit coverage is not physical iPhone acceptance or a full accessibility certification.

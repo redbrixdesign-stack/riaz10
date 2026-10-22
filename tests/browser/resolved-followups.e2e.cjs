@@ -37,6 +37,7 @@ const assert = require('node:assert/strict');
     assert.equal(result.events.filter(e => e.taskId === ids.task && e.type === 'source_resolved').length, 1);
     assert(!result.tasks.some(t => t.appointment?.id === ids.visit && ['intro', 'intro_confirmation', 'visit_tomorrow'].includes(t.kind)));
     await page.evaluate(() => App.navigate('followups'));
+    await page.getByText('Not due yet (1)', { exact: true }).click();
     await page.getByText('SYNTHETIC submit final measurements and agree fitting', { exact: false }).first().waitFor();
     await page.waitForTimeout(700); // Allow the page-entry opacity transition to finish for evidence.
     await page.screenshot({ path: '/private/tmp/beelo-resolved-followups.png', fullPage: true });
