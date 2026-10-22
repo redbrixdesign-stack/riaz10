@@ -26,16 +26,19 @@ const FollowupsFeature = {
   preVisitPlan(appt, introduced, now = new Date()) {
     const visitAt = new Date(appt.date);
     if (appt.status !== 'confirmed' || appt.outcome || isNaN(visitAt) || visitAt <= now) return null;
+    const contact = typeof TaskService !== 'undefined' ? TaskService.contactEvidence(appt) : {};
+    introduced = introduced || contact.introduced;
+    const confirmed = appt.dayBeforeSent || contact.agreed;
     const p = Utils.ukParts(now), v = Utils.ukParts(visitAt);
     const tomorrow = new Date(Date.UTC(p.year, p.month - 1, p.day + 1));
     const isTomorrow = v.year === tomorrow.getUTCFullYear() && v.month === tomorrow.getUTCMonth() + 1 && v.day === tomorrow.getUTCDate();
     const reminderWindow = visitAt - now <= 86400000 || isTomorrow;
     if (!introduced && !appt.introSent) {
-      return reminderWindow && !appt.dayBeforeSent
+      return reminderWindow && !confirmed
         ? { kind: 'intro_confirmation', template: 'intro_day_before', action: 'Introduce yourself and confirm this visit' }
         : { kind: 'intro', template: 'pre_intro', action: 'Introduce yourself before this visit' };
     }
-    if (reminderWindow && !appt.dayBeforeSent) return { kind: 'visit_tomorrow', template: 'day_before', action: 'Confirm the upcoming visit' };
+    if (reminderWindow && !confirmed) return { kind: 'visit_tomorrow', template: 'day_before', action: 'Confirm the upcoming visit' };
     return null;
   },
 
@@ -58,13 +61,14 @@ const FollowupsFeature = {
       const introDeadline = new Date(visitAt.getTime() - 24 * 60 * 60 * 1000);
       const bookedAt = new Date(appt.createdAt || appt.date);
       const first = isFirstVisit(appt.customerId, appt);
+      const contact = typeof TaskService !== 'undefined' ? TaskService.contactEvidence(appt) : {};
       // A booking received before T-24 owed a standalone introduction. Once
       // missed, that obligation is archived and the active task becomes the
       // combined recovery message until the visit starts.
-      if (!appt.outcome && appt.status !== 'completed' && first && !appt.introSent && bookedAt < introDeadline && now >= introDeadline) {
+      if (!appt.outcome && appt.status !== 'completed' && first && !appt.introSent && !contact.introduced && bookedAt < introDeadline && now >= introDeadline) {
         await this.archiveMissedCommunication(appt, 'introduction', introDeadline, 'Introduction was not confirmed sent before the 24-hour appointment deadline');
       }
-      if (!appt.outcome && appt.status !== 'completed' && now >= visitAt && !appt.dayBeforeSent) {
+      if (!appt.outcome && appt.status !== 'completed' && now >= visitAt && !appt.dayBeforeSent && !contact.agreed) {
         const hadStandaloneWindow = bookedAt < introDeadline;
         const type = first && !appt.introSent ? (hadStandaloneWindow ? 'intro_confirmation_recovery' : 'intro_confirmation') : 'day_before_confirmation';
         await this.archiveMissedCommunication(appt, type, visitAt, 'The appointment started before sending was confirmed');
@@ -301,6 +305,25 @@ const FollowupsFeature = {
     const task = (await this.loadDerivedTasks()).find(t => t.appointment?.id === appointmentId && ['intro', 'intro_confirmation', 'visit_tomorrow'].includes(t.kind));
     if (!task) { Toast.show('This pre-visit message is no longer due', 'info'); return App.navigate('followups'); }
     return TalkFeature.sendMessage(appointmentId, task.template);
+  },
+
+  async openContactOutcome(appointmentId) {
+    const visit = await DB.getAppointment(appointmentId);
+    if (!visit) return Toast.show('Visit not found', 'error');
+    this.pendingContact = { id: appointmentId, snapshot: DB.visitContactSnapshot(visit), operationId: TaskService.operationId('phone-contact', appointmentId) };
+    const labels = { introduced: 'Introduced myself', visit_agreed: 'Visit date/time agreed', introduced_and_agreed: 'Introduced myself and agreed the visit', no_answer: 'No answer / voicemail only' };
+    App.openModal(`<div class="sheet-header"><h3>Record phone contact</h3><button class="btn btn-ghost" aria-label="Close phone contact" data-action="App.closeModal">Close</button></div><div class="sheet-body"><p>${Utils.escapeHtml(visit.clientName || 'Customer')} · ${Utils.formatDate(visit.date, 'long')} · ${TalkFeature.apptTimeText(visit)}</p><p class="fs-13 text-secondary">Record only what happened. An unanswered call does not clear a reminder. This does not place a call or send a message.</p><label for="contact-outcome">What happened?</label><select id="contact-outcome" class="select"><option value="">Choose an outcome</option>${Object.entries(labels).map(([id, label]) => `<option value="${id}">${label}</option>`).join('')}</select><button class="btn btn-primary btn-block mt-md" data-action="FollowupsFeature.saveContactOutcome">Save contact outcome</button>${(visit.contactOutcomes || []).length ? `<details class="mt-md"><summary>Recorded phone contact</summary>${visit.contactOutcomes.slice(-5).reverse().map(e => `<p class="fs-13">${Utils.escapeHtml(labels[e.outcome] || 'Contact recorded')} · ${Utils.formatDate(e.recordedAt, 'short')}</p>`).join('')}</details>` : ''}</div>`);
+  },
+
+  async saveContactOutcome() {
+    if (!this.pendingContact || this.savingContact) return;
+    this.savingContact = true;
+    try {
+      const pending = this.pendingContact;
+      await DB.recordVisitContact(pending.id, document.getElementById('contact-outcome')?.value, pending.snapshot, pending.operationId);
+      this.pendingContact = null; App.closeModal(); Toast.show('Phone contact recorded — no message marked sent', 'success'); App.navigate('followups');
+    } catch (e) { Toast.show(e.message || 'Could not record contact', 'error'); }
+    finally { this.savingContact = false; }
   },
 
   async loadTasks() {
@@ -593,6 +616,7 @@ const FollowupsFeature = {
           ${task.durable && !task.sourceSuggestion ? `<button class="btn btn-sm btn-primary" aria-label="Complete ${name}" data-action="FollowupsFeature.completeDurableTask" data-args='${JSON.stringify([task.id])}'><span aria-hidden="true" class="material-symbols-rounded fs-16">done</span>Mark done</button>` : this.renderPrimaryAction(task.sourceSuggestion || task)}
         </div>
         <details class="fup-options"><summary aria-label="More options for ${name}">More options</summary><div class="flex gap-sm mt-10">
+          ${task.appointment && ['intro', 'intro_confirmation', 'visit_tomorrow'].includes(task.kind) ? `<button class="btn btn-sm btn-outline" data-action="FollowupsFeature.openContactOutcome" data-args='${JSON.stringify([task.appointment.id])}'>Record phone contact</button>` : ''}
           ${task.appointment ? `<button class="btn btn-sm btn-outline" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: task.appointment.id}])}'>Open visit</button>` : ''}
           ${task.kind === 'payment' && task.order?.appointmentId ? `<button class="btn btn-sm btn-outline" data-action="OrdersFeature.paymentMessage" data-args='${JSON.stringify([task.order.id])}'>Review payment message</button>` : ''}
           ${task.durable && task.sourceSuggestion ? `<button class="btn btn-sm btn-outline" aria-label="Complete ${name}" data-action="FollowupsFeature.completeDurableTask" data-args='${JSON.stringify([task.id])}'>Mark task done</button>` : ''}

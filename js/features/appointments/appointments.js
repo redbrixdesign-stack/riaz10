@@ -1897,6 +1897,7 @@ const AppointmentsFeature = {
 
         <!-- Customer Info -->
         <button class="btn btn-outline card-page-gap" data-action="TalkFeature.openSavedDrafts" data-args='${JSON.stringify([appt.id])}'>Resume saved message</button>
+        <button class="btn btn-outline card-page-gap" data-action="FollowupsFeature.openContactOutcome" data-args='${JSON.stringify([appt.id])}'>Phone contact / history</button>
         ${appt.timeProposal?.status === 'pending' && !appt.outcome && appt.status !== 'cancelled' ? `<div class="card card-page-gap"><p>Pending time proposal: ${Utils.escapeHtml(appt.timeProposal.time)}. The booking is unchanged until agreement is recorded.</p><button class="btn btn-outline" data-action="AppointmentsFeature.openTimeProposal" data-args='${JSON.stringify([appt.id])}'>Review pending time proposal</button></div>` : ''}
         <div class="card card-page-gap" >
           <div class="flex items-center gap-md" >

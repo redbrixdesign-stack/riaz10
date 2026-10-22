@@ -1172,6 +1172,31 @@ async function runMutationBoundaries(engine) {
   }
 }
 
+async function runPhoneContactStorage(engine) {
+  const sandbox = baseSandbox();
+  if (engine === 'dexie') {
+    const Dexie = require('dexie');
+    Dexie.dependencies.indexedDB = indexedDB; Dexie.dependencies.IDBKeyRange = IDBKeyRange; sandbox.Dexie = Dexie;
+  } else sandbox.Dexie = loadShim(sandbox);
+  const DB = loadDbJs(sandbox, `advisoros_phone_${engine}_${Date.now()}`);
+  await DB.init(); await sandbox.initEncryption('synthetic-phone-passphrase');
+  const visit = await DB.addAppointment({ type: 'fitting', status: 'confirmed', date: new Date(Date.now() + 86400000).toISOString() });
+  const snapshot = DB.visitContactSnapshot(visit);
+  await Promise.all([DB.recordVisitContact(visit.id, 'introduced', snapshot, 'phone-once'), DB.recordVisitContact(visit.id, 'introduced', snapshot, 'phone-once')]);
+  let stored = await DB.getAppointment(visit.id);
+  ok(`${engine}: phone write is idempotent and never invents sent flags`, stored.contactOutcomes.length === 1 && !stored.introSent && !stored.dayBeforeSent);
+  let rejected = false;
+  try { await DB.recordVisitContact(visit.id, 'unknown', snapshot, 'bad'); } catch (e) { rejected = true; }
+  ok(`${engine}: invalid contact outcome rejected`, rejected);
+  await DB.updateAppointment(visit.id, { arrivalStart: '12:00', arrivalEnd: '14:00' });
+  rejected = false;
+  try { await DB.recordVisitContact(visit.id, 'visit_agreed', snapshot, 'stale'); } catch (e) { rejected = /changed/.test(e.message); }
+  stored = await DB.getAppointment(visit.id);
+  ok(`${engine}: stale agreement rejected without changing history`, rejected && stored.contactOutcomes.length === 1);
+  await DB.recordVisitContact(visit.id, 'no_answer', DB.visitContactSnapshot(stored), 'no-answer');
+  ok(`${engine}: unanswered calls retained as separate evidence`, (await DB.getAppointment(visit.id)).contactOutcomes.length === 2);
+}
+
 async function runPhase1WorkStorage(engine) {
   const sandbox = baseSandbox();
   if (engine === 'dexie') {
@@ -1406,6 +1431,7 @@ async function runPhase6RetentionStorage(engine) {
   console.log('\nTest 24: Phase 5 profitability storage — bundled shim');await runPhase5ProfitabilityStorage('shim');
   console.log('\nTest 25: Phase 6 retention storage — real Dexie');await runPhase6RetentionStorage('dexie');
   console.log('\nTest 26: Phase 6 retention storage — bundled shim');await runPhase6RetentionStorage('shim');
+  await runPhoneContactStorage('dexie'); await runPhoneContactStorage('shim');
   console.log('\n' + (failures === 0 ? 'ALL TESTS PASSED' : failures + ' TEST(S) FAILED'));
   process.exit(failures === 0 ? 0 : 1);
 })().catch(e => { console.error('UNEXPECTED ERROR:', e); process.exit(1); });

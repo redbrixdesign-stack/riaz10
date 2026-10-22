@@ -122,4 +122,15 @@ const ok = (name, condition, detail) => {
   ok('latest explicit snooze survives purpose transition', merged[0].id === 301 && merged[0].snoozed && !merged[0].due);
   ok('duplicate history retained with consolidation reason', rows.find(r => r.id === 302).resolutionReason === 'previsit_purpose_consolidated');
   ok('expired saved previsit reminder is resolved without pretending sent', TaskService.appointmentResolution('message:intro:appointment:30', { date: '2000-01-01', status: 'confirmed' }) === 'previsit_window_closed');
+  DB.visitContactSnapshot = a => JSON.stringify([a.date, a.arrivalStart || '']);
+  const visit = { date: tomorrow, status: 'confirmed' };
+  visit.contactOutcomes = [{ provenance: 'advisor_recorded', channel: 'phone', outcome: 'no_answer', bookingSnapshot: DB.visitContactSnapshot(visit) }];
+  ok('no answer fulfills neither purpose', !TaskService.contactEvidence(visit).introduced && !TaskService.contactEvidence(visit).agreed);
+  visit.contactOutcomes.push({ ...visit.contactOutcomes[0], outcome: 'introduced_and_agreed' });
+  ok('explicit phone outcome fulfills both without sent flags', TaskService.contactEvidence(visit).introduced && TaskService.contactEvidence(visit).agreed && !visit.introSent && !visit.dayBeforeSent);
+  ok('saved combined reminder resolves by phone provenance', TaskService.appointmentResolution('message:intro-day-before:appointment:30', visit) === 'phone_agreement_recorded');
+  visit.arrivalStart = '15:00';
+  ok('changed slot invalidates agreement but retains introduction', TaskService.contactEvidence(visit).introduced && !TaskService.contactEvidence(visit).agreed);
+  visit.customerId = 987;
+  ok('phone evidence never transfers to a reassigned customer', !TaskService.contactEvidence(visit).introduced && !TaskService.contactEvidence(visit).agreed);
 })();

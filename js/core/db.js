@@ -1064,6 +1064,27 @@ const DB = {
     }
   },
 
+  visitContactSnapshot(visit) {
+    return JSON.stringify([visit.customerId || null, visit.date || '', visit.type || '', visit.arrivalStart || '', visit.arrivalEnd || '', visit.scheduleChangedAt || '']);
+  },
+
+  async recordVisitContact(id, outcome, snapshot, operationId) {
+    if (!['introduced', 'visit_agreed', 'introduced_and_agreed', 'no_answer'].includes(outcome)) throw new Error('Choose what happened');
+    if (!operationId || typeof operationId !== 'string') throw new Error('Contact operation is required');
+    return this._runWrite(['appointments'], async () => {
+      const visit = await this.db.appointments.get(id);
+      if (!visit) throw new Error('Visit not found');
+      const history = Array.isArray(visit.contactOutcomes) ? visit.contactOutcomes : [];
+      if (history.some(item => item.id === operationId)) return;
+      if (this.visitContactSnapshot(visit) !== snapshot) throw new Error('Visit details changed. Close and reopen this form before recording agreement.');
+      if (visit.status !== 'confirmed' || visit.outcome || new Date(visit.date) <= new Date() || isNaN(new Date(visit.date))) throw new Error('This visit is no longer awaiting pre-visit contact');
+      await this.db.appointments.update(id, { contactOutcomes: [...history, {
+        id: operationId, outcome, bookingSnapshot: snapshot, customerId: visit.customerId || null,
+        recordedAt: new Date().toISOString(), channel: 'phone', provenance: 'advisor_recorded'
+      }] });
+    });
+  },
+
   // Explicitly reviewed local summary; audio ownership/lifecycle is unchanged.
   async saveApprovedVisitSummary(id, draft, approved) {
     if (approved !== true) throw new Error('Review approval is required');

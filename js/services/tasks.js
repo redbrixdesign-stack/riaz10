@@ -32,6 +32,14 @@ const TaskService = {
     return String(key || '').replace(/^message:(intro|intro-day-before|day-before):appointment:/, 'message:previsit:appointment:');
   },
 
+  contactEvidence(visit) {
+    const history = (visit.contactOutcomes || []).filter(e => e.provenance === 'advisor_recorded' && e.channel === 'phone' && String(e.customerId || '') === String(visit.customerId || ''));
+    const introduced = history.some(e => ['introduced', 'introduced_and_agreed'].includes(e.outcome));
+    const snapshot = typeof DB.visitContactSnapshot === 'function' ? DB.visitContactSnapshot(visit) : null;
+    const agreed = !!snapshot && history.some(e => e.bookingSnapshot === snapshot && ['visit_agreed', 'introduced_and_agreed'].includes(e.outcome));
+    return { introduced, agreed };
+  },
+
   decorateDurable(task, now = this.now()) {
     const effectiveDue = this.effectiveDue(task);
     const snoozeDate = task?.snoozedUntil ? new Date(task.snoozedUntil) : null;
@@ -125,6 +133,10 @@ const TaskService = {
       if (cancelled) return 'visit_cancelled';
       if (appt.outcome || appt.status === 'completed') return 'visit_concluded';
       if (key.startsWith('message:') && appt.date && new Date(appt.date) <= this.now()) return 'previsit_window_closed';
+      const contact = this.contactEvidence(appt);
+      if (key.startsWith('message:intro:') && contact.introduced) return 'phone_introduction_recorded';
+      if (key.startsWith('message:day-before:') && contact.agreed) return 'phone_agreement_recorded';
+      if (key.startsWith('message:intro-day-before:') && contact.agreed && (contact.introduced || appt.introSent)) return 'phone_agreement_recorded';
       if (key.startsWith('message:intro:') && appt.introSent) return 'message_confirmed_sent';
       if (key.startsWith('message:day-before:') && appt.dayBeforeSent) return 'message_confirmed_sent';
       if (key.startsWith('message:intro-day-before:') && appt.introSent && appt.dayBeforeSent) return 'message_confirmed_sent';
