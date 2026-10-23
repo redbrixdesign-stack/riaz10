@@ -320,7 +320,7 @@ const FollowupsFeature = {
       const correctable = !!labels[e.outcome] && e.id && !retracted.has(e.id) && e.provenance === 'advisor_recorded' && e.channel === 'phone';
       return `<div class="mt-sm fs-13"><div>${Utils.escapeHtml(label)} · ${Utils.formatDate(e.recordedAt, 'short')}${retracted.has(e.id) ? ' · Retracted (history retained)' : ''}</div>${correctable ? `<button class="btn btn-outline btn-sm mt-sm" aria-label="Correct record: ${Utils.escapeHtml(label)}" data-action="FollowupsFeature.openContactCorrection" data-args='${Utils.escapeHtml(JSON.stringify([appointmentId, e.id]))}'>Correct record</button>` : ''}</div>`;
     }).join('');
-    App.openModal(`<div class="sheet-header"><h3>Record phone contact</h3><button class="btn btn-ghost" aria-label="Close phone contact" data-action="App.closeModal">Close</button></div><div class="sheet-body"><p>${Utils.escapeHtml(visit.clientName || 'Customer')} · ${Utils.formatDate(visit.date, 'long')} · ${TalkFeature.apptTimeText(visit)}</p><p class="fs-13 text-secondary">Record only what happened. An unanswered call does not clear a reminder. This does not place a call or send a message.</p><label for="contact-outcome">What happened?</label><select id="contact-outcome" class="select"><option value="">Choose an outcome</option>${Object.entries(labels).map(([id, label]) => `<option value="${id}">${label}</option>`).join('')}</select><button class="btn btn-primary btn-block mt-md" data-action="FollowupsFeature.saveContactOutcome">Save contact outcome</button>${history.length ? `<details class="mt-md"><summary>Recorded phone contact</summary>${historyHtml}</details>` : ''}</div>`);
+    App.openModal(`<div class="sheet-header"><h3>Record phone contact</h3><button class="btn btn-ghost" aria-label="Close phone contact" data-action="App.closeModal">Close</button></div><div class="sheet-body phone-contact-recording"><p>${Utils.escapeHtml(visit.clientName || 'Customer')} · ${Utils.formatDate(visit.date, 'long')} · ${TalkFeature.apptTimeText(visit)}</p><p class="fs-13 text-secondary">Record only what happened. An unanswered call does not clear a reminder. This does not place a call or send a message.</p><label for="contact-outcome">What happened?</label><select id="contact-outcome" class="select"><option value="">Choose an outcome</option>${Object.entries(labels).map(([id, label]) => `<option value="${id}">${label}</option>`).join('')}</select><p id="phone-contact-error" role="alert"></p><button class="btn btn-primary btn-block mt-md" data-action="FollowupsFeature.saveContactOutcome">Save contact outcome</button>${history.length ? `<details class="mt-md"><summary>Recorded phone contact</summary>${historyHtml}</details>` : ''}</div>`);
   },
 
   async openContactCorrection(appointmentId, targetId) {
@@ -350,11 +350,16 @@ const FollowupsFeature = {
   async saveContactOutcome() {
     if (!this.pendingContact || this.savingContact) return;
     this.savingContact = true;
+    const errorEl = document.getElementById('phone-contact-error');
+    if (errorEl) errorEl.textContent = '';
     try {
       const pending = this.pendingContact;
       await DB.recordVisitContact(pending.id, document.getElementById('contact-outcome')?.value, pending.snapshot, pending.operationId);
       this.pendingContact = null; App.closeModal(); Toast.show('Phone contact recorded — no message marked sent', 'success'); App.navigate('followups');
-    } catch (e) { Toast.show(e.message || 'Could not record contact', 'error'); }
+    } catch (e) {
+      if (errorEl) errorEl.textContent = e.message || 'Could not record contact';
+      else Toast.show(e.message || 'Could not record contact', 'error');
+    }
     finally { this.savingContact = false; }
   },
 
