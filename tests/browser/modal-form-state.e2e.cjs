@@ -29,8 +29,13 @@ const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
   await page.evaluate(id=>App.navigate('appointments',{id}),id);
   await page.locator('[aria-label="Edit customer details"]').waitFor();
   await page.locator('[aria-label="Edit customer details"]').click();
+  // openModal intentionally autofocuses the first control on the next paint.
+  // Wait for that existing opening lifecycle before typing elsewhere, rather
+  // than racing the deferred focus with Playwright's keyboard-backed fill.
+  await page.waitForFunction(()=>document.activeElement?.id==='edit-detail-date');
   await page.locator('#edit-detail-name').fill('SYNTHETIC Corrected');
   await page.locator('#edit-detail-time').fill('09:30');
+  assert.deepEqual(await page.evaluate(()=>({name:document.getElementById('edit-detail-name').value,time:document.getElementById('edit-detail-time').value})),{name:'SYNTHETIC Corrected',time:'09:30'},'The intended draft must be present before Save and the stack transition');
   await page.getByRole('button',{name:'Save Changes',exact:true}).click();
   await page.getByRole('heading',{name:'Check this diary slot',exact:true}).waitFor();
   assert.equal(await page.evaluate(async id=>(await DB.getAppointment(id)).clientName,id),'SYNTHETIC Original','Warning must not save the draft');
@@ -44,6 +49,7 @@ const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
   await page.locator('#edit-detail-name').waitFor({state:'hidden'});
   assert.equal(await page.evaluate(async id=>(await DB.getAppointment(id)).clientName,id),'SYNTHETIC Corrected');
   await page.evaluate(()=>App.openModal(`<h3>SYNTHETIC form</h3><input id="nested-text" value="original"><textarea id="nested-note">original</textarea><input id="nested-check" type="checkbox"><input id="radio-a" type="radio" name="synthetic-choice" checked><input id="radio-b" type="radio" name="synthetic-choice"><select id="nested-select" multiple><option value="a" selected>A</option><option value="b">B</option><option value="c">C</option></select><input id="nested-secret" type="password"><textarea id="nested-passphrase" class="passphrase-input"></textarea><input id="nested-file" type="file">`));
+  await page.waitForFunction(()=>document.activeElement?.id==='nested-text');
   await page.locator('#nested-text').fill('SYNTHETIC changed');
   const note='SYNTHETIC bedroom — </textarea><img src=x onerror=alert(1)> & "left control"';
   await page.locator('#nested-note').fill(note);await page.locator('#nested-check').check();await page.locator('#radio-b').check();
@@ -51,6 +57,7 @@ const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
   await page.locator('#nested-secret').fill('SYNTHETIC-not-a-real-secret');await page.locator('#nested-passphrase').fill('SYNTHETIC-not-a-real-passphrase');
   await page.locator('#nested-file').setInputFiles({name:'SYNTHETIC.txt',mimeType:'text/plain',buffer:Buffer.from('SYNTHETIC')});
   await page.evaluate(()=>{App.openModal('<h3>SYNTHETIC second layer</h3><input id="layer-two" value="original">');});
+  await page.waitForFunction(()=>document.activeElement?.id==='layer-two');
   await page.locator('#layer-two').fill('SYNTHETIC second-layer edit');
   await page.evaluate(()=>{App.openModal('<h3>SYNTHETIC third layer</h3>');App.closeModal();});
   assert.equal(await page.locator('#layer-two').inputValue(),'SYNTHETIC second-layer edit');
