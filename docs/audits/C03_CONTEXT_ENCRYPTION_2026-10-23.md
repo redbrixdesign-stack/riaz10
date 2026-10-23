@@ -11,6 +11,8 @@
 
 ## Writer/migration release
 
+- Released `f0c17dd`, deployment `dpl_JDtsb5Z7pBrjnycAqnyCpNui6YTS` (`https://beelo1-1zp8pg913-beelomvp.vercel.app`), build 8s, cache `advisoros-v6-145-context-encryption`. Staged index/SW/DB matched before exact-build promotion; live assets matched. Live Chromium/WebKit context journeys passed, including encrypted new writes/caption edits and actual reload migration; offline acceptance has the WebKit limitation below. Reader deployment's ten-minute error/fatal query returned no records; not a monitoring certification.
+
 - Reader release passed live Chromium and WebKit checks before enabling writes. New saves/edits/imports now encrypt the fields listed above using the existing device AES-GCM key, without changing IDs, appointment dates, dimensions or relationships. Standard JSON export remains readable by design; use the password-protected option for an encrypted external file.
 - Existing customer/appointment migrations include duplicate name/postcode and access fields. New gallery/measurement migration encrypts each row only when needed, prepares ciphertext outside the database transaction and uses one atomic row write. It has no completion marker: partial progress remains readable and retries at the next unlock, without double-encrypting completed fields.
 - Full npm suite passed. Real Dexie and fallback tests verify raw-at-rest ciphertext, edits, legacy interruption/resumption/idempotence and different-key restore. Source/minified prior reader `96c53ee` decrypts writer data (explicit rollback test). Browser checks verify saved context, gallery playback/caption edit, raw ciphertext and actual reload migration; prior payment and protected-backup journeys are rechecked separately.
