@@ -12,6 +12,10 @@ const NoteCapture = {
   transcribing: new Set(),
   maxDurationMs: 3 * 60 * 1000,
   maxAudioBytes: 10 * 1024 * 1024,
+  // Base64 adds ~33%; keep the complete JSON request below the host's 4.5 MB cap.
+  maxTranscriptionAudioBytes: 3_000_000,
+  maxTranscriptionBodyBytes: 4_100_000,
+  transcriptionSizeMessage: 'Recording too large to transcribe (3 MB limit). Audio remains available; record a shorter note or type your notes.',
 
   setRecordings(fieldId, recordings = []) {
     this.releasePlaybackUrls(fieldId);
@@ -29,7 +33,7 @@ const NoteCapture = {
           <span class="material-symbols-rounded fs-18">mic</span><span>Record voice</span>
         </button>
       </div>
-      <div class="fs-11 text-tertiary mt-6">Audio stays on this device. It is sent for transcription only when you choose Transcribe.</div>
+      <div class="fs-11 text-tertiary mt-6">Audio stays on this device. It is sent for transcription only when you choose Transcribe. Transcription supports audio up to 3 MB; larger recordings remain available for playback.</div>
       <div id="${Utils.escapeHtml(fieldId)}-audio-list" class="mt-sm">${this.renderList(fieldId)}</div>
     </div>`;
   },
@@ -168,15 +172,20 @@ const NoteCapture = {
     if (!targetField) return Toast.show('Open the notes editor first', 'warning');
     if (this.transcribing.has(item)) return;
     this.transcribing.add(item);
-    const comma = item.dataUrl.indexOf(',');
-    const audio = comma >= 0 ? item.dataUrl.slice(comma + 1) : '';
-    Toast.show('Transcribing — your audio remains saved', 'info', 5000);
     try {
+      const dataUrl = String(item.dataUrl || '');
+      const comma = dataUrl.indexOf(',');
+      const audio = comma >= 0 ? dataUrl.slice(comma + 1) : '';
+      const base64 = audio.replace(/\s/g, '');
+      const audioBytes = Math.floor(base64.length * 3 / 4) - (base64.endsWith('==') ? 2 : base64.endsWith('=') ? 1 : 0);
+      const body = JSON.stringify({ audio, mediaType: item.mediaType || 'audio/webm' });
+      if (audioBytes > this.maxTranscriptionAudioBytes || new Blob([body]).size > this.maxTranscriptionBodyBytes) throw new Error(this.transcriptionSizeMessage);
+      Toast.show('Transcribing — your audio remains saved', 'info', 5000);
       let secret = typeof AIService !== 'undefined' ? AIService.config().secret : '';
       const request = credential => fetch('/api/transcribe', {
           method: 'POST',
           headers: { 'content-type': 'application/json', ...(credential ? { 'x-ai-key': credential } : {}) },
-          body: JSON.stringify({ audio, mediaType: item.mediaType || 'audio/webm' })
+          body
         });
       let response = await request(secret);
       // CONFIG/session state can be evicted independently of IndexedDB on an
@@ -192,6 +201,7 @@ const NoteCapture = {
         }
       }
       const result = await response.json().catch(() => null);
+      if (response.status === 413) throw new Error(this.transcriptionSizeMessage);
       if (response.status === 403) throw new Error('This device needs registering again in Settings → Claude AI');
       if (!response.ok || !result?.ok || !result.text) throw new Error(result?.message || 'Transcription failed');
       const field = document.getElementById(fieldId);

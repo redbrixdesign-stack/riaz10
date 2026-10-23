@@ -7,7 +7,7 @@ async function run(file) {
   let resolveFetch, requests = 0, modalChanges = 0;
   let field = { value: 'Original context', dispatchEvent() {} };
   const list = { innerHTML: '' };
-  const context = vm.createContext({ console, Map, Set, Date, JSON, Event,
+  const context = vm.createContext({ console, Map, Set, Date, JSON, Event, Blob,
     Utils: { escapeHtml: String }, navigator: { onLine: true },
     document: { getElementById: id => id === 'notes' ? field : list },
     App: { openModal() { modalChanges++; }, closeModal() { modalChanges++; } },

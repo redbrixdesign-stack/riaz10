@@ -2,8 +2,10 @@
    request, forwarded to OpenAI, and never persisted by this function. */
 
 const OPENAI_TRANSCRIPTION_ENDPOINT = 'https://api.openai.com/v1/audio/transcriptions';
-const MAX_AUDIO_BYTES = 10 * 1024 * 1024;
-const MAX_BODY_BYTES = 14 * 1024 * 1024;
+// Keep base64 JSON safely below Vercel's 4.5 MB request-body ceiling.
+const MAX_AUDIO_BYTES = 3_000_000;
+const MAX_BODY_BYTES = 4_100_000;
+const SIZE_MESSAGE = 'Recording too large to transcribe (3 MB limit). Audio remains available; record a shorter note or type your notes.';
 const ALLOWED_MEDIA_TYPES = ['audio/webm', 'audio/mp4', 'audio/m4a', 'audio/x-m4a', 'audio/mpeg', 'audio/mp3', 'audio/ogg', 'audio/wav', 'audio/x-wav'];
 
 function send(res, status, body, origin = '') {
@@ -20,13 +22,20 @@ function header(req, name) {
 }
 
 async function readJson(req) {
-  if (req.body && typeof req.body === 'object') return req.body;
-  let raw = '';
-  for await (const chunk of req) {
-    raw += chunk;
-    if (Buffer.byteLength(raw) > MAX_BODY_BYTES) throw Object.assign(new Error('too_large'), { status: 413 });
+  if (Number(header(req, 'content-length')) > MAX_BODY_BYTES) throw Object.assign(new Error('too_large'), { status: 413 });
+  if (req.body && typeof req.body === 'object') {
+    if (Buffer.byteLength(JSON.stringify(req.body)) > MAX_BODY_BYTES) throw Object.assign(new Error('too_large'), { status: 413 });
+    return req.body;
   }
-  return JSON.parse(raw || '{}');
+  const chunks = [];
+  let bytes = 0;
+  for await (const chunk of req) {
+    const buffer = Buffer.from(chunk);
+    bytes += buffer.length;
+    if (bytes > MAX_BODY_BYTES) throw Object.assign(new Error('too_large'), { status: 413 });
+    chunks.push(buffer);
+  }
+  return JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
 }
 
 export default async function handler(req, res) {
@@ -59,7 +68,7 @@ export default async function handler(req, res) {
     if (!ALLOWED_MEDIA_TYPES.includes(mediaType)) return send(res, 415, { ok: false, error: 'unsupported_audio' }, configuredOrigin || requestOrigin);
     if (typeof body.audio !== 'string' || !body.audio) return send(res, 400, { ok: false, error: 'audio_required' }, configuredOrigin || requestOrigin);
     const audio = Buffer.from(body.audio, 'base64');
-    if (!audio.length || audio.length > MAX_AUDIO_BYTES) return send(res, 413, { ok: false, error: 'audio_too_large' }, configuredOrigin || requestOrigin);
+    if (!audio.length || audio.length > MAX_AUDIO_BYTES) return send(res, 413, { ok: false, error: 'audio_too_large', message: SIZE_MESSAGE }, configuredOrigin || requestOrigin);
 
     const extension = mediaType.includes('mp4') || mediaType.includes('m4a') ? 'm4a' : mediaType.includes('mpeg') || mediaType.includes('mp3') ? 'mp3' : mediaType.includes('ogg') ? 'ogg' : mediaType.includes('wav') ? 'wav' : 'webm';
     const form = new FormData();
@@ -78,7 +87,7 @@ export default async function handler(req, res) {
     if (!text) return send(res, 502, { ok: false, error: 'empty_transcript', message: 'No speech could be transcribed' }, configuredOrigin || requestOrigin);
     return send(res, 200, { ok: true, text, model: process.env.OPENAI_TRANSCRIBE_MODEL || 'gpt-4o-mini-transcribe' }, configuredOrigin || requestOrigin);
   } catch (error) {
-    if (error?.status === 413) return send(res, 413, { ok: false, error: 'body_too_large' }, configuredOrigin || requestOrigin);
+    if (error?.status === 413) return send(res, 413, { ok: false, error: 'body_too_large', message: SIZE_MESSAGE }, configuredOrigin || requestOrigin);
     if (error?.name === 'AbortError') return send(res, 504, { ok: false, error: 'timeout', message: 'Transcription timed out' }, configuredOrigin || requestOrigin);
     return send(res, 400, { ok: false, error: 'invalid_request', message: 'The audio request could not be read' }, configuredOrigin || requestOrigin);
   }
