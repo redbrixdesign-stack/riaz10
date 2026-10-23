@@ -1,6 +1,6 @@
 # Audit A02: transcription transport safeguard
 
-Status: implemented, not deployed. Production remains source `4da1b1a` / deployment `dpl_FFuk9Sd4nsmAdn2aT8XLtwV2ZBUG`.
+Status: local transport gates passed; staging pending. Production remains source `4da1b1a` / deployment `dpl_FFuk9Sd4nsmAdn2aT8XLtwV2ZBUG` until release below is recorded.
 
 ## Decision / change
 
@@ -17,11 +17,13 @@ Status: implemented, not deployed. Production remains source `4da1b1a` / deploym
 - Full `npm test` passed. Lifecycle mock now supplies the real standard Blob API used for size accounting; duplicate-tap and stale-editor checks pass against source/minified assets.
 - Chromium browser journey passed: oversize no-upload warning, original context preserved, exact large synthetic WAV saved/encrypted/reloaded, local Blob player source/metadata, and smaller mocked transcription with both recordings retained. No real provider was contacted.
 - WebKit observed the warning and saved-audio UI; an earlier run verified byte retention across reload but stalled waiting for headless WAV metadata. That decoder check is explicitly excluded for WebKit (audible/physical-device playback not certified).
-- Latest WebKit run hit `Navigation canceled by policy check` during reload after Save. Customer Save starts a route change after hiding its sheet. A narrow harness wait for the customer route has now been added, but has NOT yet been rerun. Do not claim the final WebKit journey passes. Initial harness also needed a required synthetic address and hide-in-place modal assertions; no runtime customer validation was changed.
-- Verification guidance stops at the failed browser boundary. No deployment/production tests performed for this slice. Client/handler logic is tested with mocks; production maximum-size transport and real transcription are not certified.
+- Earlier WebKit reload was cancelled during post-Save navigation. The harness now waits for the actual `#customer?id=...` URL and rendered profile, not an incorrect bare `customer` hash. No runtime navigation was changed.
+- A focused WebKit diagnostic proved that a controlling service worker bypasses Playwright API routing after reload: mock intercepted 0 / local server 501, versus worker-blocked mock intercepted 1 / response 200. Provider-mock size tests now block service workers only in their disposable test contexts. This is not an offline/SW acceptance test; production worker configuration is unchanged.
+- Final Chromium and WebKit transport journeys passed: oversize zero-upload, unchanged notes, exact encrypted audio save/reload, local Blob player source, smaller mocked transcription and retention of both recordings. WebKit headless decoding remains excluded. Initial harness also needed a required synthetic address and hide-in-place modal assertions; no runtime customer validation was changed.
+- Targeted client/proxy/lifecycle tests re-passed after the harness correction. Full suite had already passed against the unchanged runtime code. Real transcription and production maximum-size transport are not certified by these mocked-provider tests.
 
 Evidence: `/private/tmp/beelo-transcription-size-{chromium,webkit}.png`, `/private/tmp/beelo-transcription-size-suite.log`. Copied into original workspace `docs/evidence/2026-10-23-transcription-size/`.
 
 ## Next
 
-Run the corrected WebKit route-stable reload journey, then recheck release gates and stage/promote the exact tested commit. Keep physical iPhone audio acceptance open. Audit A03 per-device usage/concurrency/budget controls remain a separate unresolved risk; this size guard does not solve them. Marketing website untouched.
+Stage/promote the exact tested commit, compare served assets, then run the isolated synthetic provider-mock journey against the public app. Keep physical iPhone audio acceptance open. Audit A03 per-device usage/concurrency/budget controls remain a separate unresolved risk; this size guard does not solve them. Marketing website untouched.

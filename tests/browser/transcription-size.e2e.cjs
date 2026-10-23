@@ -12,7 +12,9 @@ function silentWav(bytes) {
   for (const engine of [chromium, webkit]) {
     const browser = await engine.launch();
     try {
-      const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+      // This test mocks the provider transport, not offline SW recovery. WebKit
+      // service-worker fetches bypass Playwright routing after reload.
+      const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
       await context.addInitScript(() => {
         localStorage.setItem('advisoros_enc_test', '1');
         localStorage.setItem('advisoros_config', JSON.stringify({ onboardingComplete: true }));
@@ -42,7 +44,9 @@ function silentWav(bytes) {
       await page.screenshot({ path: `/private/tmp/beelo-transcription-size-${engine.name()}.png` });
       await page.getByRole('button', { name: 'Save Changes', exact: true }).click();
       await page.locator('#edit-cust-notes').waitFor({ state: 'hidden' });
-      await page.waitForFunction(() => App.currentHash === 'customer'); // Save starts a route change after hiding the sheet.
+      // Navigation includes the record ID; wait for the real hash transition, not just sheet closure.
+      await page.waitForURL(url => url.hash === `#customer?id=${id}`);
+      await page.locator('[data-action="CommunicationsFeature.openPreferences"]').waitFor();
       await page.reload(); await page.waitForFunction(() => !!App.currentHash);
       assert.equal(await page.evaluate(async id => (await DB.getCustomer(id)).audioNotes[0].dataUrl, id), large, 'Exact large audio retained across encrypted save/reload');
       await page.evaluate(id => AppointmentsFeature.openEditCustomerModal(id), id);
