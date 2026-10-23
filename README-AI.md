@@ -1,78 +1,95 @@
-# AI proxy — deployment guide
+# Beelo optional AI and transcription proxies
 
-AdvisorOS is a static, no-backend app, so the Anthropic API key can
-never live in the client. All AI traffic goes through ONE hardened
-handler with a single contract:
+Beelo has a static local-first frontend and optional online backend functions.
+“No backend” is inaccurate when these services are enabled. Source reviewed
+24 October 2026; this guide records configuration contracts, not live-provider
+availability or a request to rotate credentials.
 
-- **`api/claude.mjs`** — the canonical implementation. Deploys as a
-  Vercel function (`/api/claude`); also exports the underlying `handle()`
-  the standalone server uses, so both deployments can never drift.
-- **`server/`** — a thin Express wrapper around that same `handle()` for
-  any other host (Render, Fly.io, a VPS, a Raspberry Pi on the network).
+## Services and boundaries
 
-The app talks to whichever of these you deploy through
-`CONFIG.ai.proxyUrl` (set in Settings → AI or directly in
-`js/core/config.js`). On a same-origin Vercel deployment the relative
-URL `/api/claude` works with zero configuration.
+| Service | Implementation | Client and provider boundary |
+| --- | --- | --- |
+| Claude assistance | `api/claude.mjs`, deployed at `/api/claude` | `js/services/ai.js` uses the configured proxy URL for supported OCR, drafting and assistance requests. Selected input/context goes to the server and provider. |
+| Transcription | `api/transcribe.mjs`, deployed at `/api/transcribe` | `js/services/note-capture.js` explicitly posts selected recorded audio to the same-origin endpoint, then presents text for adviser review. The function does not persist audio; provider processing is a separate privacy boundary. |
+| Alternative Claude host | `server/index.js` | Express imports the canonical Claude handler; routes `/` and `/api/ai`, default port 8787. It does not expose transcription. `/health` alone does not test provider access. |
 
-## 1. Vercel (recommended — one project, one deploy)
+A local static server executes none of these APIs. HTTPS and separately deployed
+functions are needed for a hosted setup. A configured Claude URL does not
+redirect the current same-origin transcription request.
 
-The repo is already set up: `vercel.json` serves the static app from
-`.` and `api/claude.mjs` is picked up automatically as a serverless
-function.
+## Server-side configuration contract
 
-```bash
-npm install
-npx vercel --prod
-```
+Configure values privately in the intended host/environment. Never paste keys
+into frontend source, Git, screenshots or chat. This correction changes no values.
 
-Then set the environment variables in the Vercel dashboard
-(Project → Settings → Environment Variables):
+| Variable | Requirement / behaviour |
+| --- | --- |
+| `ANTHROPIC_API_KEY` | Claude provider key, server-side only. Required for a successful provider request; the Express wrapper also checks presence on startup. |
+| `OPENAI_API_KEY` | Transcription provider key, server-side only; required by its production configuration guard. |
+| `ALLOWED_ORIGIN` | Required in production. Use the intended app origin, not its marketing site or a URL with a route. Claude checks exact request-origin equality; transcription normalises a trailing slash. |
+| `AI_SECRET` | Required in production. Shared device credential sent in `X-AI-Key`, not a provider key or local unlock passphrase. Existing devices must use the matching value. |
+| `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` | Complete shared-store pair, or use the supported `KV_REST_API_URL` + `KV_REST_API_TOKEN` alias pair. Configure a coherent pair, not a mixture of providers/environments. |
+| `RATE_LIMIT_MAX` / `RATE_LIMIT_WINDOW_MS` | Claude per-address window limits; source defaults 120 requests / 60,000 ms. Not a daily money budget. |
+| `ANTHROPIC_TIMEOUT_MS` | Claude upstream timeout; source default 60,000 ms. |
+| `OPENAI_TRANSCRIBE_MODEL` | Optional transcription model override; source default `gpt-4o-mini-transcribe`. This is an implementation default, not a model/pricing recommendation. |
 
-| Variable | Required | Purpose |
-|---|---|---|
-| `ANTHROPIC_API_KEY` | yes | server-side only, never shipped |
-| `AI_SECRET` | production | shared secret the app sends as `X-AI-Key` (must equal `CONFIG.ai.secret` in the app); missing → 403 |
-| `ALLOWED_ORIGIN` | production | the exact app origin (e.g. `https://your-site.vercel.app`); every other origin → 403 |
-| `UPSTASH_REDIS_REST_URL` | no | enables shared rate limiting across serverless instances via Upstash Redis (falls back to in-memory per-instance if unset) |
-| `UPSTASH_REDIS_REST_TOKEN` | no | paired with `UPSTASH_REDIS_REST_URL`; required together to activate Redis-backed rate limiting |
-| `RATE_LIMIT_MAX` | no (120) | requests per address per window |
-| `RATE_LIMIT_WINDOW_MS` | no (60000) | rate-limit window |
-| `ANTHROPIC_TIMEOUT_MS` | no (60000) | upstream call budget before the proxy aborts with 504 |
+Production Claude returns configuration error 500 without origin/credential;
+missing, partial or unavailable shared usage protection returns retryable 503
+before provider work. Exhausted rate allowance returns 429. In-memory fallback
+is development-only. Transcription fails closed when its shared store cannot be
+used; it has no per-instance fallback, including in development.
 
-With `NODE_ENV=production` the proxy refuses ALL requests until
-`AI_SECRET` and `ALLOWED_ORIGIN` are both set (fail-closed).
+The credential is kept by the client to authorise requests. It is not a private
+server API key, individual adviser identity or revocable per-user access.
+Origin checks are not authentication: non-browser callers can supply an Origin
+header. The shared gate, validation and usage controls do not replace a future
+per-adviser security design or independent assessment.
 
-Set `CONFIG.ai.secret` to the same value as `AI_SECRET` in the app
-(Settings → AI), set `CONFIG.ai.proxyUrl`, enable AI drafting, done.
+## Transcription allowance and failure behaviour
 
-## 2. Standalone server (any host)
+The implemented pilot guard shares one allowance across advisers:
+100 admitted attempts and 100,000,000 decoded audio bytes per UTC day, at most
+two concurrent reservations. Admitted failures/retries can consume allowance.
+The endpoint accepts at most 3,000,000 decoded audio bytes per request, with
+4,100,000-byte JSON-body cap; the upstream timeout is 60 seconds.
 
-```bash
-cd server
-npm install
-cp .env.example .env   # fill in ANTHROPIC_API_KEY + production vars
-npm start              # listens on PORT (default 8787), /health -> {"ok":true}
-```
+A genuine limit/busy response is 429; unavailable protection is 503. These are
+not guaranteed pound budgets. Recording/playback and saved audio remain available;
+transcription failure does not mean the note was sent or completed. Saving the
+parent record is still necessary to persist its edited note/audio state.
 
-The server enforces the exact same guards as the Vercel function
-(secret, origin, rate limits, body caps, model allowlist, timeout,
-non-leaking errors) — it imports the shared `handle()` from
-`api/claude.mjs` at runtime.
+## Input, privacy and troubleshooting
 
-## 3. What the app sends
+Claude validates request/body, image/media and model constraints and maps provider
+failures to bounded client errors. Its JSON-body cap is 4 MiB, individual text
+field cap 100 KiB and decoded-image cap 2 MiB. Do not confuse these with the
+transcription limits.
 
-The client (`js/services/ai.js`) sends only the minimised message
-context (see docs/FEATURES.md §7): no customer addresses, areas or
-lead sources. Payload size is capped on the proxy (100 KB text /
-2 MB images). AI responses are parsed through whitelists, so the
-model cannot inject app behavior.
+Do not claim all AI inputs are address-free: selected OCR photos can contain
+customer details, and each request type supplies its own context. Inspect
+`js/services/ai.js` and `js/services/note-capture.js` for the actual payload,
+then disclose the provider boundary. An editable response is not permission to
+send customer communication automatically.
 
+For a failing device, inspect the error category before replacing keys:
 
-## 4. Security reminders
+- 500 configuration: required server configuration is missing.
+- 403 origin/device credential: check the configured origin and matching shared
+  credential; a provider-key rotation alone will not fix a mismatched device.
+- 503 usage protection: check the shared store; do not disable the guard.
+- 429: respect retry timing and the applicable quota/concurrency limit.
+- Provider rejection/timeout: check provider-side status privately. Never log
+  credentials or raw customer payloads to diagnose it.
 
-- Never commit `.env`; `server/.env.example` contains placeholders only.
-- `ALLOWED_ORIGIN` is the real origin protection; `AI_SECRET` is a
-  shared gate (still required in production — fail-closed).
-- If you ever paste a real key into a tracked file, rotate it in the
-  Anthropic console and scrub git history.
+Changing a server credential can affect every registered device. Do not rotate
+it casually or ship a key in the browser. Rebuild/redeploy to apply intended
+server changes, stage and verify first; documentation edits require no redeploy.
+
+## Evidence
+
+`tests/ai.test.js`, `tests/proxy-server.test.js`,
+`tests/claude-usage.test.mjs`, `tests/transcribe-proxy.test.js` and
+`tests/transcription-usage.test.mjs` use controlled/mocked boundaries. They
+verify guards and contracts, not a paid live-provider success. See the
+[C07 audit](docs/audits/C07_CLAUDE_USAGE_FIX_2026-10-23.md) and
+[transcription allowance audit](docs/audits/BEELO_TRANSCRIPTION_USAGE_2026-10-23.md).

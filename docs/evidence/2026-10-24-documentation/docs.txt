@@ -1,0 +1,39 @@
+documentation and product-language contracts
+  OK release README names Beelo and separates prototype from approval
+  OK release README describes the actual build and backend boundaries
+  OK release documentation retains non-filing and human-control boundaries
+  OK proxy guide documents production shared-store requirement, not fallback
+  OK README.md reference exists: docs/BEELO_RELEASE_FEATURE_INVENTORY.md
+  OK README.md reference exists: docs/BEELO_IPHONE_PILOT_ACCEPTANCE.md
+  OK README.md reference exists: docs/audits/C16_MODAL_FORM_STATE_2026-10-23.md
+  OK README.md reference exists: docs/audits/C14_OFFLINE_INVESTIGATION_2026-10-23.md
+  OK README.md reference exists: README-AI.md
+  OK README-AI.md reference exists: docs/audits/C07_CLAUDE_USAGE_FIX_2026-10-23.md
+  OK README-AI.md reference exists: docs/audits/BEELO_TRANSCRIPTION_USAGE_2026-10-23.md
+  OK --bg #0A0A0A agrees in CSS and design guide
+  OK --surface #121212 agrees in CSS and design guide
+  OK --surface-elevated #171717 agrees in CSS and design guide
+  OK --surface-muted #202020 agrees in CSS and design guide
+  OK --warning #C08A2D agrees in CSS and design guide
+  OK --danger #C0563F agrees in CSS and design guide
+  OK visual-baseline script exists: tests/browser/capture-review.js
+  OK unlock UI uses Beelo
+  OK morning notification uses Beelo
+  OK shared back button has an accessible name
+  OK shared back icon is decorative
+  OK local passphrase uses masked-text account-credential avoidance when supported
+  OK passphrase markup is generated through the non-account credential helper
+  OK app launch restores trip state without proactively requesting location
+  OK navigation clears focused controls and resets app plus window scroll
+  OK all generated dialogs receive an accessible name
+  OK CSP is delivered once as a response header, not duplicated in meta markup
+  OK manifest has a stable app identity and required install fields
+  OK service-worker updates wait for deliberate activation
+  OK offline HTML fallback is restricted to navigation requests
+  OK service worker deletes only Beelo-owned caches
+  OK production Lighthouse performance regression floor remains enforced
+  OK Leaflet stays off the first-screen path until Route is activated
+  OK secondary workflows are route-split rather than eager script tags
+  OK lazy workflows are cached for first offline use without eager page scripts
+  OK inline style debt does not grow (89 <= 93)
+  OK raw component colour debt does not grow (14 <= 15)

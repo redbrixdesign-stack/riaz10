@@ -25,6 +25,29 @@ const routeFeature = read('js/features/route/route.js');
 const lazyFeatures = read('js/core/lazy-features.js');
 
 console.log('documentation and product-language contracts');
+const readme = read('README.md');
+const proxyGuide = read('README-AI.md');
+const inventory = read('docs/BEELO_RELEASE_FEATURE_INVENTORY.md');
+ok('release README names Beelo and separates prototype from approval',
+  readme.startsWith('# Beelo\n') && readme.includes('pilot-stage') &&
+  readme.includes('not pilot approval') && !readme.startsWith('# AdvisorOS'));
+ok('release README describes the actual build and backend boundaries',
+  readme.includes('npm run build') && readme.includes('api/transcribe.mjs') &&
+  readme.includes('api/claude.mjs') && !/no build step|no backend|no-backend/i.test(readme));
+ok('release documentation retains non-filing and human-control boundaries',
+  readme.includes('Nothing sends autonomously') && readme.includes('MTD') &&
+  readme.includes('not per-adviser authentication') && inventory.includes('Tax/MTD filing'));
+ok('proxy guide documents production shared-store requirement, not fallback',
+  proxyGuide.includes('In-memory fallback\nis development-only') &&
+  proxyGuide.includes('missing, partial or unavailable shared usage protection returns retryable 503') &&
+  !/falls back to in-memory per-instance if unset/.test(proxyGuide));
+for (const file of ['README.md', 'README-AI.md', 'docs/BEELO_RELEASE_FEATURE_INVENTORY.md']) {
+  for (const match of read(file).matchAll(/\[[^\]]+\]\(([^)]+)\)/g)) {
+    if (/^(?:https?:|#)/.test(match[1])) continue;
+    const target = match[1].split('#')[0];
+    ok(`${file} reference exists: ${target}`, fs.existsSync(path.resolve(root, path.dirname(file), target)));
+  }
+}
 for (const [token, value] of [
   ['--bg', '#0A0A0A'], ['--surface', '#121212'],
   ['--surface-elevated', '#171717'], ['--surface-muted', '#202020'],

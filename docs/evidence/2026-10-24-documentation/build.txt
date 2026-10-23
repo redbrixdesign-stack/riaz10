@@ -1,0 +1,6 @@
+
+> advisoros@5.0.0 build
+> node build/minify.js
+
+  ✓ 51 file(s) already up to date
+  ✓ sw.js ?v= tokens match shell and lazy manifests
