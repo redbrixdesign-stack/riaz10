@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 global.Utils = {
+  visitOutcomeDueAt() { return null; }, // Timing policy is exercised with real Utils in outcome-timing.test.js.
   formatDate(value) { return new Date(value).toISOString().slice(0, 10); }
 };
 

@@ -43,7 +43,9 @@ const TaskService = {
   },
 
   decorateDurable(task, now = this.now()) {
-    const effectiveDue = this.effectiveDue(task);
+    let effectiveDue = this.effectiveDue(task);
+    const notBefore = task.visitOutcomeNotBefore ? new Date(task.visitOutcomeNotBefore) : null;
+    if (notBefore && !isNaN(notBefore) && (!effectiveDue || notBefore > effectiveDue)) effectiveDue = notBefore;
     const snoozeDate = task?.snoozedUntil ? new Date(task.snoozedUntil) : null;
     const snoozed = !!snoozeDate && !isNaN(snoozeDate) && snoozeDate > now;
     return {
@@ -66,7 +68,7 @@ const TaskService = {
 
   async merge(derived = [], now = this.now()) {
     const durable = [];
-    for (const task of await this.getDurableTasks()) {
+    for (let task of await this.getDurableTasks()) {
       // Absence from the derived list is not evidence of resolution (a read
       // may have failed, or the visit may be outside the look-ahead window).
       let reason = null;
@@ -78,6 +80,10 @@ const TaskService = {
             let orders = [];
             if (key.startsWith('quote:appointment:') && DB.db?.orders) orders = await DB.db.orders.toArray();
             reason = this.appointmentResolution(key, appt, orders);
+            if (!reason && key.startsWith('visit-outcome:appointment:')) {
+              const notBefore = Utils.visitOutcomeDueAt(appt);
+              if (notBefore) task = { ...task, appointment: appt, visitOutcomeNotBefore: notBefore.toISOString() };
+            }
           }
         }
         if (reason && typeof DB.resolveTask === 'function') {

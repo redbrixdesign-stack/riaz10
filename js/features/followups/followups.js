@@ -202,14 +202,17 @@ const FollowupsFeature = {
       });
     }
 
-    // 3. Today's visits still needing an outcome logged — from the full-day
-    //    list, not "upcoming" (that window starts at now).
+    // 3. Today's unresolved visits become due only at their scheduled finish.
+    // Keep future/ongoing visits in Not due yet; never infer completion.
     for (const appt of todayAppts) {
       if (appt.status !== 'confirmed' || appt.outcome) continue;
       if (ukDayKey(appt.date) !== todayKey) continue;
+      const outcomeDueAt = Utils.visitOutcomeDueAt(appt);
+      if (!outcomeDueAt) continue;
       tasks.push({
         kind: 'visit_today',
-        due: true,
+        due: outcomeDueAt <= now,
+        effectiveDue: outcomeDueAt.toISOString(),
         daysLabel: Utils.formatTime(appt.date),
         appointment: appt,
         customer: appt.customerId ? customerMap.get(appt.customerId) : null,

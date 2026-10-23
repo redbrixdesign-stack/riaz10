@@ -4,6 +4,20 @@
    ============================================ */
 
 const Utils = {
+  // Outcome reminders use the scheduled finish, not the arrival-window end.
+  // Legacy bookings use the same one-slot default as scheduling/conflicts.
+  visitOutcomeDueAt(appointment) {
+    if (!appointment?.date) return null;
+    const start = new Date(appointment.date).getTime();
+    if (!Number.isFinite(start)) return null;
+    const configuredMinutes = Number(typeof CONFIG !== 'undefined' ? CONFIG.workingWeek?.slotMinutes : 15);
+    const slotMinutes = Number.isFinite(configuredMinutes) && configuredMinutes > 0 ? configuredMinutes : 15;
+    const requestedSlots = Number(appointment.durationSlots);
+    const slots = Number.isFinite(requestedSlots) && requestedSlots >= 1 ? Math.floor(requestedSlots) : 1;
+    const end = new Date(start + slots * slotMinutes * 60000);
+    return Number.isFinite(end.getTime()) ? end : null;
+  },
+
   // ---- UK wall-clock time ----
   // This app runs on UK business rules (tax year, working week, EOD cut-off,
   // morning brief) that must follow the UK calendar/clock even if the
