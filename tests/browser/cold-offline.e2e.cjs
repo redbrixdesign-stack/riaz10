@@ -38,17 +38,22 @@ const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
   await p.evaluate(()=>App.navigate('settings',{section:'data'}));await p.getByRole('button',{name:'Password-protected backup',exact:true}).waitFor();
   await p.getByRole('button',{name:'Password-protected backup',exact:true}).click();await p.getByRole('button',{name:'Cancel',exact:true}).click();
   for(const route of ['quotes','jobs','invoices','suppliers','capacity','profitability','retention','social']){
+   console.log(`CHECK ${engine.name()} first offline ${route}`);
+   let rendered='';
+   try{
    assert(await p.evaluate(route=>!!App.features.get(route)._lazy,route));
    await p.evaluate(({route,id})=>App.navigate(route,route==='social'?{appointmentId:id}:{}),{route,id});await p.waitForFunction(route=>App.currentHash.split('?')[0]===route,route);
-   const rendered=await p.locator('#main').innerText();
+   rendered=await p.locator('#main').innerText();
    routeResults.push({route,rendered:rendered.slice(0,500)});
-   if(/Failed to load|Something went wrong/.test(rendered)){
-    const evidence={engine:engine.name(),route,rendered,errors,consoleErrors,cached,scriptResponses,failedRequests};
+   assert(!/Failed to load|Something went wrong/.test(rendered),`${engine.name()} first offline ${route} must render`);
+   }catch(error){
+    const state=await p.evaluate(()=>({hash:App.currentHash,current:App.currentFeature?.id,revision:App._navigationRevision,scripts:[...document.querySelectorAll('script[data-lazy-src]')].map(script=>script.src),features:[...App.features].map(([id,feature])=>({id,lazy:!!feature._lazy})),body:document.getElementById('main')?.innerText})).catch(captureError=>({captureError:captureError.message}));
+    const evidence={engine:engine.name(),route,error:error.message,rendered,state,routeResults,errors,consoleErrors,cached,scriptResponses,failedRequests};
     console.error('OFFLINE FAILURE',JSON.stringify(evidence));
     fs.writeFileSync(artifactPath(`beelo-cold-offline-failed-${engine.name()}-${route}.json`),JSON.stringify(evidence,null,2));
-    await p.screenshot({path:artifactPath(`beelo-cold-offline-failed-${engine.name()}-${route}.png`),animations:'disabled'});
+    await p.screenshot({path:artifactPath(`beelo-cold-offline-failed-${engine.name()}-${route}.png`),animations:'disabled'}).catch(captureError=>console.error('Screenshot capture failed:',captureError.message));
+    throw error;
    }
-   assert(!/Failed to load|Something went wrong/.test(rendered),`${engine.name()} first offline ${route} must render`);
   }
   await p.evaluate(()=>App.navigate('settings',{section:'data'}));await p.getByRole('button',{name:'Password-protected backup',exact:true}).waitFor();await p.waitForTimeout(400);await p.screenshot({path:artifactPath(`beelo-cold-offline-${engine.name()}.png`),animations:'disabled'});
   if(transport)transport.blocked=false;else await c.setOffline(false);
