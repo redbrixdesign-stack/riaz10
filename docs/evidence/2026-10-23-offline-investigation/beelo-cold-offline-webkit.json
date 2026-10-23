@@ -1,0 +1,590 @@
+{
+  "engine": "webkit",
+  "cached": [
+    "http://127.0.0.1:60235/js/services/note-capture.min.js?v=6",
+    "http://127.0.0.1:60235/manifest.json?v=3",
+    "http://127.0.0.1:60235/index.html",
+    "http://127.0.0.1:60235/js/services/visit-summaries.min.js?v=1",
+    "http://127.0.0.1:60235/",
+    "http://127.0.0.1:60235/css/core.css?v=34",
+    "http://127.0.0.1:60235/css/components.css?v=59",
+    "http://127.0.0.1:60235/assets/fonts/material-symbols-rounded.woff2",
+    "http://127.0.0.1:60235/assets/fonts/hankengrotesk-latin.woff2",
+    "http://127.0.0.1:60235/assets/fonts/hankengrotesk-latinext.woff2",
+    "http://127.0.0.1:60235/assets/fonts/jetbrainsmono-latin.woff2",
+    "http://127.0.0.1:60235/assets/icons/icon-gold-72.png",
+    "http://127.0.0.1:60235/assets/icons/badge-gold-72.png",
+    "http://127.0.0.1:60235/assets/icons/icon-gold-96.png",
+    "http://127.0.0.1:60235/assets/icons/icon-gold-128.png",
+    "http://127.0.0.1:60235/assets/icons/icon-gold-144.png",
+    "http://127.0.0.1:60235/assets/icons/icon-gold-152.png",
+    "http://127.0.0.1:60235/assets/icons/icon-gold-192.png",
+    "http://127.0.0.1:60235/assets/icons/icon-gold-512.png",
+    "http://127.0.0.1:60235/assets/icons/icon-gold-384.png",
+    "http://127.0.0.1:60235/assets/icons/icon-gold-512-maskable.png",
+    "http://127.0.0.1:60235/assets/icons/icon-gold-192-maskable.png",
+    "http://127.0.0.1:60235/assets/icons/apple-touch-icon-gold-180.png",
+    "http://127.0.0.1:60235/assets/img/marker-icon.png",
+    "http://127.0.0.1:60235/assets/img/marker-shadow.png",
+    "http://127.0.0.1:60235/assets/img/marker-icon-2x.png",
+    "http://127.0.0.1:60235/js/vendor/dexie.min.js?v=1",
+    "http://127.0.0.1:60235/js/vendor/minidexie.min.js?v=12",
+    "http://127.0.0.1:60235/js/core/utils.min.js?v=12",
+    "http://127.0.0.1:60235/js/core/config.min.js?v=17",
+    "http://127.0.0.1:60235/js/core/db.min.js?v=44",
+    "http://127.0.0.1:60235/js/core/geo.min.js?v=15",
+    "http://127.0.0.1:60235/js/core/geoprovider.min.js?v=1",
+    "http://127.0.0.1:60235/js/core/search.min.js?v=4",
+    "http://127.0.0.1:60235/js/core/tax.min.js?v=3",
+    "http://127.0.0.1:60235/js/core/install-prompt.min.js?v=2",
+    "http://127.0.0.1:60235/js/services/voice-notes.min.js?v=1",
+    "http://127.0.0.1:60235/js/core/app.min.js?v=43",
+    "http://127.0.0.1:60235/js/core/contact.min.js?v=4",
+    "http://127.0.0.1:60235/js/core/legal.min.js?v=4",
+    "http://127.0.0.1:60235/js/core/lazy-features.min.js?v=9",
+    "http://127.0.0.1:60235/js/services/notification.min.js?v=12",
+    "http://127.0.0.1:60235/js/services/ai.min.js?v=13",
+    "http://127.0.0.1:60235/js/services/message-scheduler.min.js?v=13",
+    "http://127.0.0.1:60235/js/services/export.min.js?v=12",
+    "http://127.0.0.1:60235/js/services/weather.min.js?v=3",
+    "http://127.0.0.1:60235/js/services/job-field-service.min.js?v=2",
+    "http://127.0.0.1:60235/js/services/capacity.min.js?v=1",
+    "http://127.0.0.1:60235/js/services/tasks.min.js?v=7",
+    "http://127.0.0.1:60235/js/features/companion/companion.min.js?v=31",
+    "http://127.0.0.1:60235/js/services/communications.min.js?v=3",
+    "http://127.0.0.1:60235/js/features/onboarding/onboarding.min.js?v=7",
+    "http://127.0.0.1:60235/js/features/today/today.min.js?v=19",
+    "http://127.0.0.1:60235/js/features/appointments/appointments.min.js?v=60",
+    "http://127.0.0.1:60235/js/features/today/home-screen-controller.min.js?v=13",
+    "http://127.0.0.1:60235/js/features/leads/leads.min.js?v=2",
+    "http://127.0.0.1:60235/js/features/customer/customer.min.js?v=15",
+    "http://127.0.0.1:60235/js/features/route/route.min.js?v=17",
+    "http://127.0.0.1:60235/js/features/followups/followups.min.js?v=28",
+    "http://127.0.0.1:60235/js/features/orders/orders.min.js?v=18",
+    "http://127.0.0.1:60235/js/features/money/money.min.js?v=11",
+    "http://127.0.0.1:60235/js/features/measure/measure.min.js?v=9",
+    "http://127.0.0.1:60235/js/features/ocr/ocr.min.js?v=23",
+    "http://127.0.0.1:60235/js/features/talk/talk.min.js?v=30",
+    "http://127.0.0.1:60235/js/features/control/control.min.js?v=15",
+    "http://127.0.0.1:60235/js/services/quote-document.min.js?v=3",
+    "http://127.0.0.1:60235/js/features/quotes/quotes.min.js?v=2",
+    "http://127.0.0.1:60235/js/services/finance-document.min.js?v=3",
+    "http://127.0.0.1:60235/js/features/invoices/invoices.min.js?v=2",
+    "http://127.0.0.1:60235/js/features/jobs/jobs.min.js?v=3",
+    "http://127.0.0.1:60235/js/features/suppliers/suppliers.min.js?v=2",
+    "http://127.0.0.1:60235/js/features/capacity/capacity.min.js?v=1",
+    "http://127.0.0.1:60235/js/features/retention/retention.min.js?v=2",
+    "http://127.0.0.1:60235/js/features/profitability/profitability.min.js?v=1",
+    "http://127.0.0.1:60235/js/features/social/social.min.js?v=3",
+    "http://127.0.0.1:60235/js/features/settings/settings.min.js?v=24"
+  ],
+  "routeResults": [
+    {
+      "route": "quotes",
+      "rendered": "arrow_back\nQuotes\nrequest_quote\nNo structured quotes yet\nCreate one from a visit or Customer 360."
+    },
+    {
+      "route": "jobs",
+      "rendered": "arrow_back\nJobs\nconstruction\nNo jobs yet\nCreate a job from an order when operational work begins."
+    },
+    {
+      "route": "invoices",
+      "rendered": "arrow_back\nInvoices & payments\nINVOICES (0)\nreceipt_long\nNo invoices yet\nPAYMENT LEDGER (0)\nNo payment entries yet."
+    },
+    {
+      "route": "suppliers",
+      "rendered": "arrow_back\nSupplier orders\nBuying and delivery progress lives here. It never moves the customer order stage automatically.\nlocal_shipping\nNo supplier orders yet\nCreate one to track submission, delivery and checks."
+    },
+    {
+      "route": "capacity",
+      "rendered": "arrow_back\nAvailability\nadd\nBlock time\nCapacity advice, not auto-booking\nBeelo warns about leave, closed hours, clashes and overloaded days. It never moves a customer visit by itself.\nevent_available\nNo blocked time ahead\nAdd leave or unavailable periods so booking advice reflects the day you can deliver."
+    },
+    {
+      "route": "profitability",
+      "rendered": "arrow_back\nProfitability settings\nadd\nNew policy\nEffective-dated costing\nA new policy applies only from its start date. Historic quotes and jobs keep the policy that applied at the time.\nmonitoring\nNo costing policy yet"
+    },
+    {
+      "route": "retention",
+      "rendered": "person_off\nChoose a customer first"
+    },
+    {
+      "route": "social",
+      "rendered": "arrow_back\nCreate Social Post\nauto_awesome\nTurn today’s craftsmanship into a post\nAdd the finished result, confirm the customer is comfortable with sharing it, and Beelo will prepare three editable captions. Nothing is published automatically.\n1. Permission first\nThe customer has agreed that this finished-room photo or video may be used on my business social media.\nAsk clearly before taking or sharing content. This permission is recorded against the fitting and can be withdrawn.\n2. Choose the fi"
+    }
+  ],
+  "scriptResponses": [
+    {
+      "url": "http://127.0.0.1:60235/js/vendor/dexie.min.js?v=1",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/core/config.min.js?v=17",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/vendor/minidexie.min.js?v=12",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/core/geo.min.js?v=15",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/core/utils.min.js?v=12",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/core/tax.min.js?v=3",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/core/geoprovider.min.js?v=1",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/core/search.min.js?v=4",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/core/db.min.js?v=44",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/core/install-prompt.min.js?v=2",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/services/note-capture.min.js?v=6",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/services/voice-notes.min.js?v=1",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/services/visit-summaries.min.js?v=1",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/core/lazy-features.min.js?v=9",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/core/app.min.js?v=43",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/core/legal.min.js?v=4",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/core/contact.min.js?v=4",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/services/ai.min.js?v=13",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/services/notification.min.js?v=12",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/services/message-scheduler.min.js?v=13",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/services/export.min.js?v=12",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/services/tasks.min.js?v=7",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/services/weather.min.js?v=3",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/services/job-field-service.min.js?v=2",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/services/capacity.min.js?v=1",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/services/communications.min.js?v=3",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/onboarding/onboarding.min.js?v=7",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/today/today.min.js?v=19",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/today/home-screen-controller.min.js?v=13",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/appointments/appointments.min.js?v=60",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/companion/companion.min.js?v=31",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/customer/customer.min.js?v=15",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/route/route.min.js?v=17",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/leads/leads.min.js?v=2",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/followups/followups.min.js?v=28",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/orders/orders.min.js?v=18",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/money/money.min.js?v=11",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/talk/talk.min.js?v=30",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/measure/measure.min.js?v=9",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/ocr/ocr.min.js?v=23",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/control/control.min.js?v=15",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/settings/settings.min.js?v=24",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/services/quote-document.min.js?v=3",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/quotes/quotes.min.js?v=2",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/jobs/jobs.min.js?v=3",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/services/finance-document.min.js?v=3",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/invoices/invoices.min.js?v=2",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/suppliers/suppliers.min.js?v=2",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/capacity/capacity.min.js?v=1",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/profitability/profitability.min.js?v=1",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/retention/retention.min.js?v=2",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/social/social.min.js?v=3",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/vendor/dexie.min.js?v=1",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/vendor/minidexie.min.js?v=12",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/core/config.min.js?v=17",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/core/utils.min.js?v=12",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/core/db.min.js?v=44",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/core/geoprovider.min.js?v=1",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/core/geo.min.js?v=15",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/core/search.min.js?v=4",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/core/tax.min.js?v=3",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/core/install-prompt.min.js?v=2",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/services/voice-notes.min.js?v=1",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/services/note-capture.min.js?v=6",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/services/visit-summaries.min.js?v=1",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/core/app.min.js?v=43",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/core/lazy-features.min.js?v=9",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/core/legal.min.js?v=4",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/core/contact.min.js?v=4",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/services/ai.min.js?v=13",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/services/notification.min.js?v=12",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/services/message-scheduler.min.js?v=13",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/services/export.min.js?v=12",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/services/weather.min.js?v=3",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/services/tasks.min.js?v=7",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/services/job-field-service.min.js?v=2",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/services/capacity.min.js?v=1",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/services/communications.min.js?v=3",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/onboarding/onboarding.min.js?v=7",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/companion/companion.min.js?v=31",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/today/today.min.js?v=19",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/today/home-screen-controller.min.js?v=13",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/appointments/appointments.min.js?v=60",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/customer/customer.min.js?v=15",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/route/route.min.js?v=17",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/leads/leads.min.js?v=2",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/followups/followups.min.js?v=28",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/orders/orders.min.js?v=18",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/money/money.min.js?v=11",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/talk/talk.min.js?v=30",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/measure/measure.min.js?v=9",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/ocr/ocr.min.js?v=23",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/control/control.min.js?v=15",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:60235/js/features/settings/settings.min.js?v=24",
+      "status": 200,
+      "worker": true
+    }
+  ],
+  "failedRequests": [],
+  "errors": [],
+  "consoleErrors": []
+}

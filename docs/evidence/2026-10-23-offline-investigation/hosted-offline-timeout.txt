@@ -1,0 +1,26 @@
+Browser acceptance	Synthetic local browser acceptance	﻿2026-10-23T19:10:39.6528826Z ##[group]Run npm run test:release:browser
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T19:10:39.6529037Z ^[[36;1mnpm run test:release:browser^[[0m
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T19:10:39.6529279Z shell: sh -e {0}
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T19:10:39.6529401Z env:
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T19:10:39.6529514Z   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T19:10:39.6529714Z   BEELO_ARTIFACT_DIR: /home/runner/work/riaz10/riaz10/.test-results/release
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T19:10:39.6529918Z ##[endgroup]
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T19:10:39.7508580Z 
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T19:10:39.7509200Z > advisoros@5.0.0 test:release:browser
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T19:10:39.7509484Z > node tests/verify-release.cjs
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T19:10:39.7509587Z 
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T19:11:09.9463506Z PASS payment-link.e2e.cjs (30s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T19:11:17.5187879Z PASS protected-backup.e2e.cjs (8s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T19:11:25.8362713Z PASS context-encryption.e2e.cjs (8s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T19:11:31.4216007Z PASS lazy-state.e2e.cjs (6s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T19:11:40.5680211Z PASS social-share.e2e.cjs (9s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T19:12:06.7843876Z PASS chromium (context offline): fresh install, no online lazy opens, first offline Settings/protected-dialog plus all eight other secondary routes, online reload and retained mock customer; no uploads
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T19:12:06.7846878Z FAIL cold-offline.e2e.cjs (26s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T19:12:06.7847304Z page.waitForFunction: Timeout 20000ms exceeded.
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T19:12:06.7847745Z     at /__w/riaz10/riaz10/tests/browser/cold-offline.e2e.cjs:42:114 {
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T19:12:06.7848048Z   log: [],
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T19:12:06.7848216Z   name: 'TimeoutError'
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T19:12:06.7848467Z }
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T19:12:06.7848553Z 
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T19:12:06.7848779Z Browser acceptance stopped at cold-offline.e2e.cjs
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T19:12:06.7992950Z ##[error]Process completed with exit code 1.

@@ -1,0 +1,463 @@
+Browser acceptance	Set up job	﻿2026-10-23T18:50:56.6694025Z Current runner version: '2.338.0'
+Browser acceptance	Set up job	2026-10-23T18:50:56.6722088Z ##[group]Runner Image Provisioner
+Browser acceptance	Set up job	2026-10-23T18:50:56.6723144Z Hosted Compute Agent
+Browser acceptance	Set up job	2026-10-23T18:50:56.6723783Z Version: 20261012.601
+Browser acceptance	Set up job	2026-10-23T18:50:56.6724445Z Commit: f3dc54e1fb89da6852db922499a0233137369e1d
+Browser acceptance	Set up job	2026-10-23T18:50:56.6725333Z Build Date: 2026-10-12T17:48:21Z
+Browser acceptance	Set up job	2026-10-23T18:50:56.6726564Z Worker ID: {0af1e8fb-e4d2-434f-85f7-a6593a81c6fb}
+Browser acceptance	Set up job	2026-10-23T18:50:56.6727413Z Region: westus
+Browser acceptance	Set up job	2026-10-23T18:50:56.6728002Z Cloud: Azure
+Browser acceptance	Set up job	2026-10-23T18:50:56.6728550Z ##[endgroup]
+Browser acceptance	Set up job	2026-10-23T18:50:56.6730154Z ##[group]Operating System
+Browser acceptance	Set up job	2026-10-23T18:50:56.6730838Z Ubuntu
+Browser acceptance	Set up job	2026-10-23T18:50:56.6731454Z 24.04.5
+Browser acceptance	Set up job	2026-10-23T18:50:56.6732019Z LTS
+Browser acceptance	Set up job	2026-10-23T18:50:56.6732570Z ##[endgroup]
+Browser acceptance	Set up job	2026-10-23T18:50:56.6733207Z ##[group]Runner Image
+Browser acceptance	Set up job	2026-10-23T18:50:56.6733946Z Image: ubuntu-24.04
+Browser acceptance	Set up job	2026-10-23T18:50:56.6735016Z Version: 20261012.334.1
+Browser acceptance	Set up job	2026-10-23T18:50:56.6736342Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+Browser acceptance	Set up job	2026-10-23T18:50:56.6738385Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
+Browser acceptance	Set up job	2026-10-23T18:50:56.6739521Z ##[endgroup]
+Browser acceptance	Set up job	2026-10-23T18:50:56.6740720Z ##[group]GITHUB_TOKEN Permissions
+Browser acceptance	Set up job	2026-10-23T18:50:56.6743029Z Contents: read
+Browser acceptance	Set up job	2026-10-23T18:50:56.6743748Z Metadata: read
+Browser acceptance	Set up job	2026-10-23T18:50:56.6744448Z ##[endgroup]
+Browser acceptance	Set up job	2026-10-23T18:50:56.6747230Z Secret source: Actions
+Browser acceptance	Set up job	2026-10-23T18:50:56.6748371Z Cache mode: write
+Browser acceptance	Set up job	2026-10-23T18:50:56.6749117Z Prepare workflow directory
+Browser acceptance	Set up job	2026-10-23T18:50:56.7091081Z Prepare all required actions
+Browser acceptance	Set up job	2026-10-23T18:50:56.7142303Z Getting action download info
+Browser acceptance	Set up job	2026-10-23T18:50:57.0919937Z Download action repository 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+Browser acceptance	Set up job	2026-10-23T18:50:57.1929832Z Download action repository 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1' (SHA:949feb2413d6458794dcd2491c4babbbce0c15c1)
+Browser acceptance	Set up job	2026-10-23T18:50:57.6368752Z Download action repository 'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9' (SHA:cf430e030ddbb5b0abf93d22962f4752f3646cd9)
+Browser acceptance	Set up job	2026-10-23T18:50:58.2268069Z Complete job name: Browser acceptance
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	﻿2026-10-23T18:50:58.3293484Z ##[group]Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.3295321Z with:
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.3296405Z   persist-credentials: false
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.3297525Z   repository: redbrixdesign-stack/riaz10
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.3305491Z   token: ***
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.3307356Z   ssh-strict: true
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.3308602Z   ssh-user: git
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.3309685Z   clean: true
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.3310896Z   sparse-checkout-cone-mode: true
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.3312458Z   fetch-depth: 1
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.3313684Z   fetch-tags: false
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.3314843Z   show-progress: true
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.3316064Z   lfs: false
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.3316954Z   submodules: false
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.3317891Z   set-safe-directory: true
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.3318965Z   allow-unsafe-pr-checkout: false
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.3320541Z ##[endgroup]
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4387073Z Syncing repository: redbrixdesign-stack/riaz10
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4391319Z ##[group]Getting Git version info
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4393506Z Working directory is '/home/runner/work/riaz10/riaz10'
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4396789Z [command]/usr/bin/git version
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4404730Z git version 2.55.0
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4426186Z ##[endgroup]
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4436996Z Temporarily overriding HOME='/home/runner/work/_temp/c5760ebf-113f-4e57-be0a-5aba4e396442' before making global git config changes
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4441677Z Adding repository directory to the temporary git global config as a safe directory
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4445295Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/riaz10/riaz10
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4491059Z Deleting the contents of '/home/runner/work/riaz10/riaz10'
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4497357Z ##[group]Determining repository object format
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4500637Z ##[endgroup]
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4502859Z ##[group]Initializing the repository
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4507203Z [command]/usr/bin/git init /home/runner/work/riaz10/riaz10
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4591732Z hint: Using 'master' as the name for the initial branch. This default branch name
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4594920Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4599952Z hint: to use in all of your new repositories, which will suppress this warning,
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4601722Z hint: call:
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4602804Z hint:
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4604383Z hint: 	git config --global init.defaultBranch <name>
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4606293Z hint:
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4608330Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4610900Z hint: 'development'. The just-created branch can be renamed via this command:
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4613741Z hint:
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4615171Z hint: 	git branch -m <name>
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4617112Z hint:
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4619333Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4622943Z Initialized empty Git repository in /home/runner/work/riaz10/riaz10/.git/
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4629064Z [command]/usr/bin/git remote add origin https://github.com/redbrixdesign-stack/riaz10
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4657578Z ##[endgroup]
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4659370Z ##[group]Disabling automatic garbage collection
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4661129Z [command]/usr/bin/git config --local gc.auto 0
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4697348Z ##[endgroup]
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4698879Z ##[group]Setting up auth
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4699994Z Removing SSH command configuration
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4704412Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.4741731Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.5120455Z Removing HTTP extra header
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.5136662Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.5170860Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.5452820Z Removing includeIf entries pointing to credentials config files
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.5458105Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.5498788Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.5745995Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-78aacdf5-b6a4-4796-b6e0-ff090f21b284.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.5792411Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/riaz10/riaz10/.git.path /home/runner/work/_temp/git-credentials-78aacdf5-b6a4-4796-b6e0-ff090f21b284.config
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.5831461Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/riaz10/riaz10/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-78aacdf5-b6a4-4796-b6e0-ff090f21b284.config
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.5870024Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-78aacdf5-b6a4-4796-b6e0-ff090f21b284.config
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.5907007Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-78aacdf5-b6a4-4796-b6e0-ff090f21b284.config
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.5941915Z ##[endgroup]
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.5947753Z ##[group]Fetching the repository
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:58.5950807Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +c518e259f2123a505908ce0268357e16abb6d7dc:refs/remotes/origin/codex/phone-contact-save
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.4006829Z From https://github.com/redbrixdesign-stack/riaz10
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.4009876Z  * [new ref]         c518e259f2123a505908ce0268357e16abb6d7dc -> origin/codex/phone-contact-save
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.4017754Z [command]/usr/bin/git branch --list --remote origin/codex/phone-contact-save
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.4051630Z   origin/codex/phone-contact-save
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.4061106Z [command]/usr/bin/git rev-parse refs/remotes/origin/codex/phone-contact-save
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.4090883Z c518e259f2123a505908ce0268357e16abb6d7dc
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.4097125Z ##[endgroup]
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.4099825Z ##[group]Determining the checkout info
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.4102988Z ##[endgroup]
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.4104583Z [command]/usr/bin/git sparse-checkout disable
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.4156284Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.4195043Z ##[group]Checking out the ref
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.4199160Z [command]/usr/bin/git checkout --progress --force -B codex/phone-contact-save refs/remotes/origin/codex/phone-contact-save
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.4917669Z Switched to a new branch 'codex/phone-contact-save'
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.4922455Z branch 'codex/phone-contact-save' set up to track 'origin/codex/phone-contact-save'.
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.4933871Z ##[endgroup]
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.4984952Z [command]/usr/bin/git log -1 --format=%H
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.5018537Z c518e259f2123a505908ce0268357e16abb6d7dc
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.5030039Z ##[group]Removing auth
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.5031802Z Removing SSH command configuration
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.5034110Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.5074966Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.5335384Z Removing HTTP extra header
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.5339668Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.5386590Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.5634202Z Removing includeIf entries pointing to credentials config files
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.5637721Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.5680067Z includeif.gitdir:/home/runner/work/riaz10/riaz10/.git.path
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.5681958Z includeif.gitdir:/home/runner/work/riaz10/riaz10/.git/worktrees/*.path
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.5684077Z includeif.gitdir:/github/workspace/.git.path
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.5685868Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.5690443Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/riaz10/riaz10/.git.path
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.5720162Z /home/runner/work/_temp/git-credentials-78aacdf5-b6a4-4796-b6e0-ff090f21b284.config
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.5730415Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/riaz10/riaz10/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-78aacdf5\-b6a4\-4796\-b6e0\-ff090f21b284\.config
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.5773289Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/riaz10/riaz10/.git/worktrees/*.path
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.5802966Z /home/runner/work/_temp/git-credentials-78aacdf5-b6a4-4796-b6e0-ff090f21b284.config
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.5812125Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/riaz10/riaz10/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-78aacdf5\-b6a4\-4796\-b6e0\-ff090f21b284\.config
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.5852531Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.5882125Z /github/runner_temp/git-credentials-78aacdf5-b6a4-4796-b6e0-ff090f21b284.config
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.5890887Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-78aacdf5\-b6a4\-4796\-b6e0\-ff090f21b284\.config
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.5929417Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.5957796Z /github/runner_temp/git-credentials-78aacdf5-b6a4-4796-b6e0-ff090f21b284.config
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.5966205Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-78aacdf5\-b6a4\-4796\-b6e0\-ff090f21b284\.config
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.6005223Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.6246728Z Removing credentials config '/home/runner/work/_temp/git-credentials-78aacdf5-b6a4-4796-b6e0-ff090f21b284.config'
+Browser acceptance	Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T18:50:59.6254923Z ##[endgroup]
+Browser acceptance	Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1	﻿2026-10-23T18:50:59.6663109Z ##[group]Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+Browser acceptance	Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1	2026-10-23T18:50:59.6664564Z with:
+Browser acceptance	Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1	2026-10-23T18:50:59.6665369Z   node-version: 24
+Browser acceptance	Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1	2026-10-23T18:50:59.6666357Z   cache: npm
+Browser acceptance	Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1	2026-10-23T18:50:59.6667197Z   check-latest: false
+Browser acceptance	Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1	2026-10-23T18:50:59.6674543Z   token: ***
+Browser acceptance	Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1	2026-10-23T18:50:59.6675415Z   package-manager-cache: true
+Browser acceptance	Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1	2026-10-23T18:50:59.6676604Z ##[endgroup]
+Browser acceptance	Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1	2026-10-23T18:50:59.7974317Z Found in cache @ /opt/hostedtoolcache/node/24.21.0/x64
+Browser acceptance	Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1	2026-10-23T18:50:59.8574264Z ##[group]Environment details
+Browser acceptance	Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1	2026-10-23T18:51:00.1597667Z node: v24.21.0
+Browser acceptance	Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1	2026-10-23T18:51:00.1598266Z npm: 11.19.0
+Browser acceptance	Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1	2026-10-23T18:51:00.1598560Z yarn: 1.22.22
+Browser acceptance	Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1	2026-10-23T18:51:00.1599564Z ##[endgroup]
+Browser acceptance	Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1	2026-10-23T18:51:00.1615322Z [command]/opt/hostedtoolcache/node/24.21.0/x64/bin/npm config get cache
+Browser acceptance	Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1	2026-10-23T18:51:00.2718656Z /home/runner/.npm
+Browser acceptance	Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1	2026-10-23T18:51:00.5454621Z Cache hit for: node-cache-Linux-x64-npm-ae0706fe26d884e9d31227754117a61f2574dc21a54fcb0684e89f4a7b87d493
+Browser acceptance	Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1	2026-10-23T18:51:01.8472514Z Received 0 of 32735990 (0.0%), 0.0 MBs/sec
+Browser acceptance	Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1	2026-10-23T18:51:02.2510334Z Received 32735990 of 32735990 (100.0%), 22.3 MBs/sec
+Browser acceptance	Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1	2026-10-23T18:51:02.2511088Z Cache Size: ~31 MB (32735990 B)
+Browser acceptance	Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1	2026-10-23T18:51:02.2542061Z [command]/usr/bin/tar -xf /home/runner/work/_temp/26fae797-0556-4b4b-87af-07cf14cfe96a/cache.tzst -P -C /home/runner/work/riaz10/riaz10 --use-compress-program unzstd
+Browser acceptance	Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1	2026-10-23T18:51:02.3503066Z Cache restored successfully
+Browser acceptance	Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1	2026-10-23T18:51:02.3528570Z Cache restored from key: node-cache-Linux-x64-npm-ae0706fe26d884e9d31227754117a61f2574dc21a54fcb0684e89f4a7b87d493
+Browser acceptance	Run npm ci	﻿2026-10-23T18:51:02.3707863Z ##[group]Run npm ci
+Browser acceptance	Run npm ci	2026-10-23T18:51:02.3708210Z ^[[36;1mnpm ci^[[0m
+Browser acceptance	Run npm ci	2026-10-23T18:51:02.3936077Z shell: /usr/bin/bash -e {0}
+Browser acceptance	Run npm ci	2026-10-23T18:51:02.3936484Z ##[endgroup]
+Browser acceptance	Run npm ci	2026-10-23T18:51:04.3176885Z npm warn deprecated @opentelemetry/sdk-trace-base@2.12.0: Use @opentelemetry/sdk-trace package
+Browser acceptance	Run npm ci	2026-10-23T18:51:06.4609858Z 
+Browser acceptance	Run npm ci	2026-10-23T18:51:06.4611068Z added 135 packages, and audited 136 packages in 4s
+Browser acceptance	Run npm ci	2026-10-23T18:51:06.4611607Z 
+Browser acceptance	Run npm ci	2026-10-23T18:51:06.4612107Z 19 packages are looking for funding
+Browser acceptance	Run npm ci	2026-10-23T18:51:06.4612785Z   run `npm fund` for details
+Browser acceptance	Run npm ci	2026-10-23T18:51:06.4626457Z 
+Browser acceptance	Run npm ci	2026-10-23T18:51:06.4627311Z found 0 vulnerabilities
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	﻿2026-10-23T18:51:06.5317304Z ##[group]Run npx playwright install --with-deps chromium webkit
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:06.5317869Z ^[[36;1mnpx playwright install --with-deps chromium webkit^[[0m
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:06.5388837Z shell: /usr/bin/bash -e {0}
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:06.5389159Z ##[endgroup]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:07.3241189Z Installing dependencies...
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:07.3327205Z Switching to root user to install dependencies...
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:07.4248412Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:07.4577394Z Hit:2 http://azure.archive.ubuntu.com/ubuntu noble InRelease
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:07.4639254Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:07.4679286Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:07.4719012Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:07.4763207Z Get:6 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease [3600 B]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:07.5991206Z Get:7 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1401 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:07.6130491Z Get:8 http://azure.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [310 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:07.6152223Z Get:9 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1706 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:07.6252014Z Get:10 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe Translation-en [342 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:07.6296841Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1805 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:07.6387718Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [411 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:07.7263347Z Get:13 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Packages [1146 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:07.7349762Z Get:14 http://azure.archive.ubuntu.com/ubuntu noble-security/main Translation-en [231 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:07.7368782Z Get:15 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1222 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:07.7435528Z Get:16 http://azure.archive.ubuntu.com/ubuntu noble-security/universe Translation-en [246 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:07.7858352Z Get:19 https://packages.microsoft.com/ubuntu/24.04/prod noble/main amd64 Packages [640 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:07.7911408Z Get:17 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [1713 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:07.7934861Z Get:20 https://packages.microsoft.com/ubuntu/24.04/prod noble/main arm64 Packages [576 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:07.7996216Z Get:21 https://packages.microsoft.com/ubuntu/24.04/prod noble/main armhf Packages [12.4 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:07.8018918Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted Translation-en [392 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:11.1137458Z Fetched 12.5 MB in 1s (9366 kB/s)
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.1234258Z Reading package lists...
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.1491772Z Reading package lists...
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4165014Z Building dependency tree...
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4172602Z Reading state information...
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4400378Z libasound2t64 is already the newest version (1.2.11-1ubuntu0.3).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4401157Z libasound2t64 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4401829Z libatk-bridge2.0-0t64 is already the newest version (2.52.0-1build1).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4402511Z libatk-bridge2.0-0t64 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4403161Z libatk1.0-0t64 is already the newest version (2.52.0-1build1).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4403734Z libatk1.0-0t64 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4404354Z libatspi2.0-0t64 is already the newest version (2.52.0-1build1).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4404981Z libatspi2.0-0t64 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4405778Z libcairo2 is already the newest version (1.18.0-3build1).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4406335Z libcairo2 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4406936Z libcups2t64 is already the newest version (2.4.7-1.2ubuntu7.14).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4407520Z libcups2t64 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4408746Z libdbus-1-3 is already the newest version (1.14.10-4ubuntu4.1).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4409326Z libdbus-1-3 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4409938Z libdrm2 is already the newest version (2.4.125-1ubuntu0.1~24.04.2).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4410534Z libdrm2 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4411109Z libgbm1 is already the newest version (25.2.8-0ubuntu0.24.04.4).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4411671Z libgbm1 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4412295Z libnspr4 is already the newest version (2:4.35-1.1build1).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4412861Z libnspr4 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4413687Z libpango-1.0-0 is already the newest version (1.52.1+ds-1build1).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4414291Z libpango-1.0-0 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4414902Z libx11-6 is already the newest version (2:1.8.7-1ubuntu0.1).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4415745Z libx11-6 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4416286Z libxcb1 is already the newest version (1.15-1ubuntu2).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4416822Z libxcb1 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4417417Z libxcomposite1 is already the newest version (1:0.4.5-1build3).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4418121Z libxcomposite1 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4418735Z libxdamage1 is already the newest version (1:1.1.6-1build1).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4419302Z libxdamage1 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4419860Z libxext6 is already the newest version (2:1.3.4-1build2).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4420393Z libxext6 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4420951Z libxfixes3 is already the newest version (1:6.0.0-2build1).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4421515Z libxfixes3 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4422091Z libxkbcommon0 is already the newest version (1.6.0-1build1).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4422667Z libxkbcommon0 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4423251Z libxrandr2 is already the newest version (2:1.5.2-2build1).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4423808Z libxrandr2 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4424524Z fonts-noto-color-emoji is already the newest version (2.047-0ubuntu0.24.04.1).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4425336Z libfontconfig1 is already the newest version (2.15.0-1.1ubuntu2).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4426125Z libfontconfig1 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4426779Z libfreetype6 is already the newest version (2.13.2+dfsg-1ubuntu0.2).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4427398Z libfreetype6 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4427998Z fonts-liberation is already the newest version (1:2.1.5-3).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4428602Z fonts-liberation set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4429199Z libicu74 is already the newest version (74.2-1ubuntu3.1).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4429907Z libatomic1 is already the newest version (14.2.0-4ubuntu2~24.04.1).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4430515Z libatomic1 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4431130Z libcairo-gobject2 is already the newest version (1.18.0-3build1).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4431758Z libcairo-gobject2 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4432403Z libenchant-2-2 is already the newest version (2.3.3-2build2).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4432995Z libenchant-2-2 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4433576Z libepoxy0 is already the newest version (1.5.10-1build1).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4434129Z libepoxy0 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4434812Z libgdk-pixbuf-2.0-0 is already the newest version (2.42.10+dfsg-3ubuntu3.3).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4435509Z libgdk-pixbuf-2.0-0 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4436329Z libgstreamer1.0-0 is already the newest version (1.24.2-1ubuntu0.1).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4436991Z libgstreamer1.0-0 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4437614Z libharfbuzz0b is already the newest version (8.3.0-2build2).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4438203Z libharfbuzz0b set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4438835Z libjpeg-turbo8 is already the newest version (2.1.5-2ubuntu2).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4439428Z libjpeg-turbo8 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4440030Z liblcms2-2 is already the newest version (2.14-2ubuntu0.1).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4440924Z liblcms2-2 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4441606Z libpangocairo-1.0-0 is already the newest version (1.52.1+ds-1build1).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4442266Z libpangocairo-1.0-0 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4442919Z libpng16-16t64 is already the newest version (1.6.43-5ubuntu0.7).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4443512Z libpng16-16t64 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4444181Z libwayland-client0 is already the newest version (1.22.0-2.1build1).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4444834Z libwayland-client0 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4445836Z libwayland-egl1 is already the newest version (1.22.0-2.1build1).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4446454Z libwayland-egl1 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4447048Z libwebp7 is already the newest version (1.3.2-0.4build3).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4447615Z libwebp7 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4448212Z libwebpdemux2 is already the newest version (1.3.2-0.4build3).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4448832Z libwebpdemux2 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.4449472Z libxml2 is already the newest version (2.9.14+dfsg-1.3ubuntu3.10).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6313925Z libxml2 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6314821Z libxslt1.1 is already the newest version (1.1.39-0exp1ubuntu0.24.04.3).
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6315530Z libxslt1.1 set to manually installed.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6316366Z The following additional packages will be installed:
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6317129Z   gir1.2-glib-2.0 glib-networking glib-networking-common
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6318054Z   glib-networking-services gsettings-desktop-schemas libaa1 libabsl20220623t64
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6319054Z   libass9 libasyncns0 libavc1394-0 libavcodec60 libavfilter9 libavformat60
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6319842Z   libavtp0 libavutil58 libblas3 libbluray2 libbs2b0 libcaca0
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6320658Z   libcairo-script-interpreter2 libcdparanoia0 libchromaprint1 libcjson1
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6321501Z   libcodec2-1.2 libdav1d7 libdc1394-25 libdca0 libde265-0 libdecor-0-0
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6322329Z   libdirectfb-1.7-7t64 libdv4t64 libdvdnav4 libdvdread8t64 libegl-mesa0
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6323133Z   libegl1 libfaad2 libflac12t64 libfluidsynth3 libfreeaptx0 libgav1-1
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6323928Z   libglib2.0-bin libglib2.0-data libgme0 libgraphene-1.0-0 libgsm1
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6324775Z   libgssdp-1.6-0 libgstreamer-plugins-good1.0-0 libgtk-4-common libgupnp-1.6-0
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6325782Z   libgupnp-igd-1.6-0 libhwy1t64 libiec61883-0 libimath-3-1-29t64
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6326571Z   libinstpatch-1.0-2 libjack-jackd2-0 libjxl0.7 liblapack3 liblc3-1
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6327355Z   libldacbt-enc2 liblilv-0-0 liblrdf0 libltc11 libmbedcrypto7t64 libmfx1
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6328125Z   libmjpegutils-2.1-0t64 libmodplug1 libmp3lame0 libmpcdec6
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6329010Z   libmpeg2encpp-2.1-0t64 libmpg123-0t64 libmplex2-2.1-0t64 libmysofa1
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6329834Z   libneon27t64 libnice10 libnss3-tools libopenal-data libopenal1
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6330648Z   libopenexr-3-1-30 libopenh264-7 libopenmpt0t64 libopenni2-0 liborc-0.4-0t64
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6331560Z   libpipewire-0.3-0t64 libplacebo338 libpocketsphinx3 libpostproc57
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6332358Z   libproxy1v5 libpulse0 libqrencode4 libraptor2-0 librav1e0 libraw1394-11
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6333209Z   librist4 librsvg2-2 librubberband2 libsamplerate0 libsbc1 libsdl2-2.0-0
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6334013Z   libsecret-common libserd-0-0 libshine3 libshout3 libsndfile1 libsndio7.0
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6334740Z   libsord-0-0 libsoundtouch1 libsoup-3.0-0 libsoup-3.0-common libsoxr0
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6335495Z   libspa-0.2-modules libspandsp2t64 libspeex1 libsphinxbase3t64 libsratom-0-0
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6336267Z   libsrt1.5-gnutls libsrtp2-1 libssh-gcrypt-4 libsvtav1enc1d1 libswresample4
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6336828Z   libswscale7 libtag1v5 libtag1v5-vanilla libtheora0 libtwolame0 libudfread0
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6337631Z   libunibreak5 libv4l-0t64 libv4lconvert0t64 libva-drm2 libva-x11-2 libva2
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6338582Z   libvdpau1 libvidstab1.1 libvisual-0.4-0 libvo-aacenc0 libvo-amrwbenc0
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6339307Z   libvorbisenc2 libvpl2 libwavpack1 libwebrtc-audio-processing1 libwildmidi2
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6339929Z   libx265-199 libxcb-xkb1 libxkbcommon-x11-0 libxvidcore4 libyuv0 libzbar0t64
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6340516Z   libzimg2 libzix-0-0 libzvbi-common libzvbi0t64 libzxing3 ocl-icd-libopencl1
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6341416Z   session-migration timgm6mb-soundfont xfonts-encodings xfonts-utils
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6341980Z   xserver-common
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6342347Z Suggested packages:
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6343150Z   frei0r-plugins gvfs libcuda1 libnvcuvid1 libnvidia-encode1 libbluray-bdj
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6343974Z   libdirectfb-extra libdv-bin oss-compat libdvdcss2 low-memory-monitor
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6344586Z   libvisual-0.4-plugins jackd2 liblrdf0-dev libportaudio2 opus-tools pipewire
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6345743Z   pulseaudio raptor2-utils libraw1394-doc librsvg2-bin serdi sndiod sordi
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6346531Z   speex libwildmidi-config opencl-icd fluid-soundfont-gm
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6347081Z Recommended packages:
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6347454Z   fonts-ipafont-mincho fonts-tlwg-loma gstreamer1.0-x libaacs0
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6347955Z   default-libdecor-0-plugin-1 | libdecor-0-plugin-1 gstreamer1.0-gl
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6348804Z   libgtk-4-bin librsvg2-common libgtk-4-media-gstreamer libpipewire-0.3-common
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6349724Z   pocketsphinx-en-us va-driver-all | va-driver vdpau-driver-all | vdpau-driver
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.6350459Z   libmagickcore-6.q16-7-extra xfonts-base
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7089498Z The following NEW packages will be installed:
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7090305Z   fonts-freefont-ttf fonts-ipafont-gothic fonts-tlwg-loma-otf fonts-unifont
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7091139Z   fonts-wqy-zenhei glib-networking glib-networking-common
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7091873Z   glib-networking-services gsettings-desktop-schemas gstreamer1.0-libav
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7092713Z   gstreamer1.0-plugins-bad gstreamer1.0-plugins-base gstreamer1.0-plugins-good
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7093301Z   libaa1 libabsl20220623t64 libass9 libasyncns0 libavc1394-0 libavcodec60
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7093819Z   libavfilter9 libavformat60 libavif16 libavtp0 libavutil58 libblas3
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7094355Z   libbluray2 libbs2b0 libcaca0 libcairo-script-interpreter2 libcdparanoia0
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7095284Z   libchromaprint1 libcjson1 libcodec2-1.2 libdav1d7 libdc1394-25 libdca0
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7096250Z   libde265-0 libdecor-0-0 libdirectfb-1.7-7t64 libdv4t64 libdvdnav4
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7096968Z   libdvdread8t64 libegl-mesa0 libegl1 libevent-2.1-7t64 libfaad2 libflac12t64
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7097750Z   libflite1 libfluidsynth3 libfreeaptx0 libgav1-1 libgles2 libgme0
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7098431Z   libgraphene-1.0-0 libgsm1 libgssdp-1.6-0 libgstreamer-gl1.0-0
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7099102Z   libgstreamer-plugins-bad1.0-0 libgstreamer-plugins-base1.0-0
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7099864Z   libgstreamer-plugins-good1.0-0 libgtk-4-1 libgtk-4-common libgupnp-1.6-0
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7100490Z   libgupnp-igd-1.6-0 libharfbuzz-icu0 libhwy1t64 libhyphen0 libiec61883-0
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7101044Z   libimath-3-1-29t64 libinstpatch-1.0-2 libjack-jackd2-0 libjxl0.7 liblapack3
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7101579Z   liblc3-1 libldacbt-enc2 liblilv-0-0 liblrdf0 libltc11 libmanette-0.2-0
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7102106Z   libmbedcrypto7t64 libmfx1 libmjpegutils-2.1-0t64 libmodplug1 libmp3lame0
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7102630Z   libmpcdec6 libmpeg2encpp-2.1-0t64 libmpg123-0t64 libmplex2-2.1-0t64
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7103107Z   libmysofa1 libneon27t64 libnice10 libopenal-data libopenal1
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7103593Z   libopenexr-3-1-30 libopenh264-7 libopenmpt0t64 libopenni2-0 libopus0
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7104322Z   liborc-0.4-0t64 libpipewire-0.3-0t64 libplacebo338 libpocketsphinx3
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7105136Z   libpostproc57 libproxy1v5 libpulse0 libqrencode4 libraptor2-0 librav1e0
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7105942Z   libraw1394-11 librist4 librsvg2-2 librubberband2 libsamplerate0 libsbc1
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7107198Z   libsdl2-2.0-0 libsecret-1-0 libsecret-common libserd-0-0 libshine3 libshout3
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7107727Z   libsndfile1 libsndio7.0 libsord-0-0 libsoundtouch1 libsoup-3.0-0
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7108238Z   libsoup-3.0-common libsoxr0 libspa-0.2-modules libspandsp2t64 libspeex1
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7108794Z   libsphinxbase3t64 libsratom-0-0 libsrt1.5-gnutls libsrtp2-1 libssh-gcrypt-4
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7109344Z   libsvtav1enc1d1 libswresample4 libswscale7 libtag1v5 libtag1v5-vanilla
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7109842Z   libtheora0 libtwolame0 libudfread0 libunibreak5 libv4l-0t64
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7110860Z   libv4lconvert0t64 libva-drm2 libva-x11-2 libva2 libvdpau1 libvidstab1.1
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7111488Z   libvisual-0.4-0 libvo-aacenc0 libvo-amrwbenc0 libvorbisenc2 libvpl2 libvpx9
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7112043Z   libwavpack1 libwayland-server0 libwebrtc-audio-processing1 libwildmidi2
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7112596Z   libwoff1 libx264-164 libx265-199 libxcb-xkb1 libxkbcommon-x11-0 libxvidcore4
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7113163Z   libyuv0 libzbar0t64 libzimg2 libzix-0-0 libzvbi-common libzvbi0t64 libzxing3
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7113718Z   ocl-icd-libopencl1 session-migration timgm6mb-soundfont xfonts-cyrillic
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7114174Z   xfonts-encodings xfonts-scalable xfonts-utils
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7114555Z The following packages will be upgraded:
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7114988Z   gir1.2-glib-2.0 libglib2.0-0t64 libglib2.0-bin libglib2.0-data libnss3
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7115402Z   libnss3-tools xserver-common xvfb
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7359835Z 8 upgraded, 181 newly installed, 0 to remove and 91 not upgraded.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7360441Z Need to get 119 MB of archives.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7360875Z After this operation, 364 MB of additional disk space will be used.
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:12.7361373Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:51:13.0808251Z Get:2 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 fonts-ipafont-gothic all 00303-21ubuntu1 [3513 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:52:10.6908784Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libglib2.0-data all 2.80.0-6ubuntu3.10 [50.2 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:52:11.8808984Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libglib2.0-bin amd64 2.80.0-6ubuntu3.10 [97.9 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:52:13.7822018Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 gir1.2-glib-2.0 amd64 2.80.0-6ubuntu3.10 [183 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:52:17.0764402Z Get:6 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libglib2.0-0t64 amd64 2.80.0-6ubuntu3.10 [1548 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:52:45.0249236Z Get:7 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 fonts-freefont-ttf all 20211204+svn4273-2 [5641 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:54:22.0880356Z Get:8 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 fonts-tlwg-loma-otf all 1:0.7.3-1 [107 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:54:24.6654343Z Get:9 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 fonts-unifont all 1:15.1.01-1build1 [2993 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:55:20.1831839Z Get:10 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 fonts-wqy-zenhei all 0.9.45-8 [7472 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:57:50.7596486Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libproxy1v5 amd64 0.5.4-4build1 [26.5 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:57:51.9397770Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 glib-networking-common all 2.80.0-1build1 [6702 B]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:57:52.4839831Z Get:13 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 glib-networking-services amd64 2.80.0-1build1 [12.8 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:57:53.3860282Z Get:14 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 session-migration amd64 0.3.9build1 [9034 B]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:57:54.0746543Z Get:15 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 gsettings-desktop-schemas all 46.1-0ubuntu1 [35.6 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:57:55.3491136Z Get:16 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 glib-networking amd64 2.80.0-1build1 [64.1 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:57:57.2703910Z Get:17 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 libva2 amd64 2.20.0-2ubuntu0.2 [66.4 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:57:58.9700367Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 libva-drm2 amd64 2.20.0-2ubuntu0.2 [7124 B]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:57:59.5227816Z Get:19 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 libva-x11-2 amd64 2.20.0-2ubuntu0.2 [12.0 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:58:00.3027030Z Get:20 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libvdpau1 amd64 1.5-2build1 [27.8 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:58:01.2771272Z Get:21 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libvpl2 amd64 2023.3.0-1build1 [99.8 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:58:03.9289208Z Get:22 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 ocl-icd-libopencl1 amd64 2.3.2-1build1 [38.5 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:58:05.1474302Z Get:23 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libavutil58 amd64 7:6.1.1-3ubuntu5 [401 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T18:58:13.5610981Z Get:24 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libcodec2-1.2 amd64 1.2.0-2build1 [8998 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T19:01:09.9163006Z Get:25 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libdav1d7 amd64 1.4.1-1build1 [604 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T19:01:22.2696105Z Get:26 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libgsm1 amd64 1.0.22-1build1 [27.8 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T19:01:23.5058357Z Get:27 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libhwy1t64 amd64 1.0.7-8.1build1 [584 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T19:01:35.3777148Z Get:28 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 libjxl0.7 amd64 0.7.0-10.2ubuntu6.1 [1001 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T19:01:55.1257966Z Get:29 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libmp3lame0 amd64 3.100-6build1 [142 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T19:01:58.2244080Z Get:30 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libopus0 amd64 1.4-1build1 [208 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T19:02:02.8494923Z Get:31 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 librav1e0 amd64 0.7.1-2 [1022 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T19:02:23.2738146Z Get:32 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 librsvg2-2 amd64 2.58.0+dfsg-1ubuntu0.1 [2141 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T19:03:14.3207986Z Get:33 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libshine3 amd64 3.1.1-2build1 [23.2 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T19:03:15.4769221Z Get:34 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libspeex1 amd64 1.2.1-2ubuntu2.24.04.1 [59.6 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T19:03:17.4541473Z Get:35 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libsvtav1enc1d1 amd64 1.7.0+dfsg-2build1 [2425 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T19:04:08.6408075Z Get:36 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libsoxr0 amd64 0.1.3-4build3 [80.0 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T19:04:10.9686634Z Get:37 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libswresample4 amd64 7:6.1.1-3ubuntu5 [63.8 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T19:04:12.9396288Z Get:38 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libtheora0 amd64 1.1.1+dfsg.1-16.1build3 [211 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T19:04:18.1541876Z Get:39 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libtwolame0 amd64 0.4.0-2build3 [52.3 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T19:04:19.7639663Z Get:40 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libvorbisenc2 amd64 1.3.7-1build3 [80.8 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T19:04:22.0177958Z Get:41 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libvpx9 amd64 1.14.0-1ubuntu2.3 [1143 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T19:04:44.8596598Z Get:42 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libx264-164 amd64 2:0.164.3108+git31e19f9-1 [604 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T19:04:55.7106383Z Get:43 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libx265-199 amd64 3.5-2build1 [1226 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T19:05:16.0497804Z Get:44 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libxvidcore4 amd64 2:1.3.7-1build1 [219 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T19:05:19.8397454Z Get:45 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libzvbi-common all 0.2.42-2 [42.4 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T19:05:20.9234368Z Get:46 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libzvbi0t64 amd64 0.2.42-2 [261 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T19:05:25.5777610Z Get:47 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libavcodec60 amd64 7:6.1.1-3ubuntu5 [5851 kB]
+Browser acceptance	Run npx playwright install --with-deps chromium webkit	2026-10-23T19:06:09.7124025Z ##[error]The operation was canceled.
+Browser acceptance	Synthetic acceptance evidence	﻿2026-10-23T19:06:09.7231570Z ##[group]Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+Browser acceptance	Synthetic acceptance evidence	2026-10-23T19:06:09.7232003Z with:
+Browser acceptance	Synthetic acceptance evidence	2026-10-23T19:06:09.7232360Z   name: synthetic-browser-acceptance-c518e259f2123a505908ce0268357e16abb6d7dc
+Browser acceptance	Synthetic acceptance evidence	2026-10-23T19:06:09.7232810Z   path: .test-results/release/
+Browser acceptance	Synthetic acceptance evidence	2026-10-23T19:06:09.7233287Z   retention-days: 7
+Browser acceptance	Synthetic acceptance evidence	2026-10-23T19:06:09.7233518Z   include-hidden-files: true
+Browser acceptance	Synthetic acceptance evidence	2026-10-23T19:06:09.7233775Z   if-no-files-found: warn
+Browser acceptance	Synthetic acceptance evidence	2026-10-23T19:06:09.7234016Z   compression-level: 6
+Browser acceptance	Synthetic acceptance evidence	2026-10-23T19:06:09.7234249Z   overwrite: false
+Browser acceptance	Synthetic acceptance evidence	2026-10-23T19:06:09.7234457Z   archive: true
+Browser acceptance	Synthetic acceptance evidence	2026-10-23T19:06:09.7234665Z ##[endgroup]
+Browser acceptance	Synthetic acceptance evidence	2026-10-23T19:06:09.8735222Z ##[warning]No files were found with the provided path: .test-results/release/. No artifacts will be uploaded.
+Browser acceptance	Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	﻿2026-10-23T19:06:09.8966311Z Post job cleanup.
+Browser acceptance	Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T19:06:09.9892354Z [command]/usr/bin/git version
+Browser acceptance	Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T19:06:09.9950389Z git version 2.55.0
+Browser acceptance	Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T19:06:09.9989171Z Temporarily overriding HOME='/home/runner/work/_temp/5393f77e-156a-42a9-8395-48217ae88994' before making global git config changes
+Browser acceptance	Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T19:06:09.9990909Z Adding repository directory to the temporary git global config as a safe directory
+Browser acceptance	Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T19:06:09.9995855Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/riaz10/riaz10
+Browser acceptance	Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T19:06:10.0036175Z Removing SSH command configuration
+Browser acceptance	Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T19:06:10.0042516Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Browser acceptance	Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T19:06:10.0082227Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Browser acceptance	Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T19:06:10.0342360Z Removing HTTP extra header
+Browser acceptance	Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T19:06:10.0349320Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Browser acceptance	Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T19:06:10.0397469Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Browser acceptance	Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T19:06:10.1192713Z Removing includeIf entries pointing to credentials config files
+Browser acceptance	Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T19:06:10.1193731Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Browser acceptance	Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1	2026-10-23T19:06:10.1195885Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Browser acceptance	Complete job	﻿2026-10-23T19:06:10.1290584Z Cleaning up orphan processes
+Browser acceptance	Complete job	2026-10-23T19:06:10.1561998Z Terminate orphan process: pid (2455) (npm exec playwright install --with-deps chromium webkit)
+Browser acceptance	Complete job	2026-10-23T19:06:10.1604182Z Terminate orphan process: pid (2467) (sh)
+Browser acceptance	Complete job	2026-10-23T19:06:10.1632445Z Terminate orphan process: pid (2468) (MainThread)

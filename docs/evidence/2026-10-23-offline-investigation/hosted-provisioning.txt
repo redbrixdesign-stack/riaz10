@@ -1,0 +1,836 @@
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push less than a minute ago
+
+JOBS
+* test (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  * Install and test (repo root)
+  * Audit server dependency lock
+  * Test server package
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push about 1 minute ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  * Run npx playwright install --with-deps chromium webkit
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push about 1 minute ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  * Run npx playwright install --with-deps chromium webkit
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push about 2 minutes ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  * Run npx playwright install --with-deps chromium webkit
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push about 3 minutes ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  * Run npx playwright install --with-deps chromium webkit
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push about 3 minutes ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  * Run npx playwright install --with-deps chromium webkit
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push about 4 minutes ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  * Run npx playwright install --with-deps chromium webkit
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push about 4 minutes ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  * Run npx playwright install --with-deps chromium webkit
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push about 5 minutes ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  * Run npx playwright install --with-deps chromium webkit
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push about 5 minutes ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  * Run npx playwright install --with-deps chromium webkit
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push about 6 minutes ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  * Run npx playwright install --with-deps chromium webkit
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push about 6 minutes ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  * Run npx playwright install --with-deps chromium webkit
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push about 7 minutes ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  * Run npx playwright install --with-deps chromium webkit
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push about 7 minutes ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  * Run npx playwright install --with-deps chromium webkit
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push about 8 minutes ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  * Run npx playwright install --with-deps chromium webkit
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push about 8 minutes ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  * Run npx playwright install --with-deps chromium webkit
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push about 9 minutes ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  * Run npx playwright install --with-deps chromium webkit
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push about 9 minutes ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  * Run npx playwright install --with-deps chromium webkit
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push about 10 minutes ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  * Run npx playwright install --with-deps chromium webkit
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push about 10 minutes ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  * Run npx playwright install --with-deps chromium webkit
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push about 11 minutes ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  * Run npx playwright install --with-deps chromium webkit
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push about 11 minutes ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  * Run npx playwright install --with-deps chromium webkit
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push about 12 minutes ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  * Run npx playwright install --with-deps chromium webkit
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push about 12 minutes ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  * Run npx playwright install --with-deps chromium webkit
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push about 13 minutes ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  * Run npx playwright install --with-deps chromium webkit
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push about 14 minutes ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  * Run npx playwright install --with-deps chromium webkit
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push about 14 minutes ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  * Run npx playwright install --with-deps chromium webkit
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push about 15 minutes ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  * Run npx playwright install --with-deps chromium webkit
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push about 15 minutes ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  * Run npx playwright install --with-deps chromium webkit
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40006514477
+Triggered via push about 16 minutes ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  * Run npx playwright install --with-deps chromium webkit
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+X codex/phone-contact-save Test · 40006514477
+Triggered via push about 16 minutes ago
+
+JOBS
+✓ test in 58s (ID 120595699638)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+X Browser acceptance in 15m18s (ID 120596174448)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  X Run npx playwright install --with-deps chromium webkit
+  - Synthetic local browser acceptance
+  ✓ Synthetic acceptance evidence
+  - Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+
+ANNOTATIONS
+X The job has exceeded the maximum execution time of 15m0s
+Browser acceptance: .github#1
+
+! No files were found with the provided path: .test-results/release/. No artifacts will be uploaded.
+Browser acceptance: .github#12
+
+X The operation was canceled.
+Browser acceptance: .github#249
+
