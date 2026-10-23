@@ -72,7 +72,7 @@ const CustomerFeature = {
     let measurements = [];
     if (appts.length) {
       try {
-        measurements = await DB.db.measurements.where('appointmentId').anyOf(appts.map(a => a.id)).toArray();
+        measurements = await DB.getMeasurementsForAppointments(appts.map(a => a.id));
       } catch (e) {}
     }
     const apptById = new Map(appts.map(a => [a.id, a]));

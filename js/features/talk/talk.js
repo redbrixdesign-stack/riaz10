@@ -862,7 +862,7 @@ const TalkFeature = {
     // "the blinds for your lounge" instead of "your window coverings".
     let measurements = [];
     try {
-      if (appt?.id) measurements = await DB.db.measurements.where('appointmentId').equals(appt.id).toArray();
+      if (appt?.id) measurements = await DB.getMeasurementsForAppointments([appt.id]);
     } catch (e) { /* draft without measurements */ }
 
     // Last confirmed outbound messages, for continuity and duplicate checks.
@@ -1013,7 +1013,7 @@ const TalkFeature = {
         });
         const ids = pastVisits.map(a => a.id).filter(Boolean);
         if (ids.length) {
-          const measures = await DB.db.measurements.where('appointmentId').anyOf(ids).toArray();
+          const measures = await DB.getMeasurementsForAppointments(ids);
           for (const m of measures) {
             (measuresByAppt[m.appointmentId] = measuresByAppt[m.appointmentId] || []).push(m);
           }

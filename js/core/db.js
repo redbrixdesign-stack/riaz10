@@ -40,6 +40,12 @@ const COMMUNICATION_EVENT_PII_FIELDS = ['detail', 'error'];
 const INTEGRATION_CONFLICT_PII_FIELDS = ['localSnapshot', 'remoteSnapshot', 'resolutionNotes'];
 const INTEGRATION_OUTBOX_PII_FIELDS = ['payload', 'lastError'];
 const VOICE_NOTE_PII_FIELDS = ['title', 'data'];
+// Reader-first rollout: understand protected context before new writes and
+// migration are enabled, so a release rollback never strands these records.
+const CUSTOMER_CONTEXT_FIELDS = ['fullName', 'postcodeNormalized'];
+const APPOINTMENT_CONTEXT_FIELDS = ['access'];
+const MEASUREMENT_CONTEXT_FIELDS = ['windowName', 'room', 'productName', 'description', 'notes'];
+const PHOTO_CONTEXT_FIELDS = ['data', 'caption'];
 const PBKDF2_ITERATIONS = 100000;
 const KEY_LENGTH = 256;
 const IV_LENGTH = 12;
@@ -191,7 +197,7 @@ async function encryptCustomer(customer) {
 async function decryptCustomer(customer) {
   if (!customer) return customer;
   const decrypted = { ...customer };
-  for (const field of PII_FIELDS) {
+  for (const field of [...PII_FIELDS, ...CUSTOMER_CONTEXT_FIELDS]) {
     if (field === 'address' && decrypted.address) {
       const addr = { ...decrypted.address };
       for (const afield of ADDRESS_PII_FIELDS) {
@@ -255,7 +261,7 @@ async function encryptAppointment(appointment) {
 async function decryptAppointment(appointment) {
   if (!appointment) return appointment;
   const decrypted = { ...appointment };
-  for (const field of APPT_PII_FIELDS) {
+  for (const field of [...APPT_PII_FIELDS, ...APPOINTMENT_CONTEXT_FIELDS]) {
     if (isEncrypted(decrypted[field])) {
       decrypted[field] = await decryptField(decrypted[field]);
     }
@@ -377,9 +383,13 @@ async function encryptMeasurementAudio(row) {
 }
 
 async function decryptMeasurementAudio(row) {
-  if (!row || !Array.isArray(row.audioNotes)) return row;
-  return { ...row, audioNotes: await decryptAudioNoteItems(row.audioNotes) };
+  if (!row) return row;
+  const out = await decryptRecordWithAudio(row, MEASUREMENT_CONTEXT_FIELDS);
+  if (Array.isArray(out.photos)) out.photos = await Promise.all(out.photos.map(photo => isEncrypted(photo) ? decryptField(photo) : photo));
+  return out;
 }
+
+const decryptPhoto = row => decryptStringFields(row, PHOTO_CONTEXT_FIELDS);
 
 async function migratePlaintextWorkItems() {
   if (!encryptionKey) return;
@@ -913,7 +923,16 @@ const DB = {
   async getPhotosForCustomer(customerId) {
     const photos = await this.db.photos.where('customerId').equals(customerId).toArray();
     photos.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    return photos;
+    return Promise.all(photos.map(decryptPhoto));
+  },
+
+  async getPhoto(id) {
+    return decryptPhoto(await this.db.photos.get(id));
+  },
+
+  async updatePhoto(id, data) {
+    await this.db.photos.update(id, data);
+    return this.getPhoto(id);
   },
 
   async deletePhoto(photoId) {
@@ -1633,6 +1652,12 @@ const DB = {
 
   async getMeasurement(id) {
     return decryptMeasurementAudio(await this.db.measurements.get(id));
+  },
+
+  async getMeasurementsForAppointments(ids) {
+    if (!ids.length) return [];
+    const rows = await this.db.measurements.where('appointmentId').anyOf(ids).toArray();
+    return Promise.all(rows.map(decryptMeasurementAudio));
   },
 
   async updateMeasurement(id, data) {
@@ -2355,6 +2380,7 @@ const DB = {
     if(data.integrationOutbox?.length)data.integrationOutbox=await Promise.all(data.integrationOutbox.map(decryptIntegrationOutbox));
     if(data.voiceNotes?.length)data.voiceNotes=await Promise.all(data.voiceNotes.map(decryptVoiceNote));
     if(data.measurements?.length)data.measurements=await Promise.all(data.measurements.map(decryptMeasurementAudio));
+    if(data.photos?.length)data.photos=await Promise.all(data.photos.map(decryptPhoto));
     const RUNTIME_SETTING_KEYS = ['__v6_legacy_migrated__', '__storage_probe__', 'pitchDemoSeeded', DEVICE_AI_SECRET_SETTING];
     data.settings = (await this.db.settings.toArray()).filter(s => !RUNTIME_SETTING_KEYS.includes(s.key) && !s.key.startsWith('communication-draft:') && !s.key.startsWith('visit-plan:'));
     data.sequences = await this.db.sequences.toArray();

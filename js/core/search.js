@@ -172,11 +172,9 @@ const Search = {
 
   async searchByPostcode(postcode) {
     const normalized = Utils.normalizePostcode(postcode);
-    return await DB.db.customers
-      .where('postcodeNormalized')
-      .startsWith(normalized)
-      .limit(20)
-      .toArray();
+    // Ciphertext cannot be queried through a plaintext postcode index.
+    const customers = await DB.getAllCustomers();
+    return customers.filter(customer => Utils.normalizePostcode(customer.postcodeNormalized || customer.address?.postcodeNormalized || customer.address?.postcode || '').startsWith(normalized)).slice(0, 20);
   },
 
   async searchNearby(lat, lng, radiusKm = 10) {

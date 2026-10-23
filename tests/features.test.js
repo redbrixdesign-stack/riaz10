@@ -105,6 +105,7 @@ global.DB = {
     return TABLES.appointments.filter(a => a.status !== 'cancelled' && new Date(a.date) >= start && new Date(a.date) < end);
   },
   getPhotosForCustomer: async () => [],
+  getMeasurementsForAppointments: async ids => TABLES.measurements.filter(row => ids.includes(row.appointmentId)),
   getCustomer: async id => TABLES.customers.find(c => c.id === id) || null,
   getCustomersByIds: async ids => TABLES.customers.filter(c => ids.includes(c.id)),
   findCustomerByPhone: async phone => TABLES.customers.find(c => c.phone === phone) || null,

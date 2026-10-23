@@ -1673,13 +1673,13 @@ const AppointmentsFeature = {
 
   async openPhotoViewer(photoId, customerId) {
     let p = null;
-    try { p = await DB.db.photos.get(photoId); } catch (e) {}
+    try { p = await DB.getPhoto(photoId); } catch (e) {}
     if (!p) { Toast.show('Photo not found', 'error'); return; }
     // Repair rows written by the affected release as soon as they are opened.
     if (/^data:image\//i.test(String(p.data || ''))) {
       const repaired = Utils.imagePayloadFromDataUrl(p.data, p.mimeType || 'image/jpeg');
       p = { ...p, ...repaired };
-      try { await DB.db.photos.update(photoId, repaired); } catch (e) {
+      try { await DB.updatePhoto(photoId, repaired); } catch (e) {
         console.warn('Could not repair legacy photo row:', e);
       }
     }
@@ -1702,7 +1702,7 @@ const AppointmentsFeature = {
   async savePhotoCaption(photoId) {
     const caption = (document.getElementById('photo-viewer-caption')?.value || '').trim();
     try {
-      await DB.db.photos.update(photoId, { caption });
+      await DB.updatePhoto(photoId, { caption });
       Toast.show('Caption saved', 'success');
     } catch (e) {
       console.error('Caption save error:', e);
@@ -1853,7 +1853,7 @@ const AppointmentsFeature = {
 
     let measurements = [];
     try {
-      measurements = await DB.db.measurements.where('appointmentId').equals(appt.id).toArray();
+      measurements = await DB.getMeasurementsForAppointments([appt.id]);
     } catch (e) {}
 
     // The linked order (EXACTLY ONE per sale - see saveOutcome): puts money

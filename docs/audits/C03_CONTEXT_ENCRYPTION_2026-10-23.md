@@ -1,0 +1,8 @@
+# C03 — Context encryption, compatibility-first rollout
+
+## Reader release (encryption migration not enabled yet)
+
+- Adds backward-compatible readers for customer `fullName`/top-level postcode, visit `access`, measurement room/window/product/description/notes and embedded photo strings, and gallery data/captions. Existing write behaviour is intentionally unchanged at this checkpoint.
+- Customer, visit and communication context now obtain measurements through a decrypted batch API. Gallery viewer/repair/caption paths use DB APIs, ready for protected writes. Postcode prefix search uses decrypted customer records instead of querying a plaintext index. Export produces readable data for restoration under a different device key.
+- Source/minified compatibility tests and the full npm suite passed. Updated the smoke-test measurement stub to the real batch API; no production fallback to raw ciphertext. Two-engine browser checks use genuine passphrase setup and synthetic protected/legacy records, with no POSTs/provider calls. Chromium offline reload passes; WebKit offline reload produced an internal browser navigation error and is not certified. WebKit in-app offline access and online reload are tested separately. Physical iPhone remains pending.
+- This reader-only deployment must be verified before enabling encryption/migration. It becomes the rollback target for the writer release; rolling back to older readers after migration could hide protected context. Other operational metadata remains outside this specific field-level fix: this is not whole-database encryption or protection against an attacker in an unlocked app.
