@@ -1,0 +1,27 @@
+Browser acceptance	Synthetic local browser acceptance	﻿2026-10-23T23:50:07.9019495Z ##[group]Run npm run test:release:browser
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T23:50:07.9019741Z ^[[36;1mnpm run test:release:browser^[[0m
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T23:50:07.9021030Z shell: sh -e {0}
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T23:50:07.9021188Z env:
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T23:50:07.9021352Z   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T23:50:07.9022093Z   BEELO_ARTIFACT_DIR: /home/runner/work/riaz10/riaz10/.test-results/release
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T23:50:07.9022628Z ##[endgroup]
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T23:50:08.0569015Z 
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T23:50:08.0570277Z > advisoros@5.0.0 test:release:browser
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T23:50:08.0571376Z > node tests/verify-release.cjs
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T23:50:08.0571621Z 
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T23:50:38.0515330Z PASS payment-link.e2e.cjs (30s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T23:50:46.1055327Z PASS protected-backup.e2e.cjs (8s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T23:51:19.7297580Z FAIL context-encryption.e2e.cjs (34s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T23:51:19.7298162Z locator.waitFor: Timeout 30000ms exceeded.
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T23:51:19.7298426Z Call log:
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T23:51:19.7298775Z   - waiting for getByText('Access: SYNTHETIC side gate 1234').first() to be visible
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T23:51:19.7299139Z 
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T23:51:19.7299357Z     at /__w/riaz10/riaz10/tests/browser/context-encryption.e2e.cjs:45:79 {
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T23:51:19.7299672Z   log: [
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T23:51:19.7300022Z     "  - waiting for getByText('Access: SYNTHETIC side gate 1234').first() to be visible"
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T23:51:19.7300377Z   ],
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T23:51:19.7300553Z   name: 'TimeoutError'
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T23:51:19.7300832Z }
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T23:51:19.7300920Z 
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T23:51:19.7301278Z Browser acceptance stopped at context-encryption.e2e.cjs
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T23:51:19.7435031Z ##[error]Process completed with exit code 1.

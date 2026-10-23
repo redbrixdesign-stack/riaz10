@@ -1,0 +1,2 @@
+PASS chromium: real unlock, protected mixed records in customer/visit/plan/gallery/postcode search, readable export, offline reload, online reload/reconnect; no uploads
+PASS webkit: real unlock, protected mixed records in customer/visit/plan/gallery/postcode search, readable export, offline in-app navigation (offline reload not certified: WebKit internal navigation error), online reload/reconnect; no uploads

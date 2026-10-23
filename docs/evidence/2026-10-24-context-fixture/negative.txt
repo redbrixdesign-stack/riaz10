@@ -1,0 +1,11 @@
+BOUNDARY {"deviceZone":"UTC","now":"2026-10-23T23:44:00.000Z","ukNow":{"year":2026,"month":10,"day":24,"hour":0,"minute":44,"second":0,"weekday":6},"tomorrowUK":{"year":2026,"month":10,"day":25,"hour":0,"minute":0,"second":0,"weekday":0},"appointments":[{"id":1,"date":"2026-10-24T10:00:00.000Z","ukDate":"2026-10-24"}],"hash":"appointments?action=tomorrow","body":"arrow_back\nPlan tomorrow\nToday\nTomorrow\n\nSunday 25 Oct · 0 planned visits\n\nProposed visit order only — booked times and navigation routes stay unchanged. Agree time changes directly with customers before editing the bookings.\n\nChanges save on this device. New visits appear at the end of a saved plan.\n\nNo active visits booked for tomorrow.\n\nUse Scan to add on Home, or add a visit below.\n\nAdd visit\n\nThis is not an optimised route. A proposed time only changes the booking after you confirm customer agreement and review scheduling checks."}
+locator.waitFor: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for getByText('Access: SYNTHETIC side gate 1234').first() to be visible[22m
+
+    at /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/browser/context-encryption.e2e.cjs:45:79 {
+  log: [
+    "  - waiting for getByText('Access: SYNTHETIC side gate 1234').first() to be visible"
+  ],
+  name: 'TimeoutError'
+}
