@@ -1232,6 +1232,30 @@ const App = {
   },
 
   // Modal management
+  snapshotModalContent(sheet) {
+    // innerHTML contains default attributes, not the adviser's live form
+    // properties. Copy those onto a detached clone before serialising.
+    // Keep the existing stack shape/lifecycle; never snapshot typed secrets
+    // or file selections into HTML, and never mutate the visible form.
+    if (sheet.closest('.passphrase-gate')) return sheet.innerHTML;
+    const copy = sheet.cloneNode(true);
+    const fields = sheet.querySelectorAll('input, textarea, select');
+    const copies = copy.querySelectorAll('input, textarea, select');
+    fields.forEach((field, index) => {
+      if (field.matches('input[type="password"], input[type="file"], .passphrase-input')) return;
+      const target = copies[index];
+      if (field.tagName === 'TEXTAREA') {
+        target.textContent = field.value;
+      } else if (field.tagName === 'SELECT') {
+        [...field.options].forEach((option, i) => target.options[i].toggleAttribute('selected', option.selected));
+      } else {
+        target.setAttribute('value', field.value);
+        if (field.type === 'checkbox' || field.type === 'radio') target.toggleAttribute('checked', field.checked);
+      }
+    });
+    return copy.innerHTML;
+  },
+
   openModal(content, options = {}) {
     const overlay = document.getElementById('modal-overlay');
     const sheet = document.getElementById('bottom-sheet');
@@ -1240,7 +1264,7 @@ const App = {
 
     if (!options.replace && overlay.classList.contains('active') && sheet.innerHTML.trim()) {
       this.modalStack.push({
-        content: sheet.innerHTML,
+        content: this.snapshotModalContent(sheet),
         scrollTop: sheet.scrollTop
       });
     }
