@@ -1,6 +1,12 @@
 # Phone-contact offline save fix — 23 October 2026
 
-Status: implemented and locally verified; not deployed.
+Status: deployed and verified at https://beelo.beelestial.co.uk/.
+
+- Released source commit `e7be956`, deployment `dpl_9JXqqNJJtpL5C5dm2ANh5JSuENbT`, production build 6s, cache `advisoros-v6-139-phone-contact-save`.
+- Staged CSS and Follow-ups minified asset byte-matched before exact-build promotion. Live index, service worker, CSS and both Follow-ups source/minified assets byte-matched afterwards.
+- The new offline-save journey passed against the live URL in Chromium and WebKit using disposable local synthetic records. No actual communication or provider request was made.
+- Production error/fatal runtime-log query for this deployment over the latest ten minutes returned no records. This is a narrow server-log observation, not proof of no client errors or a monitoring/drain configuration audit. Drains remain unverified.
+- Rollback: `91e83b0` / `dpl_C2rJQUQsLZiMfMhZX1d3K8tjZgqH`.
 
 Baseline: `91e83b0`. Work isolated in the attached `phone-contact-save` worktree, not the dirty original checkout.
 
@@ -22,4 +28,4 @@ Baseline: `91e83b0`. Work isolated in the attached `phone-contact-save` worktree
 
 ## Next
 
-Deploy this isolated change only after the release step; current production is unchanged by this work. Physical-iPhone acceptance remains open. Fix premature same-day outcome reminders separately, with an explicit outcome-due policy and timing regression tests. Original user changes remain untouched.
+Physical-iPhone acceptance remains open. Fix premature same-day outcome reminders separately, with an explicit outcome-due policy and timing regression tests. Original user changes remain untouched. Marketing/IONOS site was not deployed or altered.
