@@ -8,6 +8,8 @@
     "pretest": "node tests/transcription-usage.test.mjs && node tests/protected-backup.test.js && node tests/context-encryption.test.js && node tests/lazy-state.test.js && node tests/social-share.test.js && node tests/sw-lifecycle.test.js && node tests/claude-usage.test.mjs",
     "test:transcription:redis": "node tests/transcription-usage-redis.test.mjs",
     "build": "node build/minify.js",
+    "test:release:browser": "node tests/verify-release.cjs",
+    "verify:release": "npm run build && npm test && npm run test:social && npm run test:release:browser",
     "watch": "node build/minify.js --watch",
     "serve": "python3 -m http.server 8000",
     "clean": "node build/minify.js --clean",

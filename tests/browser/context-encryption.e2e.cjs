@@ -1,6 +1,7 @@
 'use strict';
 const {chromium,webkit}=require('playwright');
 const assert=require('node:assert/strict');
+const {artifactPath}=require('./release-artifacts.cjs');
 const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
 const expectEncryption=process.env.BEELO_EXPECT_CONTEXT_ENCRYPTION==='1';
 (async()=>{for(const engine of [chromium,webkit]){
@@ -54,7 +55,7 @@ const expectEncryption=process.env.BEELO_EXPECT_CONTEXT_ENCRYPTION==='1';
   else { await p.evaluate(id=>App.navigate('customer',{id}),ids.customer);await p.getByText('SYNTHETIC bedroom',{exact:false}).first().waitFor();await p.evaluate(()=>App.navigate('appointments',{action:'tomorrow'})); }
   await p.getByText('SYNTHETIC side gate 1234',{exact:false}).first().waitFor();
   await p.waitForTimeout(500);
-  await p.screenshot({path:`/private/tmp/beelo-context-readers-${engine.name()}.png`,animations:'disabled'});
+  await p.screenshot({path:artifactPath(`beelo-context-readers-${engine.name()}.png`),animations:'disabled'});
   await c.setOffline(false);await p.reload();await p.getByText('SYNTHETIC side gate 1234',{exact:false}).first().waitFor();
   assert.deepEqual(posts,[]);assert.deepEqual(errors,[]);
   console.log(`PASS ${engine.name()}: real unlock, protected mixed records in customer/visit/plan/gallery/postcode search, readable export, ${engine===chromium?'offline reload':'offline in-app navigation (offline reload not certified: WebKit internal navigation error)'}, online reload/reconnect; no uploads`);

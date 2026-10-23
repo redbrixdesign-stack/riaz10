@@ -1,6 +1,7 @@
 'use strict';
 const {chromium,webkit}=require('playwright');
 const assert=require('node:assert/strict');
+const {artifactPath}=require('./release-artifacts.cjs');
 const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
 const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=','base64');
 (async()=>{for(const engine of [chromium,webkit]){
@@ -31,7 +32,7 @@ const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42
   await p.evaluate(async id=>{const get=DB.getAppointment.bind(DB);window.lazyGet=get;window.releaseOld=null;DB.getAppointment=visit=>visit===999999?new Promise(resolve=>window.releaseOld=()=>resolve({id:999999,type:'fitting'})):get(visit);App.navigate('social',{appointmentId:999999});App.navigate('social',{appointmentId:id});},id);
   await p.locator('#social-draft-warm').waitFor();await p.evaluate(()=>{window.releaseOld();DB.getAppointment=window.lazyGet;});await p.waitForTimeout(300);assert.equal(await p.evaluate(()=>SocialFeature.appointmentId),id);
   assert.equal(await p.evaluate(()=>App.currentHash),`social?appointmentId=${id}`);
-  await p.screenshot({path:`/private/tmp/beelo-lazy-state-${engine.name()}.png`,animations:'disabled'});
+  await p.screenshot({path:artifactPath(`beelo-lazy-state-${engine.name()}.png`),animations:'disabled'});
   assert.deepEqual(posts,[]);assert.deepEqual(errors,[]);
   console.log(`PASS ${engine.name()}: first lazy social save/reload, all nine canonical routes, five primary nav items, stale fitting render cannot replace latest state; no uploads/shares`);
  }finally{await browser.close();}

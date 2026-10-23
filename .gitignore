@@ -25,6 +25,7 @@ server/.env
 # e2e screenshots
 tests/browser/*.png
 .lighthouseci
+.test-results/
 
 # Harness environment (never commit)
 deepseek-harness/

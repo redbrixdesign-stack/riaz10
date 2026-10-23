@@ -1,5 +1,6 @@
 const { chromium, webkit } = require('playwright');
 const assert = require('node:assert/strict');
+const {artifactPath}=require('./release-artifacts.cjs');
 const base = process.env.BEELO_TEST_URL || 'http://127.0.0.1:8023';
 (async () => {
  for (const engine of [chromium, webkit]) {
@@ -34,7 +35,7 @@ const base = process.env.BEELO_TEST_URL || 'http://127.0.0.1:8023';
    assert.equal(await page.locator('#outcome-payment').inputValue(),'500');
    assert.equal(await page.locator('#outcome-payment').getAttribute('data-order-id'),String(ids.a));
    await page.getByText(/balance on SYNTHETIC-OLDER/).waitFor();
-   await page.screenshot({path:`/private/tmp/beelo-payment-link-${engine.name()}.png`});
+   await page.screenshot({path:artifactPath(`beelo-payment-link-${engine.name()}.png`)});
    await page.locator('#outcome-payment').fill('100');
    await page.evaluate(id => Promise.all([AppointmentsFeature.saveOutcome(id,'completed'),AppointmentsFeature.saveOutcome(id,'completed')]),ids.fit);
    assert.deepEqual(await balances(),[400,900],'Double tap records one payment on explicit order');
@@ -48,11 +49,11 @@ const base = process.env.BEELO_TEST_URL || 'http://127.0.0.1:8023';
    assert.deepEqual(await balances(),[400,900]);
    assert.equal(await page.evaluate(async id => (await DB.getAppointment(id)).status,stale),'confirmed');
    assert.equal(await page.locator('#outcome-save').isEnabled(),true);
-   await page.screenshot({path:`/private/tmp/beelo-payment-link-stale-${engine.name()}.png`});
+   await page.screenshot({path:artifactPath(`beelo-payment-link-stale-${engine.name()}.png`)});
    await page.evaluate(async ([id,target]) => DB.updateAppointment(id,{orderId:target}),[stale,ids.a]);
    await context.setOffline(true);
    await page.waitForFunction(() => document.getElementById('offline-banner')?.offsetHeight > 0);
-   await page.screenshot({path:`/private/tmp/beelo-payment-link-offline-${engine.name()}.png`});
+   await page.screenshot({path:artifactPath(`beelo-payment-link-offline-${engine.name()}.png`)});
    await page.locator('#outcome-save').click();
    await page.waitForFunction(async id => (await DB.getAppointment(id)).status === 'completed',stale);
    assert.deepEqual(await balances(),[300,900],'Safe retry can save offline');

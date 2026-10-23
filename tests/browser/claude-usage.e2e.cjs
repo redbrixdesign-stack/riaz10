@@ -2,6 +2,7 @@
 const {chromium,webkit}=require('playwright');
 const http=require('node:http');
 const assert=require('node:assert/strict');
+const {artifactPath}=require('./release-artifacts.cjs');
 const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
 if(!['127.0.0.1','localhost'].includes(new URL(base).hostname))throw Error('Mock API journey is loopback-only');
 (async()=>{
@@ -22,7 +23,7 @@ if(!['127.0.0.1','localhost'].includes(new URL(base).hostname))throw Error('Mock
     const id=await p.evaluate(async endpoint=>{const customer=await DB.addCustomer({firstName:'SYNTHETIC',notes:'SYNTHETIC notes must survive AI outage'});CONFIG.ai={...CONFIG.ai,enabled:true,proxyUrl:endpoint};sessionStorage.setItem('advisoros_ai_secret','SYNTHETIC-gate');App.navigate('settings',{section:'ai'});return customer.id;},endpoint);
     _setRedisClient(null);const before=providerCalls;await p.getByRole('button',{name:/Test connection/}).click();await p.getByText('AI is temporarily unavailable — please try again shortly',{exact:true}).waitFor();assert.equal(providerCalls,before);
     _setRedisClient({eval:async()=>{throw Error('SYNTHETIC store outage');}});const failure=await p.evaluate(()=>AIService.testConnection());assert.equal(failure.httpStatus,503);assert.equal(providerCalls,before);
-    await p.screenshot({path:`/private/tmp/beelo-claude-usage-${engine.name()}.png`,animations:'disabled'});
+    await p.screenshot({path:artifactPath(`beelo-claude-usage-${engine.name()}.png`),animations:'disabled'});
     _setRedisClient({eval:async()=>1});const success=await p.evaluate(()=>AIService.testConnection());assert(success.ok);assert.equal(providerCalls,before+1);
     _setRedisClient({eval:async()=>0});const limit=await p.evaluate(()=>AIService.testConnection());assert.equal(limit.httpStatus,429);assert.equal(providerCalls,before+1);
     assert.equal(await p.evaluate(async id=>(await DB.getCustomer(id)).notes,id),'SYNTHETIC notes must survive AI outage');assert.deepEqual(errors,[]);

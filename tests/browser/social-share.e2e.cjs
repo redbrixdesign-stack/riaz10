@@ -1,6 +1,7 @@
 'use strict';
 const {chromium,webkit}=require('playwright');
 const assert=require('node:assert/strict');
+const {artifactPath}=require('./release-artifacts.cjs');
 const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
 const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=','base64');
 (async()=>{for(const engine of [chromium,webkit]){
@@ -32,7 +33,7 @@ const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42
   await p.getByRole('button',{name:/Create three post options/}).click();await p.waitForFunction(()=>SocialFeature._shareApproval?.mediaFile?.name==='SYNTHETIC-finished.mp4');
   await share();await p.waitForFunction(()=>shareCalls.length===2);calls=await p.evaluate(()=>shareCalls);assert.equal(calls[1].files[0].type,'video/mp4');assert.deepEqual(calls[1].files[0].bytes,Array.from(video));
   await p.evaluate(()=>{Object.defineProperty(navigator,'share',{configurable:true,value:async()=>{throw new DOMException('SYNTHETIC cancel','AbortError');}});});await share();assert.equal(await p.evaluate(()=>copyCalls.length),0);
-  await p.screenshot({path:`/private/tmp/beelo-social-approval-${engine.name()}.png`,animations:'disabled'});
+  await p.screenshot({path:artifactPath(`beelo-social-approval-${engine.name()}.png`),animations:'disabled'});
   await p.reload();await p.locator('#social-draft-warm').waitFor();await p.getByRole('button',{name:/Withdraw recorded permission/}).click();await p.waitForFunction(id=>App.currentHash===`appointments?id=${id}`,id);
   const saved=await p.evaluate(id=>DB.getAppointment(id),id);assert.equal(saved.socialMediaConsentAt,null);assert.equal(saved.socialDrafts,null);
   assert.deepEqual(posts,[]);assert.deepEqual(errors,[]);

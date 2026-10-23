@@ -1,5 +1,6 @@
 const {chromium,webkit}=require('playwright');
 const assert=require('node:assert/strict');
+const {artifactPath}=require('./release-artifacts.cjs');
 const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
 (async()=>{for(const engine of [chromium,webkit]){
  const browser=await engine.launch();
@@ -29,7 +30,7 @@ const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
   assert(encrypted.length>1000000&&encrypted.startsWith('advisoros:enc:v1:'));assert(!encrypted.includes('SYNTHETIC'));
   await p.waitForFunction(()=>!!ExportService.getLastBackupMeta());
   assert.equal((await p.evaluate(()=>ExportService.getLastBackupMeta())).filename,download.suggestedFilename());
-  await p.screenshot({path:`/private/tmp/beelo-protected-backup-${engine.name()}.png`});
+  await p.screenshot({path:artifactPath(`beelo-protected-backup-${engine.name()}.png`)});
   // A separate device/profile uses a genuine, different passphrase, not the
   // test bypass, and receives only a locally selected encrypted File.
   const d=await browser.newContext({viewport:{width:390,height:844}});

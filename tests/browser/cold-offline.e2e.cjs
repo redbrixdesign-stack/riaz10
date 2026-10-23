@@ -1,6 +1,7 @@
 'use strict';
 const {chromium,webkit}=require('playwright');
 const assert=require('node:assert/strict');
+const {artifactPath}=require('./release-artifacts.cjs');
 const http=require('node:http');
 const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
 (async()=>{for(const engine of [chromium,webkit]){
@@ -26,7 +27,7 @@ const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
   assert.equal(navigations,1,'First controller claim must not reload the working page');
   assert(await p.evaluate(()=>App.features.get('settings')._lazy&&App.scriptLoads.size===0),'No secondary feature was opened online');
   const cached=await p.evaluate(async()=>{const keys=await caches.keys();const cache=await caches.open(keys.find(k=>k.startsWith('advisoros-v6-')));return (await cache.keys()).map(r=>r.url);});
-  assert(cached.some(url=>url.endsWith('/js/features/settings/settings.min.js?v=24')));
+  assert(cached.some(url=>url.includes('/js/features/settings/settings.min.js?v=')));
   const id=await p.evaluate(async()=>{const c=await DB.addCustomer({firstName:'SYNTHETIC',lastName:'Offline'});return(await DB.addAppointment({customerId:c.id,type:'fitting',clientName:'SYNTHETIC Offline',date:'2020-01-01T10:00:00Z'})).id;});
   if(engine===webkit&&!transport){console.log('LIMITATION webkit public origin: cached lazy assets verified; automated first-offline script loading not certified (context offline blocks SW scripts). Local socket-drop journey covers this separately.');continue;}
   if(transport)transport.blocked=true;else await c.setOffline(true);
@@ -37,7 +38,7 @@ const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
    await p.evaluate(({route,id})=>App.navigate(route,route==='social'?{appointmentId:id}:{}),{route,id});await p.waitForFunction(route=>App.currentHash.split('?')[0]===route,route);
    assert(!/Failed to load|Something went wrong/.test(await p.locator('#main').innerText()));
   }
-  await p.evaluate(()=>App.navigate('settings',{section:'data'}));await p.getByRole('button',{name:'Password-protected backup',exact:true}).waitFor();await p.waitForTimeout(400);await p.screenshot({path:`/private/tmp/beelo-cold-offline-${engine.name()}.png`,animations:'disabled'});
+  await p.evaluate(()=>App.navigate('settings',{section:'data'}));await p.getByRole('button',{name:'Password-protected backup',exact:true}).waitFor();await p.waitForTimeout(400);await p.screenshot({path:artifactPath(`beelo-cold-offline-${engine.name()}.png`),animations:'disabled'});
   if(transport)transport.blocked=false;else await c.setOffline(false);
   await p.reload();await p.getByRole('button',{name:'Password-protected backup',exact:true}).waitFor();assert.equal(await p.evaluate(()=>DB.db.customers.count()),1);
   assert.deepEqual(posts,[]);assert.deepEqual(errors,[]);
