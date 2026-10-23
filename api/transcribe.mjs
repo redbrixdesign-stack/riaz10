@@ -1,5 +1,9 @@
 /* Beelo transcription proxy. Audio is accepted only on an explicit client
    request, forwarded to OpenAI, and never persisted by this function. */
+import { createTranscriptionUsage } from '../server/transcription-usage.mjs';
+let usage = createTranscriptionUsage();
+// Test seam; never selected using request data or environment flags.
+export function _setTranscriptionUsage(value) { usage = value; }
 
 const OPENAI_TRANSCRIPTION_ENDPOINT = 'https://api.openai.com/v1/audio/transcriptions';
 // Keep base64 JSON safely below Vercel's 4.5 MB request-body ceiling.
@@ -62,6 +66,7 @@ export default async function handler(req, res) {
     return send(res, 403, { ok: false, error: 'forbidden', message: 'This device needs registering again' }, configuredOrigin || requestOrigin);
   }
 
+  let reservation;
   try {
     const body = await readJson(req);
     const mediaType = String(body.mediaType || '').split(';')[0].toLowerCase();
@@ -70,6 +75,16 @@ export default async function handler(req, res) {
     const audio = Buffer.from(body.audio, 'base64');
     if (!audio.length || audio.length > MAX_AUDIO_BYTES) return send(res, 413, { ok: false, error: 'audio_too_large', message: SIZE_MESSAGE }, configuredOrigin || requestOrigin);
 
+    reservation = await usage.reserve(audio.length);
+    if (!reservation.allowed) {
+      const unavailable = reservation.reason === 'unavailable';
+      const message = unavailable ? 'Transcription is temporarily paused because usage protection is unavailable. Try again later; recording and playback remain available.'
+        : reservation.reason === 'busy' ? 'Two transcriptions are already running. Try again shortly; your audio remains available.'
+        : 'The shared pilot transcription allowance has been reached (100 attempts or 100 MB per UTC day). Try after midnight UTC; recording and playback remain available.';
+      res.setHeader('retry-after', String(reservation.retryAfter));
+      return send(res, unavailable ? 503 : 429, { ok: false, error: 'transcription_' + reservation.reason, message }, configuredOrigin || requestOrigin);
+    }
+
     const extension = mediaType.includes('mp4') || mediaType.includes('m4a') ? 'm4a' : mediaType.includes('mpeg') || mediaType.includes('mp3') ? 'mp3' : mediaType.includes('ogg') ? 'ogg' : mediaType.includes('wav') ? 'wav' : 'webm';
     const form = new FormData();
     form.append('file', new Blob([audio], { type: mediaType }), `beelo-note.${extension}`);
@@ -77,12 +92,12 @@ export default async function handler(req, res) {
     form.append('language', 'en');
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 60_000);
-    let upstream;
+    let upstream, result;
     try {
       upstream = await fetch(OPENAI_TRANSCRIPTION_ENDPOINT, { method: 'POST', headers: { authorization: `Bearer ${process.env.OPENAI_API_KEY}` }, body: form, signal: controller.signal });
+      if (upstream.ok) result = await upstream.json();
     } finally { clearTimeout(timer); }
     if (!upstream.ok) return send(res, upstream.status === 429 ? 429 : 502, { ok: false, error: upstream.status === 429 ? 'rate_limited' : 'upstream', message: 'Transcription service is unavailable' }, configuredOrigin || requestOrigin);
-    const result = await upstream.json();
     const text = String(result.text || '').trim();
     if (!text) return send(res, 502, { ok: false, error: 'empty_transcript', message: 'No speech could be transcribed' }, configuredOrigin || requestOrigin);
     return send(res, 200, { ok: true, text, model: process.env.OPENAI_TRANSCRIBE_MODEL || 'gpt-4o-mini-transcribe' }, configuredOrigin || requestOrigin);
@@ -90,5 +105,7 @@ export default async function handler(req, res) {
     if (error?.status === 413) return send(res, 413, { ok: false, error: 'body_too_large', message: SIZE_MESSAGE }, configuredOrigin || requestOrigin);
     if (error?.name === 'AbortError') return send(res, 504, { ok: false, error: 'timeout', message: 'Transcription timed out' }, configuredOrigin || requestOrigin);
     return send(res, 400, { ok: false, error: 'invalid_request', message: 'The audio request could not be read' }, configuredOrigin || requestOrigin);
+  } finally {
+    if (reservation?.allowed) await reservation.release();
   }
 }

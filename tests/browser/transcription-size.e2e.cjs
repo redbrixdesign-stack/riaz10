@@ -21,9 +21,11 @@ function silentWav(bytes) {
         localStorage.setItem('advisoros_consent', JSON.stringify({ v: 2 }));
       });
       let requests = 0;
+      let transportError = null;
       await context.route('**/api/transcribe', async route => {
         requests++;
         assert(Buffer.byteLength(route.request().postData()) <= 4_100_000);
+        if (transportError) return route.fulfill({ status: transportError.status, json: { ok: false, message: transportError.message } });
         await route.fulfill({ json: { ok: true, text: 'SYNTHETIC smaller recording transcript.' } });
       });
       const page = await context.newPage();
@@ -58,9 +60,27 @@ function silentWav(bytes) {
         NoteCapture.setRecordings('edit-cust-notes', [...NoteCapture.getRecordings('edit-cust-notes'), { id: 'small-synthetic', mediaType: 'audio/wav', dataUrl }]);
         NoteCapture.refresh('edit-cust-notes');
       }, silentWav(32044));
+      const notesBefore = await page.locator('#edit-cust-notes').inputValue();
+      for (const error of [
+        { status: 429, message: 'The shared pilot transcription allowance has been reached (100 attempts or 100 MB per UTC day). Try after midnight UTC; recording and playback remain available.' },
+        { status: 429, message: 'Two transcriptions are already running. Try again shortly; your audio remains available.' },
+        { status: 503, message: 'Transcription is temporarily paused because usage protection is unavailable. Try again later; recording and playback remain available.' }
+      ]) {
+        await page.waitForFunction(() => document.querySelectorAll('.toast').length === 0);
+        transportError = error;
+        const before = requests;
+        await page.locator('[data-audio-id="small-synthetic"] [data-action="NoteCapture.transcribe"]').click();
+        await page.getByText(error.message, { exact: true }).waitFor();
+        assert.equal(requests, before + 1, 'No automatic quota retry');
+        assert.equal(await page.locator('#edit-cust-notes').inputValue(), notesBefore);
+        assert.equal(await page.evaluate(() => NoteCapture.transcribing.size), 0, 'Busy state released after denial');
+        assert.equal(await page.locator('[data-audio-id="small-synthetic"] audio').count(), 1, 'Local playback still available');
+      }
+      await page.screenshot({ path: `/private/tmp/beelo-transcription-usage-${engine.name()}.png` });
+      transportError = null;
       await page.locator('[data-audio-id="small-synthetic"] [data-action="NoteCapture.transcribe"]').click();
       await page.waitForFunction(() => document.getElementById('edit-cust-notes').value.includes('SYNTHETIC smaller recording transcript.'));
-      assert.equal(requests, 1);
+      assert.equal(requests, 4);
       assert((await page.locator('#edit-cust-notes').inputValue()).startsWith('Original synthetic context'));
       await page.getByRole('button', { name: 'Save Changes', exact: true }).click();
       await page.locator('#edit-cust-notes').waitFor({ state: 'hidden' });

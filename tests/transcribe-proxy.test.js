@@ -9,7 +9,8 @@
   process.env.AI_SECRET = 'test-secret';
   let upstream = null;
   global.fetch = async (url, options) => { upstream = { url, options }; return { ok: true, status: 200, json: async () => ({ text: 'Measured the synthetic bedroom window.' }) }; };
-  const { default: handler } = await import('../api/transcribe.mjs?test=1');
+  const { default: handler, _setTranscriptionUsage } = await import('../api/transcribe.mjs?test=1');
+  _setTranscriptionUsage({ reserve: async () => ({ allowed: true, release: async () => {} }) });
   const call = async ({ method = 'POST', body = {}, origin = 'https://beelo.example', secret = 'test-secret', extraHeaders = {}, chunks } = {}) => {
     const req = { method, body, headers: { origin, 'x-ai-key': secret, ...extraHeaders } };
     if (chunks) { delete req.body; req[Symbol.asyncIterator] = async function* () { yield* chunks; }; }

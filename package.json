@@ -5,6 +5,8 @@
   "private": true,
   "license": "MIT",
   "scripts": {
+    "pretest": "node tests/transcription-usage.test.mjs",
+    "test:transcription:redis": "node tests/transcription-usage-redis.test.mjs",
     "build": "node build/minify.js",
     "watch": "node build/minify.js --watch",
     "serve": "python3 -m http.server 8000",
