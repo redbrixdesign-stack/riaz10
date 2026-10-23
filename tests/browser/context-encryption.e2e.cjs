@@ -7,15 +7,22 @@ const expectEncryption=process.env.BEELO_EXPECT_CONTEXT_ENCRYPTION==='1';
 (async()=>{for(const engine of [chromium,webkit]){
  const browser=await engine.launch();
  try{
-  const c=await browser.newContext({viewport:{width:390,height:844}});
+  // This journey tests encrypted context, not device-zone conversion. Its
+  // original host-local "tomorrow" seed diverged from Beelo's UK calendar
+  // between 23:00 and 00:00 UTC in BST. Make that assumption explicit and
+  // retain the failing instant as a deterministic regression boundary.
+  const c=await browser.newContext({viewport:{width:390,height:844},timezoneId:'Europe/London'});
   await c.addInitScript(()=>{localStorage.setItem('advisoros_config',JSON.stringify({onboardingComplete:true,unlockTimeoutMinutes:60}));localStorage.setItem('advisoros_consent',JSON.stringify({v:2}));});
   const p=await c.newPage(),posts=[],errors=[];
+  await p.clock.setFixedTime(new Date('2026-10-23T23:44:00Z'));
   p.on('request',r=>{if(r.method()==='POST')posts.push(r.url());});p.on('pageerror',e=>errors.push(e.message));
   await p.goto(base);await p.locator('#enc-passphrase-new').fill('SYNTHETIC-context-device');await p.locator('#enc-passphrase-confirm').fill('SYNTHETIC-context-device');await p.getByRole('button',{name:'Set Passphrase',exact:true}).click();
   await p.waitForFunction(()=>App.currentHash==='today');await p.evaluate(()=>navigator.serviceWorker.ready);await p.waitForFunction(()=>!!navigator.serviceWorker.controller);await p.waitForTimeout(700);
   const ids=await p.evaluate(async expectEncryption=>{
    const customer=await DB.addCustomer({firstName:'SYNTHETIC',lastName:'Context',fullName:'SYNTHETIC Context',postcodeNormalized:'M147FZ',address:{postcode:'M14 7FZ'},notes:'SYNTHETIC customer history'});
    const date=new Date();date.setDate(date.getDate()+1);date.setHours(10,0,0,0);
+   const expectedDay=Utils.formatDate(Utils.getTomorrow(),'iso');
+   if(Utils.formatDate(date,'iso')!==expectedDay)throw new Error('Context fixture must be on the UK tomorrow-plan day');
    const visit=await DB.addAppointment({customerId:customer.id,clientName:'SYNTHETIC Context',type:'fitting',date:date.toISOString(),access:'SYNTHETIC side gate 1234'});
    const measurement=await DB.addMeasurement({appointmentId:visit.id,windowName:'SYNTHETIC bedroom',description:'SYNTHETIC blue roller left',notes:'اردو 🪟',widthTop:1000,widthMiddle:1001,widthBottom:1002,dropLeft:1200,dropCentre:1201,dropRight:1202,photos:['data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=']});
    const photo=await DB.addPhoto({customerId:customer.id,data:'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=',mimeType:'image/png',caption:'SYNTHETIC photo caption'});
