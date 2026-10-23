@@ -3,6 +3,7 @@ const {chromium,webkit}=require('playwright');
 const assert=require('node:assert/strict');
 const {artifactPath}=require('./release-artifacts.cjs');
 const http=require('node:http');
+const fs=require('node:fs');
 const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
 (async()=>{for(const engine of [chromium,webkit]){
  const browser=await engine.launch();
@@ -21,7 +22,10 @@ const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
   }
   const c=await browser.newContext({viewport:{width:390,height:844}});
   await c.addInitScript(()=>{localStorage.setItem('advisoros_config',JSON.stringify({onboardingComplete:true,unlockTimeoutMinutes:60}));localStorage.setItem('advisoros_consent',JSON.stringify({v:2}));});
-  const p=await c.newPage(),posts=[],errors=[];let navigations=0;p.setDefaultTimeout(20000);p.on('request',r=>{if(r.isNavigationRequest()&&r.frame()===p.mainFrame())navigations++;if(r.method()==='POST')posts.push(r.url());});p.on('pageerror',e=>errors.push(e.message));
+  const p=await c.newPage(),posts=[],errors=[],consoleErrors=[],scriptResponses=[],failedRequests=[],routeResults=[];let navigations=0;p.setDefaultTimeout(20000);p.on('request',r=>{if(r.isNavigationRequest()&&r.frame()===p.mainFrame())navigations++;if(r.method()==='POST')posts.push(r.url());});p.on('pageerror',e=>errors.push(e.message));
+  p.on('console',message=>{if(message.type()==='error')consoleErrors.push(message.text());});
+  p.on('response',response=>{if(response.request().resourceType()==='script')scriptResponses.push({url:response.url(),status:response.status(),worker:response.fromServiceWorker()});});
+  p.on('requestfailed',request=>failedRequests.push({url:request.url(),type:request.resourceType(),failure:request.failure()?.errorText}));
   await p.goto(target);await p.locator('#enc-passphrase-new').fill('SYNTHETIC-offline-device');await p.locator('#enc-passphrase-confirm').fill('SYNTHETIC-offline-device');await p.getByRole('button',{name:'Set Passphrase',exact:true}).click();await p.waitForFunction(()=>App.currentHash==='today');
   await p.evaluate(()=>navigator.serviceWorker.ready);await p.waitForFunction(()=>!!navigator.serviceWorker.controller);await p.waitForTimeout(700);
   assert.equal(navigations,1,'First controller claim must not reload the working page');
@@ -37,8 +41,11 @@ const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
    assert(await p.evaluate(route=>!!App.features.get(route)._lazy,route));
    await p.evaluate(({route,id})=>App.navigate(route,route==='social'?{appointmentId:id}:{}),{route,id});await p.waitForFunction(route=>App.currentHash.split('?')[0]===route,route);
    const rendered=await p.locator('#main').innerText();
+   routeResults.push({route,rendered:rendered.slice(0,500)});
    if(/Failed to load|Something went wrong/.test(rendered)){
-    console.error('OFFLINE FAILURE',JSON.stringify({engine:engine.name(),route,rendered,errors,cached}));
+    const evidence={engine:engine.name(),route,rendered,errors,consoleErrors,cached,scriptResponses,failedRequests};
+    console.error('OFFLINE FAILURE',JSON.stringify(evidence));
+    fs.writeFileSync(artifactPath(`beelo-cold-offline-failed-${engine.name()}-${route}.json`),JSON.stringify(evidence,null,2));
     await p.screenshot({path:artifactPath(`beelo-cold-offline-failed-${engine.name()}-${route}.png`),animations:'disabled'});
    }
    assert(!/Failed to load|Something went wrong/.test(rendered),`${engine.name()} first offline ${route} must render`);
@@ -47,6 +54,7 @@ const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
   if(transport)transport.blocked=false;else await c.setOffline(false);
   await p.reload();await p.getByRole('button',{name:'Password-protected backup',exact:true}).waitFor();assert.equal(await p.evaluate(()=>DB.db.customers.count()),1);
   assert.deepEqual(posts,[]);assert.deepEqual(errors,[]);
+  fs.writeFileSync(artifactPath(`beelo-cold-offline-${engine.name()}.json`),JSON.stringify({engine:engine.name(),cached,routeResults,scriptResponses,failedRequests,errors,consoleErrors},null,2));
   console.log(`PASS ${engine.name()} (${transport?'loopback socket-drop':'context offline'}): fresh install, no online lazy opens, first offline Settings/protected-dialog plus all eight other secondary routes, online reload and retained mock customer; no uploads`);
  }finally{await browser.close();if(transport)await new Promise(resolve=>transport.server.close(resolve));}
 }})().catch(e=>{console.error(e);process.exitCode=1;});
