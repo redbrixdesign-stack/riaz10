@@ -624,6 +624,8 @@ const SettingsFeature = {
           <span class="fw-600">Back Up My Beelo</span>
         </button>
         <div class="fs-12 text-tertiary mt-2 text-center" >Creates a complete backup of all your customers, visits, orders, measurements, photos, and settings</div>
+        <button class="btn btn-outline btn-block mt-sm" data-action="ExportService.promptProtectedBackup">Password-protected backup</button>
+        <div class="fs-12 text-tertiary mt-2">The standard JSON backup is readable outside Beelo. Use a password-protected backup to encrypt the exported file.</div>
       </div>
 
       <!-- Restore Section -->

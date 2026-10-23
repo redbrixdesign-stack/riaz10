@@ -9,6 +9,14 @@ const EXPORT_PBKDF2_ITERATIONS = 100000;
 const EXPORT_KEY_LENGTH = 256;
 const EXPORT_IV_LENGTH = 12;
 
+function backupBytesToBase64(bytes) {
+  let binary = '';
+  for (let offset = 0; offset < bytes.length; offset += 8192) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + 8192));
+  }
+  return btoa(binary);
+}
+
 async function exportDeriveKey(passphrase, salt) {
   const encoder = new TextEncoder();
   const keyMaterial = await crypto.subtle.importKey(
@@ -41,17 +49,16 @@ async function exportEncrypt(jsonString, passphrase) {
   combined.set(salt, 0);
   combined.set(iv, salt.length);
   combined.set(new Uint8Array(ciphertext), salt.length + iv.length);
-  return ENCRYPTION_MARKER + btoa(String.fromCharCode(...combined));
+  return ENCRYPTION_MARKER + backupBytesToBase64(combined);
 }
 
 async function exportDecrypt(encryptedString, passphrase) {
   if (!encryptedString.startsWith(ENCRYPTION_MARKER)) {
     return encryptedString; // Not encrypted, return as-is
   }
-  const combined = new Uint8Array(
-    atob(encryptedString.slice(ENCRYPTION_MARKER.length))
-      .split('').map(c => c.charCodeAt(0))
-  );
+  const binary = atob(encryptedString.slice(ENCRYPTION_MARKER.length));
+  const combined = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index++) combined[index] = binary.charCodeAt(index);
   const salt = combined.slice(0, 16);
   const iv = combined.slice(16, 16 + EXPORT_IV_LENGTH);
   const ct = combined.slice(16 + EXPORT_IV_LENGTH);
@@ -70,9 +77,8 @@ const ExportService = {
   _LAST_BACKUP_KEY: 'beelo_last_backup',
 
   // Record last backup metadata
-  async _recordBackup(backup) {
+  async _recordBackup(backup, filename) {
     try {
-      const data = await DB.exportAll();
       const counts = {};
       let totalRecords = 0;
       let photoCount = 0;
@@ -89,7 +95,7 @@ const ExportService = {
         photoCount,
         tableCounts: counts,
         backupVersion: 1,
-        filename: `beelo_backup_${Utils.formatDateUK(new Date(), 'iso')}.json`
+        filename: filename || `beelo_backup_${Utils.formatDateUK(new Date(), 'iso')}.json`
       };
       localStorage.setItem(this._LAST_BACKUP_KEY, JSON.stringify(meta));
       return meta;
@@ -255,7 +261,7 @@ const ExportService = {
     );
 
     // Record backup metadata for UI
-    await this._recordBackup(backup);
+    await this._recordBackup(backup, filename);
 
     Toast.show('Backup saved to your downloads', 'success');
     return backup;
@@ -422,46 +428,82 @@ const ExportService = {
     return backup;
   },
 
-  // Prompt for password via a modal
-  _promptForPassword(message) {
+  async promptProtectedBackup() {
+    if (this._protectedExportBusy) return;
+    this._protectedExportBusy = true;
+    try {
+      const password = await this._promptForPassword('Choose a backup password and keep it somewhere safe. Beelo cannot recover it.', true);
+      if (password === null) return;
+      await this.exportBackup(password);
+    } catch (error) {
+      Toast.show(error?.message || 'Backup could not be created. Your records remain on this device.', 'error');
+    } finally { this._protectedExportBusy = false; }
+  },
+
+  // Standalone dialog: never append inside an inactive App overlay or use
+  // window.ExportService (the service is a classic-script lexical binding).
+  _promptForPassword(message, creating = false) {
+    if (this._passwordPrompt) return Promise.reject(new Error('Close the existing backup dialog first'));
+    this._passwordPrompt = true;
     return new Promise((resolve) => {
+      const previousFocus = document.activeElement;
       const modal = document.createElement('div');
-      modal.className = 'modal-overlay';
+      modal.className = 'modal-overlay active';
+      modal.style.zIndex = '320';
+      modal.setAttribute('role', 'dialog');
+      modal.setAttribute('aria-modal', 'true');
+      modal.setAttribute('aria-labelledby', 'backup-dialog-title');
       modal.innerHTML = `
         <div class="bottom-sheet" style="max-width:400px;">
           <div class="sheet-handle"></div>
           <div class="sheet-header">
-            <h3>Encrypted Backup</h3>
+            <h3 id="backup-dialog-title">${creating ? 'Create protected backup' : 'Encrypted Backup'}</h3>
           </div>
           <div class="sheet-body p-md">
             <p class="text-secondary mb-lg">${Utils.escapeHtml(message)}</p>
             <div class="form-group">
-              <label>Password</label>
-              <input type="password" class="input" id="enc-backup-password" placeholder="Enter password" autocomplete="off">
+              <label for="enc-backup-password">Password</label>
+              <input type="password" class="input" id="enc-backup-password" placeholder="Enter password" autocomplete="${creating ? 'new-password' : 'current-password'}">
             </div>
-            <div id="enc-backup-error" class="fs-12 text-danger mb-md" style="display:none;"></div>
-            <button class="btn btn-primary btn-block" data-action="ExportService._submitPassword">Decrypt & Import</button>
+            ${creating ? '<div class="form-group"><label for="enc-backup-confirm">Confirm password</label><input type="password" class="input" id="enc-backup-confirm" autocomplete="new-password"><div class="hint">Use at least 8 characters. This password protects this exported file.</div></div>' : ''}
+            <div id="enc-backup-error" role="alert" class="fs-12 text-danger mb-md" hidden></div>
+            <button type="button" class="btn btn-primary btn-block" id="backup-password-submit">${creating ? 'Create encrypted backup' : 'Decrypt & Import'}</button>
+            <button type="button" class="btn btn-ghost btn-block mt-sm" id="backup-password-cancel">Cancel</button>
           </div>
         </div>
       `;
-      document.getElementById('modal-overlay').appendChild(modal);
-      document.getElementById('enc-backup-password').focus();
-
-      window.ExportService._submitPassword = () => {
-        const password = document.getElementById('enc-backup-password').value;
-        if (!password) {
-          document.getElementById('enc-backup-error').textContent = 'Please enter the password';
-          document.getElementById('enc-backup-error').style.display = 'block';
+      document.body.appendChild(modal);
+      const input = modal.querySelector('#enc-backup-password');
+      const finish = value => {
+        modal.remove(); this._passwordPrompt = false;
+        try { previousFocus?.focus({ preventScroll: true }); } catch {}
+        resolve(value);
+      };
+      const submit = () => {
+        const password = input.value;
+        let message = !password ? 'Please enter the password' : '';
+        if (creating && password.length < 8) message = 'Use at least 8 characters';
+        if (creating && password !== modal.querySelector('#enc-backup-confirm').value) message = 'Passwords do not match';
+        if (message) {
+          const error = modal.querySelector('#enc-backup-error');
+          error.textContent = message; error.hidden = false;
           return;
         }
-        modal.remove();
-        delete window.ExportService._submitPassword;
-        resolve(password);
+        finish(password);
       };
-
-      document.getElementById('enc-backup-password').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') window.ExportService._submitPassword();
+      modal.querySelector('#backup-password-submit').addEventListener('click', submit);
+      modal.querySelector('#backup-password-cancel').addEventListener('click', () => finish(null));
+      modal.addEventListener('click', e => { if (e.target === modal) finish(null); });
+      modal.addEventListener('keydown', e => {
+        if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); finish(null); }
+        if (e.key === 'Enter') { e.preventDefault(); submit(); }
+        if (e.key === 'Tab') {
+          const controls = [...modal.querySelectorAll('input,button')];
+          if (e.shiftKey && document.activeElement === controls[0]) { e.preventDefault(); controls.at(-1).focus(); }
+          else if (!e.shiftKey && document.activeElement === controls.at(-1)) { e.preventDefault(); controls[0].focus(); }
+        }
       });
+      input.focus();
     });
   },
 
