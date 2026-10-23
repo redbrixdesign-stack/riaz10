@@ -7,7 +7,7 @@ const {spawn}=require('node:child_process');
 const root=path.resolve(__dirname,'..');
 const directory=process.env.BEELO_ARTIFACT_DIR?path.resolve(process.env.BEELO_ARTIFACT_DIR):fs.mkdtempSync(path.join(os.tmpdir(),'beelo-release-'));
 fs.mkdirSync(directory,{recursive:true});
-const checks=['payment-link.e2e.cjs','protected-backup.e2e.cjs','context-encryption.e2e.cjs','lazy-state.e2e.cjs','social-share.e2e.cjs','cold-offline.e2e.cjs','claude-usage.e2e.cjs','test-session-boundary.e2e.cjs','visit-reminder-expiry.e2e.cjs','visit-reminder-lifecycle.e2e.cjs','sw-update.e2e.js'];
+const checks=['payment-link.e2e.cjs','protected-backup.e2e.cjs','context-encryption.e2e.cjs','lazy-state.e2e.cjs','social-share.e2e.cjs','cold-offline.e2e.cjs','claude-usage.e2e.cjs','test-session-boundary.e2e.cjs','visit-reminder-expiry.e2e.cjs','visit-reminder-lifecycle.e2e.cjs','visit-form-layout.e2e.cjs','sw-update.e2e.js'];
 const types={'.html':'text/html','.js':'text/javascript','.json':'application/json','.css':'text/css','.woff2':'font/woff2','.png':'image/png','.svg':'image/svg+xml'};
 const server=http.createServer((request,response)=>{
  try{

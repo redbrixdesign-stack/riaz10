@@ -682,6 +682,22 @@ body.trip-active .toast-container {
   gap: var(--space-md);
 }
 
+/* Native iOS date/time inputs have intrinsic widths larger than half a phone.
+   Scope this containment/stacking to new-visit scheduling, not every form. */
+.visit-datetime-row > .form-group,
+.visit-datetime-row .input {
+  min-width: 0;
+}
+.visit-datetime-row .input {
+  max-width: 100%;
+}
+@media (max-width: 480px) {
+  .visit-datetime-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+}
+
 /* ============================================
    SEARCH BAR
    ============================================ */

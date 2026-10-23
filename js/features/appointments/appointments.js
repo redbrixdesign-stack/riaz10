@@ -2179,7 +2179,7 @@ const AppointmentsFeature = {
           </button>
           <div class="hint mt-neg-4 mb-md" >Use this for a paper note, screenshot, business card or order document.</div>
 
-	          <div class="form-row">
+	          <div class="form-row visit-datetime-row">
 	            <div class="form-group">
 	              <label>Date *</label>
 	              <input type="date" class="input" id="appt-date" value="${today}" data-action="AppointmentsFeature.updateVisitDayAdvice" data-args='${JSON.stringify(["__value__"])}'>
