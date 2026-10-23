@@ -27,12 +27,15 @@ const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
    await page.setViewportSize({width,height});
    const result=await page.evaluate(()=>{
     const row=document.getElementById('appt-date').closest('.form-row');
-    const controls=['appt-date','appt-time'].map(id=>{const e=document.getElementById(id),r=e.getBoundingClientRect(),g=e.closest('.form-group').getBoundingClientRect();return {id,left:r.left,right:r.right,width:r.width,top:r.top,groupLeft:g.left,groupRight:g.right};});
+    const controls=['appt-date','appt-time'].map(id=>{const e=document.getElementById(id),r=e.getBoundingClientRect(),g=e.closest('.form-group').getBoundingClientRect(),style=getComputedStyle(e);return {id,left:r.left,right:r.right,width:r.width,top:r.top,groupLeft:g.left,groupRight:g.right,boxSizing:style.boxSizing,appearance:style.appearance};});
     return {viewport:innerWidth,row:row.getBoundingClientRect().toJSON(),scrollWidth:document.documentElement.scrollWidth,controls};
    });
    results.push(result);console.log(engine.name(),JSON.stringify(result));
    assert(result.scrollWidth<=width+1,`${engine.name()} ${width}px page must not overflow horizontally`);
-   for(const control of result.controls)assert(control.left>=-1&&control.left>=control.groupLeft-1&&control.right<=width+1&&control.right<=control.groupRight+1,`${engine.name()} ${width}px ${control.id} must fit screen and its field`);
+   for(const control of result.controls){
+    assert(control.left>=-1&&control.left>=control.groupLeft-1&&control.right<=width+1&&control.right<=control.groupRight+1,`${engine.name()} ${width}px ${control.id} must fit screen and its field`);
+    assert.equal(control.boxSizing,'border-box');assert.equal(control.appearance,'none');
+   }
    if(width<=480){
     assert.equal(result.controls[0].left,result.controls[1].left,'Phone date/time controls stack in one column');
     assert(result.controls[1].top>result.controls[0].top,'Time follows date on phones');
