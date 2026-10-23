@@ -236,13 +236,21 @@ const NotificationService = {
 
   async _fireVisitReminder(appointmentId, key) {
     this._visitReminderTimers.delete(key);
+    if (!this.isVisitReminderEnabled() || typeof DB === 'undefined' || !DB.db) return;
     let appt = null;
     try { appt = await DB.getAppointment(appointmentId); } catch (e) {}
     if (!appt || this._visitReminderKey(appt) !== key || appt.status === 'cancelled' || appt.status === 'completed' || appt.outcome) return;
 
-    this._markVisitReminderDelivered(key);
     const visitAt = new Date(appt.date).getTime();
-    const minutes = Math.max(0, Math.ceil((visitAt - Date.now()) / 60000));
+    const now = Date.now();
+    // A suspended timer (or delayed database read) may resume long after its
+    // scheduled window. Revalidate the same +/-15 minute scheduling boundary
+    // before consuming the reminder or showing anything to the adviser.
+    if (!this.isVisitReminderEnabled() || !DB.db || !Number.isFinite(visitAt) ||
+        visitAt < now - (15 * 60000) || visitAt > now + (15 * 60000) ||
+        this._readDeliveredVisitReminders()[key]) return;
+    this._markVisitReminderDelivered(key);
+    const minutes = Math.max(0, Math.ceil((visitAt - now) / 60000));
     const name = appt.clientName || 'your customer';
     const timing = minutes >= 14 ? 'in 15 minutes' : minutes > 0 ? `in ${minutes} minutes` : 'now';
     const body = `${name} · ${Utils.formatTimeUK(appt.date)}${appt.address ? ` · ${appt.address}` : ''}`;
