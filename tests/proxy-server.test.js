@@ -32,6 +32,7 @@ process.env.ANTHROPIC_API_KEY = 'test-key';
 delete process.env.AI_SECRET;
 delete process.env.ALLOWED_ORIGIN;
 delete process.env.NODE_ENV;
+for (const key of ['UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN', 'KV_REST_API_URL', 'KV_REST_API_TOKEN']) delete process.env[key];
 
 // Stub the Anthropic upstream BEFORE the server imports the shared handler.
 const path = require('path');
@@ -141,8 +142,11 @@ function post(p, { headers = {}, body = {}, method = 'POST' } = {}) {
   ok('server: production without AI_SECRET fails closed 500', r.status === 500 && (await r.json()).error === 'config', r.status);
   process.env.ALLOWED_ORIGIN = 'https://app.example';
   process.env.AI_SECRET = 's3cret';
+  const { _setRedisClient } = await import('../api/claude.mjs');
+  _setRedisClient({ eval: async () => 1 });
   r = await post('/', { headers: { origin: 'https://app.example', 'x-ai-key': 's3cret' }, body: { type: 'ping' } });
   ok('server: production configured passes the guard', r.status === 200, r.status);
+  _setRedisClient(null);
   delete process.env.NODE_ENV;
   delete process.env.ALLOWED_ORIGIN;
   delete process.env.AI_SECRET;
@@ -196,7 +200,6 @@ function post(p, { headers = {}, body = {}, method = 'POST' } = {}) {
       return 1;
     }
   };
-  const { _setRedisClient } = await import('../api/claude.mjs');
   _setRedisClient(mockRedis);
 
   const redisStatuses = [];
@@ -224,7 +227,7 @@ function post(p, { headers = {}, body = {}, method = 'POST' } = {}) {
   process.env.AI_SECRET = 'test-secret';
   _setRedisClient({ eval: async () => { throw new Error('simulated Redis outage'); } });
   const outage = await post('/', { headers: { 'x-forwarded-for': '203.0.113.200' }, body: { type: 'ping' } });
-  ok('server (redis): production outage fails closed', outage.status === 429, outage.status);
+  ok('server (redis): production outage fails closed with retryable 503', outage.status === 503 && (await outage.json()).error === 'usage_unavailable', outage.status);
   _setRedisClient(null);
 
   await stop();

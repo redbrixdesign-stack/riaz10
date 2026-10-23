@@ -16,10 +16,10 @@
                         is open ("*") and logs a one-time warning.
      AI_SECRET          REQUIRED in production; optional in dev. When
                         set, requests must send it in the X-AI-Key
-                        header. NOTE: the secret lives inside the PWA
-                        bundle, so anyone visiting the page can read
-                        it — it is a shared gate that stops random
-                        scripts burning quota, NOT true authentication.
+                        header. Provision it separately to the device;
+                        never ship it inside the public PWA bundle.
+                        It is a shared gate that stops random scripts
+                        burning quota, NOT per-user authentication.
                         Real protection = ALLOWED_ORIGIN + rate limits.
      RATE_LIMIT_MAX     optional; max requests per window per client
                         address. Default 120.
@@ -105,6 +105,13 @@ function warnAboutRedisFallback() {
   console.error('[claude.mjs] Redis REST credentials not set — rate limiting falls back to per-instance in-memory state. Connect Upstash and set either UPSTASH_REDIS_REST_* or KV_REST_API_* variables.');
 }
 
+function limiterUnavailable() {
+  // Do not log Redis exceptions: connection messages can include URLs or
+  // credential details. No payload, identity or provider request is logged.
+  console.error('[claude.mjs] Shared usage protection unavailable');
+  return { limited: true, unavailable: true, retryAfter: 30 };
+}
+
 // Redis-backed sliding window: a sorted set holds one entry per request
 // (score = arrival ms). Entries older than the window are pruned, the
 // remaining count is the window's request count, and a TTL keeps idle
@@ -152,17 +159,18 @@ function rateLimitInMemory(headers, max, windowMs) {
 async function rateLimit(headers) {
   const max = parseInt(process.env.RATE_LIMIT_MAX || String(RATE_LIMIT_MAX_DEFAULT), 10) || RATE_LIMIT_MAX_DEFAULT;
   const windowMs = parseInt(process.env.RATE_LIMIT_WINDOW_MS || String(RATE_LIMIT_WINDOW_MS_DEFAULT), 10) || RATE_LIMIT_WINDOW_MS_DEFAULT;
-  const r = getRedisClient();
-  if (r) {
-    try {
+  try {
+    const r = getRedisClient();
+    if (r) {
       return await rateLimitRedis(headers, max, windowMs);
-    } catch (err) {
-      console.error('[claude.mjs] Redis rate limit failed:', err?.message || err);
-      // In production fail closed: an infrastructure outage must not expose
-      // uncapped upstream AI spend. Development retains the local fallback.
-      if (process.env.NODE_ENV === 'production') return { limited: true, retryAfter: 30 };
+    } else {
+      if (process.env.NODE_ENV === 'production') return limiterUnavailable();
+      warnAboutRedisFallback();
     }
-  } else {
+  } catch (err) {
+    // Missing, malformed or unavailable store must never reach a per-process
+    // allowance in production. The memory path is local development only.
+    if (process.env.NODE_ENV === 'production') return limiterUnavailable();
     warnAboutRedisFallback();
   }
   return rateLimitInMemory(headers, max, windowMs);
@@ -564,6 +572,10 @@ export async function handle(request) {
   // Rate limit before the auth/origin checks so abusive clients burn slots,
   // never upstream quota.
   const rl = await rateLimit(request.headers);
+  if (rl.unavailable) {
+    return json(503, { ok: false, error: 'usage_unavailable', message: 'AI is temporarily unavailable — please try again shortly' },
+      { ...corsHeaders(origin), 'retry-after': String(rl.retryAfter) });
+  }
   if (rl.limited) {
     return json(429, { ok: false, error: 'rate_limited', message: 'Too many requests — try again shortly' },
       { ...corsHeaders(origin), 'retry-after': String(rl.retryAfter) });

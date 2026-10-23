@@ -31,6 +31,9 @@
      RATE_LIMIT_MAX         optional (default 120)
      RATE_LIMIT_WINDOW_MS   optional (default 60000)
      ANTHROPIC_TIMEOUT_MS   optional (default 60000)
+     KV_REST_API_URL / KV_REST_API_TOKEN (or UPSTASH_REDIS_REST_* pair)
+                            REQUIRED in production for shared usage control;
+                            missing/unavailable store returns retryable 503
      PORT                   optional (default 8787)
 
    Run anywhere (a laptop, a $5 VPS, Render, Fly.io) and point
