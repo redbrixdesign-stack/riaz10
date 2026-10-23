@@ -1,6 +1,6 @@
 # C01 — Explicit visit-payment linkage
 
-Status: implemented and locally verified; deployment evidence appended after release.
+Status: deployed 23 October 2026. Source `36e8231`, production READY `dpl_Gz8iEUvsgk4t6E78Mp8XgV4zjiRS`, https://beelo.beelestial.co.uk/. Framework: static PWA + existing Vercel functions; build 7s.
 
 ## Decision / scope
 
@@ -26,5 +26,7 @@ Status: implemented and locally verified; deployment evidence appended after rel
 
 ## Release
 
+- Staged index/SW/CSS/DB bundle/appointments bundle byte-matched the tested build before exact-build promotion. Live index/SW/CSS and all four changed source/minified assets byte-match. Ten-minute deployment-scoped error/fatal query returned no records; drains/client monitoring and physical-iPhone acceptance remain unverified.
+- Post-deploy payment journeys passed on the live custom domain in both Chromium and WebKit, using disposable local synthetic records. Explicit order allocation, double taps, retained balances after reload, stale-link error/retry offline, unlinked completion, referral exclusion and own-sale deposit all passed with no POSTs or communications sent. Log retained in the main task's `docs/evidence/2026-10-23-payment-link/live/`.
 - Prior live source `c33240f`, deployment `dpl_3v9xeCrnHxPhnT6JmaqTUBSnkdA3` is rollback target. Deploy only from isolated managed `codex/phone-contact-save` checkout; preserve unrelated original dirty-tree work.
 - Next approved sequence remains one fix/test/deploy at a time; C02 protected backup is next, not implemented in this release.
