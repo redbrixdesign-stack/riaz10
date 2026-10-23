@@ -1,6 +1,13 @@
 # Audit A02: transcription transport safeguard
 
-Status: local transport gates passed; staging pending. Production remains source `4da1b1a` / deployment `dpl_FFuk9Sd4nsmAdn2aT8XLtwV2ZBUG` until release below is recorded.
+Status: deployed and verified at https://beelo.beelestial.co.uk/.
+
+- Released source `34760c1` (runtime safeguard introduced in `857673d`), deployment `dpl_3oeZbVftywyr7F954UGuG4FHEcTb`, build 7s, cache `advisoros-v6-141-transcription-size`.
+- Staged index/SW/NoteCapture minified asset matched the tested files before exact-build promotion. Live index/SW/NoteCapture source and minified files matched afterwards.
+- Staged and live empty unauthenticated transcription requests returned 403/forbidden, without a provider call. This checks the credential gate, not authenticated live size boundaries.
+- Final provider-mocked journeys passed against the live app in Chromium/WebKit: oversize zero-upload, unchanged notes, exact encrypted audio retention/reload, local Blob player source, smaller mocked transcription, both recordings retained. Workers blocked only in these provider-mock contexts; this is not a new SW/offline-recovery pass. WebKit headless decoding and physical-iPhone audio acceptance remain unverified.
+- Deployment-scoped ten-minute error/fatal runtime-log query returned no records. Client error monitoring and drains not audited.
+- Rollback: source `4da1b1a`, deployment `dpl_FFuk9Sd4nsmAdn2aT8XLtwV2ZBUG`.
 
 ## Decision / change
 
@@ -26,4 +33,4 @@ Evidence: `/private/tmp/beelo-transcription-size-{chromium,webkit}.png`, `/priva
 
 ## Next
 
-Stage/promote the exact tested commit, compare served assets, then run the isolated synthetic provider-mock journey against the public app. Keep physical iPhone audio acceptance open. Audit A03 per-device usage/concurrency/budget controls remain a separate unresolved risk; this size guard does not solve them. Marketing website untouched.
+Keep physical iPhone audio acceptance and authenticated production boundary testing open. Audit A03 per-device usage/concurrency/budget controls remain a separate unresolved risk; this size guard does not solve them. Marketing website untouched.
