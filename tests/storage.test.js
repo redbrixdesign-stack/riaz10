@@ -358,9 +358,9 @@ async function runDbJs(engine, tag) {
   const photoData = Buffer.from('fake-jpeg-bytes-'.repeat(100)).toString('base64');
   const ph = await DB.addPhoto({ customerId: c.id, data: photoData, caption: 'Front windows' });
   ok(engine + ': photo stored with id and caption', ph.id > 0 && ph.caption === 'Front windows');
-  ok(engine + ': photo data roundtrip', (await DB.getPhotosForCustomer(c.id)).length === 1 && (await DB.db.photos.get(ph.id)).data === photoData);
+  ok(engine + ': photo data roundtrip and encrypted at rest', (await DB.getPhotosForCustomer(c.id))[0].data === photoData && typeof (await DB.db.photos.get(ph.id)).data === 'object');
   const legacyPhoto = await DB.addPhoto({ customerId: c.id, data: `data:image/heic;base64,${photoData}`, mimeType: 'image/heic', caption: 'Apple photo' });
-  const normalisedPhoto = await DB.db.photos.get(legacyPhoto.id);
+  const normalisedPhoto = await DB.getPhoto(legacyPhoto.id);
   ok(engine + ': full photo data URL is normalised before storage', normalisedPhoto.data === photoData && normalisedPhoto.mimeType === 'image/heic');
   ok(engine + ': photos are per customer', (await DB.getPhotosForCustomer(9999)).length === 0);
   await DB.deletePhoto(ph.id);
@@ -727,7 +727,7 @@ async function runBackupRoundtrip(engine, tag) {
   });
   ok(engine + ': import reconstructs every table equivalently', tablesEqual);
 
-  const restoredPhotos = await DB.db.photos.toArray();
+  const restoredPhotos = (await DB.exportAll()).photos;
   ok(engine + ': photo count after restore', restoredPhotos.length === 3);
   ok(engine + ': photo data integrity after restore', restoredPhotos.every(p => p.data === photoA || p.data === photoB));
   ok(engine + ': photo customer links intact', restoredPhotos.filter(p => p.customerId === c1.id).length === 2);
@@ -944,7 +944,7 @@ async function runBackupEnvelope() {
   ok('envelope: full restore reconstructs data',
     (await DB.db.customers.count()) === backup.data.customers.length &&
     (await DB.db.photos.count()) === backup.data.photos.length &&
-    JSON.stringify(await DB.db.photos.toArray()) === JSON.stringify(backup.data.photos));
+    JSON.stringify((await DB.exportAll()).photos) === JSON.stringify(backup.data.photos));
   ok('envelope: config restored', CONFIG.weeklyTarget === 750, CONFIG.weeklyTarget);
 
   // The device's own proxy secret must survive an import.
@@ -1412,6 +1412,42 @@ async function runPhase6RetentionStorage(engine) {
   await DB.deleteCustomer(c.id);ok(engine+': customer deletion removes retention and consent graph',(await DB.db.retentionRecords.count())===0&&(await DB.db.contactPreferences.count())===0&&(await DB.db.communicationEvents.count())===0);
 }
 
+async function runContextEncryption(engine) {
+  const sandbox = baseSandbox();
+  sandbox.Dexie = engine === 'dexie' ? require('dexie') : loadShim(sandbox);
+  const db = loadDbJs(sandbox, 'context_' + engine + '_' + Date.now());
+  await db.init();
+  await sandbox.initEncryption('SYNTHETIC migration passphrase');
+  const customer = await db.addCustomer({firstName:'SYNTHETIC',fullName:'SYNTHETIC full name',postcodeNormalized:'M147FZ'});
+  const visit = await db.addAppointment({customerId:customer.id,date:new Date().toISOString(),type:'fitting',access:'SYNTHETIC gate'});
+  const measurement = await db.addMeasurement({appointmentId:visit.id,windowName:'SYNTHETIC bedroom',description:'SYNTHETIC description',notes:'اردو 🪟',photos:['data:image/png;base64,QUJD']});
+  const photo = await db.addPhoto({customerId:customer.id,data:'QUJD',caption:'SYNTHETIC caption'});
+  ok(engine+': new context writes encrypted', typeof (await db.db.customers.get(customer.id)).fullName==='object' && typeof (await db.db.appointments.get(visit.id)).access==='object' && typeof (await db.db.measurements.get(measurement.id)).photos[0]==='object' && typeof (await db.db.photos.get(photo.id)).caption==='object');
+  await db.updatePhoto(photo.id,{caption:'SYNTHETIC edited'});
+  await db.updateMeasurement(measurement.id,{description:'SYNTHETIC edited measure'});
+  ok(engine+': edits protect context and retain photo bytes', (await db.getPhoto(photo.id)).data==='QUJD' && typeof (await db.db.photos.get(photo.id)).caption==='object' && (await db.getMeasurement(measurement.id)).description==='SYNTHETIC edited measure');
+  // Simulate a legacy profile, including a photo-only measurement.
+  await db.db.customers.update(customer.id,{fullName:'SYNTHETIC legacy',postcodeNormalized:'M147FZ'});
+  await db.db.appointments.update(visit.id,{access:'SYNTHETIC legacy gate'});
+  await db.db.photos.update(photo.id,{data:'QUJD',caption:'SYNTHETIC legacy photo'});
+  const photo2=await db.db.photos.add({customerId:customer.id,data:'REVG',caption:'SYNTHETIC retry'});
+  await db.db.measurements.update(measurement.id,{notes:'SYNTHETIC legacy measure',photos:['data:image/png;base64,QUJD']});
+  await sandbox.migratePlaintextCustomers();await sandbox.migratePlaintextAppointments();
+  const put=db.db.photos.put.bind(db.db.photos);
+  db.db.photos.put=async row=>{if(row.id===photo2)throw new Error('SYNTHETIC interrupted migration');return put(row);};
+  let failed=false;try{await sandbox.migratePlaintextContext();}catch(e){failed=/interrupted migration/.test(e.message);}
+  ok(engine+': interruption propagates without deleting data',failed && (await db.getPhoto(photo.id)).data==='QUJD' && (await db.getPhoto(photo2)).data==='REVG');
+  db.db.photos.put=put;await sandbox.migratePlaintextContext();
+  const before=JSON.stringify({photos:await db.db.photos.toArray(),measurements:await db.db.measurements.toArray()});
+  await sandbox.migratePlaintextContext();await sandbox.migratePlaintextCustomers();await sandbox.migratePlaintextAppointments();
+  ok(engine+': migration resumes and is idempotent',before===JSON.stringify({photos:await db.db.photos.toArray(),measurements:await db.db.measurements.toArray()}) && typeof (await db.db.photos.get(photo2)).data==='object');
+  const backup=await db.exportAll();
+  await sandbox.initEncryption('SYNTHETIC different device key');await db.importAll(backup);
+  ok(engine+': migrated context imports under different key', (await db.getCustomer(customer.id)).fullName==='SYNTHETIC legacy' && (await db.getAppointment(visit.id)).access==='SYNTHETIC legacy gate' && (await db.getMeasurement(measurement.id)).notes==='SYNTHETIC legacy measure' && (await db.getPhoto(photo2)).data==='REVG');
+  ok(engine+': imported context encrypted at rest', typeof (await db.db.customers.get(customer.id)).postcodeNormalized==='object' && typeof (await db.db.measurements.get(measurement.id)).notes==='object' && typeof (await db.db.photos.get(photo.id)).data==='object');
+  if(db.db.close)db.db.close();
+}
+
 // ---------- runner ----------
 
 (async () => {
@@ -1478,6 +1514,7 @@ async function runPhase6RetentionStorage(engine) {
   console.log('\nTest 25: Phase 6 retention storage — real Dexie');await runPhase6RetentionStorage('dexie');
   console.log('\nTest 26: Phase 6 retention storage — bundled shim');await runPhase6RetentionStorage('shim');
   await runPhoneContactStorage('dexie'); await runPhoneContactStorage('shim');
+  await runContextEncryption('dexie'); await runContextEncryption('shim');
   console.log('\n' + (failures === 0 ? 'ALL TESTS PASSED' : failures + ' TEST(S) FAILED'));
   process.exit(failures === 0 ? 0 : 1);
 })().catch(e => { console.error('UNEXPECTED ERROR:', e); process.exit(1); });

@@ -40,8 +40,8 @@ const COMMUNICATION_EVENT_PII_FIELDS = ['detail', 'error'];
 const INTEGRATION_CONFLICT_PII_FIELDS = ['localSnapshot', 'remoteSnapshot', 'resolutionNotes'];
 const INTEGRATION_OUTBOX_PII_FIELDS = ['payload', 'lastError'];
 const VOICE_NOTE_PII_FIELDS = ['title', 'data'];
-// Reader-first rollout: understand protected context before new writes and
-// migration are enabled, so a release rollback never strands these records.
+// The prior reader-only release understands these fields and is the safe
+// rollback target after migration. Do not roll back to pre-reader builds.
 const CUSTOMER_CONTEXT_FIELDS = ['fullName', 'postcodeNormalized'];
 const APPOINTMENT_CONTEXT_FIELDS = ['access'];
 const MEASUREMENT_CONTEXT_FIELDS = ['windowName', 'room', 'productName', 'description', 'notes'];
@@ -177,7 +177,7 @@ async function decryptAudioNoteItems(items = []) {
 
 async function encryptCustomer(customer) {
   const encrypted = { ...customer };
-  for (const field of PII_FIELDS) {
+  for (const field of [...PII_FIELDS, ...CUSTOMER_CONTEXT_FIELDS]) {
     if (field === 'address' && encrypted.address) {
       const addr = { ...encrypted.address };
       for (const afield of ADDRESS_PII_FIELDS) {
@@ -220,7 +220,7 @@ async function migratePlaintextCustomers() {
   let migrated = 0;
   for (const customer of customers) {
     let needsUpdate = false;
-    for (const field of PII_FIELDS) {
+    for (const field of [...PII_FIELDS, ...CUSTOMER_CONTEXT_FIELDS]) {
       if (field === 'address' && customer.address) {
         for (const afield of ADDRESS_PII_FIELDS) {
           if (customer.address[afield] !== undefined && customer.address[afield] !== null && !isEncrypted(customer.address[afield])) {
@@ -248,7 +248,7 @@ async function migratePlaintextCustomers() {
 // only; non-string values such as latLng are left untouched).
 async function encryptAppointment(appointment) {
   const encrypted = { ...appointment };
-  for (const field of APPT_PII_FIELDS) {
+  for (const field of [...APPT_PII_FIELDS, ...APPOINTMENT_CONTEXT_FIELDS]) {
     const value = encrypted[field];
     if (typeof value === 'string' && value.length > 0 && !isEncrypted(value)) {
       encrypted[field] = await encryptField(value);
@@ -276,7 +276,7 @@ async function migratePlaintextAppointments() {
   let migrated = 0;
   for (const appt of rows) {
     let needsUpdate = false;
-    for (const field of APPT_PII_FIELDS) {
+    for (const field of [...APPT_PII_FIELDS, ...APPOINTMENT_CONTEXT_FIELDS]) {
       if (typeof appt[field] === 'string' && appt[field].length > 0 && !isEncrypted(appt[field])) {
         needsUpdate = true;
         break;
@@ -378,8 +378,10 @@ const encryptVoiceNote = row => encryptStringFields(row, VOICE_NOTE_PII_FIELDS);
 const decryptVoiceNote = row => decryptStringFields(row, VOICE_NOTE_PII_FIELDS);
 
 async function encryptMeasurementAudio(row) {
-  if (!row || !Array.isArray(row.audioNotes)) return row;
-  return { ...row, audioNotes: await encryptAudioNoteItems(row.audioNotes) };
+  if (!row) return row;
+  const out = await encryptRecordWithAudio(row, MEASUREMENT_CONTEXT_FIELDS);
+  if (Array.isArray(out.photos)) out.photos = await Promise.all(out.photos.map(photo => typeof photo === 'string' && photo ? encryptField(photo) : photo));
+  return out;
 }
 
 async function decryptMeasurementAudio(row) {
@@ -390,6 +392,27 @@ async function decryptMeasurementAudio(row) {
 }
 
 const decryptPhoto = row => decryptStringFields(row, PHOTO_CONTEXT_FIELDS);
+const encryptPhoto = row => encryptStringFields(row, PHOTO_CONTEXT_FIELDS);
+
+async function migratePlaintextContext() {
+  if (!encryptionKey) return;
+  // Prepare encryption before each single-row write. No crypto work inside
+  // an IndexedDB transaction; a failed/interrupted row can be retried at the
+  // next unlock. No version marker skips partially migrated records.
+  const hasText = value => typeof value === 'string' && value.length > 0;
+  for (const [table, fields, encrypt] of [
+    ['photos', PHOTO_CONTEXT_FIELDS, encryptPhoto],
+    ['measurements', MEASUREMENT_CONTEXT_FIELDS, encryptMeasurementAudio]
+  ]) {
+    const rows = await DB.db[table].toArray();
+    for (const row of rows) {
+      const needsUpdate = fields.some(field => hasText(row[field])) || (table === 'measurements' && (
+        (Array.isArray(row.photos) && row.photos.some(hasText)) || (Array.isArray(row.audioNotes) && row.audioNotes.some(note => note && (hasText(note.dataUrl) || hasText(note.transcript))))
+      ));
+      if (needsUpdate) await DB.db[table].put(await encrypt(row));
+    }
+  }
+}
 
 async function migratePlaintextWorkItems() {
   if (!encryptionKey) return;
@@ -542,6 +565,7 @@ const DB = {
     await migratePlaintextAppointments();
 
     await migratePlaintextWorkItems();
+    await migratePlaintextContext();
 
     console.log('Database initialized');
   },
@@ -916,7 +940,7 @@ const DB = {
       caption: caption || '',
       createdAt: new Date().toISOString()
     };
-    const id = await this.db.photos.add(photo);
+    const id = await this.db.photos.add(await encryptPhoto(photo));
     return { ...photo, id };
   },
 
@@ -931,7 +955,7 @@ const DB = {
   },
 
   async updatePhoto(id, data) {
-    await this.db.photos.update(id, data);
+    await this.db.photos.update(id, await encryptPhoto(data));
     return this.getPhoto(id);
   },
 
@@ -2400,6 +2424,9 @@ const DB = {
     let importData = data;
     if (encryptionKey && data.measurements) {
       importData = { ...data, measurements: await Promise.all(data.measurements.map(encryptMeasurementAudio)) };
+    }
+    if (encryptionKey && data.photos) {
+      importData = { ...importData, photos: await Promise.all(data.photos.map(encryptPhoto)) };
     }
     if (encryptionKey && data.customers) {
       importData = { ...importData };
