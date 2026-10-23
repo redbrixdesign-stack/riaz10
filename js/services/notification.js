@@ -303,9 +303,15 @@ const NotificationService = {
       return;
     }
     if (typeof DB === 'undefined' || !DB.db) { this._queueOpenReminderCheck(owner); return; }
+    // Keep the deadline alive even if an IndexedDB read stalls. A later
+    // tick can retire known-expired UI without starting another read.
+    if (owner.reading) { this._queueOpenReminderCheck(owner); return; }
+    owner.reading = true;
+    this._queueOpenReminderCheck(owner);
     let appointment;
     try { appointment = await DB.getAppointment(owner.appointmentId); }
     catch (e) { this._queueOpenReminderCheck(owner); return; }
+    finally { owner.reading = false; }
     // A dismissal/new sheet may have happened while IndexedDB was awaited.
     if (this._openVisitReminder !== owner) return;
     if (!this.isVisitReminderEnabled() || outsideWindow() || !appointment ||
