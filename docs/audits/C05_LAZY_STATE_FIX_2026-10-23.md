@@ -1,5 +1,7 @@
 # C05 — One canonical lazy-feature instance
 
+Deployed `f11c587`, `dpl_9PUP9c7zrD8UMAxthSSxxMQUHTP4` (`https://beelo1-3oqg30xqm-beelomvp.vercel.app`), build 8s, cache `advisoros-v6-146-lazy-state`. Five staged/live assets matched before/after exact-build promotion. Live Chromium/WebKit journeys passed social persistence/reload, all nine routes, five nav items and stale-fitting handling. Adjacent local payment/context/backup checks passed in both engines. Rollback `f0c17dd` / `dpl_JDtsb5Z7pBrjnycAqnyCpNui6YTS` retains context readers.
+
 - Router now retains the implementation object registered by each script, rather than copying its state onto a proxy while global buttons mutate a different object. First render, subsequent renders, action handlers and activate/deactivate share one instance.
 - Lazy implementation registration retains the declared navigation policy; Social explicitly declares itself secondary. First opening all nine lazy workflows leaves five primary navigation items.
 - Navigation revision guards suppress stale same-route success and stale load-error screens. Social has a render revision guard so a delayed older fitting cannot replace the current fitting's action state.
