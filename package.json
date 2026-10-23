@@ -5,7 +5,7 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "pretest": "node tests/transcription-usage.test.mjs && node tests/protected-backup.test.js && node tests/context-encryption.test.js && node tests/lazy-state.test.js && node tests/social-share.test.js",
+    "pretest": "node tests/transcription-usage.test.mjs && node tests/protected-backup.test.js && node tests/context-encryption.test.js && node tests/lazy-state.test.js && node tests/social-share.test.js && node tests/sw-lifecycle.test.js",
     "test:transcription:redis": "node tests/transcription-usage-redis.test.mjs",
     "build": "node build/minify.js",
     "watch": "node build/minify.js --watch",

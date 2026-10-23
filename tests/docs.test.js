@@ -89,8 +89,9 @@ ok('secondary workflows are route-split rather than eager script tags',
   ['quotes', 'jobs', 'invoices', 'suppliers', 'capacity', 'profitability', 'retention', 'settings']
     .every(id => lazyFeatures.includes(`id: '${id}'`)) &&
   !/features\/(quotes|jobs|invoices|suppliers|capacity|profitability|retention|settings)\/[^"']+\.min\.js/.test(indexHtml));
-ok('lazy workflows do not compete with the first-install shell precache',
-  !/features\/(quotes|jobs|invoices|suppliers|profitability|retention|settings)\/[^"']+\.min\.js/.test(serviceWorker));
+ok('lazy workflows are cached for first offline use without eager page scripts',
+  [...lazyFeatures.matchAll(/['"]([^'"\s]+\.min\.js\?v=\d+)['"]/g)].every(match => serviceWorker.includes(match[1])) &&
+  !/features\/(quotes|jobs|invoices|suppliers|profitability|retention|settings)\/[^"']+\.min\.js/.test(indexHtml));
 
 const readableUiFiles = [
   ...fs.readdirSync(path.join(root, 'js/features'), { recursive: true })

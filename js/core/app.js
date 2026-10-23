@@ -1406,10 +1406,15 @@ const App = {
         // before the asynchronous registration so a waiting worker cannot
         // cover the install/onboarding UI those suites are exercising.
         const suppressUpdateUI = localStorage.getItem('advisoros_enc_test') === '1';
+        let hadController = !!navigator.serviceWorker.controller;
         const registration = await navigator.serviceWorker.register('sw.js');
         console.log('Service Worker registered:', registration.scope);
         let refreshing = false;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
+          // A fresh page already runs the installed build. First claim only
+          // enables offline requests; reloading here interrupts first-use
+          // forms and delays startup. Existing-app updates still reload.
+          if (!hadController) { hadController = true; return; }
           if (suppressUpdateUI || refreshing) return;
           refreshing = true;
           window.location.reload();

@@ -101,8 +101,9 @@ async function run() {
   verifyAssetTokens();
 }
 
-// The service worker precaches exactly the cache-busted assets index.html
-// loads. If the ?v=N tokens drift apart, the offline shell silently serves
+// The service worker precaches the shell AND declared lazy dependencies.
+// Lazy scripts remain off the first-screen execution path. If tokens drift,
+// the offline shell silently serves
 // a mismatched app (stale assets listed in sw.js, or a fresh build the SW
 // never precached) — the classic PWA "works online, breaks offline" bug.
 // The build is the one place both files are touched, so fail it on drift.
@@ -115,21 +116,24 @@ function verifyAssetTokens() {
     return m;
   };
   const index = collect(read('index.html'));
+  const lazy = collect(read('js/core/lazy-features.js'));
+  const expected = new Map([...index, ...lazy]);
   const sw = collect(read('sw.js'));
   const issues = [];
-  for (const [file, v] of index) {
-    if (sw.has(file) && sw.get(file) !== v) issues.push(`  ${file}?v=${v} in index.html but ?v=${sw.get(file)} in sw.js`);
-    if (!sw.has(file)) issues.push(`  ${file}?v=${v} is loaded by index.html but not precached by sw.js`);
+  for (const [file, v] of expected) {
+    if (sw.has(file) && sw.get(file) !== v) issues.push(`  ${file}?v=${v} in shell/lazy manifest but ?v=${sw.get(file)} in sw.js`);
+    if (!sw.has(file)) issues.push(`  ${file}?v=${v} is declared by shell/lazy manifest but not precached by sw.js`);
+    if (!fs.existsSync(path.join(ROOT, file))) issues.push(`  ${file} is declared but missing on disk`);
   }
   for (const [file, v] of sw) {
-    if (!index.has(file)) issues.push(`  ${file}?v=${v} is precached by sw.js but not loaded by index.html`);
+    if (!expected.has(file)) issues.push(`  ${file}?v=${v} is precached but not declared by shell/lazy manifest`);
   }
   if (issues.length > 0) {
     console.error('  ✗ ASSET VERSION DRIFT — fix the ?v= tokens before shipping:');
     for (const i of issues) console.error(i);
     process.exitCode = 1;
   } else {
-    console.log('  ✓ sw.js ?v= tokens match index.html');
+    console.log('  ✓ sw.js ?v= tokens match shell and lazy manifests');
   }
 }
 
