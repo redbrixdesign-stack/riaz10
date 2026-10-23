@@ -1,6 +1,12 @@
 # Outcome reminder timing — 23 October 2026
 
-Status: tested locally; deployment pending.
+Status: deployed and verified at https://beelo.beelestial.co.uk/.
+
+- Source `4da1b1a`, deployment `dpl_FFuk9Sd4nsmAdn2aT8XLtwV2ZBUG`, production build 9s, cache `advisoros-v6-140-outcome-timing`.
+- Staged index/SW/three changed minified assets matched before exact-build promotion. Live index/SW and all three changed source/minified pairs matched afterwards.
+- Live synthetic timing journeys passed in Chromium and WebKit. No customer communications or provider requests were made. Evidence copied into the original workspace under `docs/evidence/2026-10-23-outcome-timing/`.
+- Deployment-scoped ten-minute server error/fatal scan returned no records. Client monitoring/drains not audited; physical-iPhone acceptance remains outstanding.
+- Rollback source `e7be956`, deployment `dpl_9JXqqNJJtpL5C5dm2ANh5JSuENbT`.
 
 ## Decision / scope
 
