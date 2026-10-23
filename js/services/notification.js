@@ -157,8 +157,8 @@ const NotificationService = {
   // ── VISIT REMINDERS ────────────────────────────────────────────────────
   // Timers are rebuilt whenever Beelo starts, becomes visible, or a visit is
   // added/moved. iOS can suspend a PWA in the background, so the in-app alert
-  // is guaranteed only while Beelo is active; an OS notification is also
-  // requested from Settings for installed PWAs where the browser permits it.
+  // is available only while Beelo is active and not editing another dialog;
+  // OS delivery depends on existing notification permission/browser support.
   isVisitReminderEnabled() {
     return localStorage.getItem('advisoros_visit_reminders_enabled') !== 'false';
   },
@@ -166,11 +166,13 @@ const NotificationService = {
   setVisitReminderEnabled(enabled) {
     localStorage.setItem('advisoros_visit_reminders_enabled', enabled ? 'true' : 'false');
     if (enabled) this.refreshVisitReminders();
-    else this.clearVisitReminders();
+    else {
+      this.clearVisitReminders();
+      return this._refreshOpenVisitReminder();
+    }
   },
 
   startVisitReminders() {
-    if (!this.isVisitReminderEnabled()) return;
     this.refreshVisitReminders();
     if (!this._visitVisibilityBound) {
       this._visitVisibilityBound = true;
@@ -188,7 +190,7 @@ const NotificationService = {
   },
 
   queueVisitReminderRefresh() {
-    if (!this.isVisitReminderEnabled()) return;
+    if (!this.isVisitReminderEnabled() && !this._openVisitReminder) return;
     if (this._visitReminderRefreshTimer) clearTimeout(this._visitReminderRefreshTimer);
     this._visitReminderRefreshTimer = setTimeout(() => this.refreshVisitReminders(), 150);
   },
@@ -214,6 +216,7 @@ const NotificationService = {
 
   async refreshVisitReminders() {
     this.clearVisitReminders();
+    await this._refreshOpenVisitReminder();
     if (!this.isVisitReminderEnabled() || typeof DB === 'undefined' || !DB.db) return;
     try {
       const now = Date.now();
@@ -234,6 +237,88 @@ const NotificationService = {
     }
   },
 
+  _reminderTiming(visitAt) {
+    const minutes = Math.max(0, Math.ceil((visitAt - Date.now()) / 60000));
+    return minutes >= 14 ? 'in 15 minutes' : minutes > 0 ? `in ${minutes} minutes` : 'now';
+  },
+
+  _openReminderNode(owner) {
+    return document.querySelector?.(`#modal-overlay.active #bottom-sheet [data-visit-reminder-owner="${owner.token}"]`);
+  },
+
+  _reminderSnapshotOwned(frame, owner) {
+    return typeof frame?.content === 'string' && frame.content.includes(`data-visit-reminder-owner="${owner.token}"`);
+  },
+
+  _queueOpenReminderCheck(owner) {
+    if (this._openVisitReminder !== owner) return;
+    clearTimeout(this._openVisitReminderTimer);
+    const delay = Math.max(1, Math.min(60000, owner.visitAt + 15 * 60000 - Date.now() + 1));
+    this._openVisitReminderTimer = setTimeout(() => this._refreshOpenVisitReminder(), delay);
+  },
+
+  _retireOpenVisitReminder(owner) {
+    if (this._openVisitReminder !== owner) return;
+    clearTimeout(this._openVisitReminderTimer);
+    this._openVisitReminderTimer = null;
+    this._openVisitReminder = null;
+    // Remove only this reminder's saved frame. Never restore/replace the
+    // currently edited form, or discard unrelated modal-stack entries.
+    if (typeof App !== 'undefined') {
+      if (Array.isArray(App.modalStack)) App.modalStack = App.modalStack.filter(frame => !this._reminderSnapshotOwned(frame, owner));
+      if (this._openReminderNode(owner)) {
+        if (document.querySelector?.('#modal-full.active')) {
+          // A full-screen editor can cover the owned bottom sheet. Do not
+          // invoke generic closeModal here: it would untrap that editor's
+          // focus and unlock body scrolling. Retire only the covered sheet.
+          const sheet = document.getElementById('bottom-sheet');
+          const previous = App.modalStack?.pop();
+          if (previous) {
+            sheet.innerHTML = previous.content;
+            sheet.scrollTop = previous.scrollTop || 0;
+            App._nameDialog(sheet);
+          } else {
+            sheet.replaceChildren();
+            for (const attribute of ['role', 'aria-modal', 'aria-label', 'aria-labelledby']) sheet.removeAttribute(attribute);
+            document.getElementById('modal-overlay')?.classList.remove('active', 'passphrase-gate');
+          }
+        } else App.closeModal();
+      }
+    }
+  },
+
+  async _refreshOpenVisitReminder() {
+    const owner = this._openVisitReminder;
+    if (!owner || typeof App === 'undefined') return;
+    clearTimeout(this._openVisitReminderTimer);
+    this._openVisitReminderTimer = null;
+    const stacked = Array.isArray(App.modalStack) && App.modalStack.some(frame => this._reminderSnapshotOwned(frame, owner));
+    if (!this._openReminderNode(owner) && !stacked) {
+      this._openVisitReminder = null; // Dismissed/navigated away: never reopen.
+      return;
+    }
+    const outsideWindow = () => owner.visitAt < Date.now() - 15 * 60000 || owner.visitAt > Date.now() + 15 * 60000;
+    if (!this.isVisitReminderEnabled() || outsideWindow()) {
+      this._retireOpenVisitReminder(owner);
+      return;
+    }
+    if (typeof DB === 'undefined' || !DB.db) { this._queueOpenReminderCheck(owner); return; }
+    let appointment;
+    try { appointment = await DB.getAppointment(owner.appointmentId); }
+    catch (e) { this._queueOpenReminderCheck(owner); return; }
+    // A dismissal/new sheet may have happened while IndexedDB was awaited.
+    if (this._openVisitReminder !== owner) return;
+    if (!this.isVisitReminderEnabled() || outsideWindow() || !appointment ||
+        this._visitReminderKey(appointment) !== owner.key || appointment.status === 'cancelled' ||
+        appointment.status === 'completed' || appointment.outcome) {
+      this._retireOpenVisitReminder(owner);
+      return;
+    }
+    const heading = this._openReminderNode(owner)?.querySelector('[data-visit-reminder-timing]');
+    if (heading) heading.textContent = `Next appointment ${this._reminderTiming(owner.visitAt)}`;
+    this._queueOpenReminderCheck(owner);
+  },
+
   async _fireVisitReminder(appointmentId, key) {
     this._visitReminderTimers.delete(key);
     if (!this.isVisitReminderEnabled() || typeof DB === 'undefined' || !DB.db) return;
@@ -250,9 +335,8 @@ const NotificationService = {
         visitAt < now - (15 * 60000) || visitAt > now + (15 * 60000) ||
         this._readDeliveredVisitReminders()[key]) return;
     this._markVisitReminderDelivered(key);
-    const minutes = Math.max(0, Math.ceil((visitAt - now) / 60000));
     const name = appt.clientName || 'your customer';
-    const timing = minutes >= 14 ? 'in 15 minutes' : minutes > 0 ? `in ${minutes} minutes` : 'now';
+    const timing = this._reminderTiming(visitAt);
     const body = `${name} · ${Utils.formatTimeUK(appt.date)}${appt.address ? ` · ${appt.address}` : ''}`;
     this.showNotification(`Next appointment ${timing}`, {
       body,
@@ -261,10 +345,15 @@ const NotificationService = {
       requireInteraction: true
     });
 
-    if (document.visibilityState === 'visible' && typeof App !== 'undefined') {
+    // Do not stack a reminder over an editor/passphrase/full-screen modal:
+    // the generic modal stack saves HTML, not unsaved live form values.
+    if (document.visibilityState === 'visible' && typeof App !== 'undefined' &&
+        !document.querySelector?.('#modal-overlay.active, #modal-full.active')) {
+      const owner = { appointmentId, key, visitAt, token: `visit-reminder-${this._visitReminderSerial = (this._visitReminderSerial || 0) + 1}` };
+      this._openVisitReminder = owner;
       App.openModal(`<div class="sheet-handle"></div>
-        <div class="sheet-header">
-          <div><h3>Next appointment ${timing}</h3><div class="fs-12 text-secondary mt-2">${Utils.escapeHtml(Utils.formatTimeUK(appt.date))}</div></div>
+        <div class="sheet-header" data-visit-reminder-owner="${owner.token}">
+          <div><h3 data-visit-reminder-timing>Next appointment ${timing}</h3><div class="fs-12 text-secondary mt-2">${Utils.escapeHtml(Utils.formatTimeUK(appt.date))}</div></div>
           <button class="btn btn-ghost btn-sm" type="button" aria-label="Close" data-action="App.closeModal"><span class="material-symbols-rounded">close</span></button>
         </div>
         <div class="sheet-body">
@@ -272,6 +361,7 @@ const NotificationService = {
           <button class="btn btn-primary btn-block" data-close="1" data-action="App.navigate" data-args='${JSON.stringify(['appointments', { id: appointmentId }])}'>Open visit</button>
           <button class="btn btn-outline btn-block mt-sm" data-action="App.closeModal">Dismiss</button>
         </div>`);
+      this._queueOpenReminderCheck(owner);
     }
   },
 
