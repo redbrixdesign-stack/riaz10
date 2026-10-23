@@ -57,6 +57,13 @@ jobs:
     needs: test
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    # Official browser/system-dependency bundle, matched to package-lock.json.
+    # Avoid per-run apt downloads from the mirror that timed out in C14.
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.1-noble@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e
+      options: --user 1001
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 (Node 24)
         with:
@@ -66,7 +73,9 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium webkit
+      - name: Verify preinstalled browser runtime
+        run: |
+          node -e 'const fs=require("node:fs"),assert=require("node:assert/strict"),{chromium,webkit}=require("playwright");assert.equal(require("playwright/package.json").version,"1.62.1","Update the pinned CI image when changing Playwright");for(const engine of [chromium,webkit]){fs.accessSync(engine.executablePath());console.log(engine.name()+" executable present");}'
       - name: Synthetic local browser acceptance
         run: npm run test:release:browser
         env:
