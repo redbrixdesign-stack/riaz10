@@ -1,0 +1,32 @@
+Browser acceptance	Synthetic local browser acceptance	﻿2026-10-23T18:20:46.2915050Z ##[group]Run npm run test:release:browser
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:20:46.2915432Z ^[[36;1mnpm run test:release:browser^[[0m
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:20:46.2985621Z shell: /usr/bin/bash -e {0}
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:20:46.2985905Z env:
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:20:46.2986393Z   BEELO_ARTIFACT_DIR: /home/runner/work/riaz10/riaz10/.test-results/release
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:20:46.2986838Z ##[endgroup]
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:20:46.3996735Z 
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:20:46.3997716Z > advisoros@5.0.0 test:release:browser
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:20:46.3998182Z > node tests/verify-release.cjs
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:20:46.3998384Z 
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:21:19.5342868Z PASS payment-link.e2e.cjs (33s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:21:29.0185934Z PASS protected-backup.e2e.cjs (9s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:21:37.0031926Z PASS context-encryption.e2e.cjs (8s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:21:43.3826573Z PASS lazy-state.e2e.cjs (6s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:21:52.9868163Z PASS social-share.e2e.cjs (10s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:22:12.3569388Z FAIL cold-offline.e2e.cjs (19s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:22:12.3571145Z PASS chromium (context offline): fresh install, no online lazy opens, first offline Settings/protected-dialog plus all eight other secondary routes, online reload and retained mock customer; no uploads
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:22:12.3572377Z AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:22:12.3572765Z 
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:22:12.3573474Z   assert(!/Failed to load|Something went wrong/.test(await p.locator('#main').innerText()))
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:22:12.3574029Z 
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:22:12.3574404Z     at /home/runner/work/riaz10/riaz10/tests/browser/cold-offline.e2e.cjs:39:4 {
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:22:12.3574846Z   generatedMessage: true,
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:22:12.3575118Z   code: 'ERR_ASSERTION',
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:22:12.3575367Z   actual: false,
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:22:12.3575586Z   expected: true,
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:22:12.3575815Z   operator: '==',
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:22:12.3576295Z   diff: 'simple'
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:22:12.3576612Z }
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:22:12.3576769Z 
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:22:12.3577080Z Browser acceptance stopped at cold-offline.e2e.cjs
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T18:22:12.3750621Z ##[error]Process completed with exit code 1.
