@@ -18,7 +18,7 @@ const context = {
   document: { getElementById: id => nodes[id] || null },
   navigator: {},
   App: { registerFeature(feature) { context.SocialFeature = feature; }, renderTopHeader: () => '', navigate() {} },
-  DB: { getAppointment: async id => ({ id, type: 'fitting', clientName: 'Private Customer' }), updateAppointment: async (id, fields) => { updated = { id, fields }; } },
+  DB: { getAppointment: async id => ({ id, type: 'fitting', clientName: 'Private Customer', ...(updated?.id === id ? updated.fields : {}) }), updateAppointment: async (id, fields) => { updated = { id, fields }; } },
   AIService: { isEnabled: () => false },
   Utils: { escapeHtml: value => String(value ?? '') },
   Toast: { show() {} }, Date, Math

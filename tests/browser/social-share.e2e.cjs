@@ -1,0 +1,41 @@
+'use strict';
+const {chromium,webkit}=require('playwright');
+const assert=require('node:assert/strict');
+const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
+const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=','base64');
+(async()=>{for(const engine of [chromium,webkit]){
+ const browser=await engine.launch();
+ try{
+  const c=await browser.newContext({viewport:{width:390,height:844}});
+  await c.addInitScript(()=>{localStorage.setItem('advisoros_config',JSON.stringify({onboardingComplete:true,unlockTimeoutMinutes:60}));localStorage.setItem('advisoros_consent',JSON.stringify({v:2}));});
+  const p=await c.newPage(),posts=[],errors=[];p.setDefaultTimeout(20000);
+  p.on('request',r=>{if(r.method()==='POST')posts.push(r.url());});p.on('pageerror',e=>errors.push(e.message));
+  await p.goto(base);await p.locator('#enc-passphrase-new').fill('SYNTHETIC-share-device');await p.locator('#enc-passphrase-confirm').fill('SYNTHETIC-share-device');await p.getByRole('button',{name:'Set Passphrase',exact:true}).click();await p.waitForFunction(()=>App.currentHash==='today');
+  await p.evaluate(()=>navigator.serviceWorker.ready);await p.waitForFunction(()=>!!navigator.serviceWorker.controller);await p.waitForTimeout(700);
+  const id=await p.evaluate(async()=>{AIService.isEnabled=()=>false;const c=await DB.addCustomer({firstName:'SYNTHETIC',lastName:'Share'});return (await DB.addAppointment({customerId:c.id,type:'fitting',clientName:'SYNTHETIC Share',date:'2020-01-01T10:00:00Z'})).id;});
+  await p.evaluate(id=>App.navigate('social',{appointmentId:id}),id);await p.locator('#social-consent').waitFor();
+  await p.evaluate(()=>{window.shareCalls=[];window.copyCalls=[];Object.defineProperty(navigator,'canShare',{configurable:true,value:()=>true});Object.defineProperty(navigator,'share',{configurable:true,value:async data=>{window.shareCalls.push({text:data.text,files:await Promise.all(data.files.map(async file=>({name:file.name,type:file.type,bytes:Array.from(new Uint8Array(await file.arrayBuffer()))})))});}});Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>window.copyCalls.push(text)}});});
+  const chooser=p.waitForEvent('filechooser');await p.getByRole('button',{name:/Choose photo or short video/}).click();await(await chooser).setFiles({name:'SYNTHETIC-finished.png',mimeType:'image/png',buffer:png});
+  await p.waitForFunction(()=>SocialFeature.mediaFile?.name==='SYNTHETIC-finished.png');
+  await p.locator('#social-consent').check();await p.locator('#social-privacy').check();await p.locator('#social-product').fill('SYNTHETIC blue roller');
+  await p.getByRole('button',{name:/Create three post options/}).click();await p.locator('#social-draft-warm').waitFor();
+  await p.getByRole('button',{name:/Withdraw recorded permission/}).waitFor();
+  const share=()=>p.getByRole('button',{name:/Share this version/}).first().click();
+  await p.locator('#social-consent').uncheck();await share();assert.equal(await p.evaluate(()=>shareCalls.length+copyCalls.length),0);
+  await p.locator('#social-consent').check();await p.locator('#social-privacy').uncheck();await share();assert.equal(await p.evaluate(()=>shareCalls.length+copyCalls.length),0);
+  await p.locator('#social-privacy').check();await share();await p.waitForFunction(()=>shareCalls.length===1);
+  let calls=await p.evaluate(()=>shareCalls);assert.equal(calls[0].files[0].name,'SYNTHETIC-finished.png');assert.deepEqual(calls[0].files[0].bytes,Array.from(png));
+  const video=Buffer.from('SYNTHETIC video attachment bytes; no real person');
+  await p.locator('#social-media-input').setInputFiles({name:'SYNTHETIC-finished.mp4',mimeType:'video/mp4',buffer:video});
+  assert(!await p.locator('#social-consent').isChecked());assert(!await p.locator('#social-privacy').isChecked());
+  await p.locator('#social-consent').check();await p.locator('#social-privacy').check();await share();assert.equal(await p.evaluate(()=>shareCalls.length),1,'Replacing media cannot reuse old approval');
+  await p.getByRole('button',{name:/Create three post options/}).click();await p.waitForFunction(()=>SocialFeature._shareApproval?.mediaFile?.name==='SYNTHETIC-finished.mp4');
+  await share();await p.waitForFunction(()=>shareCalls.length===2);calls=await p.evaluate(()=>shareCalls);assert.equal(calls[1].files[0].type,'video/mp4');assert.deepEqual(calls[1].files[0].bytes,Array.from(video));
+  await p.evaluate(()=>{Object.defineProperty(navigator,'share',{configurable:true,value:async()=>{throw new DOMException('SYNTHETIC cancel','AbortError');}});});await share();assert.equal(await p.evaluate(()=>copyCalls.length),0);
+  await p.screenshot({path:`/private/tmp/beelo-social-approval-${engine.name()}.png`,animations:'disabled'});
+  await p.reload();await p.locator('#social-draft-warm').waitFor();await p.getByRole('button',{name:/Withdraw recorded permission/}).click();await p.waitForFunction(id=>App.currentHash===`appointments?id=${id}`,id);
+  const saved=await p.evaluate(id=>DB.getAppointment(id),id);assert.equal(saved.socialMediaConsentAt,null);assert.equal(saved.socialDrafts,null);
+  assert.deepEqual(posts,[]);assert.deepEqual(errors,[]);
+  console.log(`PASS ${engine.name()}: real photo picker, exact photo/video share payloads mocked, live consent/privacy blocks, media replacement requires new approval, cancellation has no clipboard fallback, withdrawal persists; no uploads/publication`);
+ }finally{await browser.close();}
+}})().catch(e=>{console.error(e);process.exitCode=1;});
