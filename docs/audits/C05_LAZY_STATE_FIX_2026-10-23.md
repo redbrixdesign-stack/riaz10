@@ -1,0 +1,7 @@
+# C05 — One canonical lazy-feature instance
+
+- Router now retains the implementation object registered by each script, rather than copying its state onto a proxy while global buttons mutate a different object. First render, subsequent renders, action handlers and activate/deactivate share one instance.
+- Lazy implementation registration retains the declared navigation policy; Social explicitly declares itself secondary. First opening all nine lazy workflows leaves five primary navigation items.
+- Navigation revision guards suppress stale same-route success and stale load-error screens. Social has a render revision guard so a delayed older fitting cannot replace the current fitting's action state.
+- Full npm suite, source/minified state/lifecycle/race tests and separate social unit tests pass. Chromium/WebKit first-use image selection, draft persistence/reload, all nine canonical routes and stale-fitting tests pass with genuine unlock and synthetic local data. No upload/share/provider call. Waited for initial service-worker activation before testing; did not count a test profile's first-install reload as durable draft behaviour.
+- This corrects identity/persistence and routing only. C04 share-time consent/privacy validation is still open and follows as its own release; no claim that C05 alone makes sharing safe. Media selection intentionally remains ephemeral; the draft returns after reload but the adviser must select media again.

@@ -9,13 +9,19 @@ const SocialFeature = {
   id: 'social',
   name: 'Create Social Post',
   icon: 'campaign',
+  route: false,
   mediaFile: null,
   appointmentId: null,
   drafts: null,
 
   async render(params = {}) {
+    const revision = this._renderRevision = (this._renderRevision || 0) + 1;
     const id = Number(params.appointmentId || params.id);
     const appt = Number.isInteger(id) && id > 0 ? await DB.getAppointment(id) : null;
+    if (revision !== this._renderRevision) return '';
+    this.appointmentId = null;
+    this.mediaFile = null;
+    this.drafts = null;
     if (!appt || appt.type !== 'fitting') {
       return `<div class="fade-in">${App.renderTopHeader({ title: 'Social post', showBack: true, backHref: 'appointments' })}<div class="empty-state"><span class="material-symbols-rounded">photo_library</span><div>Open a fitting visit to create a post.</div></div></div>`;
     }

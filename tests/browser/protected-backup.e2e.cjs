@@ -9,6 +9,7 @@ const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
   const p=await c.newPage();const posts=[];
   p.on('request',r=>{if(r.method()==='POST')posts.push(r.url());});
   await p.goto(base);await p.waitForFunction(()=>App.currentHash==='today');
+  await p.evaluate(()=>navigator.serviceWorker.ready);await p.waitForFunction(()=>!!navigator.serviceWorker.controller);await p.waitForTimeout(700);
   const ids=await p.evaluate(async()=>{
    const c=await DB.addCustomer({firstName:'SYNTHETIC',lastName:'Backup',notes:'SYNTHETIC Urdu اردو 🪟'});
    const a=await DB.addAppointment({customerId:c.id,type:'fitting',date:'2020-01-01T10:00:00Z',notes:'SYNTHETIC visit note'});

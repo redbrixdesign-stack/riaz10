@@ -1,0 +1,25 @@
+'use strict';
+const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/strict');
+const settle=()=>new Promise(resolve=>setTimeout(resolve,0));
+(async()=>{for(const file of ['js/core/app.js','js/core/app.min.js']){
+ const main={innerHTML:'',appendChild(){}};
+ const s={console,URLSearchParams,HTMLElement:class{},document:{getElementById:()=>main,querySelectorAll:()=>[],addEventListener(){},activeElement:null},window:{},Utils:{escapeHtml:String}};
+ vm.createContext(s);const app=vm.runInContext(fs.readFileSync(file,'utf8')+'\nApp;',s);
+ let navItems=0,activated=0,deactivated=0;
+ app.buildNavItem=()=>navItems++;app.closeModal=()=>{};app.closeFullModal=()=>{};app.renderSkeleton=()=> 'loading';app.finalizeNavigation=(_,hash)=>{app.currentHash=hash;};
+ app.registerFeature({id:'today',route:false,render:()=> 'today'});
+ const loaded={id:'lazy',render(){this.savedContext=7;return 'real feature';},activate(){activated++;},deactivate(){deactivated++;}};
+ app.loadScripts=async()=>app.registerFeature(loaded);
+ app.registerLazyFeature({id:'lazy',name:'Lazy',scripts:[]});
+ app.navigate('lazy');await settle();
+ assert.equal(app.features.get('lazy'),loaded);assert.equal(app.currentFeature,loaded);assert.equal(loaded.savedContext,7);assert.equal(activated,1);assert.equal(main.innerHTML,'real feature');assert.equal(navItems,0);
+ app.registerLazyFeature({id:'primary',name:'Primary',scripts:[],route:true});app.registerFeature({id:'primary',render:()=> 'primary'});assert.equal(navItems,1,'A declared primary lazy route is registered only once');
+ app.navigate('today');assert.equal(deactivated,1);
+ let resolveOld,resolveNew;
+ app.registerFeature({id:'async',route:false,render:params=>new Promise(resolve=>{if(params.id===1)resolveOld=resolve;else resolveNew=resolve;})});
+ app.navigate('async',{id:1});app.navigate('async',{id:2});resolveNew('new');await settle();resolveOld('old');await settle();
+ assert.equal(main.innerHTML,'new');assert.equal(app.currentHash,'async?id=2');
+ let failLoad;app.loadScripts=()=>new Promise((resolve,reject)=>{failLoad=reject;});
+ app.registerLazyFeature({id:'slow',name:'Slow',scripts:[]});app.navigate('slow');app.navigate('today');failLoad(new Error('SYNTHETIC late load error'));await settle();assert.equal(main.innerHTML,'today');assert.equal(app.currentHash,'today');
+ console.log('PASS '+file+': canonical state/lifecycle, primary nav policy, stale same-route result and late error isolation');
+}})().catch(e=>{console.error(e);process.exitCode=1;});

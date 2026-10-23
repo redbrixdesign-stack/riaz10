@@ -601,10 +601,14 @@ const App = {
       return;
     }
 
+    const previous = this.features.get(feature.id);
+    // Loading an implementation must retain the lazy route's navigation
+    // policy; secondary screens must not append a sixth primary nav item.
+    if (previous?._lazy) feature.route = previous.route;
     this.features.set(feature.id, feature);
 
     // Build nav item
-    if (feature.route !== false) {
+    if (feature.route !== false && !previous?._lazy) {
       this.buildNavItem(feature);
     }
 
@@ -628,17 +632,17 @@ const App = {
       route: definition.route === true,
       _lazy: true,
       async render(params = {}) {
+        const revision = App._navigationRevision;
         await App.loadScripts(definition.scripts);
         const loaded = App.features.get(definition.id);
         if (!loaded || loaded === proxy || loaded._lazy) {
           throw new Error(`${definition.name} failed to load`);
         }
-        // Keep the object App.navigate() already selected, but promote it to
-        // the real implementation so activate/deactivate and later renders
-        // use the loaded feature without a second navigation or layout jump.
-        Object.assign(proxy, loaded, { _lazy: false });
-        App.features.set(definition.id, proxy);
-        return proxy.render(params);
+        // The global action handlers and the router must use ONE object.
+        // Cloning onto the proxy splits render state from button state.
+        if (App._navigationRevision !== revision) return null;
+        if (App.currentFeature === proxy) App.currentFeature = loaded;
+        return loaded.render(params);
       }
     };
     this.registerFeature(proxy);
@@ -664,6 +668,8 @@ const App = {
       return pending;
     }), Promise.resolve());
   },
+
+  _navigationRevision: 0,
 
   // Navigation
   navigate(featureId, params = {}) {
@@ -697,6 +703,7 @@ const App = {
       }
       return;
     }
+    const navigationRevision = ++this._navigationRevision;
 
     // Dismiss any iOS keyboard/focused form control before replacing the
     // screen. Otherwise Safari can carry the old visual viewport offset into
@@ -748,15 +755,18 @@ const App = {
           // the render was in flight, don't paint a screen they no longer
           // asked for (it would overwrite the new screen and leave the
           // URL hash out of sync with what's on screen).
-          if (App.currentFeature !== feature) return;
+          if (App._navigationRevision !== navigationRevision) return;
+          const activeFeature = App.currentFeature;
+          if (activeFeature !== feature && activeFeature !== App.features.get(featureId)) return;
           if (typeof html === 'string') {
             main.innerHTML = html;
           }
-          if (feature.activate) {
-            feature.activate(params);
+          if (activeFeature.activate) {
+            activeFeature.activate(params);
           }
           App.finalizeNavigation(main, targetHash);
         }).catch(err => {
+          if (App._navigationRevision !== navigationRevision) return;
           console.error('Render error:', err);
           main.innerHTML = `<div class="empty-state">
             <span class="material-symbols-rounded">error</span>
