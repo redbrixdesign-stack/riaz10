@@ -2,6 +2,8 @@
 
 ## Reader release (encryption migration not enabled yet)
 
+- Source `96c53ee`, deployment `dpl_BwhpgoCt57GzkZd3C76nXaCS94WD`, build 7s, cache `advisoros-v6-144-context-readers`. Staged seven changed assets matched before promotion; all seven live assets matched afterwards. Local payment and protected-backup journeys passed in both engines. Reader rollback before any migration: `11f34a7` / `dpl_CnZt9jMYeMCGezo5RDTkVQT7k2EC`.
+
 - Adds backward-compatible readers for customer `fullName`/top-level postcode, visit `access`, measurement room/window/product/description/notes and embedded photo strings, and gallery data/captions. Existing write behaviour is intentionally unchanged at this checkpoint.
 - Customer, visit and communication context now obtain measurements through a decrypted batch API. Gallery viewer/repair/caption paths use DB APIs, ready for protected writes. Postcode prefix search uses decrypted customer records instead of querying a plaintext index. Export produces readable data for restoration under a different device key.
 - Source/minified compatibility tests and the full npm suite passed. Updated the smoke-test measurement stub to the real batch API; no production fallback to raw ciphertext. Two-engine browser checks use genuine passphrase setup and synthetic protected/legacy records, with no POSTs/provider calls. Chromium offline reload passes; WebKit offline reload produced an internal browser navigation error and is not certified. WebKit in-app offline access and online reload are tested separately. Physical iPhone remains pending.
