@@ -1170,6 +1170,41 @@ async function runMutationBoundaries(engine) {
     const rolledBackOrders = await DB.db.orders.where('appointmentId').equals(appt2.id).toArray();
     ok('dexie: outcome mutation failure rolls back all records', threw && rolledBackAppt.outcome !== 'ordered' && rolledBackOrders.length === 0, { threw, outcome: rolledBackAppt.outcome, orders: rolledBackOrders.length });
   }
+
+  const payCustomer = await DB.addCustomer({ firstName: 'SYNTHETIC', lastName: 'Two Orders' });
+  const makeOrder = data => DB.db.orders.add({ customerId: payCustomer.id, total: 500, balanceDue: 500, depositPaid: 0, stage: 'ordered', createdAt: '2020-01-01', ...data });
+  const older = await makeOrder({ orderNumber: 'SYNTHETIC-OLDER' });
+  const newer = await makeOrder({ orderNumber: 'SYNTHETIC-NEWER', total: 900, balanceDue: 900, createdAt: '2099-01-01' });
+  const fit = await DB.addAppointment({ customerId: payCustomer.id, type: 'fitting', orderId: older, date: new Date().toISOString() });
+  const fitFields = { status: 'completed', outcome: 'completed' };
+  ok(engine + ': fitting payment context resolves explicit older order', (await DB.getOutcomePaymentOrder(fit.id, 'completed')).id === older);
+  await DB.completeVisitOutcome({ appointmentId: fit.id, appointmentFields: fitFields, paymentAmount: 100, paymentOrderId: older, paymentOperationId: 'SYNTHETIC-fit-payment' });
+  await DB.completeVisitOutcome({ appointmentId: fit.id, appointmentFields: fitFields, paymentAmount: 100, paymentOrderId: older, paymentOperationId: 'SYNTHETIC-fit-payment' });
+  ok(engine + ': fitting payment/retry preserves other order', (await DB.db.orders.get(older)).balanceDue === 400 && (await DB.db.orders.get(newer)).balanceDue === 900);
+  const blocked = async (label, visit, expectedOrderId = null) => {
+    const before = JSON.stringify(await DB.db.orders.toArray());
+    const beforeVisit = JSON.stringify(await DB.getAppointment(visit.id));
+    let rejected = false;
+    try { await DB.completeVisitOutcome({ appointmentId: visit.id, appointmentFields: { ...fitFields, notes: 'MUST NOT SAVE' }, paymentAmount: 50, paymentOrderId: expectedOrderId, paymentOperationId: 'SYNTHETIC-blocked-' + label }); }
+    catch (e) { rejected = true; }
+    ok(engine + ': ' + label + ' payment blocked before changes', rejected && before === JSON.stringify(await DB.db.orders.toArray()) && beforeVisit === JSON.stringify(await DB.getAppointment(visit.id)));
+  };
+  await blocked('stale displayed order', fit, newer);
+  const unlinked = await DB.addAppointment({ customerId: payCustomer.id, type: 'fitting', date: new Date().toISOString() });
+  await blocked('legacy unlinked', unlinked);
+  await DB.completeVisitOutcome({ appointmentId: unlinked.id, appointmentFields: fitFields });
+  ok(engine + ': unlinked fitting can finish without inventing a payment', (await DB.getAppointment(unlinked.id)).outcome === 'completed');
+  const missing = await DB.addAppointment({ customerId: payCustomer.id, type: 'fitting', orderId: 9999999, date: new Date().toISOString() });
+  await blocked('missing linked order', missing);
+  const foreign = await makeOrder({ customerId: customer.id });
+  const foreignFit = await DB.addAppointment({ customerId: payCustomer.id, type: 'fitting', orderId: foreign, date: new Date().toISOString() });
+  await blocked('different customer', foreignFit);
+  const referral = await makeOrder({ source: 'survey_referral', balanceDue: 123 });
+  const refFit = await DB.addAppointment({ customerId: payCustomer.id, type: 'fitting', orderId: referral, date: new Date().toISOString() });
+  await blocked('externally managed referral', refFit);
+  const newSale = await DB.addAppointment({ customerId: payCustomer.id, type: 'consultation', date: new Date().toISOString() });
+  const deposit = await DB.completeVisitOutcome({ appointmentId: newSale.id, appointmentFields: fields, paymentAmount: 200, paymentOperationId: 'SYNTHETIC-sale-payment' });
+  ok(engine + ': new sale deposit uses own order despite newer customer order', deposit.order.balanceDue === 1000 && (await DB.db.orders.get(deposit.order.id)).balanceDue === 800 && (await DB.db.orders.get(newer)).balanceDue === 900);
 }
 
 async function runPhoneContactStorage(engine) {

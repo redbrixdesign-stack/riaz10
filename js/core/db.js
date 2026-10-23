@@ -1433,12 +1433,44 @@ const DB = {
     });
   },
 
-  async completeVisitOutcome({ appointmentId, appointmentFields, paymentAmount = 0, paymentOperationId = null }) {
+  // No customer-wide "newest order" fallback: a visit payment needs provenance.
+  async getOutcomePaymentOrder(appointmentId, outcome) {
+    const visit = await this.db.appointments.get(appointmentId);
+    if (!visit) throw new Error('Visit not found');
+    let order = null;
+    if (outcome === 'ordered') {
+      const orders = await this.db.orders.where('appointmentId').equals(appointmentId).toArray();
+      orders.sort((a, b) => a.id - b.id);
+      order = orders[0] || null;
+    } else if (visit.type === 'fitting' && outcome === 'completed') {
+      if (!visit.orderId) return null;
+      order = await this.db.orders.get(visit.orderId);
+      if (!order) throw Object.assign(new Error('The linked order is missing. Check Orders before recording a payment.'), { code: 'payment_order' });
+    }
+    if (order && (!visit.customerId || order.customerId !== visit.customerId)) {
+      throw Object.assign(new Error('The linked order belongs to a different customer. Check Orders before recording a payment.'), { code: 'payment_order' });
+    }
+    return order;
+  },
+
+  async completeVisitOutcome({ appointmentId, appointmentFields, paymentAmount = 0, paymentOperationId = null, paymentOrderId = null }) {
     const current = await this.getAppointment(appointmentId);
     if (!current) throw new Error('Appointment not found');
     const encryptedFields = await encryptAppointment(appointmentFields);
     const customerId = current.customerId;
     return this._runWrite(['appointments', 'orders', 'customers', 'sequences', 'payments'], async () => {
+      // Validate before any writes, including for the fallback storage engine.
+      const wantsPayment = Number(paymentAmount) > 0;
+      let paymentTarget = null;
+      if (wantsPayment) {
+        const liveVisit = await this.db.appointments.get(appointmentId);
+        if (!Number.isFinite(Number(paymentAmount)) || !customerId || liveVisit?.customerId !== customerId) throw Object.assign(new Error('Visit details changed. Reopen the outcome before recording a payment.'), { code: 'payment_order' });
+        paymentTarget = await this.getOutcomePaymentOrder(appointmentId, appointmentFields.outcome);
+        const newSale = appointmentFields.outcome === 'ordered' && Number(appointmentFields.value) > 0;
+        if (!paymentTarget && !newSale) throw Object.assign(new Error('No order is linked to this payment. Record it against the correct order in Orders.'), { code: 'payment_order' });
+        if (paymentTarget?.source === 'survey_referral') throw Object.assign(new Error('Payment is managed externally for this referred order.'), { code: 'payment_order' });
+        if (paymentOrderId != null && paymentTarget?.id !== Number(paymentOrderId)) throw Object.assign(new Error('The linked order changed. Reopen the outcome before recording a payment.'), { code: 'payment_order' });
+      }
       const linked = await this.db.orders.where('appointmentId').equals(appointmentId).toArray();
       linked.sort((a, b) => (a.id || 0) - (b.id || 0));
       let order = linked[0] || null;
@@ -1478,11 +1510,12 @@ const DB = {
         order = null;
       }
       let payment = null;
-      if ((Number(paymentAmount) || 0) > 0 && customerId) {
-        const openOrders = (await this.db.orders.where('customerId').equals(customerId).toArray())
-          .filter(candidate => (candidate.balanceDue || 0) > 0)
-          .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
-        if (openOrders[0]) payment = await this._recordOrderPaymentUnsafe(openOrders[0].id, paymentAmount, paymentOperationId);
+      if (wantsPayment) {
+        // Sales use only the order created/reconciled by this visit; fittings
+        // use only the explicit, customer-validated link checked above.
+        const target = appointmentFields.outcome === 'ordered' ? order : paymentTarget;
+        if (!target) throw new Error('Payment order could not be resolved.');
+        payment = await this._recordOrderPaymentUnsafe(target.id, paymentAmount, paymentOperationId);
       }
       await this._refreshCustomerTotalsUnsafe(customerId);
       await this.db.appointments.update(appointmentId, encryptedFields);

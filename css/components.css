@@ -348,6 +348,7 @@
 .modal-overlay:has(.visit-summary-body) { z-index: 210; }
 .modal-overlay:has(.phone-contact-correction) { z-index: 310; }
 .modal-overlay:has(.phone-contact-recording) { z-index: 310; }
+.modal-overlay:has(.visit-outcome-recording) { z-index: 310; }
 
 /* Navigation-app chooser. Kept as large, plain rows for one-handed use in
    the van, with a 56px+ target and enough contrast in both colour themes. */

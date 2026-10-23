@@ -3397,26 +3397,18 @@ const AppointmentsFeature = {
     const surveyOutcome = appt.type === 'measure' && outcomeId === 'measured';
     const serviceFee = appt.type === 'service_call' && ['resolved', 'parts_needed', 'revisit_needed', 'not_a_fault'].includes(outcomeId);
 
-    // The door-money hooks: a deposit when the sale is logged, the final
-    // payment when the fitting completes. Both read REAL order records, never
-    // a guess. A fitting visit has no order of its own (orders are created on
-    // the sale visit), so the fitting balance is found by customer - the most
-    // recent open order is the job being fitted today.
+    // Payment context must use the same explicit link as the storage boundary.
     let linkedOrder = null;
-    try { linkedOrder = await DB.db.orders.where('appointmentId').equals(id).first(); } catch (e) {}
-    let fittingOrder = null;
-    if (outcomeId === 'completed' && appt.customerId) {
-      try {
-        const openOrders = (await DB.db.orders.where('customerId').equals(appt.customerId).toArray())
-          .filter(o => (o.balanceDue || 0) > 0)
-          .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
-        fittingOrder = openOrders[0] || null;
-      } catch (e) {}
+    let paymentContextError = '';
+    if (saleOutcome || (appt.type === 'fitting' && outcomeId === 'completed')) {
+      try { linkedOrder = await DB.getOutcomePaymentOrder(id, outcomeId); }
+      catch (e) { paymentContextError = e.message || 'Check the linked order in Orders before recording a payment.'; }
     }
+    const fittingOrder = appt.type === 'fitting' && outcomeId === 'completed' ? linkedOrder : null;
     const depositPrefill = (saleOutcome && linkedOrder && !(linkedOrder.depositPaid > 0))
       ? (linkedOrder.depositRequired || 0)
       : '';
-    const fittingBalance = (outcomeId === 'completed' && fittingOrder)
+    const fittingBalance = (fittingOrder && fittingOrder.source !== 'survey_referral' && Number(fittingOrder.balanceDue) > 0)
       ? (fittingOrder.balanceDue || 0)
       : null;
     // Stashed for updateOutcomeCommission's live preview - same data the old
@@ -3442,7 +3434,7 @@ const AppointmentsFeature = {
           <span class="material-symbols-rounded">close</span>
         </button>
       </div>
-      <div class="sheet-body">
+      <div class="sheet-body visit-outcome-recording">
         ${moneyOutcome ? `
           <div class="form-group">
             <label>${valueLabel}</label>
@@ -3461,7 +3453,7 @@ const AppointmentsFeature = {
             <div id="outcome-discount-breakdown"></div>
             <div class="form-group">
               <label>Deposit taken today (&pound;) <span class="fw-400 text-tertiary" >- optional</span></label>
-              <input type="number" class="input" inputmode="decimal" id="outcome-payment" data-deposit="1" value="${depositPrefill}" placeholder="0.00" step="0.01" min="0" data-action="AppointmentsFeature.updateOutcomeCommission">
+              <input type="number" class="input" inputmode="decimal" id="outcome-payment" data-order-id="${linkedOrder?.id || ''}" data-payment-operation-id="${Utils.generateId('payment')}" data-deposit="1" value="${depositPrefill}" placeholder="0.00" step="0.01" min="0" data-action="AppointmentsFeature.updateOutcomeCommission">
               <div class="hint" id="outcome-payment-hint">${linkedOrder && (linkedOrder.depositPaid || 0) > 0 ? 'Deposit already recorded on this order.' : 'Leave empty to record the deposit later.'}</div>
             </div>
           ` : `
@@ -3523,12 +3515,15 @@ const AppointmentsFeature = {
         ${fittingBalance !== null ? `
           <div class="form-group">
             <label>Payment received today (&pound;)</label>
-            <input type="number" class="input" inputmode="decimal" id="outcome-payment" value="${fittingBalance}" step="0.01" min="0">
+            <input type="number" class="input" inputmode="decimal" id="outcome-payment" data-order-id="${fittingOrder.id}" data-payment-operation-id="${Utils.generateId('payment')}" value="${fittingBalance}" step="0.01" min="0">
             <div class="hint">${Utils.formatCurrency(fittingBalance)} balance on ${Utils.escapeHtml(fittingOrder.orderNumber || 'the open order')} — recorded against it right here.</div>
           </div>
         ` : ''}
 
-        <button class="btn btn-primary btn-block" data-action="AppointmentsFeature.saveOutcome" data-args='${JSON.stringify([(id), outcomeId])}'>
+        ${appt.type === 'fitting' && outcomeId === 'completed' && fittingBalance === null ? `<div class="hint mb-md">${Utils.escapeHtml(paymentContextError || (fittingOrder?.source === 'survey_referral' ? 'Payment is managed externally for this referred order. No customer payment is recorded here.' : fittingOrder ? 'There is no outstanding balance on this linked order.' : 'No order is linked to this fitting. You can save the visit outcome; record any payment against the correct order in Orders.'))}</div>` : ''}
+
+        <div id="outcome-payment-error" role="alert" class="text-danger fs-13 mb-md" hidden></div>
+        <button id="outcome-save" class="btn btn-primary btn-block" data-action="AppointmentsFeature.saveOutcome" data-args='${JSON.stringify([(id), outcomeId])}'>
           Save Outcome
         </button>
       </div>
@@ -3635,6 +3630,9 @@ const AppointmentsFeature = {
       return;
     }
 
+    const saveButton = document.getElementById('outcome-save');
+    if (saveButton?.disabled) return;
+    if (saveButton) saveButton.disabled = true;
     try {
       let appt = await DB.getAppointment(id);
       const survey = appt.type === 'measure' && outcomeId === 'measured';
@@ -3652,7 +3650,8 @@ const AppointmentsFeature = {
       const result = await DB.completeVisitOutcome({
         appointmentId: id,
         paymentAmount: parseFloat(document.getElementById('outcome-payment')?.value || 0),
-        paymentOperationId: Utils.generateId('payment'),
+        paymentOperationId: document.getElementById('outcome-payment')?.dataset?.paymentOperationId || Utils.generateId('payment'),
+        paymentOrderId: Number(document.getElementById('outcome-payment')?.dataset?.orderId) || null,
         appointmentFields: {
         status: 'completed',
         outcome: outcomeId,
@@ -3726,7 +3725,12 @@ const AppointmentsFeature = {
       App.navigate('appointments', {id});
     } catch (e) {
       console.error('Save outcome error:', e);
-      Toast.show('Failed to save outcome', 'error');
+      const message = e.code === 'payment_order' ? e.message : 'Failed to save outcome';
+      const errorEl = document.getElementById('outcome-payment-error');
+      if (errorEl) { errorEl.textContent = message; errorEl.hidden = false; }
+      Toast.show(message, 'error');
+    } finally {
+      if (saveButton) saveButton.disabled = false;
     }
   },
 
