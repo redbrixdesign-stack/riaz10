@@ -1,0 +1,43 @@
+Browser acceptance	Synthetic local browser acceptance	﻿2026-10-23T21:21:51.0867540Z ##[group]Run npm run test:release:browser
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:21:51.0867853Z ^[[36;1mnpm run test:release:browser^[[0m
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:21:51.0868176Z shell: sh -e {0}
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:21:51.0868356Z env:
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:21:51.0868532Z   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:21:51.0868855Z   BEELO_ARTIFACT_DIR: /home/runner/work/riaz10/riaz10/.test-results/release
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:21:51.0869159Z ##[endgroup]
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:21:51.2201530Z 
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:21:51.2202672Z > advisoros@5.0.0 test:release:browser
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:21:51.2203436Z > node tests/verify-release.cjs
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:21:51.2203746Z 
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:22:22.1405484Z PASS payment-link.e2e.cjs (31s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:22:30.9083083Z PASS protected-backup.e2e.cjs (9s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:22:38.4352340Z PASS context-encryption.e2e.cjs (8s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:22:44.2086346Z PASS lazy-state.e2e.cjs (6s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:22:53.2733224Z PASS social-share.e2e.cjs (9s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:22:59.4692403Z PASS cold-offline.e2e.cjs (6s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:23:04.7747195Z PASS claude-usage.e2e.cjs (5s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:23:17.7626920Z PASS test-session-boundary.e2e.cjs (13s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:23:19.2492340Z PASS visit-reminder-expiry.e2e.cjs (1s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:23:21.9198741Z PASS visit-reminder-lifecycle.e2e.cjs (3s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:23:24.5644639Z PASS visit-form-layout.e2e.cjs (3s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:23:26.1313008Z AssertionError [ERR_ASSERTION]: Returning from the real travel warning must retain unsaved edits
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:23:26.1313826Z FAIL modal-form-state.e2e.cjs (2s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:23:26.1314557Z + actual - expected
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:23:26.1314728Z 
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:23:26.1314847Z   {
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:23:26.1315190Z +   name: 'SYNTHETIC Original',
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:23:26.1315618Z -   name: 'SYNTHETIC Corrected',
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:23:26.1315967Z     time: '09:30'
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:23:26.1316222Z   }
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:23:26.1316382Z 
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:23:26.1316673Z     at /__w/riaz10/riaz10/tests/browser/modal-form-state.e2e.cjs:41:10 {
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:23:26.1317150Z   generatedMessage: false,
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:23:26.1317566Z   code: 'ERR_ASSERTION',
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:23:26.1317904Z   actual: [Object],
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:23:26.1318205Z   expected: [Object],
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:23:26.1318549Z   operator: 'deepStrictEqual',
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:23:26.1318909Z   diff: 'simple'
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:23:26.1319201Z }
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:23:26.1319325Z 
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:23:26.1319615Z Browser acceptance stopped at modal-form-state.e2e.cjs
+Browser acceptance	Synthetic local browser acceptance	2026-10-23T21:23:26.1465236Z ##[error]Process completed with exit code 1.

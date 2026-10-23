@@ -1,0 +1,2 @@
+PASS chromium: real edit/warning/adjust/save, nested text/Unicode/checkbox/radio/multi-select, escaped markup, secret/file exclusion, replace and close-all; no sends
+PASS webkit: real edit/warning/adjust/save, nested text/Unicode/checkbox/radio/multi-select, escaped markup, secret/file exclusion, replace and close-all; no sends

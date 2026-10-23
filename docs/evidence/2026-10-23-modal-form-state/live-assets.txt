@@ -1,0 +1,4 @@
+MATCH index.html
+MATCH sw.js
+MATCH js/core/app.min.js
+LIVE cache 154 / App v44 verified

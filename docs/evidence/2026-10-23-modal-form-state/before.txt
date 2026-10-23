@@ -1,0 +1,18 @@
+AssertionError [ERR_ASSERTION]: Returning from the real travel warning must retain unsaved edits
++ actual - expected
+
+  {
++   name: 'SYNTHETIC Original',
++   time: '09:00'
+-   name: 'SYNTHETIC Corrected',
+-   time: '09:30'
+  }
+
+    at /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/browser/modal-form-state.e2e.cjs:41:10 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: [Object],
+  expected: [Object],
+  operator: 'deepStrictEqual',
+  diff: 'simple'
+}
