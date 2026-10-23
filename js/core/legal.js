@@ -314,7 +314,7 @@ const ConsentPrompt = {
     this._attempts++;
     setTimeout(() => {
       if (this._shown || this._acknowledged()) return;
-      try { if (localStorage.getItem('advisoros_enc_test') === '1') return; } catch {}
+      try { if (typeof Utils !== 'undefined' && Utils.isLocalBrowserTest?.()) return; } catch {}
       if (typeof App === 'undefined' || App.currentHash === 'onboarding' || App.currentHash === '') return;
       // Don't interrupt a task the user is mid-way through; retry (bounded).
       if (App.currentHash !== 'today' || document.querySelector('.modal-overlay.active')) {

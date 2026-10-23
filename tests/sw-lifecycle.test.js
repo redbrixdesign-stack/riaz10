@@ -6,7 +6,7 @@ const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/st
   const worker={postMessage:message=>{assert.equal(message.type,'SKIP_WAITING');activations++;}};
   const registration={waiting:installed?worker:null,addEventListener(){}};
   const sw={controller:installed?{}:null,register:async()=>registration,addEventListener:(name,fn)=>events[name]=fn};
-  const s={console,navigator:{serviceWorker:sw},localStorage:{getItem:()=>null},window:{location:{reload:()=>reloads++}},document:{addEventListener(){},querySelector:()=>null}};
+  const s={console,Utils:{isLocalBrowserTest:()=>false},navigator:{serviceWorker:sw},localStorage:{getItem:()=>null},window:{location:{reload:()=>reloads++}},document:{addEventListener(){},querySelector:()=>null}};
   vm.createContext(s);const app=vm.runInContext(fs.readFileSync(file,'utf8')+'\nApp;',s);app.openModal=()=>offers++;
   await app.setupServiceWorker();assert.equal(reloads,0);assert.equal(activations,0);
   if(!installed){sw.controller={};events.controllerchange();assert.equal(reloads,0,'First claim cannot interrupt the new page');}

@@ -4,6 +4,15 @@
    ============================================ */
 
 const Utils = {
+  // Fixture opt-in is valid only on explicit loopback hosts. A storage flag
+  // on a public deployment must never select the known fixture key or skip
+  // consent/update/install notices. This is not an authentication mechanism.
+  isLocalBrowserTest() {
+    try {
+      return ['localhost', '127.0.0.1', '[::1]', '::1'].includes(window.location.hostname) &&
+        localStorage.getItem('advisoros_enc_test') === '1';
+    } catch (e) { return false; }
+  },
   // Outcome reminders use the scheduled finish, not the arrival-window end.
   // Legacy bookings use the same one-slot default as scheduling/conflicts.
   visitOutcomeDueAt(appointment) {

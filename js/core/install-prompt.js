@@ -88,10 +88,10 @@ const InstallPrompt = {
       if (this._shown || this._isStandalone() || this._installed() || this._dismissedRecently()) return;
       // Test-mode profiles (browser suites) must never see the hint — it
       // would open a modal mid-journey and trip "no modal layers left"
-      // assertions. Real users never set this flag. Checked at show time so
+      // assertions. Public hosts cannot use this exemption. Checked at show time so
       // a suite can boot with the flag and drop it later (install-prompt
       // verification does exactly that).
-      try { if (localStorage.getItem('advisoros_enc_test') === '1') return; } catch {}
+      try { if (typeof Utils !== 'undefined' && Utils.isLocalBrowserTest?.()) return; } catch {}
       if (typeof App === 'undefined' || App.currentHash === 'onboarding' || App.currentHash === '') return;
       // Companion timing: only interrupt when the user is settled on Today
       // with no sheet already open — never over a task they're in the

@@ -176,10 +176,10 @@ const App = {
   // Prompt for the encryption passphrase when the device's configured unlock
   // grace has expired. The active key is held only in memory while Beelo runs.
   async promptPassphrase() {
-    // Browser test mode: e2e suites boot a fresh profile and can't click a
-    // modal. They set advisoros_enc_test=1 before boot and get a fixed
-    // passphrase instead. Real users never see this path.
-    if (localStorage.getItem('advisoros_enc_test') === '1') {
+    // Legacy fixture profiles may opt in on explicit loopback hosts only.
+    // The public app always uses the genuine passphrase/session path even
+    // when this storage flag is present. New journeys exercise real unlock.
+    if (Utils.isLocalBrowserTest()) {
       try {
         await initEncryption('test-passphrase-123');
       } catch (e) {
@@ -1405,7 +1405,7 @@ const App = {
         // Browser suites deliberately seed this flag before boot. Capture it
         // before the asynchronous registration so a waiting worker cannot
         // cover the install/onboarding UI those suites are exercising.
-        const suppressUpdateUI = localStorage.getItem('advisoros_enc_test') === '1';
+        const suppressUpdateUI = Utils.isLocalBrowserTest();
         let hadController = !!navigator.serviceWorker.controller;
         const registration = await navigator.serviceWorker.register('sw.js');
         console.log('Service Worker registered:', registration.scope);
