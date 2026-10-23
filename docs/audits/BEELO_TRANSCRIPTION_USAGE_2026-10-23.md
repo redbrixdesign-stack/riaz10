@@ -1,6 +1,6 @@
 # A03 — Shared pilot transcription safeguards
 
-Status: implemented and tested; release details recorded below after deployment.
+Status: deployed 23 October 2026. Source `c33240f`, production `dpl_3v9xeCrnHxPhnT6JmaqTUBSnkdA3`, build 7s, https://beelo.beelestial.co.uk/.
 
 ## Approved policy / product truth
 
@@ -26,6 +26,7 @@ Status: implemented and tested; release details recorded below after deployment.
 
 ## Release / remaining risks
 
+- Staged app shell/service worker byte-matched before exact-build promotion; live index, SW and both NoteCapture assets byte-match. Staged/live unauthenticated transcription returned the expected application 403, not a function/import error. Deployment-scoped ten-minute error/fatal query returned no records; drains/client monitoring are not certified by that empty scan. No cache bump was needed for this server-only release.
 - Deploy from the isolated managed `codex/phone-contact-save` checkout only; preserve the pre-existing dirty original worktree. Prior production source `34760c1`, deployment `dpl_3oeZbVftywyr7F954UGuG4FHEcTb` is rollback target.
 - Post-release authenticated, paid end-to-end transcription still requires a controlled manual check. Shared credentials mean one adviser can exhaust the group allowance; individual accounts/entitlements require a separate product/security decision. This guard is not DDoS protection or comprehensive spend monitoring.
 - Next: physical-iPhone acceptance and remaining audit priorities, one separately tested release at a time. No automatic expansion of scope.
