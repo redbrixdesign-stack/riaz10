@@ -9,7 +9,7 @@
     "test:transcription:redis": "node tests/transcription-usage-redis.test.mjs",
     "build": "node build/minify.js",
     "test:release:browser": "node tests/verify-release.cjs",
-    "verify:release": "npm run build && npm test && npm run test:social && npm run test:release:browser",
+    "verify:release": "npm run build && npm test && npm run test:social && npm run test:performance:gate && npm run test:release:browser",
     "watch": "node build/minify.js --watch",
     "serve": "python3 -m http.server 8000",
     "clean": "node build/minify.js --clean",
@@ -22,11 +22,13 @@
     "test:browser:p0": "node tests/browser/verify-p0-onboarding.js",
     "test:tz": "node tests/run-tz.js",
     "test:tz:browser": "TZ_BROWSER=America/New_York npm run test:browser && TZ_BROWSER=Pacific/Kiritimati npm run test:browser && TZ_BROWSER=America/New_York node tests/browser/run-journeys.js && TZ_BROWSER=Pacific/Kiritimati node tests/browser/run-journeys.js",
-    "lhci:audit": "lhci collect && lhci assert",
-    "lhci:upload": "lhci upload"
+    "audit:performance": "node tests/lighthouse-audit.mjs",
+    "test:performance:gate": "node tests/lighthouse-gate.test.mjs",
+    "lhci:audit": "npm run audit:performance"
   },
   "devDependencies": {
-    "@lhci/cli": "^0.15.1",
+    "lighthouse": "13.5.0",
+    "chrome-launcher": "^1.2.1",
     "axe-core": "^4.13.0",
     "dexie": "^4.0.11",
     "fake-indexeddb": "^6.2.5",

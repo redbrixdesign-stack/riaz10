@@ -9,7 +9,9 @@
      (installable-manifest / service-worker / apple-touch-icon). PWA
      installability is instead gated by tests/browser/verify-live.js
      (SW install + offline shell + icons) and manifest.json returning 200.
-   Run: npx lhci collect && npx lhci assert
+   Run: npm run audit:performance
+   The maintained Lighthouse runner retains these same floors and writes
+   local JSON/HTML evidence; CI retains reports as workflow artifacts.
    ============================================ */
 module.exports = {
   ci: {
@@ -27,11 +29,9 @@ module.exports = {
         'categories:accessibility': ['error', { minScore: 0.9 }],
         'categories:best-practices': ['error', { minScore: 0.9 }],
         'categories:seo': ['error', { minScore: 0.9 }],
-        'viewport': ['error', { minScore: 1 }]
+        // Lighthouse 13's declared replacement for the old `viewport` audit.
+        'viewport-insight': ['error', { minScore: 1 }]
       }
-    },
-    upload: {
-      target: 'temporary-public-storage'
     }
   }
 };

@@ -7,6 +7,8 @@ docs
 .git
 .github
 .env*
+.lighthouseci
+.test-results
 screenshots-seeded
 
 # Supporting deliverables are versioned in Git but are not part of the Beelo
