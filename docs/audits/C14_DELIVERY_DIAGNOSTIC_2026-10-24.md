@@ -1,6 +1,7 @@
 # C14 — bounded worker-delivery diagnostic
 
-Status: local diagnostic verified; hosted investigation next. NOT a production
+Status: local and exact-source hosted diagnostic verified; original fault not
+reproduced. NOT a production
 change or release acceptance. Public stays M1/cache158; M2a/C23 release held.
 
 ## Question / baseline
@@ -64,6 +65,30 @@ establishes those runs only, not the earlier hosted failure's internal state.
 Evidence under docs/evidence/2026-10-24-offline-delivery-diagnostic/. Original dirty
 runtime remains untouched. Run the enriched comparison once on the pinned hosted
 browser image, preserve results, and inspect any failing boundary before a fix.
+
+## Hosted result / test build
+
+Manual Test40128386499 on ab3823e9338e4d4f0b5e6a802d794cf93c6eb1e0 passes
+units/server/dependency audits, the extra diagnostic and all unchanged17 browser
+scripts (18 runner entries total). Both positive transports showed cached200
+quote-document resolution before background network failure. Negative control
+failed the actual journey and trace proved cache miss/504, as required. The
+original intermittent stall did not occur, so this is not root-cause closure.
+Automatic push40128373040 was superseded/cancelled, not counted as a pass.
+
+Prepared a separate unpromoted production-target build using --skip-domain:
+dpl_Fvs6TebarywrdJA77i6fP9wSRAWR,
+https://beelo1-evipquavh-beelomvp.vercel.app, READY, framework Other,
+build10.419s (buildingAt1792872771818 → ready1792872782237).
+Cache160/App46 includes held M2a and verified C23; no diagnostic instrumentation
+is shipped. Seven changed runtime assets byte-match source. IAB readonly inspection
+shows Beelo's fresh passphrase setup, not a protection page; no setup submitted.
+This origin has separate local storage; live records were not copied or accessed.
+Default Vercel project alias points to the stage; the custom live app remains
+M1/cache158, independently rechecked. No promote or protection/key change.
+Stage-specific error/fatal scan (20:06–20:16 UTC) returned no logs, not monitoring
+or wider runtime assurance. Physical-device checklist in
+docs/BEELO_STAGED_DEVICE_CHECK_2026-10-24.md is the next evidence boundary.
 
 ## Release decision
 

@@ -135,3 +135,8 @@ than guessing a customer. No automatic repair is claimed.
 Production baseline remains M1 until the offline boundary is diagnosed and final
 gates, staged asset comparison and exact-build promotion pass. Original dirty
 runtime/dependencies remain untouched. No speculative runtime/cache fix applied.
+
+Later checkpoint: a cache160/App46 stage containing M2a plus verified C23 recovery
+supersedes this original cache159 test candidate. It is still unpromoted. See
+C14_DELIVERY_DIAGNOSTIC_2026-10-24.md and the mock-only physical-device checklist;
+diagnostic/17 hosted checks pass without reproducing the original stall.

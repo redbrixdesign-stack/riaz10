@@ -22,6 +22,18 @@ The original hosted failure is Test 40002296334, WebKit secondary-route render a
 
 ## Decisions / next action
 
+### 24 October — worker trace / separate device build
+
+Test-only ab3823e and manual40128386499 add a bounded instrumented comparison of
+socket-drop/stopped-origin transports plus an actual missing-cache negative control.
+Local/hosted diagnostics and all17 normal hosted checks pass; original stall did
+not recur. No root-cause closure, assertion relaxation or cache-policy change.
+READY unpromoted dpl_Fvs6TebarywrdJA77i6fP9wSRAWR/cache160 is available for a
+mock-only iPhone check, with separate empty storage. Public custom app remains M1.
+See C14_DELIVERY_DIAGNOSTIC_2026-10-24.md and
+../BEELO_STAGED_DEVICE_CHECK_2026-10-24.md. Preserve any actual failure state;
+the next boundary is physical-device evidence, not another unchanged rerun.
+
 ### 24 October — C23 failure containment (not C14 closure)
 
 The captured pending script exposes a confirmed indefinite wait in App.loadScripts.

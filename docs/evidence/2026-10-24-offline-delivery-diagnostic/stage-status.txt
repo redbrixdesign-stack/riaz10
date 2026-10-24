@@ -1,0 +1,16 @@
+Staged only, not promoted:
+dpl_Fvs6TebarywrdJA77i6fP9wSRAWR
+https://beelo1-evipquavh-beelomvp.vercel.app
+Source ab3823e9338e4d4f0b5e6a802d794cf93c6eb1e0; runtime unchanged from49315d2.
+READY; target production with --skip-domain; framework Other.
+BuildingAt1792872771818; ready1792872782237; elapsed10.419s.
+Cache advisoros-v6-160-screen-load-deadline; App46.
+Seven changed runtime assets match source (stage-assets.txt).
+Custom live app independently rechecked M1/cache158.
+Default beelo1-beelomvp.vercel.app alias points to this staged build.
+IAB read-only visit shows fresh Beelo passphrase setup; no setup submitted.
+Separate blank local store; live records not copied, no diagnostic SW shipped.
+Stage error/fatal logs20:06–20:16 UTC: none returned (not monitoring assurance).
+Manual40128386499: diagnostic plus all17 maintained browser checks pass.
+Push40128373040: superseded/cancelled, not a passing result.
+No original C14 stall reproduced; no physical device result; release hold remains.
