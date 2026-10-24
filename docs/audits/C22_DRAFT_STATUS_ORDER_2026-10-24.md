@@ -86,3 +86,19 @@ Native input partially recovered, but an actual Save/readback and physical
 iPhone checklist are still open. C14 requires a captured failing offline route;
 no speculative caching change is included. Mac unlock is access, not a routine
 go-ahead approval; no credentials were requested or bypassed.
+
+## Later C19 checkpoint — human-assisted native Save/reload passed
+
+After private Mac unlock, input failed again. Muhammad manually saved Cedar;
+native screenshot showed its local09:00 reminder. Automated Open visit worked:
+customer0003, exact synthetic name/address, Saturday24October2026, planned09:00,
+arrival09–12, Consultation/Self-generated were visible. Scroll/taps then failed;
+Muhammad performed Safari reload/reopen/scroll. Fresh screenshot visually
+confirms complete saved Notes: `SYNTHETIC bedroom roller. Blue fabric. Left
+control. No contact.` No outcome/send/navigation/provider action invoked.
+
+This closes the bounded native synthetic entry/draft recovery/Save/reload-note
+check, with human assistance explicitly disclosed. Inline screenshots are the
+evidence; no exported native screenshot file or observed native cache version.
+It does not close full C19, physical-iPhone/microphone/offline/background or
+accessibility acceptance, or C14. No app change or new deployment was needed.
