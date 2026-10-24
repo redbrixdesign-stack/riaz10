@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'advisoros-';
-const CACHE_NAME = 'advisoros-v6-161-send-confirmation-queue';
+const CACHE_NAME = 'advisoros-v6-162-offline-precache-first';
 const STATIC_ASSETS = [
   'js/services/note-capture.min.js?v=8','js/services/visit-draft.min.js?v=2','js/services/visit-summaries.min.js?v=1',
   './','index.html','manifest.json?v=3','css/core.css?v=34','css/components.css?v=59',
@@ -24,6 +24,13 @@ const STATIC_ASSETS = [
 ];
 
 const FONT_ORIGINS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
+
+// These exact versioned URLs were installed together. The URL changes when
+// their code changes, so a hit needs no network refresh (or network lifetime).
+const PRECACHED_VERSIONED_ASSETS = new Set(STATIC_ASSETS
+  .map(asset => new URL(asset, self.location.href))
+  .filter(url => url.searchParams.has('v') && /\.(js|css)$/.test(url.pathname))
+  .map(url => url.href));
 
 self.addEventListener('install', e => {
   // Keep a newly installed worker waiting until the page deliberately asks
@@ -59,8 +66,16 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Fingerprinted/versioned shell assets are safe to serve immediately and
-  // refresh in the background. A failed asset request never receives HTML.
+  // First offline opening of a secondary screen must use its installed bytes
+  // without starting a failing/hung refresh alongside script delivery.
+  if (PRECACHED_VERSIONED_ASSETS.has(url.href)) {
+    e.respondWith(caches.match(e.request).then(cached => cached ||
+      fetch(e.request).then(cacheResponse).catch(() => new Response('', { status: 504 }))));
+    return;
+  }
+
+  // Other static assets retain the existing background-refresh policy.
+  // A failed asset request never receives HTML.
   if (['script', 'style', 'font', 'image'].includes(e.request.destination)) {
     const refresh = fetch(e.request).then(cacheResponse).catch(() => null);
     e.waitUntil(refresh);

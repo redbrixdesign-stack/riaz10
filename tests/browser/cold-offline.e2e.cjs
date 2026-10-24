@@ -71,6 +71,7 @@ async function workerTrace(page){
    }
   }
   await p.evaluate(()=>App.navigate('settings',{section:'data'}));await p.getByRole('button',{name:'Password-protected backup',exact:true}).waitFor();await p.waitForTimeout(400);await p.screenshot({path:artifactPath(`beelo-cold-offline-${engine.name()}.png`),animations:'disabled'});
+  if(transport)assert.deepEqual(transport.requests.filter(request=>request.blocked&&/^\/js\/.*\.js\?v=/.test(request.url)),[],'Installed versioned scripts must not attempt offline network refresh');
   if(transport){transport.blocked=false;if(originStop)await new Promise(resolve=>transport.server.listen(transport.port,'127.0.0.1',resolve));}else await c.setOffline(false);
   await p.reload();await p.getByRole('button',{name:'Password-protected backup',exact:true}).waitFor();assert.equal(await p.evaluate(()=>DB.db.customers.count()),1);
   assert.deepEqual(posts,[]);assert.deepEqual(errors,[]);
