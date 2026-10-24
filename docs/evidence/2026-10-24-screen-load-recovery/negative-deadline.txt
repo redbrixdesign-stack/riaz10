@@ -1,0 +1,13 @@
+AssertionError [ERR_ASSERTION]: A pending script must have a deadline
+
+0 !== 1
+
+    at scriptDeadline (/Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/lazy-state.test.js:12:9)
+    at async /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/lazy-state.test.js:27:2 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 0,
+  expected: 1,
+  operator: 'strictEqual',
+  diff: 'simple'
+}

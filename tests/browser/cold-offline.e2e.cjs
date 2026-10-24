@@ -49,10 +49,12 @@ const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
    assert(!/Failed to load|Something went wrong/.test(rendered),`${engine.name()} first offline ${route} must render`);
    }catch(error){
     const state=await p.evaluate(()=>({hash:App.currentHash,current:App.currentFeature?.id,revision:App._navigationRevision,scripts:[...document.querySelectorAll('script[data-lazy-src]')].map(script=>script.src),features:[...App.features].map(([id,feature])=>({id,lazy:!!feature._lazy})),body:document.getElementById('main')?.innerText})).catch(captureError=>({captureError:captureError.message}));
-    const cacheProbe=await p.evaluate(()=>Promise.race([
-     Promise.all([...document.querySelectorAll('script[data-lazy-src]')].map(async script=>{const response=await caches.match(script.src);return {url:script.src,status:response?.status,bytes:response?(await response.arrayBuffer()).byteLength:null};})),
+    const pendingUrls=scriptRequests.filter(request=>!scriptResponses.some(response=>response.url===request.url)).map(request=>request.url);
+    const probeUrls=[...new Set([...(state.scripts||[]),...pendingUrls])];
+    const cacheProbe=await p.evaluate(urls=>Promise.race([
+     Promise.all(urls.map(async url=>{const response=await caches.match(url);return {url,status:response?.status,bytes:response?(await response.arrayBuffer()).byteLength:null};})),
      new Promise(resolve=>setTimeout(()=>resolve({timeout:true}),2000))
-    ])).catch(error=>({error:error.message}));
+    ]),probeUrls).catch(error=>({error:error.message}));
     const evidence={engine:engine.name(),route,error:error.message,rendered,state,routeResults,errors,consoleErrors,cached,cacheProbe,scriptRequests,scriptResponses,failedRequests,transportRequests:transport?.requests};
     console.error('OFFLINE FAILURE',JSON.stringify(evidence));
     fs.writeFileSync(artifactPath(`beelo-cold-offline-failed-${engine.name()}-${route}.json`),JSON.stringify(evidence,null,2));

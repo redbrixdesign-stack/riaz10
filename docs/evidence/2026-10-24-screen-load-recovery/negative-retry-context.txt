@@ -1,0 +1,19 @@
+PASS js/core/app.js: stalled-script deadline, shared rejection, explicit retry, late callback isolation and timer cleanup
+Feature registered: today
+Feature registered: lazy
+Feature registered: lazy
+Feature registered: primary
+Feature registered: primary
+Feature registered: async
+Feature registered: slow
+Render error: Error: SYNTHETIC load error
+    at /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/lazy-state.test.js:47:50
+AssertionError [ERR_ASSERTION]: Explicit retry must preserve the requested visit context
+    at /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/lazy-state.test.js:48:2 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}

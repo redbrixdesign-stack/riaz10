@@ -1,0 +1,20 @@
+PASS js/core/app.js: stalled-script deadline, shared rejection, explicit retry, late callback isolation and timer cleanup
+Feature registered: today
+Feature registered: lazy
+Feature registered: lazy
+Feature registered: primary
+Feature registered: primary
+Feature registered: async
+Feature registered: slow
+Render error: Error: SYNTHETIC load error
+    at /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/lazy-state.test.js:47:50
+PASS js/core/app.js: canonical state/lifecycle, primary nav policy, stale same-route result and late error isolation
+PASS js/core/app.min.js: stalled-script deadline, shared rejection, explicit retry, late callback isolation and timer cleanup
+Render error: Error: SYNTHETIC load error
+    at /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/lazy-state.test.js:47:50
+PASS js/core/app.min.js: canonical state/lifecycle, primary nav policy, stale same-route result and late error isolation
+Failed to save trip: Error: quota failure
+    at Object.completeTrackedTrip (/Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/audit-fixes.test.js:25:53)
+    at Object.finishTrip (evalmachine.<anonymous>:237:16)
+    at async /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/audit-fixes.test.js:26:16
+PASS: trip failure/recovery/migration, cancelled persistence, real GPS ETA, duplicate methods, concurrent script loading and retry

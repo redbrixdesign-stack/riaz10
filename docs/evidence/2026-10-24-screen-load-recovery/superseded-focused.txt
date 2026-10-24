@@ -1,0 +1,2 @@
+PASS chromium: real stalled script times out, no autonomous retry, explicit retry loads the actual feature; navigated-away timeout stays quiet and synthetic record retained
+PASS webkit: real stalled script times out, no autonomous retry, explicit retry loads the actual feature; navigated-away timeout stays quiet and synthetic record retained

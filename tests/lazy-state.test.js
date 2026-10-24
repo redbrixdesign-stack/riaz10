@@ -1,7 +1,30 @@
 'use strict';
 const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/strict');
 const settle=()=>new Promise(resolve=>setTimeout(resolve,0));
+async function scriptDeadline(file){
+ const scripts=[],timers=new Map();let nextTimer=0;
+ const s={console,document:{addEventListener(){},createElement:()=>({dataset:{},removed:false,remove(){this.removed=true;}}),head:{appendChild:script=>scripts.push(script)}},setTimeout:(fn,ms)=>{const id=++nextTimer;timers.set(id,{fn,ms});return id;},clearTimeout:id=>timers.delete(id)};
+ vm.createContext(s);const app=vm.runInContext(fs.readFileSync(file,'utf8')+'\nApp;',s);
+ const first=app.loadScripts(['SYNTHETIC-stalled.js']),second=app.loadScripts(['SYNTHETIC-stalled.js']);
+ const rejects=Promise.all([assert.rejects(first,/Timed out loading/),assert.rejects(second,/Timed out loading/)]);
+ await Promise.resolve();await Promise.resolve();
+ assert.equal(scripts.length,1,'Concurrent loads share the same request');
+ assert.equal(timers.size,1,'A pending script must have a deadline');
+ const timer=[...timers.values()][0];assert.equal(timer.ms,15000);
+ const lateLoad=scripts[0].onload,lateError=scripts[0].onerror;
+ timer.fn();await rejects;
+ assert.equal(timers.size,0);assert(scripts[0].removed);assert.equal(app.scriptLoads.size,0,'A timed-out request must be retryable');
+ const retry=app.loadScripts(['SYNTHETIC-stalled.js']);await Promise.resolve();await Promise.resolve();
+ assert.equal(scripts.length,2);lateLoad();lateError();timer.fn();
+ assert.equal(app.scriptLoads.size,1,'Late old callbacks cannot clear the retry');
+ scripts[1].onload();await retry;assert.equal(timers.size,0);
+ await app.loadScripts(['SYNTHETIC-stalled.js']);assert.equal(scripts.length,2,'Successful scripts remain single-flight');
+ const failed=app.loadScripts(['SYNTHETIC-failed.js']);const failedResult=assert.rejects(failed,/Could not load/);await Promise.resolve();await Promise.resolve();scripts[2].onerror();await failedResult;
+ assert.equal(timers.size,0);assert(scripts[2].removed);assert(!app.scriptLoads.has('SYNTHETIC-failed.js'));
+ console.log('PASS '+file+': stalled-script deadline, shared rejection, explicit retry, late callback isolation and timer cleanup');
+}
 (async()=>{for(const file of ['js/core/app.js','js/core/app.min.js']){
+ await scriptDeadline(file);
  const main={innerHTML:'',appendChild(){}};
  const s={console,URLSearchParams,HTMLElement:class{},document:{getElementById:()=>main,querySelectorAll:()=>[],addEventListener(){},activeElement:null},window:{},Utils:{escapeHtml:String}};
  vm.createContext(s);const app=vm.runInContext(fs.readFileSync(file,'utf8')+'\nApp;',s);
@@ -20,6 +43,9 @@ const settle=()=>new Promise(resolve=>setTimeout(resolve,0));
  app.navigate('async',{id:1});app.navigate('async',{id:2});resolveNew('new');await settle();resolveOld('old');await settle();
  assert.equal(main.innerHTML,'new');assert.equal(app.currentHash,'async?id=2');
  let failLoad;app.loadScripts=()=>new Promise((resolve,reject)=>{failLoad=reject;});
- app.registerLazyFeature({id:'slow',name:'Slow',scripts:[]});app.navigate('slow');app.navigate('today');failLoad(new Error('SYNTHETIC late load error'));await settle();assert.equal(main.innerHTML,'today');assert.equal(app.currentHash,'today');
+ app.registerLazyFeature({id:'slow',name:'Slow',scripts:[]});
+ app.navigate('slow',{appointmentId:7});failLoad(new Error('SYNTHETIC load error'));await settle();
+ assert(main.innerHTML.includes(JSON.stringify(['slow',{appointmentId:7}])),'Explicit retry must preserve the requested visit context');
+ app.navigate('slow');app.navigate('today');failLoad(new Error('SYNTHETIC late load error'));await settle();assert.equal(main.innerHTML,'today');assert.equal(app.currentHash,'today');
  console.log('PASS '+file+': canonical state/lifecycle, primary nav policy, stale same-route result and late error isolation');
 }})().catch(e=>{console.error(e);process.exitCode=1;});

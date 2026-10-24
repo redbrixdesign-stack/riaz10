@@ -653,19 +653,35 @@ const App = {
   loadScripts(urls = []) {
     return urls.reduce((chain, url) => chain.then(() => {
       if (this.scriptLoads.has(url)) return this.scriptLoads.get(url);
+      const script = document.createElement('script');
+      script.src = url;
+      script.dataset.lazySrc = url;
+      let resolveLoad, rejectLoad, settled = false, timer;
       const pending = new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = url;
-        script.dataset.lazySrc = url;
-        script.onload = resolve;
-        script.onerror = () => {
-          script.remove();
-          this.scriptLoads.delete(url);
-          reject(new Error(`Could not load ${url}`));
-        };
-        document.head.appendChild(script);
+        resolveLoad = resolve;
+        rejectLoad = reject;
       });
+      const finish = error => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        script.onload = script.onerror = null;
+        if (error) {
+          script.remove();
+          if (this.scriptLoads.get(url) === pending) this.scriptLoads.delete(url);
+          rejectLoad(error);
+        } else resolveLoad();
+      };
       this.scriptLoads.set(url, pending);
+      // Some browser/network failures produce neither load nor error. Settle
+      // once so the router offers its existing explicit retry, not an endless
+      // skeleton. This does not retry automatically or infer that cached data
+      // is missing. Late events belong only to this request.
+      timer = setTimeout(() => finish(new Error(`Timed out loading ${url}`)), 15000);
+      script.onload = () => finish();
+      script.onerror = () => finish(new Error(`Could not load ${url}`));
+      try { document.head.appendChild(script); }
+      catch (error) { finish(error); }
       return pending;
     }), Promise.resolve());
   },
@@ -774,7 +790,7 @@ const App = {
             <span class="material-symbols-rounded">error</span>
             <div>Failed to load</div>
             <div style="display:flex;gap:8px;margin-top:12px;">
-              <button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='${Utils.escapeHtml(JSON.stringify([(featureId)]))}'>Try again</button>
+              <button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='${Utils.escapeHtml(JSON.stringify([featureId, cleanParams]))}'>Try again</button>
               ${featureId !== 'today' ? `<button class="btn btn-primary btn-sm" data-action="App.navigate" data-args='["today"]'>Go to Today</button>` : ''}
             </div>
           </div>`;
@@ -788,7 +804,7 @@ const App = {
         <span class="material-symbols-rounded">error</span>
         <div>Something went wrong loading this screen</div>
         <div style="display:flex;gap:8px;margin-top:12px;">
-          <button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='${Utils.escapeHtml(JSON.stringify([(featureId)]))}'>Try again</button>
+          <button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='${Utils.escapeHtml(JSON.stringify([featureId, cleanParams]))}'>Try again</button>
           ${featureId !== 'today' ? `<button class="btn btn-primary btn-sm" data-action="App.navigate" data-args='["today"]'>Go to Today</button>` : ''}
         </div>
       </div>`;
