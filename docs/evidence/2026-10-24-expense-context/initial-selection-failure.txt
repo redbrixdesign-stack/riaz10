@@ -1,0 +1,12 @@
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+'' !== '1'
+
+    at /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/browser/expense-context.e2e.cjs:18:10 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: '',
+  expected: '1',
+  operator: 'strictEqual',
+  diff: 'simple'
+}

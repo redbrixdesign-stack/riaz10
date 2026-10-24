@@ -43,6 +43,7 @@ const CustomerFeature = {
     let payments = [];
     let retention = [];
     let whatsappPreference = null;
+    let linkedExpenses = null;
     try { appts = await DB.getAppointmentsByCustomer(customerId); } catch (e) {}
     try { orders = await DB.db.orders.where('customerId').equals(customerId).toArray(); } catch (e) {}
     try { comms = await DB.db.communications.where('customerId').equals(customerId).toArray(); } catch (e) {}
@@ -55,6 +56,7 @@ const CustomerFeature = {
     try { if (typeof DB.getLedgerEntries === 'function') payments = await DB.getLedgerEntries({ customerId }); } catch (e) {}
     try { if (typeof DB.getRetentionRecords === 'function') retention = await DB.getRetentionRecords({ customerId }); } catch (e) {}
     try { if (typeof CommunicationService !== 'undefined') whatsappPreference = await CommunicationService.preference(customerId, 'whatsapp'); } catch (e) {}
+    try { linkedExpenses = await DB.getExpensesByCustomer(customerId); } catch (e) { /* Show a read failure, not a false empty state. */ }
 
     appts.sort((a, b) => new Date(a.date) - new Date(b.date));
     const firstVisit = appts[0];
@@ -248,6 +250,12 @@ const CustomerFeature = {
         <div class="card card-page"><div class="flex items-center justify-between"><div><div class="fs-13 fw-600 text-secondary">Aftercare</div><div class="fs-12 text-tertiary mt-2">${retention.filter(item => !['completed', 'cancelled'].includes(item.status)).length} open · reviews, referrals, warranty and repeat work</div></div><button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='${JSON.stringify(['retention', { customerId }])}'><span class="material-symbols-rounded">handshake</span>Open</button></div></div>
 
         ${(invoices.length || payments.length) ? `<div class="card card-page"><div class="flex items-center justify-between mb-sm"><div class="fs-13 fw-600 text-secondary">Invoices &amp; payments</div><button class="btn btn-ghost btn-sm" data-action="App.navigate" data-args='${JSON.stringify(['invoices', { customerId }])}' aria-label="Open customer invoices and payments"><span class="material-symbols-rounded">receipt_long</span></button></div>${invoices.slice(0, 3).map(invoice => `<button class="area-customer-row w-full text-left mb-6" data-action="App.navigate" data-args='${JSON.stringify(['invoices', { id: invoice.id }])}'><span class="material-symbols-rounded">receipt_long</span><span class="flex-1"><strong>${Utils.escapeHtml(invoice.invoiceNumber || 'Draft invoice')}</strong><small>${Utils.formatCurrency(invoice.total || 0)} · ${Utils.escapeHtml(invoice.status || 'draft')}</small></span><span class="material-symbols-rounded">chevron_right</span></button>`).join('')}<div class="fs-12 text-tertiary">${payments.length} ledger entr${payments.length === 1 ? 'y' : 'ies'} · corrections remain in history</div></div>` : ''}
+
+        <div class="card card-page" id="customer-expense-evidence">
+          <div class="fs-13 fw-600 text-secondary mb-sm">Expense evidence${linkedExpenses ? ` (${linkedExpenses.length})` : ''}</div>
+          <div class="hint mb-sm">Linked business expenses, not an amount charged to this customer.</div>
+          ${linkedExpenses === null ? '<div class="fs-13 text-secondary">Could not load expense evidence. Reopen this profile to retry.</div>' : linkedExpenses.length ? linkedExpenses.map(expense => `<button type="button" class="area-customer-row w-full text-left mb-6" data-action="MoneyFeature.openEditExpenseModal" data-args='${JSON.stringify([expense.id])}'><span class="material-symbols-rounded" aria-hidden="true">receipt_long</span><span class="flex-1 min-w-0"><strong>${Utils.escapeHtml(expense.description || 'Expense')}</strong><small>${Utils.formatDate(expense.date, 'short')} · ${Utils.formatCurrency(expense.amount)}${expense.photo ? ' · receipt attached' : ''}</small></span><span class="material-symbols-rounded" aria-hidden="true">chevron_right</span></button>`).join('') : '<div class="fs-13 text-tertiary">No expenses linked. Choose this customer when adding or editing an expense in Money.</div>'}
+        </div>
 
         ${measurements.length ? `
           <div class="card card-page" >

@@ -1,0 +1,5 @@
+
+> advisoros@5.0.0 test:release:browser
+> node tests/verify-release.cjs
+
+PASS payment-link.e2e.cjs (30s)

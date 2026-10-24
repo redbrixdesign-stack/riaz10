@@ -847,7 +847,7 @@ const DB = {
   // what actually happened, not just "done".
   async deleteCustomer(customerId) {
     return this._runWrite(
-      ['customers', 'appointments', 'orders', 'communications', 'photos', 'voiceNotes', 'measurements', 'trips', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems', 'jobs', 'checklistResponses', 'jobIssues', 'payments', 'invoices', 'invoiceItems', 'creditNotes', 'documents', 'purchaseOrders', 'purchaseOrderItems', 'jobCosts', 'retentionRecords', 'contactPreferences', 'communicationEvents'],
+      ['customers', 'expenses', 'appointments', 'orders', 'communications', 'photos', 'voiceNotes', 'measurements', 'trips', 'leads', 'tasks', 'taskEvents', 'quotes', 'quoteItems', 'jobs', 'checklistResponses', 'jobIssues', 'payments', 'invoices', 'invoiceItems', 'creditNotes', 'documents', 'purchaseOrders', 'purchaseOrderItems', 'jobCosts', 'retentionRecords', 'contactPreferences', 'communicationEvents'],
       async () => {
         const [appts, orders, comms] = await Promise.all([
           this.db.appointments.where('customerId').equals(customerId).toArray(),
@@ -895,8 +895,12 @@ const DB = {
         await this.db.communications.where('customerId').equals(customerId).delete();
         await this.db.photos.where('customerId').equals(customerId).delete();
         await this.db.voiceNotes.where('customerId').equals(customerId).delete();
+        // Business expense evidence is retained, not part of the deleted visit
+        // graph. Remove its optional reference so it cannot dangle or mislink.
+        const linkedExpenses = await this.getExpensesByCustomer(customerId);
+        for (const expense of linkedExpenses) await this.db.expenses.update(expense.id, { customerId: null });
         await this.db.customers.delete(customerId);
-        return { appointments: appts.length, orders: orders.length, communications: comms.length, photos: photoCount, voiceNotes: voiceNoteCount, measurements: measurementCount, trips: tripCount, leads: leads.length, tasks: tasks.length, taskEvents: taskIds.length, quotes: quotes.length, jobs: jobs.length };
+        return { appointments: appts.length, orders: orders.length, communications: comms.length, photos: photoCount, voiceNotes: voiceNoteCount, measurements: measurementCount, trips: tripCount, leads: leads.length, tasks: tasks.length, taskEvents: taskIds.length, quotes: quotes.length, jobs: jobs.length, expensesUnlinked: linkedExpenses.length };
       }
     );
   },
@@ -1597,14 +1601,34 @@ const DB = {
   },
 
   // Expense operations
+  async _validateExpenseCustomer(customerId) {
+    if (customerId == null) return null;
+    if (!Number.isInteger(customerId) || customerId <= 0 || !(await this.db.customers.get(customerId))) {
+      throw new Error('Choose an existing customer or General business for this expense');
+    }
+    return customerId;
+  },
   async addExpense(data) {
-    const expense = {
-      ...data,
-      createdAt: new Date().toISOString()
-    };
-
-    const id = await this.db.expenses.add(expense);
-    return { ...expense, id };
+    return this._runWrite(['expenses', 'customers'], async () => {
+      const customerId = await this._validateExpenseCustomer(data.customerId);
+      const expense = { ...data, customerId, createdAt: new Date().toISOString() };
+      const id = await this.db.expenses.add(expense);
+      return { ...expense, id };
+    });
+  },
+  async updateExpense(expenseId, fields) {
+    return this._runWrite(['expenses', 'customers'], async () => {
+      if (!(await this.db.expenses.get(expenseId))) throw new Error('Expense not found');
+      const patch = { ...fields };
+      if (Object.prototype.hasOwnProperty.call(fields, 'customerId')) patch.customerId = await this._validateExpenseCustomer(fields.customerId);
+      return this.db.expenses.update(expenseId, patch);
+    });
+  },
+  async getExpensesByCustomer(customerId) {
+    if (!Number.isInteger(customerId) || customerId <= 0) return [];
+    // No new index/schema migration; the pilot uses a device-local scan.
+    return (await this.db.expenses.toArray()).filter(row => row.customerId === customerId)
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
   },
 
   async getExpensesForPeriod(startDate, endDate) {
@@ -2695,6 +2719,9 @@ const DB = {
           throw new Error(`Backup file is corrupt: "orders" references a missing appointmentId (${record.appointmentId})`);
         }
       }
+    }
+    for (const record of data.expenses || []) {
+      if (record.customerId != null) checkRef('expenses', record, 'customerId', customerIds);
     }
     for (const record of data.measurements || []) {
       checkRef('measurements', record, 'appointmentId', appointmentIds);

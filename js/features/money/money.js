@@ -9,6 +9,88 @@ const MoneyFeature = {
   icon: 'account_balance_wallet',
   expensePhotoData: null,
 
+  expenseCustomerId(prefix = '') {
+    const value = document.getElementById(prefix + 'expense-customer-id')?.value || '';
+    return value === '' ? null : Number(value);
+  },
+  expenseCustomerPending(prefix = '') {
+    return !!document.getElementById(prefix + 'expense-customer-id')?._selectingExpenseCustomer;
+  },
+  expenseCustomerLabel(customer) {
+    const name = customer.fullName || [customer.firstName, customer.lastName].filter(Boolean).join(' ') || 'Customer';
+    return name + (customer.customerNumber ? ' · ' + customer.customerNumber : '');
+  },
+  expenseContextFields(prefix = '', customerId = null) {
+    return `<div class="form-group">
+      <label for="${prefix}expense-customer-search">Customer (optional)</label>
+      <input type="hidden" id="${prefix}expense-customer-id" value="${Utils.escapeHtml(String(customerId ?? ''))}">
+      <div class="hint" id="${prefix}expense-customer-summary" role="status">${customerId == null ? 'General business — not linked to a customer.' : 'Checking linked customer…'}</div>
+      <input type="search" class="input" id="${prefix}expense-customer-search" placeholder="Find by name, postcode or customer number" autocomplete="off" data-event="input" data-action="MoneyFeature.searchExpenseCustomers" data-args='${Utils.escapeHtml(JSON.stringify(['__event__', prefix]))}' aria-describedby="${prefix}expense-customer-help">
+      <div class="hint" id="${prefix}expense-customer-help">Choose a result to link. Searching alone does not change the link. Leave general costs unlinked.</div>
+      <div id="${prefix}expense-customer-results" role="status" aria-live="polite"></div>
+      <button type="button" class="btn btn-ghost btn-sm" data-action="MoneyFeature.clearExpenseCustomer" data-args='${Utils.escapeHtml(JSON.stringify([prefix]))}'>Use General business</button>
+    </div>`;
+  },
+  async loadExpenseCustomer(prefix) {
+    const field = document.getElementById(prefix + 'expense-customer-id');
+    if (!field?.value) return;
+    const selected = field.value;
+    try {
+      const customer = await DB.getCustomer(Number(selected));
+      if (document.getElementById(prefix + 'expense-customer-id') !== field || field.value !== selected) return;
+      const summary = document.getElementById(prefix + 'expense-customer-summary');
+      if (summary) summary.textContent = customer ? this.expenseCustomerLabel(customer) : 'Linked customer unavailable. Choose another customer or General business before saving.';
+    } catch (_) {
+      if (document.getElementById(prefix + 'expense-customer-id') === field && field.value === selected) document.getElementById(prefix + 'expense-customer-summary').textContent = 'Could not check linked customer. Search again or choose General business.';
+    }
+  },
+  async searchExpenseCustomers(event, prefix = '') {
+    if (this._savingExpense || !['', 'edit-'].includes(prefix)) return;
+    const input = document.getElementById(prefix + 'expense-customer-search');
+    if (!input || event.target !== input) return;
+    const query = input.value.trim();
+    const results = document.getElementById(prefix + 'expense-customer-results');
+    results.textContent = query.length < 2 ? 'Type at least two characters to find a customer.' : 'Searching customers…';
+    if (query.length < 2) return;
+    const request = input._expenseSearchRequest = {};
+    try {
+      const customers = await DB.searchCustomers(query);
+      if (document.getElementById(prefix + 'expense-customer-search') !== input || input._expenseSearchRequest !== request || input.value.trim() !== query) return;
+      results.innerHTML = customers.length ? customers.map(customer => `<button type="button" class="area-customer-row w-full text-left mb-6" data-action="MoneyFeature.selectExpenseCustomer" data-args='${Utils.escapeHtml(JSON.stringify([customer.id, prefix]))}'><span class="flex-1"><strong>${Utils.escapeHtml(this.expenseCustomerLabel(customer))}</strong><small>${Utils.escapeHtml(customer.address?.postcodeFormatted || customer.address?.postcode || '')}</small></span></button>`).join('') + '<div class="hint">Up to 20 matches. Narrow your search if needed.</div>' : 'No matching customers. Try a name, postcode or customer number.';
+    } catch (_) {
+      if (document.getElementById(prefix + 'expense-customer-search') === input && input._expenseSearchRequest === request) results.textContent = 'Could not search customers. Try again; the current link has not changed.';
+    }
+  },
+  async selectExpenseCustomer(customerId, prefix = '') {
+    if (this._savingExpense || !['', 'edit-'].includes(prefix)) return;
+    const field = document.getElementById(prefix + 'expense-customer-id');
+    const input = document.getElementById(prefix + 'expense-customer-search');
+    if (!field || !input) return;
+    const query = input.value;
+    const request = field._selectingExpenseCustomer = {};
+    try {
+      const customer = await DB.getCustomer(customerId);
+      if (document.getElementById(prefix + 'expense-customer-id') !== field || input.value !== query || field._selectingExpenseCustomer !== request) return;
+      if (!customer) { Toast.show('Customer no longer available. Choose another or General business.', 'warning'); return; }
+      field.value = String(customer.id);
+      document.getElementById(prefix + 'expense-customer-summary').textContent = this.expenseCustomerLabel(customer);
+      input.value = ''; input._expenseSearchRequest = null;
+      document.getElementById(prefix + 'expense-customer-results').textContent = '';
+    } catch (_) { Toast.show('Could not link customer. Try again; the current link has not changed.', 'error'); }
+    finally { if (field._selectingExpenseCustomer === request) field._selectingExpenseCustomer = null; }
+  },
+  clearExpenseCustomer(prefix = '') {
+    if (this._savingExpense || !['', 'edit-'].includes(prefix)) return;
+    const field = document.getElementById(prefix + 'expense-customer-id');
+    if (!field) return;
+    field._selectingExpenseCustomer = null;
+    field.value = '';
+    document.getElementById(prefix + 'expense-customer-summary').textContent = 'General business — not linked to a customer.';
+    const input = document.getElementById(prefix + 'expense-customer-search');
+    input.value = ''; input._expenseSearchRequest = null;
+    document.getElementById(prefix + 'expense-customer-results').textContent = '';
+  },
+
   // Expense dates are UK calendar days, stored as UK-midnight ISO instants
   // so existing indexed date-period queries keep working without a migration.
   expenseDateInstant(value) {
@@ -264,7 +346,7 @@ const MoneyFeature = {
           <span class="material-symbols-rounded">${cat?.icon || 'receipt'}</span>
           <span>
             <strong>${Utils.formatCurrency(e.amount)} · ${Utils.escapeHtml(cat?.name || e.category || 'Expense')}</strong>
-            <small>${Utils.formatDate(e.date, 'short')} · ${Utils.escapeHtml(e.description || '')}</small>
+            <small>${Utils.formatDate(e.date, 'short')} · ${Utils.escapeHtml(e.description || '')} · ${e.customerId ? 'Customer-linked' : 'General business'}</small>
           </span>
           <span class="material-symbols-rounded">chevron_right</span>
         </div>
@@ -336,6 +418,7 @@ const MoneyFeature = {
           <input type="date" class="input" id="edit-expense-date" value="${this.expenseDateValue(expense.date)}" aria-describedby="edit-expense-date-hint" required>
           <div class="hint" id="edit-expense-date-hint">The date the expense happened, not the date you entered it.</div>
         </div>
+        ${this.expenseContextFields('edit-', expense.customerId)}
         <div class="form-group">
           <label>Amount (&pound;)</label>
           <input type="number" class="input" inputmode="decimal" id="edit-expense-amount" placeholder="0.00" step="0.01" min="0" value="${expense.amount || ''}">
@@ -365,16 +448,19 @@ const MoneyFeature = {
       </div>
     `;
     App.openModal(content);
+    this.loadExpenseCustomer('edit-');
   },
 
   async saveEditExpense(expenseId) {
     if (this._savingExpense) return;
+    if (this.expenseCustomerPending('edit-')) { Toast.show('Wait for the customer selection to finish, or choose General business.', 'warning'); return; }
     const dateField = document.getElementById('edit-expense-date');
     const selectedDate = dateField?.value;
     const date = this.expenseDateInstant(selectedDate);
     const amount = Number(document.getElementById('edit-expense-amount')?.value);
     const category = document.getElementById('edit-expense-category')?.value;
     const description = document.getElementById('edit-expense-description')?.value.trim() || '';
+    const customerId = this.expenseCustomerId('edit-');
 
     if (!date) { Toast.show('Please enter a valid expense date', 'error'); return; }
     if (!Number.isFinite(amount) || amount <= 0) {
@@ -388,7 +474,7 @@ const MoneyFeature = {
       if (!expense) throw new Error('Expense no longer exists');
       // Editing only amount/text must not rewrite a historical timestamp.
       const storedDate = this.expenseDateValue(expense.date) === selectedDate ? expense.date : date;
-      const updated = await DB.db.expenses.update(expenseId, { date: storedDate, amount, category, description: description || category });
+      const updated = await DB.updateExpense(expenseId, { customerId, date: storedDate, amount, category, description: description || category });
       if (!updated) throw new Error('Expense no longer exists');
       if (document.getElementById('edit-expense-date') !== dateField) return;
       App.closeModal();
@@ -396,7 +482,7 @@ const MoneyFeature = {
       App.navigate('money');
     } catch (e) {
       console.error('Save expense error:', e);
-      Toast.show('Failed to save changes', 'error');
+      Toast.show(e.message?.includes('customer') ? e.message : 'Failed to save changes', 'error');
     } finally { this._savingExpense = false; }
   },
 
@@ -546,6 +632,7 @@ const MoneyFeature = {
           <input type="date" class="input" id="expense-date" value="${Utils.formatDateUK(new Date(), 'iso')}" aria-describedby="expense-date-hint" required>
           <div class="hint" id="expense-date-hint" role="status">Use the actual expense date, including for older receipts.</div>
         </div>
+        ${this.expenseContextFields()}
         <div class="form-group">
           <label>Amount (&pound;)</label>
           <input type="number" class="input" inputmode="decimal" id="expense-amount" placeholder="0.00" step="0.01" min="0">
@@ -647,6 +734,7 @@ const MoneyFeature = {
 
   async saveExpense() {
     if (this._savingExpense) return;
+    if (this.expenseCustomerPending()) { Toast.show('Wait for the customer selection to finish, or choose General business.', 'warning'); return; }
     const dateField = document.getElementById('expense-date');
     const date = this.expenseDateInstant(dateField?.value);
     if (this._expensePhotoRequest?.field === dateField && this._expensePhotoRequest.loading) {
@@ -674,6 +762,7 @@ const MoneyFeature = {
     this._savingExpense = true;
     try {
       await DB.addExpense({
+        customerId: this.expenseCustomerId(),
         date,
         amount,
         category,
@@ -686,7 +775,7 @@ const MoneyFeature = {
       Toast.show('Expense logged', 'success');
       App.navigate('money');
     } catch (e) {
-      Toast.show('Failed to save expense', 'error');
+      Toast.show(e.message?.includes('customer') ? e.message : 'Failed to save expense', 'error');
     } finally { this._savingExpense = false; }
   },
 

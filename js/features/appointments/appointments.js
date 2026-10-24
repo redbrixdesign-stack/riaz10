@@ -1749,6 +1749,7 @@ const AppointmentsFeature = {
         <div class="fs-14 text-secondary mb-md" >
           This permanently deletes ${Utils.escapeHtml(name)}${apptCount > 0 ? ` and ${apptCount} linked visit${apptCount === 1 ? '' : 's'}` : ''}, along with any orders${photoCount > 0 ? `, ${photoCount} photo${photoCount === 1 ? '' : 's'}` : ''} and messages on record for them. This can't be undone.
         </div>
+        <div class="fs-13 text-secondary mb-md">Business expenses and receipt images are kept; their customer links are removed. Review their descriptions and receipts separately if they contain personal data.</div>
         <button class="btn btn-danger btn-block" data-action="AppointmentsFeature.deleteCustomer" data-args='${JSON.stringify([(customerId)])}'>
           <span class="material-symbols-rounded">delete</span>Delete Permanently
         </button>

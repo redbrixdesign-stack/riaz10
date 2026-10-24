@@ -1,0 +1,6 @@
+Database initialized
+PASS js/core/db.js dexie: general/link/reassign/unlink, preserved evidence, invalid-reference/atomic-update guards, backup validation/restore and customer-delete retention
+Database initialized
+PASS js/core/db.js shim: general/link/reassign/unlink, preserved evidence, invalid-reference/atomic-update guards, backup validation/restore and customer-delete retention
+PASS js/core/db.min.js dexie: general/link/reassign/unlink, preserved evidence, invalid-reference/atomic-update guards, backup validation/restore and customer-delete retention
+PASS js/core/db.min.js shim: general/link/reassign/unlink, preserved evidence, invalid-reference/atomic-update guards, backup validation/restore and customer-delete retention

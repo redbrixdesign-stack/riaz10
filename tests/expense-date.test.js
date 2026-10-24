@@ -9,6 +9,7 @@ function fixture(file){
   Toast:{show:message=>messages.push(message)},AIService:{isEnabled:()=>true,extractReceipt:async()=>({ok:true,fields:{date:'2026-04-05',amount:'12.50',description:'SYNTHETIC tool',category:'tools'}})},
   DB:{addExpense:async row=>{writes.push(row);return{id:writes.length,...row};},db:{expenses:{get:async id=>rows.get(id),update:async(id,patch)=>{updates.push({id,patch});return 1;}}}}});
  const utils=vm.runInContext(fs.readFileSync('js/core/utils.js','utf8')+'\nUtils;',context);
+ context.DB.updateExpense=(id,patch)=>context.DB.db.expenses.update(id,patch);
  const money=vm.runInContext(fs.readFileSync(file,'utf8')+'\nMoneyFeature;',context);
  const field=(id,value='')=>fields[id]={value,options:[{value:'tools'}],innerHTML:''};
  const form=(prefix='')=>{field(prefix+'expense-date','2026-04-05');field(prefix+'expense-amount','12.50');field(prefix+'expense-category','tools');field(prefix+'expense-description','SYNTHETIC receipt');};
