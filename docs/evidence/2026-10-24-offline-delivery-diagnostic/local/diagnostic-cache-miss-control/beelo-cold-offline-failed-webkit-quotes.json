@@ -1,0 +1,1382 @@
+{
+  "engine": "webkit",
+  "route": "quotes",
+  "error": "webkit first offline quotes must render",
+  "rendered": "error\nFailed to load\nTry again\nGo to Today",
+  "state": {
+    "hash": "quotes",
+    "current": "quotes",
+    "revision": 3,
+    "scripts": [
+      "http://127.0.0.1:59466/js/features/settings/settings.min.js?v=24"
+    ],
+    "features": [
+      {
+        "id": "quotes",
+        "lazy": true
+      },
+      {
+        "id": "jobs",
+        "lazy": true
+      },
+      {
+        "id": "invoices",
+        "lazy": true
+      },
+      {
+        "id": "suppliers",
+        "lazy": true
+      },
+      {
+        "id": "capacity",
+        "lazy": true
+      },
+      {
+        "id": "profitability",
+        "lazy": true
+      },
+      {
+        "id": "retention",
+        "lazy": true
+      },
+      {
+        "id": "social",
+        "lazy": true
+      },
+      {
+        "id": "settings",
+        "lazy": false
+      },
+      {
+        "id": "legal",
+        "lazy": false
+      },
+      {
+        "id": "communications",
+        "lazy": false
+      },
+      {
+        "id": "onboarding",
+        "lazy": false
+      },
+      {
+        "id": "companion",
+        "lazy": false
+      },
+      {
+        "id": "today",
+        "lazy": false
+      },
+      {
+        "id": "appointments",
+        "lazy": false
+      },
+      {
+        "id": "customer",
+        "lazy": false
+      },
+      {
+        "id": "route",
+        "lazy": false
+      },
+      {
+        "id": "leads",
+        "lazy": false
+      },
+      {
+        "id": "followups",
+        "lazy": false
+      },
+      {
+        "id": "orders",
+        "lazy": false
+      },
+      {
+        "id": "money",
+        "lazy": false
+      },
+      {
+        "id": "talk",
+        "lazy": false
+      },
+      {
+        "id": "measure",
+        "lazy": false
+      },
+      {
+        "id": "ocr",
+        "lazy": false
+      },
+      {
+        "id": "control",
+        "lazy": false
+      }
+    ],
+    "body": "error\nFailed to load\nTry again\nGo to Today"
+  },
+  "routeResults": [
+    {
+      "route": "quotes",
+      "rendered": "error\nFailed to load\nTry again\nGo to Today"
+    }
+  ],
+  "errors": [],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 504 ()",
+    "Render error: Error: Could not load js/services/quote-document.min.js?v=3"
+  ],
+  "cached": [
+    "http://127.0.0.1:59466/js/services/note-capture.min.js?v=8",
+    "http://127.0.0.1:59466/js/services/visit-draft.min.js?v=2",
+    "http://127.0.0.1:59466/js/services/visit-summaries.min.js?v=1",
+    "http://127.0.0.1:59466/",
+    "http://127.0.0.1:59466/index.html",
+    "http://127.0.0.1:59466/manifest.json?v=3",
+    "http://127.0.0.1:59466/css/core.css?v=34",
+    "http://127.0.0.1:59466/css/components.css?v=59",
+    "http://127.0.0.1:59466/assets/fonts/material-symbols-rounded.woff2",
+    "http://127.0.0.1:59466/assets/fonts/hankengrotesk-latin.woff2",
+    "http://127.0.0.1:59466/assets/fonts/hankengrotesk-latinext.woff2",
+    "http://127.0.0.1:59466/assets/fonts/jetbrainsmono-latin.woff2",
+    "http://127.0.0.1:59466/assets/icons/icon-gold-72.png",
+    "http://127.0.0.1:59466/assets/icons/badge-gold-72.png",
+    "http://127.0.0.1:59466/assets/icons/icon-gold-96.png",
+    "http://127.0.0.1:59466/assets/icons/icon-gold-128.png",
+    "http://127.0.0.1:59466/assets/icons/icon-gold-144.png",
+    "http://127.0.0.1:59466/assets/icons/icon-gold-152.png",
+    "http://127.0.0.1:59466/assets/icons/icon-gold-192.png",
+    "http://127.0.0.1:59466/assets/icons/icon-gold-384.png",
+    "http://127.0.0.1:59466/assets/icons/icon-gold-512.png",
+    "http://127.0.0.1:59466/assets/icons/icon-gold-192-maskable.png",
+    "http://127.0.0.1:59466/assets/icons/icon-gold-512-maskable.png",
+    "http://127.0.0.1:59466/assets/icons/apple-touch-icon-gold-180.png",
+    "http://127.0.0.1:59466/assets/img/marker-icon.png",
+    "http://127.0.0.1:59466/assets/img/marker-shadow.png",
+    "http://127.0.0.1:59466/js/vendor/dexie.min.js?v=1",
+    "http://127.0.0.1:59466/assets/img/marker-icon-2x.png",
+    "http://127.0.0.1:59466/js/vendor/minidexie.min.js?v=12",
+    "http://127.0.0.1:59466/js/core/config.min.js?v=17",
+    "http://127.0.0.1:59466/js/core/db.min.js?v=46",
+    "http://127.0.0.1:59466/js/core/utils.min.js?v=12",
+    "http://127.0.0.1:59466/js/core/geoprovider.min.js?v=1",
+    "http://127.0.0.1:59466/js/core/geo.min.js?v=15",
+    "http://127.0.0.1:59466/js/core/search.min.js?v=4",
+    "http://127.0.0.1:59466/js/core/tax.min.js?v=3",
+    "http://127.0.0.1:59466/js/core/install-prompt.min.js?v=2",
+    "http://127.0.0.1:59466/js/services/voice-notes.min.js?v=1",
+    "http://127.0.0.1:59466/js/core/app.min.js?v=46",
+    "http://127.0.0.1:59466/js/core/lazy-features.min.js?v=9",
+    "http://127.0.0.1:59466/js/core/legal.min.js?v=4",
+    "http://127.0.0.1:59466/js/core/contact.min.js?v=4",
+    "http://127.0.0.1:59466/js/services/ai.min.js?v=13",
+    "http://127.0.0.1:59466/js/services/notification.min.js?v=12",
+    "http://127.0.0.1:59466/js/services/message-scheduler.min.js?v=13",
+    "http://127.0.0.1:59466/js/services/export.min.js?v=12",
+    "http://127.0.0.1:59466/js/services/weather.min.js?v=3",
+    "http://127.0.0.1:59466/js/services/tasks.min.js?v=7",
+    "http://127.0.0.1:59466/js/services/job-field-service.min.js?v=2",
+    "http://127.0.0.1:59466/js/services/capacity.min.js?v=1",
+    "http://127.0.0.1:59466/js/services/communications.min.js?v=3",
+    "http://127.0.0.1:59466/js/features/companion/companion.min.js?v=31",
+    "http://127.0.0.1:59466/js/features/onboarding/onboarding.min.js?v=7",
+    "http://127.0.0.1:59466/js/features/today/today.min.js?v=19",
+    "http://127.0.0.1:59466/js/features/today/home-screen-controller.min.js?v=13",
+    "http://127.0.0.1:59466/js/features/appointments/appointments.min.js?v=62",
+    "http://127.0.0.1:59466/js/features/customer/customer.min.js?v=16",
+    "http://127.0.0.1:59466/js/features/route/route.min.js?v=17",
+    "http://127.0.0.1:59466/js/features/leads/leads.min.js?v=2",
+    "http://127.0.0.1:59466/js/features/followups/followups.min.js?v=28",
+    "http://127.0.0.1:59466/js/features/orders/orders.min.js?v=18",
+    "http://127.0.0.1:59466/js/features/money/money.min.js?v=13",
+    "http://127.0.0.1:59466/js/features/talk/talk.min.js?v=30",
+    "http://127.0.0.1:59466/js/features/measure/measure.min.js?v=9",
+    "http://127.0.0.1:59466/js/features/ocr/ocr.min.js?v=23",
+    "http://127.0.0.1:59466/js/features/control/control.min.js?v=15",
+    "http://127.0.0.1:59466/js/services/quote-document.min.js?v=3",
+    "http://127.0.0.1:59466/js/features/quotes/quotes.min.js?v=2",
+    "http://127.0.0.1:59466/js/features/jobs/jobs.min.js?v=3",
+    "http://127.0.0.1:59466/js/services/finance-document.min.js?v=3",
+    "http://127.0.0.1:59466/js/features/invoices/invoices.min.js?v=2",
+    "http://127.0.0.1:59466/js/features/suppliers/suppliers.min.js?v=2",
+    "http://127.0.0.1:59466/js/features/capacity/capacity.min.js?v=1",
+    "http://127.0.0.1:59466/js/features/profitability/profitability.min.js?v=1",
+    "http://127.0.0.1:59466/js/features/retention/retention.min.js?v=2",
+    "http://127.0.0.1:59466/js/features/social/social.min.js?v=3",
+    "http://127.0.0.1:59466/js/features/settings/settings.min.js?v=24"
+  ],
+  "cacheProbe": [
+    {
+      "url": "http://127.0.0.1:59466/js/features/settings/settings.min.js?v=24",
+      "status": 200,
+      "bytes": 43675
+    }
+  ],
+  "scriptRequests": [
+    {
+      "url": "http://127.0.0.1:59466/js/vendor/dexie.min.js?v=1",
+      "time": 1792872331649
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/vendor/minidexie.min.js?v=12",
+      "time": 1792872331649
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/core/config.min.js?v=17",
+      "time": 1792872331649
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/core/utils.min.js?v=12",
+      "time": 1792872331649
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/core/db.min.js?v=46",
+      "time": 1792872331649
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/core/geoprovider.min.js?v=1",
+      "time": 1792872331650
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/core/geo.min.js?v=15",
+      "time": 1792872331650
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/core/search.min.js?v=4",
+      "time": 1792872331650
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/core/tax.min.js?v=3",
+      "time": 1792872331650
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/core/install-prompt.min.js?v=2",
+      "time": 1792872331650
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/services/voice-notes.min.js?v=1",
+      "time": 1792872331650
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/services/note-capture.min.js?v=8",
+      "time": 1792872331650
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/services/visit-draft.min.js?v=2",
+      "time": 1792872331650
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/services/visit-summaries.min.js?v=1",
+      "time": 1792872331650
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/core/app.min.js?v=46",
+      "time": 1792872331650
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/core/lazy-features.min.js?v=9",
+      "time": 1792872331650
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/core/legal.min.js?v=4",
+      "time": 1792872331650
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/core/contact.min.js?v=4",
+      "time": 1792872331650
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/services/ai.min.js?v=13",
+      "time": 1792872331650
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/services/notification.min.js?v=12",
+      "time": 1792872331650
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/services/message-scheduler.min.js?v=13",
+      "time": 1792872331651
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/services/export.min.js?v=12",
+      "time": 1792872331651
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/services/weather.min.js?v=3",
+      "time": 1792872331651
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/services/tasks.min.js?v=7",
+      "time": 1792872331651
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/services/job-field-service.min.js?v=2",
+      "time": 1792872331651
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/services/capacity.min.js?v=1",
+      "time": 1792872331652
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/services/communications.min.js?v=3",
+      "time": 1792872331652
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/onboarding/onboarding.min.js?v=7",
+      "time": 1792872331652
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/companion/companion.min.js?v=31",
+      "time": 1792872331652
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/today/today.min.js?v=19",
+      "time": 1792872331652
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/today/home-screen-controller.min.js?v=13",
+      "time": 1792872331652
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/appointments/appointments.min.js?v=62",
+      "time": 1792872331652
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/customer/customer.min.js?v=16",
+      "time": 1792872331652
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/route/route.min.js?v=17",
+      "time": 1792872331652
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/leads/leads.min.js?v=2",
+      "time": 1792872331652
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/followups/followups.min.js?v=28",
+      "time": 1792872331652
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/orders/orders.min.js?v=18",
+      "time": 1792872331652
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/money/money.min.js?v=13",
+      "time": 1792872331652
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/talk/talk.min.js?v=30",
+      "time": 1792872331652
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/measure/measure.min.js?v=9",
+      "time": 1792872331652
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/ocr/ocr.min.js?v=23",
+      "time": 1792872331652
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/control/control.min.js?v=15",
+      "time": 1792872331652
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/settings/settings.min.js?v=24",
+      "time": 1792872332997
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/services/quote-document.min.js?v=3",
+      "time": 1792872333446
+    }
+  ],
+  "scriptResponses": [
+    {
+      "url": "http://127.0.0.1:59466/js/core/config.min.js?v=17",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/vendor/minidexie.min.js?v=12",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/core/db.min.js?v=46",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/vendor/dexie.min.js?v=1",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/core/utils.min.js?v=12",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/core/geo.min.js?v=15",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/core/geoprovider.min.js?v=1",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/core/tax.min.js?v=3",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/core/search.min.js?v=4",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/core/install-prompt.min.js?v=2",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/services/voice-notes.min.js?v=1",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/services/note-capture.min.js?v=8",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/services/visit-draft.min.js?v=2",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/services/visit-summaries.min.js?v=1",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/core/app.min.js?v=46",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/core/lazy-features.min.js?v=9",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/core/legal.min.js?v=4",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/core/contact.min.js?v=4",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/services/ai.min.js?v=13",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/services/notification.min.js?v=12",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/services/message-scheduler.min.js?v=13",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/services/export.min.js?v=12",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/services/weather.min.js?v=3",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/services/tasks.min.js?v=7",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/services/job-field-service.min.js?v=2",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/services/capacity.min.js?v=1",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/services/communications.min.js?v=3",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/onboarding/onboarding.min.js?v=7",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/companion/companion.min.js?v=31",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/today/today.min.js?v=19",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/today/home-screen-controller.min.js?v=13",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/appointments/appointments.min.js?v=62",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/customer/customer.min.js?v=16",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/route/route.min.js?v=17",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/leads/leads.min.js?v=2",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/followups/followups.min.js?v=28",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/orders/orders.min.js?v=18",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/measure/measure.min.js?v=9",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/money/money.min.js?v=13",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/talk/talk.min.js?v=30",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/ocr/ocr.min.js?v=23",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/control/control.min.js?v=15",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/features/settings/settings.min.js?v=24",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59466/js/services/quote-document.min.js?v=3",
+      "status": 504,
+      "worker": true
+    }
+  ],
+  "failedRequests": [
+    {
+      "url": "http://127.0.0.1:59466/js/services/quote-document.min.js?v=3",
+      "type": "script",
+      "failure": "cancelled"
+    }
+  ],
+  "transportRequests": [
+    {
+      "url": "/",
+      "blocked": false,
+      "time": 1792872331635
+    },
+    {
+      "url": "/manifest.json?v=3",
+      "blocked": false,
+      "time": 1792872331650
+    },
+    {
+      "url": "/assets/fonts/hankengrotesk-latin.woff2",
+      "blocked": false,
+      "time": 1792872331655
+    },
+    {
+      "url": "/js/core/config.min.js?v=17",
+      "blocked": false,
+      "time": 1792872331656
+    },
+    {
+      "url": "/css/core.css?v=34",
+      "blocked": false,
+      "time": 1792872331657
+    },
+    {
+      "url": "/css/components.css?v=59",
+      "blocked": false,
+      "time": 1792872331657
+    },
+    {
+      "url": "/js/vendor/dexie.min.js?v=1",
+      "blocked": false,
+      "time": 1792872331657
+    },
+    {
+      "url": "/js/vendor/minidexie.min.js?v=12",
+      "blocked": false,
+      "time": 1792872331658
+    },
+    {
+      "url": "/js/core/utils.min.js?v=12",
+      "blocked": false,
+      "time": 1792872331658
+    },
+    {
+      "url": "/js/core/db.min.js?v=46",
+      "blocked": false,
+      "time": 1792872331659
+    },
+    {
+      "url": "/js/core/geoprovider.min.js?v=1",
+      "blocked": false,
+      "time": 1792872331660
+    },
+    {
+      "url": "/js/core/geo.min.js?v=15",
+      "blocked": false,
+      "time": 1792872331660
+    },
+    {
+      "url": "/js/core/search.min.js?v=4",
+      "blocked": false,
+      "time": 1792872331661
+    },
+    {
+      "url": "/js/core/tax.min.js?v=3",
+      "blocked": false,
+      "time": 1792872331661
+    },
+    {
+      "url": "/js/core/install-prompt.min.js?v=2",
+      "blocked": false,
+      "time": 1792872331661
+    },
+    {
+      "url": "/js/services/voice-notes.min.js?v=1",
+      "blocked": false,
+      "time": 1792872331661
+    },
+    {
+      "url": "/js/services/note-capture.min.js?v=8",
+      "blocked": false,
+      "time": 1792872331662
+    },
+    {
+      "url": "/js/services/visit-draft.min.js?v=2",
+      "blocked": false,
+      "time": 1792872331662
+    },
+    {
+      "url": "/js/services/visit-summaries.min.js?v=1",
+      "blocked": false,
+      "time": 1792872331662
+    },
+    {
+      "url": "/js/core/app.min.js?v=46",
+      "blocked": false,
+      "time": 1792872331662
+    },
+    {
+      "url": "/js/core/lazy-features.min.js?v=9",
+      "blocked": false,
+      "time": 1792872331662
+    },
+    {
+      "url": "/js/core/legal.min.js?v=4",
+      "blocked": false,
+      "time": 1792872331662
+    },
+    {
+      "url": "/js/core/contact.min.js?v=4",
+      "blocked": false,
+      "time": 1792872331663
+    },
+    {
+      "url": "/js/services/ai.min.js?v=13",
+      "blocked": false,
+      "time": 1792872331663
+    },
+    {
+      "url": "/js/services/notification.min.js?v=12",
+      "blocked": false,
+      "time": 1792872331663
+    },
+    {
+      "url": "/js/services/message-scheduler.min.js?v=13",
+      "blocked": false,
+      "time": 1792872331663
+    },
+    {
+      "url": "/js/services/export.min.js?v=12",
+      "blocked": false,
+      "time": 1792872331663
+    },
+    {
+      "url": "/js/services/weather.min.js?v=3",
+      "blocked": false,
+      "time": 1792872331663
+    },
+    {
+      "url": "/js/services/tasks.min.js?v=7",
+      "blocked": false,
+      "time": 1792872331664
+    },
+    {
+      "url": "/js/services/job-field-service.min.js?v=2",
+      "blocked": false,
+      "time": 1792872331664
+    },
+    {
+      "url": "/js/services/capacity.min.js?v=1",
+      "blocked": false,
+      "time": 1792872331664
+    },
+    {
+      "url": "/js/services/communications.min.js?v=3",
+      "blocked": false,
+      "time": 1792872331664
+    },
+    {
+      "url": "/js/features/onboarding/onboarding.min.js?v=7",
+      "blocked": false,
+      "time": 1792872331664
+    },
+    {
+      "url": "/js/features/companion/companion.min.js?v=31",
+      "blocked": false,
+      "time": 1792872331665
+    },
+    {
+      "url": "/js/features/today/today.min.js?v=19",
+      "blocked": false,
+      "time": 1792872331665
+    },
+    {
+      "url": "/js/features/today/home-screen-controller.min.js?v=13",
+      "blocked": false,
+      "time": 1792872331665
+    },
+    {
+      "url": "/js/features/appointments/appointments.min.js?v=62",
+      "blocked": false,
+      "time": 1792872331665
+    },
+    {
+      "url": "/js/features/customer/customer.min.js?v=16",
+      "blocked": false,
+      "time": 1792872331666
+    },
+    {
+      "url": "/js/features/route/route.min.js?v=17",
+      "blocked": false,
+      "time": 1792872331666
+    },
+    {
+      "url": "/js/features/leads/leads.min.js?v=2",
+      "blocked": false,
+      "time": 1792872331666
+    },
+    {
+      "url": "/js/features/followups/followups.min.js?v=28",
+      "blocked": false,
+      "time": 1792872331667
+    },
+    {
+      "url": "/js/features/orders/orders.min.js?v=18",
+      "blocked": false,
+      "time": 1792872331667
+    },
+    {
+      "url": "/js/features/money/money.min.js?v=13",
+      "blocked": false,
+      "time": 1792872331667
+    },
+    {
+      "url": "/js/features/talk/talk.min.js?v=30",
+      "blocked": false,
+      "time": 1792872331667
+    },
+    {
+      "url": "/js/features/measure/measure.min.js?v=9",
+      "blocked": false,
+      "time": 1792872331667
+    },
+    {
+      "url": "/js/features/ocr/ocr.min.js?v=23",
+      "blocked": false,
+      "time": 1792872331668
+    },
+    {
+      "url": "/js/features/control/control.min.js?v=15",
+      "blocked": false,
+      "time": 1792872331668
+    },
+    {
+      "url": "/assets/fonts/material-symbols-rounded.woff2",
+      "blocked": false,
+      "time": 1792872331702
+    },
+    {
+      "url": "/sw.js",
+      "blocked": false,
+      "time": 1792872332229
+    },
+    {
+      "url": "/js/services/note-capture.min.js?v=8",
+      "blocked": false,
+      "time": 1792872332248
+    },
+    {
+      "url": "/js/services/visit-draft.min.js?v=2",
+      "blocked": false,
+      "time": 1792872332248
+    },
+    {
+      "url": "/js/services/visit-summaries.min.js?v=1",
+      "blocked": false,
+      "time": 1792872332248
+    },
+    {
+      "url": "/",
+      "blocked": false,
+      "time": 1792872332248
+    },
+    {
+      "url": "/index.html",
+      "blocked": false,
+      "time": 1792872332248
+    },
+    {
+      "url": "/manifest.json?v=3",
+      "blocked": false,
+      "time": 1792872332248
+    },
+    {
+      "url": "/css/core.css?v=34",
+      "blocked": false,
+      "time": 1792872332250
+    },
+    {
+      "url": "/css/components.css?v=59",
+      "blocked": false,
+      "time": 1792872332250
+    },
+    {
+      "url": "/assets/fonts/material-symbols-rounded.woff2",
+      "blocked": false,
+      "time": 1792872332250
+    },
+    {
+      "url": "/assets/fonts/hankengrotesk-latin.woff2",
+      "blocked": false,
+      "time": 1792872332250
+    },
+    {
+      "url": "/assets/fonts/hankengrotesk-latinext.woff2",
+      "blocked": false,
+      "time": 1792872332250
+    },
+    {
+      "url": "/assets/fonts/jetbrainsmono-latin.woff2",
+      "blocked": false,
+      "time": 1792872332250
+    },
+    {
+      "url": "/assets/icons/badge-gold-72.png",
+      "blocked": false,
+      "time": 1792872332251
+    },
+    {
+      "url": "/assets/icons/icon-gold-72.png",
+      "blocked": false,
+      "time": 1792872332251
+    },
+    {
+      "url": "/assets/icons/icon-gold-96.png",
+      "blocked": false,
+      "time": 1792872332251
+    },
+    {
+      "url": "/assets/icons/icon-gold-128.png",
+      "blocked": false,
+      "time": 1792872332252
+    },
+    {
+      "url": "/assets/icons/icon-gold-144.png",
+      "blocked": false,
+      "time": 1792872332252
+    },
+    {
+      "url": "/assets/icons/icon-gold-152.png",
+      "blocked": false,
+      "time": 1792872332252
+    },
+    {
+      "url": "/assets/icons/icon-gold-192.png",
+      "blocked": false,
+      "time": 1792872332252
+    },
+    {
+      "url": "/assets/icons/icon-gold-384.png",
+      "blocked": false,
+      "time": 1792872332252
+    },
+    {
+      "url": "/assets/icons/icon-gold-512.png",
+      "blocked": false,
+      "time": 1792872332252
+    },
+    {
+      "url": "/assets/icons/icon-gold-192-maskable.png",
+      "blocked": false,
+      "time": 1792872332253
+    },
+    {
+      "url": "/assets/icons/icon-gold-512-maskable.png",
+      "blocked": false,
+      "time": 1792872332253
+    },
+    {
+      "url": "/assets/icons/apple-touch-icon-gold-180.png",
+      "blocked": false,
+      "time": 1792872332253
+    },
+    {
+      "url": "/assets/img/marker-icon.png",
+      "blocked": false,
+      "time": 1792872332253
+    },
+    {
+      "url": "/assets/img/marker-shadow.png",
+      "blocked": false,
+      "time": 1792872332254
+    },
+    {
+      "url": "/js/vendor/dexie.min.js?v=1",
+      "blocked": false,
+      "time": 1792872332254
+    },
+    {
+      "url": "/assets/img/marker-icon-2x.png",
+      "blocked": false,
+      "time": 1792872332254
+    },
+    {
+      "url": "/js/vendor/minidexie.min.js?v=12",
+      "blocked": false,
+      "time": 1792872332254
+    },
+    {
+      "url": "/js/core/config.min.js?v=17",
+      "blocked": false,
+      "time": 1792872332254
+    },
+    {
+      "url": "/js/core/utils.min.js?v=12",
+      "blocked": false,
+      "time": 1792872332255
+    },
+    {
+      "url": "/js/core/db.min.js?v=46",
+      "blocked": false,
+      "time": 1792872332255
+    },
+    {
+      "url": "/js/core/geoprovider.min.js?v=1",
+      "blocked": false,
+      "time": 1792872332255
+    },
+    {
+      "url": "/js/core/geo.min.js?v=15",
+      "blocked": false,
+      "time": 1792872332255
+    },
+    {
+      "url": "/js/core/search.min.js?v=4",
+      "blocked": false,
+      "time": 1792872332255
+    },
+    {
+      "url": "/js/core/tax.min.js?v=3",
+      "blocked": false,
+      "time": 1792872332256
+    },
+    {
+      "url": "/js/core/install-prompt.min.js?v=2",
+      "blocked": false,
+      "time": 1792872332256
+    },
+    {
+      "url": "/js/services/voice-notes.min.js?v=1",
+      "blocked": false,
+      "time": 1792872332256
+    },
+    {
+      "url": "/js/core/app.min.js?v=46",
+      "blocked": false,
+      "time": 1792872332256
+    },
+    {
+      "url": "/js/core/lazy-features.min.js?v=9",
+      "blocked": false,
+      "time": 1792872332256
+    },
+    {
+      "url": "/js/core/legal.min.js?v=4",
+      "blocked": false,
+      "time": 1792872332256
+    },
+    {
+      "url": "/js/core/contact.min.js?v=4",
+      "blocked": false,
+      "time": 1792872332257
+    },
+    {
+      "url": "/js/services/ai.min.js?v=13",
+      "blocked": false,
+      "time": 1792872332257
+    },
+    {
+      "url": "/js/services/notification.min.js?v=12",
+      "blocked": false,
+      "time": 1792872332257
+    },
+    {
+      "url": "/js/services/message-scheduler.min.js?v=13",
+      "blocked": false,
+      "time": 1792872332257
+    },
+    {
+      "url": "/js/services/export.min.js?v=12",
+      "blocked": false,
+      "time": 1792872332257
+    },
+    {
+      "url": "/js/services/weather.min.js?v=3",
+      "blocked": false,
+      "time": 1792872332257
+    },
+    {
+      "url": "/js/services/tasks.min.js?v=7",
+      "blocked": false,
+      "time": 1792872332258
+    },
+    {
+      "url": "/js/services/job-field-service.min.js?v=2",
+      "blocked": false,
+      "time": 1792872332258
+    },
+    {
+      "url": "/js/services/capacity.min.js?v=1",
+      "blocked": false,
+      "time": 1792872332258
+    },
+    {
+      "url": "/js/services/communications.min.js?v=3",
+      "blocked": false,
+      "time": 1792872332258
+    },
+    {
+      "url": "/js/features/companion/companion.min.js?v=31",
+      "blocked": false,
+      "time": 1792872332258
+    },
+    {
+      "url": "/js/features/onboarding/onboarding.min.js?v=7",
+      "blocked": false,
+      "time": 1792872332258
+    },
+    {
+      "url": "/js/features/today/today.min.js?v=19",
+      "blocked": false,
+      "time": 1792872332258
+    },
+    {
+      "url": "/js/features/today/home-screen-controller.min.js?v=13",
+      "blocked": false,
+      "time": 1792872332259
+    },
+    {
+      "url": "/js/features/appointments/appointments.min.js?v=62",
+      "blocked": false,
+      "time": 1792872332259
+    },
+    {
+      "url": "/js/features/customer/customer.min.js?v=16",
+      "blocked": false,
+      "time": 1792872332259
+    },
+    {
+      "url": "/js/features/route/route.min.js?v=17",
+      "blocked": false,
+      "time": 1792872332259
+    },
+    {
+      "url": "/js/features/leads/leads.min.js?v=2",
+      "blocked": false,
+      "time": 1792872332259
+    },
+    {
+      "url": "/js/features/followups/followups.min.js?v=28",
+      "blocked": false,
+      "time": 1792872332260
+    },
+    {
+      "url": "/js/features/orders/orders.min.js?v=18",
+      "blocked": false,
+      "time": 1792872332260
+    },
+    {
+      "url": "/js/features/money/money.min.js?v=13",
+      "blocked": false,
+      "time": 1792872332260
+    },
+    {
+      "url": "/js/features/talk/talk.min.js?v=30",
+      "blocked": false,
+      "time": 1792872332261
+    },
+    {
+      "url": "/js/features/measure/measure.min.js?v=9",
+      "blocked": false,
+      "time": 1792872332261
+    },
+    {
+      "url": "/js/features/ocr/ocr.min.js?v=23",
+      "blocked": false,
+      "time": 1792872332261
+    },
+    {
+      "url": "/js/features/control/control.min.js?v=15",
+      "blocked": false,
+      "time": 1792872332261
+    },
+    {
+      "url": "/js/services/quote-document.min.js?v=3",
+      "blocked": false,
+      "time": 1792872332261
+    },
+    {
+      "url": "/js/features/quotes/quotes.min.js?v=2",
+      "blocked": false,
+      "time": 1792872332261
+    },
+    {
+      "url": "/js/features/jobs/jobs.min.js?v=3",
+      "blocked": false,
+      "time": 1792872332262
+    },
+    {
+      "url": "/js/services/finance-document.min.js?v=3",
+      "blocked": false,
+      "time": 1792872332262
+    },
+    {
+      "url": "/js/features/invoices/invoices.min.js?v=2",
+      "blocked": false,
+      "time": 1792872332263
+    },
+    {
+      "url": "/js/features/suppliers/suppliers.min.js?v=2",
+      "blocked": false,
+      "time": 1792872332263
+    },
+    {
+      "url": "/js/features/capacity/capacity.min.js?v=1",
+      "blocked": false,
+      "time": 1792872332263
+    },
+    {
+      "url": "/js/features/profitability/profitability.min.js?v=1",
+      "blocked": false,
+      "time": 1792872332263
+    },
+    {
+      "url": "/js/features/retention/retention.min.js?v=2",
+      "blocked": false,
+      "time": 1792872332263
+    },
+    {
+      "url": "/js/features/social/social.min.js?v=3",
+      "blocked": false,
+      "time": 1792872332263
+    },
+    {
+      "url": "/js/features/settings/settings.min.js?v=24",
+      "blocked": false,
+      "time": 1792872332264
+    },
+    {
+      "url": "/js/features/settings/settings.min.js?v=24",
+      "blocked": true,
+      "time": 1792872333004
+    },
+    {
+      "url": "/js/features/settings/settings.min.js?v=24",
+      "blocked": true,
+      "time": 1792872333005
+    },
+    {
+      "url": "/js/features/settings/settings.min.js?v=24",
+      "blocked": true,
+      "time": 1792872333006
+    },
+    {
+      "url": "/js/features/settings/settings.min.js?v=24",
+      "blocked": true,
+      "time": 1792872333007
+    },
+    {
+      "url": "/js/features/settings/settings.min.js?v=24",
+      "blocked": true,
+      "time": 1792872333008
+    },
+    {
+      "url": "/js/features/settings/settings.min.js?v=24",
+      "blocked": true,
+      "time": 1792872333009
+    },
+    {
+      "url": "/js/features/settings/settings.min.js?v=24",
+      "blocked": true,
+      "time": 1792872333011
+    },
+    {
+      "url": "/js/services/quote-document.min.js?v=3",
+      "blocked": true,
+      "time": 1792872333450
+    },
+    {
+      "url": "/js/services/quote-document.min.js?v=3",
+      "blocked": true,
+      "time": 1792872333452
+    },
+    {
+      "url": "/js/services/quote-document.min.js?v=3",
+      "blocked": true,
+      "time": 1792872333454
+    }
+  ],
+  "workerTrace": [
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59466/js/features/settings/settings.min.js?v=24",
+      "time": 1792872332997
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59466/js/features/settings/settings.min.js?v=24",
+      "time": 1792872332997
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59466/js/features/settings/settings.min.js?v=24",
+      "time": 1792872332997
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59466/js/features/settings/settings.min.js?v=24",
+      "time": 1792872332997
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59466/js/features/settings/settings.min.js?v=24",
+      "time": 1792872332998,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59466/js/features/settings/settings.min.js?v=24",
+      "time": 1792872332998,
+      "status": 200
+    },
+    {
+      "kind": "network-error",
+      "url": "http://127.0.0.1:59466/js/features/settings/settings.min.js?v=24",
+      "time": 1792872333014,
+      "error": "Load failed"
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59466/js/services/quote-document.min.js?v=3",
+      "time": 1792872333446
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59466/js/services/quote-document.min.js?v=3",
+      "time": 1792872333446
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59466/js/services/quote-document.min.js?v=3",
+      "time": 1792872333446
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59466/js/services/quote-document.min.js?v=3",
+      "time": 1792872333446
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59466/js/services/quote-document.min.js?v=3",
+      "time": 1792872333446,
+      "hit": false
+    },
+    {
+      "kind": "network-error",
+      "url": "http://127.0.0.1:59466/js/services/quote-document.min.js?v=3",
+      "time": 1792872333455,
+      "error": "Load failed"
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59466/js/services/quote-document.min.js?v=3",
+      "time": 1792872333457,
+      "status": 504
+    }
+  ]
+}

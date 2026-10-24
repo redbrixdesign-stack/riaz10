@@ -1,0 +1,2919 @@
+{
+  "engine": "webkit",
+  "cached": [
+    "http://127.0.0.1:59373/js/services/note-capture.min.js?v=8",
+    "http://127.0.0.1:59373/js/services/visit-draft.min.js?v=2",
+    "http://127.0.0.1:59373/js/services/visit-summaries.min.js?v=1",
+    "http://127.0.0.1:59373/",
+    "http://127.0.0.1:59373/index.html",
+    "http://127.0.0.1:59373/manifest.json?v=3",
+    "http://127.0.0.1:59373/css/core.css?v=34",
+    "http://127.0.0.1:59373/css/components.css?v=59",
+    "http://127.0.0.1:59373/assets/fonts/material-symbols-rounded.woff2",
+    "http://127.0.0.1:59373/assets/fonts/hankengrotesk-latin.woff2",
+    "http://127.0.0.1:59373/assets/fonts/hankengrotesk-latinext.woff2",
+    "http://127.0.0.1:59373/assets/fonts/jetbrainsmono-latin.woff2",
+    "http://127.0.0.1:59373/assets/icons/badge-gold-72.png",
+    "http://127.0.0.1:59373/assets/icons/icon-gold-72.png",
+    "http://127.0.0.1:59373/assets/icons/icon-gold-96.png",
+    "http://127.0.0.1:59373/assets/icons/icon-gold-128.png",
+    "http://127.0.0.1:59373/assets/icons/icon-gold-144.png",
+    "http://127.0.0.1:59373/assets/icons/icon-gold-152.png",
+    "http://127.0.0.1:59373/assets/icons/icon-gold-192.png",
+    "http://127.0.0.1:59373/assets/icons/icon-gold-384.png",
+    "http://127.0.0.1:59373/assets/icons/icon-gold-512.png",
+    "http://127.0.0.1:59373/assets/icons/icon-gold-192-maskable.png",
+    "http://127.0.0.1:59373/assets/icons/icon-gold-512-maskable.png",
+    "http://127.0.0.1:59373/assets/icons/apple-touch-icon-gold-180.png",
+    "http://127.0.0.1:59373/assets/img/marker-icon.png",
+    "http://127.0.0.1:59373/assets/img/marker-icon-2x.png",
+    "http://127.0.0.1:59373/assets/img/marker-shadow.png",
+    "http://127.0.0.1:59373/js/vendor/dexie.min.js?v=1",
+    "http://127.0.0.1:59373/js/vendor/minidexie.min.js?v=12",
+    "http://127.0.0.1:59373/js/core/config.min.js?v=17",
+    "http://127.0.0.1:59373/js/core/utils.min.js?v=12",
+    "http://127.0.0.1:59373/js/core/db.min.js?v=46",
+    "http://127.0.0.1:59373/js/core/geoprovider.min.js?v=1",
+    "http://127.0.0.1:59373/js/core/geo.min.js?v=15",
+    "http://127.0.0.1:59373/js/core/search.min.js?v=4",
+    "http://127.0.0.1:59373/js/core/tax.min.js?v=3",
+    "http://127.0.0.1:59373/js/core/install-prompt.min.js?v=2",
+    "http://127.0.0.1:59373/js/core/app.min.js?v=46",
+    "http://127.0.0.1:59373/js/services/voice-notes.min.js?v=1",
+    "http://127.0.0.1:59373/js/core/lazy-features.min.js?v=9",
+    "http://127.0.0.1:59373/js/core/legal.min.js?v=4",
+    "http://127.0.0.1:59373/js/core/contact.min.js?v=4",
+    "http://127.0.0.1:59373/js/services/notification.min.js?v=12",
+    "http://127.0.0.1:59373/js/services/ai.min.js?v=13",
+    "http://127.0.0.1:59373/js/services/message-scheduler.min.js?v=13",
+    "http://127.0.0.1:59373/js/services/export.min.js?v=12",
+    "http://127.0.0.1:59373/js/services/weather.min.js?v=3",
+    "http://127.0.0.1:59373/js/services/tasks.min.js?v=7",
+    "http://127.0.0.1:59373/js/services/job-field-service.min.js?v=2",
+    "http://127.0.0.1:59373/js/services/communications.min.js?v=3",
+    "http://127.0.0.1:59373/js/services/capacity.min.js?v=1",
+    "http://127.0.0.1:59373/js/features/companion/companion.min.js?v=31",
+    "http://127.0.0.1:59373/js/features/onboarding/onboarding.min.js?v=7",
+    "http://127.0.0.1:59373/js/features/today/today.min.js?v=19",
+    "http://127.0.0.1:59373/js/features/today/home-screen-controller.min.js?v=13",
+    "http://127.0.0.1:59373/js/features/appointments/appointments.min.js?v=62",
+    "http://127.0.0.1:59373/js/features/customer/customer.min.js?v=16",
+    "http://127.0.0.1:59373/js/features/route/route.min.js?v=17",
+    "http://127.0.0.1:59373/js/features/leads/leads.min.js?v=2",
+    "http://127.0.0.1:59373/js/features/followups/followups.min.js?v=28",
+    "http://127.0.0.1:59373/js/features/money/money.min.js?v=13",
+    "http://127.0.0.1:59373/js/features/orders/orders.min.js?v=18",
+    "http://127.0.0.1:59373/js/features/talk/talk.min.js?v=30",
+    "http://127.0.0.1:59373/js/features/measure/measure.min.js?v=9",
+    "http://127.0.0.1:59373/js/features/ocr/ocr.min.js?v=23",
+    "http://127.0.0.1:59373/js/features/control/control.min.js?v=15",
+    "http://127.0.0.1:59373/js/services/quote-document.min.js?v=3",
+    "http://127.0.0.1:59373/js/features/quotes/quotes.min.js?v=2",
+    "http://127.0.0.1:59373/js/features/jobs/jobs.min.js?v=3",
+    "http://127.0.0.1:59373/js/services/finance-document.min.js?v=3",
+    "http://127.0.0.1:59373/js/features/invoices/invoices.min.js?v=2",
+    "http://127.0.0.1:59373/js/features/suppliers/suppliers.min.js?v=2",
+    "http://127.0.0.1:59373/js/features/capacity/capacity.min.js?v=1",
+    "http://127.0.0.1:59373/js/features/profitability/profitability.min.js?v=1",
+    "http://127.0.0.1:59373/js/features/retention/retention.min.js?v=2",
+    "http://127.0.0.1:59373/js/features/social/social.min.js?v=3",
+    "http://127.0.0.1:59373/js/features/settings/settings.min.js?v=24"
+  ],
+  "routeResults": [
+    {
+      "route": "quotes",
+      "rendered": "arrow_back\nQuotes\nrequest_quote\nNo structured quotes yet\nCreate one from a visit or Customer 360."
+    },
+    {
+      "route": "jobs",
+      "rendered": "arrow_back\nJobs\nconstruction\nNo jobs yet\nCreate a job from an order when operational work begins."
+    },
+    {
+      "route": "invoices",
+      "rendered": "arrow_back\nInvoices & payments\nINVOICES (0)\nreceipt_long\nNo invoices yet\nPAYMENT LEDGER (0)\nNo payment entries yet."
+    },
+    {
+      "route": "suppliers",
+      "rendered": "arrow_back\nSupplier orders\nBuying and delivery progress lives here. It never moves the customer order stage automatically.\nlocal_shipping\nNo supplier orders yet\nCreate one to track submission, delivery and checks."
+    },
+    {
+      "route": "capacity",
+      "rendered": "arrow_back\nAvailability\nadd\nBlock time\nCapacity advice, not auto-booking\nBeelo warns about leave, closed hours, clashes and overloaded days. It never moves a customer visit by itself.\nevent_available\nNo blocked time ahead\nAdd leave or unavailable periods so booking advice reflects the day you can deliver."
+    },
+    {
+      "route": "profitability",
+      "rendered": "arrow_back\nProfitability settings\nadd\nNew policy\nEffective-dated costing\nA new policy applies only from its start date. Historic quotes and jobs keep the policy that applied at the time.\nmonitoring\nNo costing policy yet"
+    },
+    {
+      "route": "retention",
+      "rendered": "person_off\nChoose a customer first"
+    },
+    {
+      "route": "social",
+      "rendered": "arrow_back\nCreate Social Post\nauto_awesome\nTurn today’s craftsmanship into a post\nAdd the finished result, confirm the customer is comfortable with sharing it, and Beelo will prepare three editable captions. Nothing is published automatically.\n1. Permission first\nThe customer has agreed that this finished-room photo or video may be used on my business social media.\nAsk clearly before taking or sharing content. This permission is recorded against the fitting and can be withdrawn.\n2. Choose the fi"
+    }
+  ],
+  "scriptResponses": [
+    {
+      "url": "http://127.0.0.1:59373/js/vendor/dexie.min.js?v=1",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/core/config.min.js?v=17",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/vendor/minidexie.min.js?v=12",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/core/db.min.js?v=46",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/core/utils.min.js?v=12",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/core/geoprovider.min.js?v=1",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/core/geo.min.js?v=15",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/core/search.min.js?v=4",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/core/tax.min.js?v=3",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/core/install-prompt.min.js?v=2",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/services/voice-notes.min.js?v=1",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/services/note-capture.min.js?v=8",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/services/visit-draft.min.js?v=2",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/services/visit-summaries.min.js?v=1",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/core/app.min.js?v=46",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/core/lazy-features.min.js?v=9",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/core/contact.min.js?v=4",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/core/legal.min.js?v=4",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/services/ai.min.js?v=13",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/services/notification.min.js?v=12",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/services/message-scheduler.min.js?v=13",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/services/export.min.js?v=12",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/services/weather.min.js?v=3",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/services/tasks.min.js?v=7",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/services/job-field-service.min.js?v=2",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/services/capacity.min.js?v=1",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/services/communications.min.js?v=3",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/onboarding/onboarding.min.js?v=7",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/companion/companion.min.js?v=31",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/today/today.min.js?v=19",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/today/home-screen-controller.min.js?v=13",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/appointments/appointments.min.js?v=62",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/customer/customer.min.js?v=16",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/route/route.min.js?v=17",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/followups/followups.min.js?v=28",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/leads/leads.min.js?v=2",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/orders/orders.min.js?v=18",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/money/money.min.js?v=13",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/talk/talk.min.js?v=30",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/measure/measure.min.js?v=9",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/ocr/ocr.min.js?v=23",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/control/control.min.js?v=15",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/settings/settings.min.js?v=24",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/services/quote-document.min.js?v=3",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/quotes/quotes.min.js?v=2",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/jobs/jobs.min.js?v=3",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/services/finance-document.min.js?v=3",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/invoices/invoices.min.js?v=2",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/suppliers/suppliers.min.js?v=2",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/capacity/capacity.min.js?v=1",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/profitability/profitability.min.js?v=1",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/retention/retention.min.js?v=2",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/social/social.min.js?v=3",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/vendor/dexie.min.js?v=1",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/vendor/minidexie.min.js?v=12",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/core/config.min.js?v=17",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/core/utils.min.js?v=12",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/core/db.min.js?v=46",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/core/geoprovider.min.js?v=1",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/core/geo.min.js?v=15",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/core/search.min.js?v=4",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/core/tax.min.js?v=3",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/core/install-prompt.min.js?v=2",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/services/voice-notes.min.js?v=1",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/services/note-capture.min.js?v=8",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/services/visit-draft.min.js?v=2",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/services/visit-summaries.min.js?v=1",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/core/app.min.js?v=46",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/core/lazy-features.min.js?v=9",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/core/legal.min.js?v=4",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/core/contact.min.js?v=4",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/services/ai.min.js?v=13",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/services/notification.min.js?v=12",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/services/message-scheduler.min.js?v=13",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/services/export.min.js?v=12",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/services/weather.min.js?v=3",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/services/tasks.min.js?v=7",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/services/job-field-service.min.js?v=2",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/services/capacity.min.js?v=1",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/services/communications.min.js?v=3",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/onboarding/onboarding.min.js?v=7",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/companion/companion.min.js?v=31",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/today/today.min.js?v=19",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/today/home-screen-controller.min.js?v=13",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/appointments/appointments.min.js?v=62",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/customer/customer.min.js?v=16",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/route/route.min.js?v=17",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/leads/leads.min.js?v=2",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/followups/followups.min.js?v=28",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/orders/orders.min.js?v=18",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/money/money.min.js?v=13",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/talk/talk.min.js?v=30",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/measure/measure.min.js?v=9",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/ocr/ocr.min.js?v=23",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/control/control.min.js?v=15",
+      "status": 200,
+      "worker": true
+    },
+    {
+      "url": "http://127.0.0.1:59373/js/features/settings/settings.min.js?v=24",
+      "status": 200,
+      "worker": true
+    }
+  ],
+  "failedRequests": [],
+  "errors": [],
+  "consoleErrors": [],
+  "workerTrace": [
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/features/settings/settings.min.js?v=24",
+      "time": 1792872321428
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/features/settings/settings.min.js?v=24",
+      "time": 1792872321429
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/features/settings/settings.min.js?v=24",
+      "time": 1792872321429
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/features/settings/settings.min.js?v=24",
+      "time": 1792872321429
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/features/settings/settings.min.js?v=24",
+      "time": 1792872321430,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/features/settings/settings.min.js?v=24",
+      "time": 1792872321430,
+      "status": 200
+    },
+    {
+      "kind": "network-error",
+      "url": "http://127.0.0.1:59373/js/features/settings/settings.min.js?v=24",
+      "time": 1792872321445,
+      "error": "Load failed"
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/services/quote-document.min.js?v=3",
+      "time": 1792872321867
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/services/quote-document.min.js?v=3",
+      "time": 1792872321867
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/services/quote-document.min.js?v=3",
+      "time": 1792872321867
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/services/quote-document.min.js?v=3",
+      "time": 1792872321867
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/services/quote-document.min.js?v=3",
+      "time": 1792872321868,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/services/quote-document.min.js?v=3",
+      "time": 1792872321868,
+      "status": 200
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/features/quotes/quotes.min.js?v=2",
+      "time": 1792872321869
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/features/quotes/quotes.min.js?v=2",
+      "time": 1792872321870
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/features/quotes/quotes.min.js?v=2",
+      "time": 1792872321870
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/features/quotes/quotes.min.js?v=2",
+      "time": 1792872321870
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/features/quotes/quotes.min.js?v=2",
+      "time": 1792872321870,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/features/quotes/quotes.min.js?v=2",
+      "time": 1792872321870,
+      "status": 200
+    },
+    {
+      "kind": "network-error",
+      "url": "http://127.0.0.1:59373/js/services/quote-document.min.js?v=3",
+      "time": 1792872321877,
+      "error": "Load failed"
+    },
+    {
+      "kind": "network-error",
+      "url": "http://127.0.0.1:59373/js/features/quotes/quotes.min.js?v=2",
+      "time": 1792872321877,
+      "error": "Load failed"
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/features/jobs/jobs.min.js?v=3",
+      "time": 1792872321880
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/features/jobs/jobs.min.js?v=3",
+      "time": 1792872321880
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/features/jobs/jobs.min.js?v=3",
+      "time": 1792872321880
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/features/jobs/jobs.min.js?v=3",
+      "time": 1792872321880
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/features/jobs/jobs.min.js?v=3",
+      "time": 1792872321880,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/features/jobs/jobs.min.js?v=3",
+      "time": 1792872321880,
+      "status": 200
+    },
+    {
+      "kind": "network-error",
+      "url": "http://127.0.0.1:59373/js/features/jobs/jobs.min.js?v=3",
+      "time": 1792872321887,
+      "error": "Load failed"
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/services/finance-document.min.js?v=3",
+      "time": 1792872321887
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/services/finance-document.min.js?v=3",
+      "time": 1792872321887
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/services/finance-document.min.js?v=3",
+      "time": 1792872321887
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/services/finance-document.min.js?v=3",
+      "time": 1792872321887
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/services/finance-document.min.js?v=3",
+      "time": 1792872321887,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/services/finance-document.min.js?v=3",
+      "time": 1792872321887,
+      "status": 200
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/features/invoices/invoices.min.js?v=2",
+      "time": 1792872321888
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/features/invoices/invoices.min.js?v=2",
+      "time": 1792872321888
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/features/invoices/invoices.min.js?v=2",
+      "time": 1792872321888
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/features/invoices/invoices.min.js?v=2",
+      "time": 1792872321888
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/features/invoices/invoices.min.js?v=2",
+      "time": 1792872321889,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/features/invoices/invoices.min.js?v=2",
+      "time": 1792872321889,
+      "status": 200
+    },
+    {
+      "kind": "network-error",
+      "url": "http://127.0.0.1:59373/js/services/finance-document.min.js?v=3",
+      "time": 1792872321893,
+      "error": "Load failed"
+    },
+    {
+      "kind": "network-error",
+      "url": "http://127.0.0.1:59373/js/features/invoices/invoices.min.js?v=2",
+      "time": 1792872321893,
+      "error": "Load failed"
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/features/suppliers/suppliers.min.js?v=2",
+      "time": 1792872321910
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/features/suppliers/suppliers.min.js?v=2",
+      "time": 1792872321910
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/features/suppliers/suppliers.min.js?v=2",
+      "time": 1792872321910
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/features/suppliers/suppliers.min.js?v=2",
+      "time": 1792872321910
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/features/suppliers/suppliers.min.js?v=2",
+      "time": 1792872321911,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/features/suppliers/suppliers.min.js?v=2",
+      "time": 1792872321911,
+      "status": 200
+    },
+    {
+      "kind": "network-error",
+      "url": "http://127.0.0.1:59373/js/features/suppliers/suppliers.min.js?v=2",
+      "time": 1792872321915,
+      "error": "Load failed"
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/features/capacity/capacity.min.js?v=1",
+      "time": 1792872321926
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/features/capacity/capacity.min.js?v=1",
+      "time": 1792872321926
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/features/capacity/capacity.min.js?v=1",
+      "time": 1792872321926
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/features/capacity/capacity.min.js?v=1",
+      "time": 1792872321926
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/features/capacity/capacity.min.js?v=1",
+      "time": 1792872321927,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/features/capacity/capacity.min.js?v=1",
+      "time": 1792872321927,
+      "status": 200
+    },
+    {
+      "kind": "network-error",
+      "url": "http://127.0.0.1:59373/js/features/capacity/capacity.min.js?v=1",
+      "time": 1792872321932,
+      "error": "Load failed"
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/features/profitability/profitability.min.js?v=1",
+      "time": 1792872321943
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/features/profitability/profitability.min.js?v=1",
+      "time": 1792872321943
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/features/profitability/profitability.min.js?v=1",
+      "time": 1792872321943
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/features/profitability/profitability.min.js?v=1",
+      "time": 1792872321943
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/features/profitability/profitability.min.js?v=1",
+      "time": 1792872321944,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/features/profitability/profitability.min.js?v=1",
+      "time": 1792872321944,
+      "status": 200
+    },
+    {
+      "kind": "network-error",
+      "url": "http://127.0.0.1:59373/js/features/profitability/profitability.min.js?v=1",
+      "time": 1792872321948,
+      "error": "Load failed"
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/features/retention/retention.min.js?v=2",
+      "time": 1792872321960
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/features/retention/retention.min.js?v=2",
+      "time": 1792872321960
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/features/retention/retention.min.js?v=2",
+      "time": 1792872321960
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/features/retention/retention.min.js?v=2",
+      "time": 1792872321960
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/features/retention/retention.min.js?v=2",
+      "time": 1792872321961,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/features/retention/retention.min.js?v=2",
+      "time": 1792872321961,
+      "status": 200
+    },
+    {
+      "kind": "network-error",
+      "url": "http://127.0.0.1:59373/js/features/retention/retention.min.js?v=2",
+      "time": 1792872321965,
+      "error": "Load failed"
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/features/social/social.min.js?v=3",
+      "time": 1792872321976
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/features/social/social.min.js?v=3",
+      "time": 1792872321977
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/features/social/social.min.js?v=3",
+      "time": 1792872321977
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/features/social/social.min.js?v=3",
+      "time": 1792872321977
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/features/social/social.min.js?v=3",
+      "time": 1792872321977,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/features/social/social.min.js?v=3",
+      "time": 1792872321977,
+      "status": 200
+    },
+    {
+      "kind": "network-error",
+      "url": "http://127.0.0.1:59373/js/features/social/social.min.js?v=3",
+      "time": 1792872321982,
+      "error": "Load failed"
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/#settings?section=data",
+      "time": 1792872322459
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/#settings?section=data",
+      "time": 1792872322459
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/#settings?section=data",
+      "time": 1792872322459
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/#settings?section=data",
+      "time": 1792872322462,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/#settings?section=data",
+      "time": 1792872322463,
+      "status": 200
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/manifest.json?v=3",
+      "time": 1792872322467
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/manifest.json?v=3",
+      "time": 1792872322467
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/manifest.json?v=3",
+      "time": 1792872322467
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/assets/fonts/hankengrotesk-latin.woff2",
+      "time": 1792872322467
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/assets/fonts/hankengrotesk-latin.woff2",
+      "time": 1792872322467
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/assets/fonts/hankengrotesk-latin.woff2",
+      "time": 1792872322467
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/assets/fonts/hankengrotesk-latin.woff2",
+      "time": 1792872322467
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/css/core.css?v=34",
+      "time": 1792872322467
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/css/core.css?v=34",
+      "time": 1792872322467
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/css/core.css?v=34",
+      "time": 1792872322467
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/css/core.css?v=34",
+      "time": 1792872322467
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/css/components.css?v=59",
+      "time": 1792872322467
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/css/components.css?v=59",
+      "time": 1792872322467
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/css/components.css?v=59",
+      "time": 1792872322467
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/css/components.css?v=59",
+      "time": 1792872322467
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/vendor/dexie.min.js?v=1",
+      "time": 1792872322467
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/vendor/dexie.min.js?v=1",
+      "time": 1792872322467
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/vendor/dexie.min.js?v=1",
+      "time": 1792872322467
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/vendor/dexie.min.js?v=1",
+      "time": 1792872322467
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/vendor/minidexie.min.js?v=12",
+      "time": 1792872322467
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/vendor/minidexie.min.js?v=12",
+      "time": 1792872322467
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/vendor/minidexie.min.js?v=12",
+      "time": 1792872322467
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/vendor/minidexie.min.js?v=12",
+      "time": 1792872322467
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/core/config.min.js?v=17",
+      "time": 1792872322468
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/core/config.min.js?v=17",
+      "time": 1792872322468
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/core/config.min.js?v=17",
+      "time": 1792872322468
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/core/config.min.js?v=17",
+      "time": 1792872322468
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/assets/fonts/hankengrotesk-latin.woff2",
+      "time": 1792872322468,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/assets/fonts/hankengrotesk-latin.woff2",
+      "time": 1792872322468,
+      "status": 200
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/core/utils.min.js?v=12",
+      "time": 1792872322468
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/core/utils.min.js?v=12",
+      "time": 1792872322468
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/core/utils.min.js?v=12",
+      "time": 1792872322468
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/core/utils.min.js?v=12",
+      "time": 1792872322468
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/core/db.min.js?v=46",
+      "time": 1792872322468
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/core/db.min.js?v=46",
+      "time": 1792872322468
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/core/db.min.js?v=46",
+      "time": 1792872322468
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/core/db.min.js?v=46",
+      "time": 1792872322468
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/core/geoprovider.min.js?v=1",
+      "time": 1792872322468
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/core/geoprovider.min.js?v=1",
+      "time": 1792872322468
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/core/geoprovider.min.js?v=1",
+      "time": 1792872322468
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/core/geoprovider.min.js?v=1",
+      "time": 1792872322468
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/css/core.css?v=34",
+      "time": 1792872322468,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/css/core.css?v=34",
+      "time": 1792872322468,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/css/components.css?v=59",
+      "time": 1792872322468,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/css/components.css?v=59",
+      "time": 1792872322468,
+      "status": 200
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/core/geo.min.js?v=15",
+      "time": 1792872322468
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/core/geo.min.js?v=15",
+      "time": 1792872322468
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/core/geo.min.js?v=15",
+      "time": 1792872322468
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/core/geo.min.js?v=15",
+      "time": 1792872322468
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/core/search.min.js?v=4",
+      "time": 1792872322468
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/core/search.min.js?v=4",
+      "time": 1792872322468
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/core/search.min.js?v=4",
+      "time": 1792872322468
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/core/search.min.js?v=4",
+      "time": 1792872322468
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/core/tax.min.js?v=3",
+      "time": 1792872322468
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/core/tax.min.js?v=3",
+      "time": 1792872322468
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/core/tax.min.js?v=3",
+      "time": 1792872322468
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/core/tax.min.js?v=3",
+      "time": 1792872322468
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/core/install-prompt.min.js?v=2",
+      "time": 1792872322468
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/core/install-prompt.min.js?v=2",
+      "time": 1792872322468
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/core/install-prompt.min.js?v=2",
+      "time": 1792872322468
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/core/install-prompt.min.js?v=2",
+      "time": 1792872322468
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/services/voice-notes.min.js?v=1",
+      "time": 1792872322468
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/services/voice-notes.min.js?v=1",
+      "time": 1792872322468
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/services/voice-notes.min.js?v=1",
+      "time": 1792872322468
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/services/voice-notes.min.js?v=1",
+      "time": 1792872322468
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/services/note-capture.min.js?v=8",
+      "time": 1792872322468
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/services/note-capture.min.js?v=8",
+      "time": 1792872322468
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/services/note-capture.min.js?v=8",
+      "time": 1792872322468
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/services/note-capture.min.js?v=8",
+      "time": 1792872322468
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/services/visit-draft.min.js?v=2",
+      "time": 1792872322468
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/services/visit-draft.min.js?v=2",
+      "time": 1792872322468
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/services/visit-draft.min.js?v=2",
+      "time": 1792872322468
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/services/visit-draft.min.js?v=2",
+      "time": 1792872322468
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/services/visit-summaries.min.js?v=1",
+      "time": 1792872322468
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/services/visit-summaries.min.js?v=1",
+      "time": 1792872322468
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/services/visit-summaries.min.js?v=1",
+      "time": 1792872322468
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/services/visit-summaries.min.js?v=1",
+      "time": 1792872322468
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/core/app.min.js?v=46",
+      "time": 1792872322468
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/core/app.min.js?v=46",
+      "time": 1792872322468
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/core/app.min.js?v=46",
+      "time": 1792872322468
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/core/app.min.js?v=46",
+      "time": 1792872322468
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/core/lazy-features.min.js?v=9",
+      "time": 1792872322468
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/core/lazy-features.min.js?v=9",
+      "time": 1792872322468
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/core/lazy-features.min.js?v=9",
+      "time": 1792872322468
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/core/lazy-features.min.js?v=9",
+      "time": 1792872322468
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/core/legal.min.js?v=4",
+      "time": 1792872322468
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/core/legal.min.js?v=4",
+      "time": 1792872322468
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/core/legal.min.js?v=4",
+      "time": 1792872322468
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/core/legal.min.js?v=4",
+      "time": 1792872322468
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/core/contact.min.js?v=4",
+      "time": 1792872322468
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/core/contact.min.js?v=4",
+      "time": 1792872322468
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/core/contact.min.js?v=4",
+      "time": 1792872322468
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/core/contact.min.js?v=4",
+      "time": 1792872322468
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/vendor/dexie.min.js?v=1",
+      "time": 1792872322468,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/vendor/dexie.min.js?v=1",
+      "time": 1792872322468,
+      "status": 200
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/services/ai.min.js?v=13",
+      "time": 1792872322468
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/services/ai.min.js?v=13",
+      "time": 1792872322468
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/services/ai.min.js?v=13",
+      "time": 1792872322468
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/services/ai.min.js?v=13",
+      "time": 1792872322468
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/vendor/minidexie.min.js?v=12",
+      "time": 1792872322468,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/vendor/minidexie.min.js?v=12",
+      "time": 1792872322468,
+      "status": 200
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/services/notification.min.js?v=12",
+      "time": 1792872322469
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/services/notification.min.js?v=12",
+      "time": 1792872322469
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/services/notification.min.js?v=12",
+      "time": 1792872322469
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/services/notification.min.js?v=12",
+      "time": 1792872322469
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/services/message-scheduler.min.js?v=13",
+      "time": 1792872322469
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/services/message-scheduler.min.js?v=13",
+      "time": 1792872322469
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/services/message-scheduler.min.js?v=13",
+      "time": 1792872322469
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/services/message-scheduler.min.js?v=13",
+      "time": 1792872322469
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/core/config.min.js?v=17",
+      "time": 1792872322469,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/core/config.min.js?v=17",
+      "time": 1792872322469,
+      "status": 200
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/services/export.min.js?v=12",
+      "time": 1792872322469
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/services/export.min.js?v=12",
+      "time": 1792872322469
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/services/export.min.js?v=12",
+      "time": 1792872322469
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/services/export.min.js?v=12",
+      "time": 1792872322469
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/services/weather.min.js?v=3",
+      "time": 1792872322469
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/services/weather.min.js?v=3",
+      "time": 1792872322469
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/services/weather.min.js?v=3",
+      "time": 1792872322469
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/services/weather.min.js?v=3",
+      "time": 1792872322469
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/services/tasks.min.js?v=7",
+      "time": 1792872322469
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/services/tasks.min.js?v=7",
+      "time": 1792872322469
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/services/tasks.min.js?v=7",
+      "time": 1792872322469
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/services/tasks.min.js?v=7",
+      "time": 1792872322469
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/services/job-field-service.min.js?v=2",
+      "time": 1792872322469
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/services/job-field-service.min.js?v=2",
+      "time": 1792872322469
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/services/job-field-service.min.js?v=2",
+      "time": 1792872322469
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/services/job-field-service.min.js?v=2",
+      "time": 1792872322469
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/core/utils.min.js?v=12",
+      "time": 1792872322469,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/core/utils.min.js?v=12",
+      "time": 1792872322469,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/core/db.min.js?v=46",
+      "time": 1792872322469,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/core/db.min.js?v=46",
+      "time": 1792872322469,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/core/geoprovider.min.js?v=1",
+      "time": 1792872322469,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/core/geoprovider.min.js?v=1",
+      "time": 1792872322469,
+      "status": 200
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/services/capacity.min.js?v=1",
+      "time": 1792872322469
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/services/capacity.min.js?v=1",
+      "time": 1792872322469
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/services/capacity.min.js?v=1",
+      "time": 1792872322469
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/services/capacity.min.js?v=1",
+      "time": 1792872322469
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/services/communications.min.js?v=3",
+      "time": 1792872322469
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/services/communications.min.js?v=3",
+      "time": 1792872322469
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/services/communications.min.js?v=3",
+      "time": 1792872322469
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/services/communications.min.js?v=3",
+      "time": 1792872322469
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/features/onboarding/onboarding.min.js?v=7",
+      "time": 1792872322469
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/features/onboarding/onboarding.min.js?v=7",
+      "time": 1792872322469
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/features/onboarding/onboarding.min.js?v=7",
+      "time": 1792872322469
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/features/onboarding/onboarding.min.js?v=7",
+      "time": 1792872322469
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/core/geo.min.js?v=15",
+      "time": 1792872322469,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/core/geo.min.js?v=15",
+      "time": 1792872322469,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/core/search.min.js?v=4",
+      "time": 1792872322470,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/core/search.min.js?v=4",
+      "time": 1792872322470,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/core/tax.min.js?v=3",
+      "time": 1792872322470,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/core/tax.min.js?v=3",
+      "time": 1792872322470,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/core/install-prompt.min.js?v=2",
+      "time": 1792872322470,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/core/install-prompt.min.js?v=2",
+      "time": 1792872322470,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/services/voice-notes.min.js?v=1",
+      "time": 1792872322470,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/services/voice-notes.min.js?v=1",
+      "time": 1792872322470,
+      "status": 200
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/features/companion/companion.min.js?v=31",
+      "time": 1792872322470
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/features/companion/companion.min.js?v=31",
+      "time": 1792872322470
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/features/companion/companion.min.js?v=31",
+      "time": 1792872322470
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/features/companion/companion.min.js?v=31",
+      "time": 1792872322470
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/features/today/today.min.js?v=19",
+      "time": 1792872322470
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/features/today/today.min.js?v=19",
+      "time": 1792872322470
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/features/today/today.min.js?v=19",
+      "time": 1792872322470
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/features/today/today.min.js?v=19",
+      "time": 1792872322470
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/features/today/home-screen-controller.min.js?v=13",
+      "time": 1792872322470
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/features/today/home-screen-controller.min.js?v=13",
+      "time": 1792872322470
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/features/today/home-screen-controller.min.js?v=13",
+      "time": 1792872322470
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/features/today/home-screen-controller.min.js?v=13",
+      "time": 1792872322470
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/features/appointments/appointments.min.js?v=62",
+      "time": 1792872322470
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/features/appointments/appointments.min.js?v=62",
+      "time": 1792872322470
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/features/appointments/appointments.min.js?v=62",
+      "time": 1792872322470
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/features/appointments/appointments.min.js?v=62",
+      "time": 1792872322470
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/features/customer/customer.min.js?v=16",
+      "time": 1792872322470
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/features/customer/customer.min.js?v=16",
+      "time": 1792872322470
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/features/customer/customer.min.js?v=16",
+      "time": 1792872322470
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/features/customer/customer.min.js?v=16",
+      "time": 1792872322470
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/features/route/route.min.js?v=17",
+      "time": 1792872322470
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/features/route/route.min.js?v=17",
+      "time": 1792872322470
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/features/route/route.min.js?v=17",
+      "time": 1792872322470
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/features/route/route.min.js?v=17",
+      "time": 1792872322470
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/services/note-capture.min.js?v=8",
+      "time": 1792872322470,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/services/note-capture.min.js?v=8",
+      "time": 1792872322470,
+      "status": 200
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/features/leads/leads.min.js?v=2",
+      "time": 1792872322470
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/features/leads/leads.min.js?v=2",
+      "time": 1792872322470
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/features/leads/leads.min.js?v=2",
+      "time": 1792872322470
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/features/leads/leads.min.js?v=2",
+      "time": 1792872322470
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/services/visit-draft.min.js?v=2",
+      "time": 1792872322470,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/services/visit-draft.min.js?v=2",
+      "time": 1792872322470,
+      "status": 200
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/features/followups/followups.min.js?v=28",
+      "time": 1792872322470
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/features/followups/followups.min.js?v=28",
+      "time": 1792872322470
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/features/followups/followups.min.js?v=28",
+      "time": 1792872322470
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/features/followups/followups.min.js?v=28",
+      "time": 1792872322470
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/features/orders/orders.min.js?v=18",
+      "time": 1792872322470
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/features/orders/orders.min.js?v=18",
+      "time": 1792872322470
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/features/orders/orders.min.js?v=18",
+      "time": 1792872322470
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/features/orders/orders.min.js?v=18",
+      "time": 1792872322470
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/features/money/money.min.js?v=13",
+      "time": 1792872322470
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/features/money/money.min.js?v=13",
+      "time": 1792872322470
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/features/money/money.min.js?v=13",
+      "time": 1792872322470
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/features/money/money.min.js?v=13",
+      "time": 1792872322470
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/features/talk/talk.min.js?v=30",
+      "time": 1792872322470
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/features/talk/talk.min.js?v=30",
+      "time": 1792872322470
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/features/talk/talk.min.js?v=30",
+      "time": 1792872322470
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/features/talk/talk.min.js?v=30",
+      "time": 1792872322470
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/features/measure/measure.min.js?v=9",
+      "time": 1792872322470
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/features/measure/measure.min.js?v=9",
+      "time": 1792872322470
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/features/measure/measure.min.js?v=9",
+      "time": 1792872322470
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/features/measure/measure.min.js?v=9",
+      "time": 1792872322470
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/features/ocr/ocr.min.js?v=23",
+      "time": 1792872322470
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/features/ocr/ocr.min.js?v=23",
+      "time": 1792872322470
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/features/ocr/ocr.min.js?v=23",
+      "time": 1792872322470
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/features/ocr/ocr.min.js?v=23",
+      "time": 1792872322470
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/features/control/control.min.js?v=15",
+      "time": 1792872322470
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/features/control/control.min.js?v=15",
+      "time": 1792872322470
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/features/control/control.min.js?v=15",
+      "time": 1792872322470
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/features/control/control.min.js?v=15",
+      "time": 1792872322470
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/services/visit-summaries.min.js?v=1",
+      "time": 1792872322470,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/services/visit-summaries.min.js?v=1",
+      "time": 1792872322470,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/core/app.min.js?v=46",
+      "time": 1792872322470,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/core/app.min.js?v=46",
+      "time": 1792872322470,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/core/lazy-features.min.js?v=9",
+      "time": 1792872322470,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/core/lazy-features.min.js?v=9",
+      "time": 1792872322470,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/core/legal.min.js?v=4",
+      "time": 1792872322470,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/core/legal.min.js?v=4",
+      "time": 1792872322470,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/core/contact.min.js?v=4",
+      "time": 1792872322470,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/core/contact.min.js?v=4",
+      "time": 1792872322470,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/services/ai.min.js?v=13",
+      "time": 1792872322470,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/services/ai.min.js?v=13",
+      "time": 1792872322470,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/services/notification.min.js?v=12",
+      "time": 1792872322470,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/services/notification.min.js?v=12",
+      "time": 1792872322470,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/services/message-scheduler.min.js?v=13",
+      "time": 1792872322470,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/services/message-scheduler.min.js?v=13",
+      "time": 1792872322470,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/services/export.min.js?v=12",
+      "time": 1792872322470,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/services/export.min.js?v=12",
+      "time": 1792872322470,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/services/weather.min.js?v=3",
+      "time": 1792872322470,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/services/weather.min.js?v=3",
+      "time": 1792872322470,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/services/tasks.min.js?v=7",
+      "time": 1792872322470,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/services/tasks.min.js?v=7",
+      "time": 1792872322470,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/services/job-field-service.min.js?v=2",
+      "time": 1792872322471,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/services/job-field-service.min.js?v=2",
+      "time": 1792872322471,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/services/capacity.min.js?v=1",
+      "time": 1792872322471,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/services/capacity.min.js?v=1",
+      "time": 1792872322471,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/services/communications.min.js?v=3",
+      "time": 1792872322471,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/services/communications.min.js?v=3",
+      "time": 1792872322471,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/features/onboarding/onboarding.min.js?v=7",
+      "time": 1792872322471,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/features/onboarding/onboarding.min.js?v=7",
+      "time": 1792872322471,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/features/companion/companion.min.js?v=31",
+      "time": 1792872322471,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/features/companion/companion.min.js?v=31",
+      "time": 1792872322471,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/features/today/today.min.js?v=19",
+      "time": 1792872322471,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/features/today/today.min.js?v=19",
+      "time": 1792872322471,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/features/today/home-screen-controller.min.js?v=13",
+      "time": 1792872322471,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/features/today/home-screen-controller.min.js?v=13",
+      "time": 1792872322471,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/features/appointments/appointments.min.js?v=62",
+      "time": 1792872322471,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/features/appointments/appointments.min.js?v=62",
+      "time": 1792872322471,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/features/customer/customer.min.js?v=16",
+      "time": 1792872322471,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/features/customer/customer.min.js?v=16",
+      "time": 1792872322471,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/features/route/route.min.js?v=17",
+      "time": 1792872322471,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/features/route/route.min.js?v=17",
+      "time": 1792872322471,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/features/leads/leads.min.js?v=2",
+      "time": 1792872322471,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/features/leads/leads.min.js?v=2",
+      "time": 1792872322471,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/features/followups/followups.min.js?v=28",
+      "time": 1792872322471,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/features/followups/followups.min.js?v=28",
+      "time": 1792872322471,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/features/orders/orders.min.js?v=18",
+      "time": 1792872322471,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/features/orders/orders.min.js?v=18",
+      "time": 1792872322471,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/features/money/money.min.js?v=13",
+      "time": 1792872322471,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/features/money/money.min.js?v=13",
+      "time": 1792872322471,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/features/talk/talk.min.js?v=30",
+      "time": 1792872322471,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/features/talk/talk.min.js?v=30",
+      "time": 1792872322471,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/features/measure/measure.min.js?v=9",
+      "time": 1792872322471,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/features/measure/measure.min.js?v=9",
+      "time": 1792872322471,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/features/ocr/ocr.min.js?v=23",
+      "time": 1792872322471,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/features/ocr/ocr.min.js?v=23",
+      "time": 1792872322471,
+      "status": 200
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/features/control/control.min.js?v=15",
+      "time": 1792872322471,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/features/control/control.min.js?v=15",
+      "time": 1792872322471,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/assets/fonts/hankengrotesk-latin.woff2",
+      "time": 1792872322485,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/manifest.json?v=3",
+      "time": 1792872322485,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/manifest.json?v=3",
+      "time": 1792872322485,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/vendor/dexie.min.js?v=1",
+      "time": 1792872322485,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/vendor/minidexie.min.js?v=12",
+      "time": 1792872322485,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/css/core.css?v=34",
+      "time": 1792872322485,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/css/components.css?v=59",
+      "time": 1792872322485,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/core/config.min.js?v=17",
+      "time": 1792872322485,
+      "status": 200
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/assets/fonts/material-symbols-rounded.woff2",
+      "time": 1792872322485
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/assets/fonts/material-symbols-rounded.woff2",
+      "time": 1792872322485
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/assets/fonts/material-symbols-rounded.woff2",
+      "time": 1792872322485
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/assets/fonts/material-symbols-rounded.woff2",
+      "time": 1792872322486
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/assets/fonts/material-symbols-rounded.woff2",
+      "time": 1792872322486,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/assets/fonts/material-symbols-rounded.woff2",
+      "time": 1792872322486,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/core/db.min.js?v=46",
+      "time": 1792872322486,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/core/utils.min.js?v=12",
+      "time": 1792872322486,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/core/geo.min.js?v=15",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/core/search.min.js?v=4",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/core/geoprovider.min.js?v=1",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/core/tax.min.js?v=3",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/core/install-prompt.min.js?v=2",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/services/voice-notes.min.js?v=1",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/services/note-capture.min.js?v=8",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/services/visit-draft.min.js?v=2",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/services/visit-summaries.min.js?v=1",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/core/app.min.js?v=46",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/core/lazy-features.min.js?v=9",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/core/legal.min.js?v=4",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/core/contact.min.js?v=4",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/services/ai.min.js?v=13",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/services/notification.min.js?v=12",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/services/message-scheduler.min.js?v=13",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/services/export.min.js?v=12",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/services/weather.min.js?v=3",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/services/tasks.min.js?v=7",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/services/job-field-service.min.js?v=2",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/services/capacity.min.js?v=1",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/services/communications.min.js?v=3",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/features/onboarding/onboarding.min.js?v=7",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/features/companion/companion.min.js?v=31",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/features/today/today.min.js?v=19",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/features/today/home-screen-controller.min.js?v=13",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/features/appointments/appointments.min.js?v=62",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/features/customer/customer.min.js?v=16",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/features/route/route.min.js?v=17",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/features/followups/followups.min.js?v=28",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/features/leads/leads.min.js?v=2",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/features/orders/orders.min.js?v=18",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/features/money/money.min.js?v=13",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/features/talk/talk.min.js?v=30",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/features/measure/measure.min.js?v=9",
+      "time": 1792872322504,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/features/ocr/ocr.min.js?v=23",
+      "time": 1792872322505,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/features/control/control.min.js?v=15",
+      "time": 1792872322505,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/assets/fonts/material-symbols-rounded.woff2",
+      "time": 1792872322505,
+      "status": 200
+    },
+    {
+      "kind": "dispatch",
+      "url": "http://127.0.0.1:59373/js/features/settings/settings.min.js?v=24",
+      "time": 1792872322542
+    },
+    {
+      "kind": "network-start",
+      "url": "http://127.0.0.1:59373/js/features/settings/settings.min.js?v=24",
+      "time": 1792872322542
+    },
+    {
+      "kind": "cache-start",
+      "url": "http://127.0.0.1:59373/js/features/settings/settings.min.js?v=24",
+      "time": 1792872322542
+    },
+    {
+      "kind": "respond-start",
+      "url": "http://127.0.0.1:59373/js/features/settings/settings.min.js?v=24",
+      "time": 1792872322542
+    },
+    {
+      "kind": "cache-result",
+      "url": "http://127.0.0.1:59373/js/features/settings/settings.min.js?v=24",
+      "time": 1792872322542,
+      "hit": true,
+      "status": 200
+    },
+    {
+      "kind": "respond-resolved",
+      "url": "http://127.0.0.1:59373/js/features/settings/settings.min.js?v=24",
+      "time": 1792872322542,
+      "status": 200
+    },
+    {
+      "kind": "network-response",
+      "url": "http://127.0.0.1:59373/js/features/settings/settings.min.js?v=24",
+      "time": 1792872322549,
+      "status": 200
+    }
+  ]
+}
