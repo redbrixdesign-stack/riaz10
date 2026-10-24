@@ -1,0 +1,2 @@
+PASS chromium: real encryption/unlock, durable text/audio recovery and reload, no auto booking, leave/discard confirmation, export/import boundary, storage failure, blocked update, busy capture, validation/save cleanup, stale revision protection; no sends
+PASS webkit: real encryption/unlock, durable text/audio recovery and reload, no auto booking, leave/discard confirmation, export/import boundary, storage failure, blocked update, busy capture, validation/save cleanup, stale revision protection; no sends

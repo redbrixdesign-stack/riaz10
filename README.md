@@ -89,9 +89,10 @@ Preserve unrelated work, start from the verified production baseline, run gates,
 stage production, compare assets and promote that same build after acceptance.
 Do not deploy a divergent checkout over production.
 
-Latest runtime: [C16 audit](docs/audits/C16_MODAL_FORM_STATE_2026-10-23.md),
-`9995984`, final acceptance `ba30894`, cache 154, deployed 24 October 2026.
-Documentation edits do not change this runtime. The
+Latest runtime: [C20 audit](docs/audits/C20_VISIT_DRAFT_RECOVERY_2026-10-24.md),
+`d139e78`, cache 155, deployed 24 October 2026 after exact-source hosted
+acceptance and live synthetic checks. Earlier C16 remains the rollback baseline;
+older UI cannot resume the new unfinished drafts. The
 [C14 offline investigation](docs/audits/C14_OFFLINE_INVESTIGATION_2026-10-23.md)
 remains open despite recent passes; old audits must be read with their later
 remediation evidence.

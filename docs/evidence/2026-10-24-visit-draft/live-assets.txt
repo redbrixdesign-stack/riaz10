@@ -1,0 +1,7 @@
+PASS live byte match: js/core/db.min.js
+PASS live byte match: index.html
+PASS live byte match: js/services/visit-draft.min.js
+PASS live byte match: js/services/note-capture.min.js
+PASS live byte match: js/core/app.min.js
+PASS live byte match: js/features/appointments/appointments.min.js
+PASS live byte match: sw.js

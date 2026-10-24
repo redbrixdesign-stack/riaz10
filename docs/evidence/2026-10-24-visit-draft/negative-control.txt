@@ -1,0 +1,1 @@
+PASS negative control: initial staged runtime unlocks replacement; maintained session assertion rejects it. Initial stage not promoted.

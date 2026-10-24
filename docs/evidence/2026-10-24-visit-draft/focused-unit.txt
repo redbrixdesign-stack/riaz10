@@ -1,0 +1,4 @@
+PASS js/core/db.js: AES encryption/no key failure, atomic cross-session CAS, stale delete rejection, unreadable preservation, no unsafe transaction fallback
+PASS js/core/db.min.js: AES encryption/no key failure, atomic cross-session CAS, stale delete rejection, unreadable preservation, no unsafe transaction fallback
+PASS js/services/visit-draft.js: session-bound exit does not unlock a new recovery chooser
+PASS js/services/visit-draft.min.js: session-bound exit does not unlock a new recovery chooser

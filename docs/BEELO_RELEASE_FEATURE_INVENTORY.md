@@ -5,6 +5,10 @@ runtime `9995984`, final acceptance `ba30894`, documentation baseline `07847a2`.
 This is a source/test inventory, not a new feature approval or certification.
 The older August inventory in the divergent workspace remains historical.
 
+C20 addendum (24 October): runtime `d139e78` / cache155 adds the New Visit
+recovery row below. Exact-source hosted 40046216960 and live synthetic
+Chromium/WebKit checks pass; not physical-device acceptance or pilot approval.
+
 ## Evidence rules
 
 - **Implemented:** readable source and a reachable route/action or domain API
@@ -33,6 +37,7 @@ refer to `js/services/`. Test names refer to `tests/`.
 | Visits/types: `appointments/`, `js/core/config.js` | `appointments-type.test.js`, `appointments-save.test.js`, `fitting-booking.test.js`; consultation, Measure/referral, fitting, follow-up, review, service. | Candidate, undecided | Prototype. Referred survey is handled with Measure/referral semantics, not a live Hillarys link. |
 | Scheduling/planning: `appointments/`, `route/`, `js/services/capacity.js` | `capacity.test.js`, `route.test.js`; planning code records proposed order/times, not customer agreement. | Candidate, undecided | Prototype. Distinguish manual reorder/geographical estimates from live road-route optimisation. |
 | Form/scheduling warnings: `js/core/app.js`, `appointments/` | `modal-form-state.test.js`, `browser/modal-form-state.e2e.cjs`; real warning/adjust/save and nested values, source/minified. | Candidate, undecided | Prototype. No arbitrary DOM/media/focus preservation guarantee. |
+| Unfinished New Visit recovery: `js/services/visit-draft.js`, `js/core/db.js`, `appointments/` | `visit-draft.test.js`, `browser/visit-draft.e2e.cjs`; encrypted text/completed audio, leave/resume/discard, failed saves, atomic revision/booking guards and live synthetic reload. | Candidate, undecided | Prototype device-local recovery, not a booking, cloud sync or guaranteed OS-kill/active-recording recovery. See C20 audit. |
 | Follow-ups/contact: `followups/`, `talk/`, `js/services/message-scheduler.js`, `tasks.js` | `followups.test.js`, `followup-deadlines.test.js`, `scheduler.test.js`, `outcome-timing.test.js`; quiet saves, time-sensitive tasks and explicit outcomes. | Candidate, undecided | Prototype. Clear only fulfilled/expired work; never infer sending, delivery or agreement from a handoff. |
 | Visit alerts: `js/services/notification.js` | `visit-reminder-expiry.test.js`, `visit-reminder-lifecycle.test.js` and browser journeys. | Candidate, undecided | Prototype. Active/resume timing is not guaranteed suspended-phone OS delivery. |
 | Notes/audio/transcription: `js/services/note-capture.js`, `voice-notes.js`, `api/transcribe.mjs` | `note-capture.test.js`, `note-capture-lifecycle.test.js`, `voice-notes.test.js`, `transcribe-proxy.test.js`, `transcription-usage.test.mjs`; providers mocked. | Candidate, undecided | Prototype. Supported note fields have typed/voice capture; not proof every arbitrary field supports audio. Cloud transcription is online and explicit; audio/text deletion are independent. |

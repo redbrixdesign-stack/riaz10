@@ -1,0 +1,7 @@
+PASS final staged byte match: index.html
+PASS final staged byte match: js/services/note-capture.min.js
+PASS final staged byte match: js/core/app.min.js
+PASS final staged byte match: js/services/visit-draft.min.js
+PASS final staged byte match: sw.js
+PASS final staged byte match: js/core/db.min.js
+PASS final staged byte match: js/features/appointments/appointments.min.js

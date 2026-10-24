@@ -76,4 +76,31 @@ communications, real records, dependencies or schema version changed.
   deployments do not manage this setting; rollback must warn advisers about
   unfinished entries before use. No feature is labelled pilot-approved.
 
-Deployment and exact-source hosted acceptance: pending release gate/promotion.
+## Released evidence
+
+- Final runtime `d139e78e7b58548acf2a8022da2a817dddc4916d`. Exact-source hosted
+  Test [40046216960](https://github.com/redbrixdesign-stack/riaz10/actions/runs/40046216960)
+  passed units/server/dependency audits and all fourteen browser scripts.
+- First stage `030165f` / `dpl_HuKf2H1rkMd5ZmzAhz75zgDQnEFh` was not promoted.
+  Its hosted run 40045922378 was cancelled by the existing newer-push policy,
+  not counted as acceptance. A negative control demonstrates its session-exit
+  flaw; the new source/compiled regression and two-engine journey reject it.
+- Final READY production build `dpl_H9uYcKjemkoKTd8RRNVYaAH8jnTa`, build 8s,
+  exact URL https://beelo1-8x3qx8cug-beelomvp.vercel.app, was staged without
+  assigning the app domain and promoted unchanged after acceptance. Public
+  https://beelo.beelestial.co.uk/ serves cache
+  `advisoros-v6-155-visit-draft-recovery`; App/DB v45, appointments v61,
+  note-capture v7 and visit-draft v1. All seven changed served assets match.
+- Live disposable Chromium/WebKit repeated the full new recovery journey with
+  genuine passphrase setup, zero POSTs/page errors and external services blocked.
+  Native Simulator recheck stopped at a locked Mac; no new native-input pass.
+  Ten-minute production error/fatal scan returned no matching logs, not wider
+  client monitoring or security assurance. No drain configuration was changed.
+- Screenshots, local/hosted summaries, focused/negative-control checks and live
+  journey/asset evidence are under `docs/evidence/2026-10-24-visit-draft/`.
+  `summary.json` is the initial local full gate; `hosted-summary.json` records the
+  final exact source. No sensitive traces, secrets or real records were retained.
+- Rollback: C16 `9995984` / `dpl_BQjYsvQX8syQ9TcHj7Gkiyn8NV98` (cache154).
+  Older UI cannot resume these drafts: resolve/copy unfinished entries before
+  rollback where possible and preserve device storage. C14 and physical-device
+  acceptance remain open. Original divergent runtime changes were not uploaded.
