@@ -64,6 +64,13 @@ refer to `js/services/`. Test names refer to `tests/`.
 
 ## Positioning recommendations — no feature removal
 
+24 October M1 evidence addendum: explicit expense transaction date in new/edit
+and reviewed receipt/quick capture, retained receipt/capture timestamp, strict
+UK calendar validation and pending-write/stale-result guards. Source/compiled,
+full local/hosted fifteen-script and live two-engine receipt journeys pass.
+No automatic historical redating, tax calculation or MTD integration change;
+native receipt-date check remains blocked, not passed. See the M1 audit.
+
 24 October C22 evidence addendum: `visit-draft-status.test.js` checks truthful
 no-op/empty status, ordered clearing behind pending persistence and conflict
 preservation against source/compiled code. Full local/hosted fourteen-script

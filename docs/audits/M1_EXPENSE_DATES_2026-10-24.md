@@ -1,7 +1,8 @@
 # M1 — reliable expense transaction dates
 
-Status: implemented in isolated checkout; local regression gates in progress.
-Not yet deployed. This is MVP slice M1, not a whole-MVP readiness claim.
+Status: deployed; full local/hosted/live browser verification passed. Native
+receipt-date acceptance blocked by input delivery. This is MVP slice M1, not
+a whole-MVP readiness claim.
 
 ## Confirmed gap
 
@@ -56,8 +57,37 @@ existing action button; assertions/timeouts unchanged. Original failure retained
 not attributed to product or counted as a passed journey. Failure screenshot/
 route/body capture now preserves further diagnostics.
 
-Full maintained runner now includes fifteen browser scripts; build and token
-checks pass. Final full/hosted/staged/live results will be recorded before release.
+Full local unit/social/maintained-performance/build/token/diff gates pass. Full
+maintained runner passes all fifteen browser scripts. No original assertions or
+timeouts removed. Exact-source hosted Test40078470204 passed unit/server/
+dependency checks and all fifteen scripts on the first run.
+
+## Release / live acceptance
+
+- Runtime `e8a1b52e4cdb4c8ab18ac905c0c93ddab954f745`, isolated release branch
+  `codex/phone-contact-save`.
+- READY production stage `dpl_5yN4v2iF2gAwA24K9yAnspNPNvmT`, build11s,
+  https://beelo1-irtsljskf-beelomvp.vercel.app. Explicit target beelomvp/beelo1
+  inspected; no auto-link, secret read/change or protection change.
+- Cache `advisoros-v6-158-expense-dates`, Money v12. Other asset versions and
+  runtime modules unchanged; no schema/dependency/provider change.
+- Three staged assets matched local bytes; public domain remained C22/cache157
+  until hosted acceptance. Promoted the same READY build, not a rebuild, to
+  https://beelo.beelestial.co.uk/ on 24October2026. Three changed live assets
+  match. Live genuine-key Chromium/WebKit repeat the full receipt-date/review/
+  historical/save-failure/media/edit/reload journey successfully, no POSTs or
+  page errors. Provider extraction is mocked; no paid-provider certification.
+- Short ten-minute deployment error/fatal scan returned no records; client
+  monitoring/drains and independent assurance not established by that scan.
+- Simulator observation succeeded, showing the existing synthetic Cedar notes.
+  Money tap returned `noWindowsAvailable`. No native receipt form/date picker
+  or installed cache version inspected; no repeated retry or request for routine
+  approval. No real data or provider action. Inline observation/error retained.
+- Rollback
+  is C22 `ded6891` / `dpl_9LRb58Y96VbNCaS41adinNJV8ERE`; records remain, but
+  older UI cannot correct the expense date and new capture returns to entry date.
+- Evidence: `docs/evidence/2026-10-24-expense-dates/`. Native/device acceptance
+  remains distinct from these local/hosted browser results.
 
 ## Boundaries / next
 

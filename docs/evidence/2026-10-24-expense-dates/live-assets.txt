@@ -1,0 +1,4 @@
+MATCH live index.html
+MATCH live sw.js
+MATCH live js/features/money/money.min.js
+M1/cache158 live assets match e8a1b52

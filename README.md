@@ -77,7 +77,7 @@ npm run test:social
 npm run verify:release
 ```
 
-The release gate includes build/unit checks and 14 synthetic Chromium/WebKit
+The release gate includes build/unit checks and 15 synthetic Chromium/WebKit
 browser scripts. Playwright runtimes must be available; hosted acceptance uses
 a pinned version-matched image. This is not physical-iPhone, native-share,
 background-GPS or paid-provider certification. See the
@@ -89,13 +89,16 @@ Preserve unrelated work, start from the verified production baseline, run gates,
 stage production, compare assets and promote that same build after acceptance.
 Do not deploy a divergent checkout over production.
 
-Latest runtime: [C22 audit](docs/audits/C22_DRAFT_STATUS_ORDER_2026-10-24.md),
-`ded6891`, cache 157, deployed 24 October 2026 after exact-source hosted
-acceptance and live synthetic checks. C21 is the rollback baseline and retains
+Latest runtime: [M1 expense-date audit](docs/audits/M1_EXPENSE_DATES_2026-10-24.md),
+`e8a1b52`, cache 158, deployed 24 October 2026 after exact-source hosted
+acceptance and live synthetic checks. C22 is the rollback baseline and retains
 draft support; C16 and older UI cannot resume the new unfinished drafts. The
 [C14 offline investigation](docs/audits/C14_OFFLINE_INVESTIGATION_2026-10-23.md)
 remains open despite recent passes; old audits must be read with their later
 remediation evidence.
+
+The [working-memory MVP plan](docs/BEELO_MVP_WORKING_MEMORY_PLAN.md) distinguishes
+completed slices from planned context linking/retrieval and full pilot acceptance.
 
 ## Optional online AI
 
