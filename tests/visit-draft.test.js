@@ -24,4 +24,15 @@ Dexie.dependencies.indexedDB=indexedDB;Dexie.dependencies.IDBKeyRange=IDBKeyRang
  await assert.rejects(()=>DB.getVisitDraft(),/draft_unreadable/);assert.equal((await db.settings.get('__new_visit_draft_v1__')).value,'SYNTHETIC plaintext');
  DB.db={settings:db.settings};await assert.rejects(()=>DB.writeVisitDraft(draft),/draft_transactions_unavailable/);
  await db.delete();console.log('PASS '+file+': AES encryption/no key failure, atomic cross-session CAS, stale delete rejection, unreadable preservation, no unsafe transaction fallback');
-}})().catch(e=>{console.error(e);process.exitCode=1;});
+}
+for(const file of ['js/services/visit-draft.js','js/services/visit-draft.min.js']){
+ const s={console,setTimeout,clearTimeout};vm.createContext(s);
+ const service=vm.runInContext(fs.readFileSync(file,'utf8')+'\nVisitDraft;',s);
+ const original={inert:false},replacement={inert:true};
+ service.current={ready:true,form:{isConnected:true,querySelector:()=>original}};
+ service.busy=()=>false;service.flush=async()=>{};
+ service.leave=()=>{service.current={ready:false,form:{isConnected:true,querySelector:()=>replacement}};};
+ await service.leaveKept();assert.equal(replacement.inert,true,'Old session cleanup cannot unlock a replacement form');
+ console.log('PASS '+file+': session-bound exit does not unlock a new recovery chooser');
+}
+})().catch(e=>{console.error(e);process.exitCode=1;});

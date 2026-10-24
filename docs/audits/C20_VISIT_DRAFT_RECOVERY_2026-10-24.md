@@ -56,7 +56,10 @@ communications, real records, dependencies or schema version changed.
   recorded with release artifacts. Early test fixes corrected existing access-
   note concatenation expectations and the confirmation-sheet selector; no
   product assertion was weakened. A transient early navigation wait did not
-  recur in the final gate; state logging remains for diagnosis.
+  recur in the full local gate. Subsequent review caught an old-session finally
+  handler enabling a replacement New Visit before recovery. Session-bound
+  cleanup and an explicit direct-new-visit transition assertion address it;
+  the first staged build was not promoted.
 
 ## Limits / next checks
 

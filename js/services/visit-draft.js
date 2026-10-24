@@ -202,9 +202,10 @@ const VisitDraft = {
   },
   async leaveKept() {
     if (!this.current || this.current.closing || this.current.saving || this.busy()) return;
+    const s = this.current;
     this.setSaving(true);
     try { await this.flush(true); this.leave(); } catch (_) { Toast.show('Could not keep the draft. Stay here and retry or copy your notes.', 'error'); }
-    finally { this.setSaving(false); }
+    finally { if (this.current === s) this.setSaving(false); }
   },
   async discardLeave() {
     const s = this.current;
