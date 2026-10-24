@@ -1,0 +1,41 @@
+{
+  "sourceCommit": "8297267988b0073433418ced947657c69b4ad17a",
+  "results": [
+    {
+      "check": "payment-link.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 32208
+    },
+    {
+      "check": "protected-backup.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 9693
+    },
+    {
+      "check": "context-encryption.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 8505
+    },
+    {
+      "check": "lazy-state.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 6427
+    },
+    {
+      "check": "social-share.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 9867
+    },
+    {
+      "check": "cold-offline.e2e.cjs",
+      "status": "failed",
+      "code": 1,
+      "durationMs": 20933
+    }
+  ]
+}

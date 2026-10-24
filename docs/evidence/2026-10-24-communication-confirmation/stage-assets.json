@@ -1,0 +1,42 @@
+{
+  "deployment": "https://beelo1-husjtaxkr-beelomvp.vercel.app",
+  "commit": "8297267988b0073433418ced947657c69b4ad17a",
+  "publicCache": "advisoros-v6-158-expense-dates",
+  "results": [
+    {
+      "path": "index.html",
+      "sha256": "5fc33d64414b09717819fa7d3cbcc7d2d43064dda48f8f6cbdd26c32df49a877",
+      "matches": true
+    },
+    {
+      "path": "sw.js",
+      "sha256": "2b2a89be0b77a32597c26900d69987b72882a72157446aee55a2c783dba76fa4",
+      "matches": true
+    },
+    {
+      "path": "js/core/db.min.js",
+      "sha256": "01f5e5a7f17bd5aff6f28a435a5e5d1350b9b6b53e56e61ca975fc6e835092fc",
+      "matches": true
+    },
+    {
+      "path": "js/services/communications.min.js",
+      "sha256": "2061adc46298f25242b543b0c165d22529866bfeed5c03c93b275e8e5b26409b",
+      "matches": true
+    },
+    {
+      "path": "js/features/companion/companion.min.js",
+      "sha256": "52111fc5af63a510f03bf27a2dd41d71f90350eac9f5cf8d67ffa1aed5fef50c",
+      "matches": true
+    },
+    {
+      "path": "js/features/followups/followups.min.js",
+      "sha256": "8fdc95362d3bf9a435a85956b52add21038c4cad538b5a5a8e701e3cdb40d0ad",
+      "matches": true
+    },
+    {
+      "path": "js/features/talk/talk.min.js",
+      "sha256": "6096aacc94abbd800eee5e420ea5eb2bceae6385dcaf6a2bf866cc3e48d6c9f2",
+      "matches": true
+    }
+  ]
+}

@@ -66,7 +66,48 @@ inference, accounting changes, key changes or deletion of customer data.
   behavioral coverage is added rather than dropping the obligation assertion.
 - Maintained browser runner adds this journey (18 normal scripts). Existing C14
   manual diagnostic remains additional, not a substitute for normal acceptance.
-- Final full-gate/hosted/staging evidence is recorded below when completed.
+- Final full local `verify:release` passes units/server integration, social,
+  maintained performance assertions and all18 browser scripts on runtime
+  `8297267988b0073433418ced947657c69b4ad17a`. Root/server advisory scans each
+  report zero known vulnerabilities. An earlier partial run was stopped to add
+  the mixed-version fail-closed guard; it is not counted as acceptance.
+- Exact-commit hosted **40132428013 fails** `cold-offline.e2e.cjs`: first-offline
+  WebKit Quotes did not render. Units/server/audits pass; the runner stops before
+  the new communication journey, so this is not a hosted C24 pass. No rerun,
+  timeout relaxation, assertion removal or deployment-policy change.
+- The preceding docs checkpoint `a3e155c` also failed in **40129176205** at the
+  same first-offline Quotes boundary, before C24. Preserved its synthetic JSON,
+  screenshot and failed log in `../evidence/2026-10-24-offline-checkpoint-recurrence/`.
+  Both screenshots show the bounded Failed to load / Try again / Go to Today
+  recovery rather than an endless skeleton: C23 containment works, but first
+  offline loading is still not accepted. The newer trace also reports WebKit
+  Internal error; this is a symptom, not proof of an engine-only root cause.
+
+## Isolated stage — NOT public release
+
+READY `dpl_6oVgiJhwrk874LBigTMVWSM3h4Yb`,
+https://beelo1-husjtaxkr-beelomvp.vercel.app, source8297267,
+cache161/DB47/Communications4/Companion32/Followups29/Talk31; App46 remains.
+Framework Other, build-to-ready16.882s. Explicit `--prod --skip-domain` on
+beelomvp/beelo1 creates only a test candidate; no custom-domain promotion.
+This bundle includes held M2a/C23. Seven C24 runtime assets byte-match source;
+public custom app independently rechecked M1/cache158. Default Vercel alias
+points at this candidate, not the custom public app. No secret/protection change.
+Stage error/fatal10-minute scan20:56–21:06UTC returned no logs; not wider
+monitoring, client-error or security assurance. Staged flow evidence follows.
+
+Fresh headless staged-flow attempt could not reach Beelo setup: a bounded
+diagnostic confirms redirect to `vercel.com/login`. This is deployment protection,
+not a C24 app assertion failure or a staged-flow pass. Existing authenticated IAB
+reaches Beelo's fresh Set Encryption Passphrase screen; viewed read-only, no setup
+submitted or live records copied. CLI authenticated asset verification succeeds.
+No protection was disabled, bypass secret created, credentials pulled or new
+permission granted. The local complete flow remains the behavioral evidence;
+authenticated staged interaction and physical WhatsApp return remain open.
+
+Previous cache160 staged URL remains available for test rollback; no rollback
+may clear site data or pretend an adviser-confirmed send did not happen. No
+schema/data migration is needed. Public M1 is untouched.
 
 ## Limits / release decision
 
