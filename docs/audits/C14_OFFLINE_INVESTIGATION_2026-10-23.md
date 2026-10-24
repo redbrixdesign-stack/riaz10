@@ -1,6 +1,8 @@
 # C14 — Intermittent offline acceptance investigation
 
-23 October 2026. Status: investigation checkpoint complete; C14 remains open, cause not established. Test-only diagnostics verified; no application fix or production deployment.
+23 October 2026, updated24 October. C14 remains open, cause not established.
+Diagnostics verified; C23 adds tested failure containment, not an underlying
+offline-delivery fix. No new production deployment.
 
 ## Story and boundaries
 
@@ -19,6 +21,17 @@ The original hosted failure is Test 40002296334, WebKit secondary-route render a
 - Final [Test 40009783448](https://github.com/redbrixdesign-stack/riaz10/actions/runs/40009783448), exact source `c401efe6d8e2a644b8eb440670acf8eae7e96a46`, completed successfully: units/server/audits plus all twelve browser journeys. Browser job completed in 2m23s. Downloaded JSON verifies both engines rendered all eight secondary routes, with no page/console errors or failed requests; cached scripts were delivered through the service worker. Summary, offline JSON/log and screenshots preserved under `docs/evidence/2026-10-23-offline-investigation/hosted/`. This green run does not diagnose either earlier WebKit failure.
 
 ## Decisions / next action
+
+### 24 October — C23 failure containment (not C14 closure)
+
+The captured pending script exposes a confirmed indefinite wait in App.loadScripts.
+C23 (`49315d2`) adds per-script15-second foreground expiry into the existing explicit
+retry screen, retains requested visit parameters and isolates late callbacks.
+Negative/source/compiled/focused/full local and hosted40125539550 all17 scripts
+pass. Controlled HTTP-stall tests are independent of SW/offline delivery; no
+root-cause or physical certification. Cached-hit SW logic probe returns exact
+cached body while network stays pending, but does not certify browser CacheStorage.
+See C23 audit/evidence. M2a remains held and public M1/cache158 unchanged.
 
 ### 24 October — captured hosted failure, release held
 

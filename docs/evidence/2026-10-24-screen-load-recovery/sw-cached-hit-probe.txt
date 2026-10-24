@@ -1,0 +1,2 @@
+PASS controlled actual sw.js cached-hit branch returns the exact cached body while background network never settles.
+Scope: VM logic probe only, not browser/SW CacheStorage delivery or a C14 root-cause result. No real network/provider/data.

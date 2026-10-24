@@ -1,6 +1,7 @@
 # C23 — bounded screen-load recovery
 
-Status: implemented in isolated release checkout; focused/full local checks pass.
+Status: implemented in isolated release checkout; focused/full local and exact-
+source hosted checks pass. Commit49315d25929067c8b7c64f5b376bf02957199b86.
 NOT deployed. Public remains M1/cache158; M2a stage remains held by C14.
 
 ## Confirmed defect / scope
@@ -15,6 +16,14 @@ parameters, losing the visit context for Social opened from a fitting.
 Negative regression logs demonstrate both conditions before correction. This is
 containment of an observed failure mode, NOT a claim to have fixed C14's underlying
 WebKit/service-worker/socket-drop interaction. No speculative cache-policy change.
+
+Severity: P1 for an indefinitely unreachable requested workflow; P2 for an explicit
+retry losing context (no wrong-customer write demonstrated). Reproduction with
+disposable data: hold the quote-document HTTP response without load/error, open
+Quotes and wait; old code never settles. Separately open Social with appointmentId,
+force load rejection and inspect/click Try again; old control carries only social,
+not the intended appointmentId. The negative assertions and browser fixture make
+these failures deterministic without contacting anyone.
 
 ## Implementation
 
@@ -55,8 +64,16 @@ Evidence: docs/evidence/2026-10-24-screen-load-recovery/. The diagnostic cache p
 also retains pending request URLs after the timeout removes the script node; it
 does not change SW behavior or weaken offline assertions/timeouts.
 
-Exact-source hosted verification next; do not claim it passed before completion.
+Exact-source hosted Test40125539550 passes units/server/dependency audits and
+all17 browser scripts, including unchanged cold-offline and deliberately stalled
+request recovery. Summary and focused logs/JSON preserved in hosted/.
 Public sw.js rechecked at M1/cache158. No new stage, live or native claim.
+
+Additional controlled VM probe of the actual sw.js asset branch returns the exact
+cached response while background fetch stays permanently pending. The code does
+not explicitly await that refresh before a cache hit. This is logic evidence only,
+not real CacheStorage/browser delivery or a C14 reproduction; preserved separately
+as sw-cached-hit-probe.txt. It does not justify a cache-policy rewrite.
 
 ## Limitations / next
 
