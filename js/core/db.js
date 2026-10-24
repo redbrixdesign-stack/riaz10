@@ -1726,6 +1726,62 @@ const DB = {
   },
 
   // Communication operations
+  communicationSendFlags(template) {
+    return ({ pre_intro: ['introSent'], intro_day_before: ['introSent', 'dayBeforeSent'], day_before: ['dayBeforeSent'], evening_before: ['dayBeforeSent'], post_fit_followup: ['postFitSent'], service_or_issue_followup: ['serviceSent'] })[template] || [];
+  },
+
+  async resolveCommunicationSend(id, customerId, decision, reviewedSnapshot = null, confirmedTemplate = null) {
+    if (!['sent', 'not_sent'].includes(decision)) throw new Error('Choose whether the message was sent');
+    // Do not report success from a partial multi-table fallback write.
+    if (typeof this.db.transaction !== 'function') throw new Error('Safe message confirmation is unavailable in this browser. Reload Beelo and try again.');
+    return this._runWrite(['communications', 'communicationEvents', 'appointments'], async () => {
+      const row = await this.db.communications.get(Number(id));
+      if (!row || Number(row.customerId) !== Number(customerId) || row.direction === 'inbound' || row.type === 'note') throw new Error('That outgoing message is not available');
+      const purpose = confirmedTemplate || row.template;
+      if (purpose !== row.template && !(row.template === 'intro_day_before' && ['pre_intro','day_before'].includes(purpose))) throw new Error('That message purpose is not available');
+      if (row.sentAt || row.status === 'advisor_confirmed_sent') {
+        if (decision === 'sent') return row;
+        throw new Error('This message is already recorded as sent. Reopen the inbox.');
+      }
+      if (row.status === 'cancelled' && decision === 'not_sent') return row;
+      if (['cancelled','superseded'].includes(row.status)) throw new Error('This message was already resolved. Reopen the inbox.');
+      const visit = row.appointmentId ? await this.db.appointments.get(Number(row.appointmentId)) : null;
+      if (visit && Number(visit.customerId) !== Number(customerId)) throw new Error('The visit customer changed. Reopen the message.');
+      if (decision === 'sent' && visit && reviewedSnapshot !== this.visitContactSnapshot(visit)) throw new Error('The visit changed. Close and review the message again.');
+      const now = new Date().toISOString();
+      const bindingMatches = visit && (!row.bookingSnapshot || row.bookingSnapshot === this.visitContactSnapshot(visit));
+      const flags = decision === 'sent' ? this.communicationSendFlags(purpose).filter(flag => flag !== 'dayBeforeSent' || bindingMatches) : [];
+      if (visit && flags.length) await this.db.appointments.update(visit.id, Object.fromEntries(flags.map(flag => [flag, true])));
+      const status = decision === 'sent' ? 'advisor_confirmed_sent' : 'cancelled';
+      const patch = { status, sentAt: decision === 'sent' ? now : null, advisorConfirmedAt: now, confirmedTemplate: decision === 'sent' ? purpose : null };
+      await this.db.communications.update(row.id, patch);
+      await this.db.communicationEvents.add({ communicationId: row.id, customerId: row.customerId, state: decision === 'sent' ? 'sent' : 'cancelled', lifecycleState: status, provenance: 'advisor_confirmation', operationId: `send-decision:${row.id}`, occurredAt: now, createdAt: now });
+      // Repeated openings of the same draft are not repeated obligations.
+      // Preserve them as superseded history, never falsely mark them sent.
+      const attempts = await this.db.communications.toArray();
+      for (const other of attempts) if (other.id !== row.id && other.customerId === row.customerId && other.appointmentId === row.appointmentId && other.template === row.template && ((other.bookingSnapshot || null) === (row.bookingSnapshot || null) || (!other.bookingSnapshot && decision === 'sent')) && !other.sentAt && !['advisor_confirmed_sent','cancelled','superseded','delivered','replied'].includes(other.status) && ['whatsapp_handoff', 'whatsapp_attempted'].includes(other.type)) {
+        await this.db.communications.update(other.id, { status: 'superseded', resolvedBy: row.id });
+      }
+      return { ...row, ...patch };
+    });
+  },
+
+  async recordPreviouslySent(appointmentId, template, reviewedSnapshot, operationId) {
+    if (!this.communicationSendFlags(template).length || !operationId) throw new Error('Choose a supported message purpose');
+    if (typeof this.db.transaction !== 'function') throw new Error('Safe message confirmation is unavailable in this browser. Reload Beelo and try again.');
+    return this._runWrite(['communications', 'communicationEvents', 'appointments'], async () => {
+      const existing = (await this.db.communications.toArray()).find(row => row.operationId === operationId);
+      if (existing) {
+        if (existing.appointmentId !== Number(appointmentId) || existing.template !== template) throw new Error('This confirmation belongs to a different message');
+        return existing;
+      }
+      const visit = await this.db.appointments.get(Number(appointmentId));
+      if (!visit || !visit.customerId || this.visitContactSnapshot(visit) !== reviewedSnapshot) throw new Error('The visit changed. Close and review it again.');
+      const row = await this.addCommunication({ customerId: visit.customerId, appointmentId: visit.id, template, type: 'advisor_recorded_message', channel: 'whatsapp', direction: 'outbound', bookingSnapshot: reviewedSnapshot, operationId, content: 'Adviser recorded an already-sent message; original text not captured.' });
+      return this.resolveCommunicationSend(row.id, row.customerId, 'sent', reviewedSnapshot);
+    });
+  },
+
   async addCommunication(data) {
     const now = new Date().toISOString();
     const comm = {

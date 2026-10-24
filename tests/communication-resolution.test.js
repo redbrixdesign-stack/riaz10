@@ -1,0 +1,53 @@
+'use strict';
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const {indexedDB,IDBKeyRange}=require('fake-indexeddb');
+async function run(file,engine){
+ const values=new Map(),s={indexedDB,IDBKeyRange,console,crypto:require('node:crypto').webcrypto,TextEncoder,TextDecoder,Uint8Array,btoa,atob,setTimeout,clearTimeout,Date,Intl,localStorage:{getItem:k=>values.get(k)||null,setItem:(k,v)=>values.set(k,String(v)),removeItem:k=>values.delete(k)},safeJSONParse:v=>v?JSON.parse(v):null};s.window=s;s.self=s;s.globalThis=s;vm.createContext(s);
+ if(engine==='dexie'){s.Dexie=require('dexie');s.Dexie.dependencies.indexedDB=indexedDB;s.Dexie.dependencies.IDBKeyRange=IDBKeyRange;}else vm.runInContext(fs.readFileSync('js/vendor/minidexie.js','utf8'),s);
+ for(const path of ['js/core/config.js','js/core/utils.js'])vm.runInContext(fs.readFileSync(path,'utf8'),s);
+ const code=fs.readFileSync(file,'utf8').replace(/new Dexie\(['"]advisoros_v6['"]\)/,`new Dexie('synthetic-comms-${engine}-${file.replace(/\W/g,'')}')`);
+ const api=vm.runInContext(code+'\n({DB,initEncryption});',s),DB=api.DB;
+ assert.equal(typeof DB.resolveCommunicationSend,'function','Durable confirmation API must exist');
+ await api.initEncryption('SYNTHETIC communication key');await DB.init();
+ const a=await DB.addCustomer({firstName:'SYNTHETIC Cedar'}),b=await DB.addCustomer({firstName:'SYNTHETIC Willow'});
+ const visit=await DB.addAppointment({customerId:a.id,type:'consultation',date:'2030-06-04T10:00:00Z'}),other=await DB.addAppointment({customerId:b.id,type:'fitting',date:'2030-06-04T11:00:00Z'});
+ const snapshot=DB.visitContactSnapshot(visit),otherSnapshot=DB.visitContactSnapshot(other);
+ const attempt=await DB.addCommunication({customerId:a.id,appointmentId:visit.id,type:'whatsapp_handoff',template:'intro_day_before',bookingSnapshot:snapshot});
+ if(engine==='shim'){
+  await assert.rejects(DB.resolveCommunicationSend(attempt.id,a.id,'sent',snapshot),/unavailable/);
+  assert.equal((await DB.db.communications.get(attempt.id)).sentAt,null);assert(!(await DB.getAppointment(visit.id)).introSent);
+  console.log('PASS '+file+' fallback: transaction-unavailable fails closed without flags or false sent state');return;
+ }
+ await assert.rejects(DB.resolveCommunicationSend(attempt.id,b.id,'sent',snapshot),/outgoing/);
+ await assert.rejects(DB.resolveCommunicationSend(attempt.id,a.id,'sent','stale'),/changed/);
+ assert(!(await DB.getAppointment(visit.id)).introSent);
+ const duplicate=await DB.addCommunication({customerId:a.id,appointmentId:visit.id,type:'whatsapp_handoff',template:'intro_day_before',bookingSnapshot:snapshot});
+ const unrelated=await DB.addCommunication({customerId:b.id,appointmentId:other.id,type:'whatsapp_handoff',template:'pre_intro',bookingSnapshot:otherSnapshot});
+ const originalAdd=DB.db.communicationEvents.add.bind(DB.db.communicationEvents);DB.db.communicationEvents.add=async()=>{throw Error('SYNTHETIC storage full');};
+ await assert.rejects(DB.resolveCommunicationSend(attempt.id,a.id,'sent',snapshot),/storage full/);
+ assert.equal((await DB.db.communications.get(attempt.id)).sentAt,null);assert(!(await DB.getAppointment(visit.id)).introSent,'Failed event rolls back appointment flags');
+ DB.db.communicationEvents.add=originalAdd;
+ await Promise.all([DB.resolveCommunicationSend(attempt.id,a.id,'sent',snapshot),DB.resolveCommunicationSend(attempt.id,a.id,'sent',snapshot)]);
+ let updated=await DB.getAppointment(visit.id);assert(updated.introSent&&updated.dayBeforeSent);assert.equal((await DB.getCommunicationEvents(attempt.id)).length,1);
+ assert.equal((await DB.db.communications.get(duplicate.id)).status,'superseded');assert.equal((await DB.db.communications.get(unrelated.id)).sentAt,null);
+ await DB.resolveCommunicationSend(unrelated.id,b.id,'not_sent');assert(!(await DB.getAppointment(other.id)).introSent);assert.equal((await DB.db.communications.get(unrelated.id)).status,'cancelled');
+ await assert.rejects(DB.resolveCommunicationSend(unrelated.id,b.id,'sent',otherSnapshot),/resolved/);
+ const partialVisit=await DB.addAppointment({customerId:b.id,type:'consultation',date:'2030-06-05T10:00:00Z'}),partialSnapshot=DB.visitContactSnapshot(partialVisit);
+ const partial=await DB.addCommunication({customerId:b.id,appointmentId:partialVisit.id,type:'whatsapp_handoff',template:'intro_day_before',bookingSnapshot:partialSnapshot});
+ await DB.resolveCommunicationSend(partial.id,b.id,'sent',partialSnapshot,'pre_intro');
+ updated=await DB.getAppointment(partialVisit.id);assert(updated.introSent&&!updated.dayBeforeSent,'Combined handoff can be confirmed as introduction only');
+ const newVisit=await DB.addAppointment({customerId:a.id,type:'consultation',date:'2030-06-06T10:00:00Z'});
+ const oldSnapshot=DB.visitContactSnapshot(newVisit);const old=await DB.addCommunication({customerId:a.id,appointmentId:newVisit.id,type:'whatsapp_handoff',template:'intro_day_before',bookingSnapshot:oldSnapshot});
+ await DB.updateAppointment(newVisit.id,{date:'2030-06-07T10:00:00Z'});const fresh=await DB.getAppointment(newVisit.id);
+ await DB.resolveCommunicationSend(old.id,a.id,'sent',DB.visitContactSnapshot(fresh));updated=await DB.getAppointment(newVisit.id);assert(updated.introSent);assert(!updated.dayBeforeSent,'Old booking send cannot confirm rescheduled visit');
+ const manualVisit=await DB.addAppointment({customerId:b.id,type:'survey',date:'2030-06-08T10:00:00Z'}),manualSnapshot=DB.visitContactSnapshot(manualVisit);
+ await DB.recordPreviouslySent(manualVisit.id,'pre_intro',manualSnapshot,'SYNTHETIC-once');await DB.recordPreviouslySent(manualVisit.id,'pre_intro',manualSnapshot,'SYNTHETIC-once');
+ const rows=await DB.db.communications.toArray();assert.equal(rows.filter(row=>row.operationId==='SYNTHETIC-once').length,1);
+ updated=await DB.getAppointment(manualVisit.id);assert(updated.introSent&&!updated.dayBeforeSent,'Introduction only leaves reminder outstanding');
+ await assert.rejects(DB.recordPreviouslySent(manualVisit.id,'day_before','stale','SYNTHETIC-stale'),/changed/);
+ await DB.recordPreviouslySent(manualVisit.id,'day_before',manualSnapshot,'SYNTHETIC-reminder');assert((await DB.getAppointment(manualVisit.id)).dayBeforeSent);
+ console.log('PASS '+file+' Dexie: atomic failure rollback, multi-customer isolation, purpose flags, duplicate confirmation, superseded attempts, not sent, reschedule guard and manual already-sent idempotence');
+ if(typeof DB.db.close==='function')DB.db.close();
+}
+const timer=setTimeout(()=>{console.error('FAIL communication resolution did not settle');process.exit(1);},20000);
+(async()=>{for(const file of [process.env.BEELO_NEGATIVE_DB||'js/core/db.js',...(process.env.BEELO_NEGATIVE_DB?[]:['js/core/db.min.js'])])for(const engine of ['dexie','shim'])await run(file,engine);})().catch(error=>{console.error(error);process.exitCode=1;}).finally(()=>clearTimeout(timer));

@@ -32,17 +32,18 @@ const CommunicationService = {
   },
 
   async recordHandoff(data) {
+    if (data.appointmentId && typeof DB.visitContactSnapshot === 'function') {
+      const visit = await DB.getAppointment(data.appointmentId);
+      if (visit) data = { ...data, bookingSnapshot: DB.visitContactSnapshot(visit) };
+    }
     const communication = await DB.addCommunication({ ...data, type: data.type || 'whatsapp_handoff' });
     await this.recordState(communication.id, communication.customerId, 'handed_off', 'local_app_handoff');
     return communication;
   },
 
-  async advisorConfirmSent(communicationId, customerId) {
-    const sentAt = new Date().toISOString();
-    if (typeof DB.updateCommunication === 'function') {
-      await DB.updateCommunication(communicationId, { sentAt, status: 'advisor_confirmed_sent' });
-    }
-    return this.recordState(communicationId, customerId, 'advisor_confirmed_sent', 'advisor_confirmation');
+  async advisorConfirmSent(communicationId, customerId, reviewedSnapshot = null, confirmedTemplate = null) {
+    if (typeof DB.resolveCommunicationSend !== 'function') throw new Error('Message confirmation needs an app update. Reload Beelo and review this message again.');
+    return DB.resolveCommunicationSend(communicationId, customerId, 'sent', reviewedSnapshot, confirmedTemplate);
   },
 
   async lifecycle(communication) {
@@ -52,6 +53,7 @@ const CommunicationService = {
     const latest = events[events.length - 1];
     let state = latest?.lifecycleState || ({ queued: 'drafted', attempted: 'handed_off', sent: 'advisor_confirmed_sent', delivered: 'delivered', read: 'replied' }[latest?.state]);
     if (!state) state = communication?.type === 'note' ? 'note' : communication?.direction === 'inbound' ? 'replied' : (communication?.sentAt ? 'advisor_confirmed_sent' : 'handed_off');
+    if (['advisor_confirmed_sent', 'cancelled', 'superseded'].includes(communication?.status)) state = communication.status === 'superseded' ? 'cancelled' : communication.status;
     return { ...communication, lifecycleState: state, events };
   },
 
@@ -61,6 +63,28 @@ const CommunicationService = {
 
   isConfirmed(communication) {
     return ['advisor_confirmed_sent', 'delivered', 'replied'].includes(communication?.lifecycleState);
+  },
+
+  async pendingHandoffs({ includeInactive = false } = {}) {
+    const rows = await this.decorate(await DB.db.communications.toArray());
+    const groups = new Map();
+    for (const row of rows.filter(row => row.lifecycleState === 'handed_off' && row.direction !== 'inbound' && ['whatsapp_handoff', 'whatsapp_attempted'].includes(row.type)).sort((a,b) => Number(b.id) - Number(a.id))) {
+      if (!includeInactive && row.appointmentId) {
+        const visit = await DB.getAppointment(Number(row.appointmentId));
+        if (!visit || Number(visit.customerId) !== Number(row.customerId) || visit.status === 'cancelled') continue;
+        const at = new Date(visit.date), now = new Date();
+        if (['pre_intro','intro_day_before','day_before','evening_before'].includes(row.template) && (visit.status !== 'confirmed' || visit.outcome || isNaN(at) || at <= now)) continue;
+        if (row.template === 'post_fit_followup' && now - at >= 7*86400000) continue;
+        if (row.template === 'service_or_issue_followup' && now - at >= 48*3600000) continue;
+      }
+      const key = JSON.stringify([row.customerId, row.appointmentId || null, row.template || '', row.bookingSnapshot || null]);
+      if (!groups.has(key)) groups.set(key, row);
+    }
+    return [...groups.values()];
+  },
+
+  purposeLabel(template) {
+    return ({ pre_intro: 'Introduction', intro_day_before: 'Introduction and visit reminder', day_before: 'Visit reminder', evening_before: 'Visit reminder', post_fit_followup: 'Post-fitting thank-you', service_or_issue_followup: 'Service follow-up' })[template] || 'Outgoing message';
   },
 
   async recordReply(customerId, content, channel = 'whatsapp') {
@@ -148,7 +172,7 @@ const CommunicationsFeature = {
     App.closeModal(); Toast.show('Contact preference saved', 'success');
   },
   async confirmSent(communicationId, customerId) {
-    await CommunicationService.advisorConfirmSent(communicationId, customerId); Toast.show('Marked as sent by advisor', 'success'); App.navigate('communications');
+    return TalkFeature.openSentConfirmation(communicationId);
   }
 };
 App.registerFeature(CommunicationsFeature);

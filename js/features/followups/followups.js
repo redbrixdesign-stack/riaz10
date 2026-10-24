@@ -374,7 +374,16 @@ const FollowupsFeature = {
     const supplierTasks = await this.loadSupplierTasks();
     const retentionTasks = await this.loadRetentionTasks();
     const combined = [...derived, ...structured, ...jobTasks, ...invoiceTasks, ...supplierTasks, ...retentionTasks];
-    return typeof TaskService !== 'undefined' ? TaskService.merge(combined) : combined;
+    const tasks = await (typeof TaskService !== 'undefined' ? TaskService.merge(combined) : combined);
+    if (typeof CommunicationService === 'undefined' || typeof CommunicationService.pendingHandoffs !== 'function') return tasks;
+    for (const row of await CommunicationService.pendingHandoffs()) {
+      const index = tasks.findIndex(task => task.appointment?.id === row.appointmentId && (task.template === row.template || (['intro','intro_confirmation','visit_tomorrow'].includes(task.kind) && ['pre_intro','intro_day_before','day_before','evening_before'].includes(row.template))));
+      const visit = row.appointmentId ? await DB.getAppointment(Number(row.appointmentId)) : null;
+      const customer = row.customerId ? await DB.getCustomer(Number(row.customerId)) : null;
+      const task = { kind: 'send_confirmation', due: true, communicationId: row.id, template: row.template, appointment: visit, customer, action: `${CommunicationService.purposeLabel(row.template)} — send status not recorded`, daysLabel: 'Record what happened', priority:'normal' };
+      if (index >= 0) tasks[index] = task; else tasks.unshift(task);
+    }
+    return tasks;
   },
 
   async loadStructuredQuoteTasks(existing = []) {
@@ -591,7 +600,7 @@ const FollowupsFeature = {
             </details>
           ` : ''}
 
-          ${metrics.obligations ? `<details class="fup-group"><summary>Communication history · ${metrics.missed} missed</summary><p class="fs-13 text-secondary">${metrics.missedRate}% missed${metrics.recovered ? ` · ${metrics.recovered} recovered before the visit` : ''}. Historical records, not current tasks.</p>${metrics.archive.slice(0, 5).map(item => `<div class="fs-12 text-secondary mt-6">${Utils.escapeHtml(item.appointment.clientName || 'Customer')} · ${Utils.escapeHtml(item.type.replace(/_/g, ' '))} · ${Utils.formatDate(item.dueAt, 'short')}</div>`).join('')}</details>` : ''}
+          ${metrics.obligations ? `<details class="fup-group"><summary>Communication history · ${metrics.missed} unconfirmed by deadline</summary><p class="fs-13 text-secondary">${metrics.missedRate}% lacked a recorded send by the deadline${metrics.recovered ? ` · ${metrics.recovered} recovered before the visit` : ''}. Historical records, not current tasks or proof that a message was never sent.</p>${metrics.archive.slice(0, 5).map(item => `<div class="fs-12 text-secondary mt-6">${Utils.escapeHtml(item.appointment.clientName || 'Customer')} · ${Utils.escapeHtml(item.type.replace(/_/g, ' '))} · ${Utils.formatDate(item.dueAt, 'short')}</div>`).join('')}</details>` : ''}
 
           <div class="mt-20" >
             <div class="divider-text">Quick opens</div>
@@ -655,6 +664,7 @@ const FollowupsFeature = {
         <div class="fup-primary mt-10">
           ${task.durable && !task.sourceSuggestion ? `<button class="btn btn-sm btn-primary" aria-label="Complete ${name}" data-action="FollowupsFeature.completeDurableTask" data-args='${JSON.stringify([task.id])}'><span aria-hidden="true" class="material-symbols-rounded fs-16">done</span>Mark done</button>` : this.renderPrimaryAction(task.sourceSuggestion || task)}
         </div>
+        ${task.appointment && ['intro','intro_confirmation','visit_tomorrow','post_fit','service'].includes(task.kind) ? `<button class="btn btn-outline btn-block mt-sm" data-action="FollowupsFeature.openAlreadySent" data-args='${Utils.escapeHtml(JSON.stringify([task.appointment.id,task.template]))}'>Already sent…</button>` : ''}
         <details class="fup-options"><summary aria-label="More options for ${name}">More options</summary><div class="flex gap-sm mt-10">
           ${task.appointment && ['intro', 'intro_confirmation', 'visit_tomorrow'].includes(task.kind) ? `<button class="btn btn-sm btn-outline" data-action="FollowupsFeature.openContactOutcome" data-args='${JSON.stringify([task.appointment.id])}'>Record phone contact</button>` : ''}
           ${task.appointment ? `<button class="btn btn-sm btn-outline" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: task.appointment.id}])}'>Open visit</button>` : ''}
@@ -668,6 +678,7 @@ const FollowupsFeature = {
   },
 
   renderPrimaryAction(task) {
+    if (task.kind === 'send_confirmation') return `<button class="btn btn-primary btn-block" data-action="TalkFeature.openSentConfirmation" data-args='${JSON.stringify([task.communicationId])}'>Record whether sent</button>`;
     if (task.retentionRecord) {
       return `<button class="btn btn-sm btn-primary flex-1" data-action="App.navigate" data-args='${JSON.stringify(["retention", {customerId: task.retentionRecord.customerId}])}'><span aria-hidden="true" class="material-symbols-rounded fs-16">handshake</span>Open aftercare</button>`;
     }
@@ -718,6 +729,41 @@ const FollowupsFeature = {
         <span aria-hidden="true" class="material-symbols-rounded fs-16" >edit_note</span>Review reminder
       </button>
     `;
+  },
+
+  async openAlreadySent(appointmentId, template) {
+    const revision = App._navigationRevision;
+    const visit = await DB.getAppointment(Number(appointmentId));
+    if (App._navigationRevision !== revision) return;
+    if (!visit) return Toast.show('Visit no longer available','error');
+    const choices = template === 'intro_day_before' ? ['pre_intro','intro_day_before','day_before'] : [template];
+    if (choices.some(key=>!DB.communicationSendFlags(key).length)) return Toast.show('This message purpose is unavailable','error');
+    this.pendingAlreadySent = { appointmentId:visit.id, choices, snapshot:DB.visitContactSnapshot(visit), operationId:TaskService.operationId('already-sent',visit.id) };
+    App.openModal(`<div class="sheet-header"><h3>Record an already-sent message</h3><button class="btn btn-ghost" aria-label="Close already-sent form" data-action="App.closeModal">Close</button></div><div class="sheet-body"><p>${Utils.escapeHtml(visit.clientName || 'Customer')} · ${Utils.escapeHtml(Utils.formatDate(visit.date,'long'))} · ${Utils.escapeHtml(TalkFeature.apptTimeText(visit))}</p><p>Record only what you actually sent. This sends nothing and does not mean the customer confirmed the appointment.</p><label for="already-sent-purpose">Which message did you send?</label><select id="already-sent-purpose" class="select">${choices.map(key=>`<option value="${key}">${Utils.escapeHtml(CommunicationService.purposeLabel(key))}</option>`).join('')}</select><p class="fs-13 text-secondary">Introduction only leaves any needed visit reminder available. Recorded now as your confirmation; original message text is not captured.</p><p id="already-sent-error" role="alert"></p><button class="btn btn-primary btn-block" data-action="FollowupsFeature.saveAlreadySent">Yes, I already sent this</button></div>`);
+    this._alreadySentOwner = { pending:this.pendingAlreadySent, revision, element:document.getElementById('already-sent-error') };
+  },
+
+  async saveAlreadySent() {
+    const pending = this.pendingAlreadySent;
+    if (!pending || this._savingAlreadySent || !this.ownsAlreadySent(pending)) return;
+    const template = document.getElementById('already-sent-purpose')?.value;
+    if (!pending.choices.includes(template)) return;
+    this._savingAlreadySent = true;
+    try {
+      await DB.recordPreviouslySent(pending.appointmentId,template,pending.snapshot,pending.operationId);
+      if (this.ownsAlreadySent(pending)) {
+        this.pendingAlreadySent = null;App.closeModal();Toast.show('Recorded as sent by you','success');
+        if (['followups','today'].includes(App.currentFeature?.id)) App.navigate(App.currentHash || App.currentFeature.id);
+      }
+    } catch(error) {if(this.ownsAlreadySent(pending))this._alreadySentOwner.element.textContent=error.message;Toast.show('Not updated. Please retry.','error');}
+    finally {this._savingAlreadySent=false;}
+  },
+
+  ownsAlreadySent(pending) {
+    const owner = this._alreadySentOwner;
+    return owner?.pending === pending && this.pendingAlreadySent === pending &&
+      owner.revision === App._navigationRevision && owner.element &&
+      owner.element === document.getElementById('already-sent-error');
   },
 
   openNewTask() {

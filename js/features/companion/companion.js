@@ -666,17 +666,8 @@ const CompanionFeature = {
     // WhatsApp can suspend or reload an installed PWA while the advisor is
     // checking the external app. Keep the hand-off visible until they
     // explicitly confirm it or return it to the reminder queue.
-    try {
-      if (typeof TalkFeature !== 'undefined' && TalkFeature.restoreSentConfirmation()) {
-        attention.push({
-          icon: 'mark_chat_unread',
-          label: 'Message needs confirmation',
-          value: 'You opened a message in WhatsApp',
-          action: 'TalkFeature.openSentConfirmation()',
-          actionLabel: 'Confirm'
-        });
-      }
-    } catch (e) { /* optional recovery card */ }
+    // Pending WhatsApp hand-offs are included in the shared Follow-ups count
+    // below, with customer/purpose details in that inbox, not a second alert.
 
     // Unlogged outcomes today
     const unloggedToday = todayAppts.filter(a => !a.outcome && a.status !== 'completed');
@@ -713,7 +704,7 @@ const CompanionFeature = {
       attention.push({
         icon: 'campaign',
         label: 'Follow-ups due',
-        value: `${dueNow.length} task${dueNow.length === 1 ? '' : 's'} due${firstName ? ` — ${String(firstName).split(' ')[0]} first` : ''}`,
+        value: `${dueNow.length} task${dueNow.length === 1 ? '' : 's'} due${dueNow.some(t=>t.kind==='send_confirmation') ? ' · includes messages awaiting your sent status' : ''}${firstName ? ` — ${String(firstName).split(' ')[0]} first` : ''}`,
         action: "App.navigate('followups')",
         actionLabel: 'Open Follow-ups'
       });

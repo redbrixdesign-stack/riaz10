@@ -105,7 +105,7 @@ const talkSource = fs.readFileSync(path.join(__dirname, '..', 'js/features/talk/
   ALL_APPTS.push({ id: 900, customerId: 9, date: iso(-40), status: 'completed', outcome: 'ordered' });
   tasks = await Followups.loadTasks();
   assert(!tasks.some(t => t.kind === 'intro'), 'Returning customers get no intro task');
-  assert(talkSource.includes("intro_day_before: ['introSent', 'dayBeforeSent']"), 'Confirmed combined send clears both communication obligations');
+  assert(fs.readFileSync('js/core/db.js', 'utf8').includes("intro_day_before: ['introSent', 'dayBeforeSent']"), 'Atomic sent-state mapping clears both combined communication obligations');
 
   NEXT5[0].outcome = 'measured'; // Imported rows can retain confirmed status.
   FAR_APPTS[0].outcome = 'ordered';

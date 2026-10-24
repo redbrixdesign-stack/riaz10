@@ -1121,12 +1121,22 @@ const TalkFeature = {
   },
 
   async confirmSend() {
+    if (this._sending) return;
+    this._sending = true;
+    try { return await this._confirmSend(); }
+    catch (error) { Toast.show('Could not prepare the hand-off. Your draft is retained; nothing is marked sent.', 'error'); }
+    finally { this._sending = false; }
+  },
+
+  async _confirmSend() {
     const pending = this.pendingMessage;
+    const revision = App._navigationRevision;
     if (!pending) {
       Toast.show('No message ready', 'error');
       return;
     }
-    const message = document.getElementById('talk-message-preview')?.value.trim();
+    const preview = document.getElementById('talk-message-preview');
+    const message = preview?.value.trim();
     if (!message) {
       Toast.show('Message cannot be empty', 'error');
       return;
@@ -1164,8 +1174,6 @@ const TalkFeature = {
         return;
       }
     }
-    const opened = NotificationService.sendWhatsApp(phone, message);
-    if (!opened) return;
     // Record the attempt honestly. We can't confirm WhatsApp actually loaded
     // (window.open only tells us the call was made), so log it as an attempt,
     // not a confirmed send — the user verifies in WhatsApp itself.
@@ -1173,9 +1181,16 @@ const TalkFeature = {
     if (customerId > 0) communication = typeof CommunicationService !== 'undefined'
       ? await CommunicationService.recordHandoff({ customerId, appointmentId, type: 'whatsapp_handoff', template: templateKey || null, content: message })
       : await DB.addCommunication({ customerId, type: 'whatsapp_attempted', template: templateKey || null, content: message });
+    // Persist the requested hand-off BEFORE iOS can suspend/navigate away.
+    if (this.pendingMessage !== pending || App._navigationRevision !== revision || preview !== document.getElementById('talk-message-preview')) {
+      if (communication) await DB.updateCommunication(communication.id, { status: 'cancelled' });
+      return;
+    }
     this.beginSentConfirmation(communication, { customerId, appointmentId, templateKey });
     App.closeModal();
-    this.openSentConfirmation();
+    const opened = NotificationService.sendWhatsApp(phone, message);
+    if (!opened && communication) await DB.updateCommunication(communication.id, { status: 'cancelled' });
+    if (opened) Toast.show('When you return, record whether it sent in Follow-ups.', 'info');
   },
 
   confirmationStorageKey: 'advisoros_pending_message_confirmation',
@@ -1202,9 +1217,25 @@ const TalkFeature = {
     return this.pendingSentConfirmation;
   },
 
-  openSentConfirmation() {
-    if (!this.restoreSentConfirmation()) return Toast.show('No message is waiting for confirmation', 'info');
-    App.openModal(`<div class="sheet-handle"></div><div class="sheet-header"><h3>Did the message send?</h3><button class="btn btn-ghost btn-sm" aria-label="Close confirmation" data-action="App.closeModal"><span class="material-symbols-rounded">close</span></button></div><div class="sheet-body"><p class="text-secondary">Opening WhatsApp is only a hand-off. Confirm only after you can see the message was sent.</p><button class="btn btn-primary btn-block" data-action="TalkFeature.confirmHandoffSent">Yes, I sent it</button><button class="btn btn-outline btn-block mt-sm" data-action="TalkFeature.leaveHandoffUnconfirmed">Not sent — keep reminder</button></div>`);
+  async openSentConfirmation(communicationId = null) {
+    const revision = App._navigationRevision;
+    const rows = await CommunicationService.pendingHandoffs({ includeInactive: !!communicationId });
+    const row = communicationId ? rows.find(row => row.id === Number(communicationId)) : rows[0];
+    if (!row) return Toast.show('This message no longer needs confirmation', 'info');
+    const visit = row.appointmentId ? await DB.getAppointment(Number(row.appointmentId)) : null;
+    const customer = row.customerId ? await DB.getCustomer(Number(row.customerId)) : null;
+    if (App._navigationRevision !== revision) return;
+    this.pendingSentConfirmation = { communicationId: row.id, customerId: row.customerId, appointmentId: row.appointmentId, templateKey: row.template, reviewedSnapshot: visit ? DB.visitContactSnapshot(visit) : null };
+    const name = customer?.fullName || [customer?.firstName,customer?.lastName].filter(Boolean).join(' ') || visit?.clientName || 'Customer';
+    App.openModal(`<div class="sheet-header"><h3>Did you send this message?</h3><button class="btn btn-ghost btn-sm" aria-label="Close confirmation" data-action="App.closeModal">Close</button></div><div class="sheet-body"><p><strong>${Utils.escapeHtml(name)}</strong> · ${Utils.escapeHtml(CommunicationService.purposeLabel(row.template))}</p>${visit ? `<p>${Utils.escapeHtml(Utils.formatDate(visit.date,'long'))} · ${Utils.escapeHtml(this.apptTimeText(visit))}</p>` : ''}<p class="text-secondary">Opening WhatsApp is not proof of sending. Confirm only what you actually sent. This does not mean the customer agreed or read it.</p>${row.bookingSnapshot && visit && row.bookingSnapshot !== DB.visitContactSnapshot(visit) ? '<p class="text-warning">The booking changed since this draft. This records the old message only; the current visit reminder will remain.</p>' : ''}<p class="fs-13">${Utils.escapeHtml(row.content || 'Message text not captured')}</p>${row.template === 'intro_day_before' ? '<label for="sent-message-purpose">Which part did you send?</label><select class="select" id="sent-message-purpose"><option value="">Choose what you sent</option><option value="pre_intro">Introduction only</option><option value="intro_day_before">Introduction and visit reminder</option><option value="day_before">Visit reminder only</option></select>' : ''}<p id="send-confirmation-error" role="alert"></p><button class="btn btn-primary btn-block" data-action="TalkFeature.confirmHandoffSent">Yes, I sent it</button><button class="btn btn-outline btn-block mt-sm" data-action="TalkFeature.leaveHandoffUnconfirmed">Not sent — keep reminder</button></div>`);
+    this._sentConfirmationOwner = { pending:this.pendingSentConfirmation, revision, element:document.getElementById('send-confirmation-error') };
+  },
+
+  ownsSentConfirmation(pending) {
+    const owner = this._sentConfirmationOwner;
+    return owner?.pending === pending && this.pendingSentConfirmation === pending &&
+      owner.revision === App._navigationRevision && owner.element &&
+      owner.element === document.getElementById('send-confirmation-error');
   },
 
   draftStorageKey(pending) {
@@ -1258,26 +1289,47 @@ const TalkFeature = {
 
   async confirmHandoffSent() {
     const pending = this.pendingSentConfirmation;
-    if (!pending) return;
-    if (pending.communicationId && typeof CommunicationService !== 'undefined') await CommunicationService.advisorConfirmSent(pending.communicationId, pending.customerId);
-    if (typeof DB.setPrivateSetting === 'function') {
-      await (this._draftSave || Promise.resolve()).catch(() => {});
-      await DB.setPrivateSetting(this.draftStorageKey(pending), null);
+    if (!pending?.communicationId || this._confirmingSend || !this.ownsSentConfirmation(pending)) return;
+    let purpose = pending.templateKey;
+    if (purpose === 'intro_day_before') {
+      purpose = document.getElementById('sent-message-purpose')?.value;
+      if (!['pre_intro','intro_day_before','day_before'].includes(purpose)) {
+        const field=document.getElementById('send-confirmation-error');if(field)field.textContent='Choose which message you actually sent.';return;
+      }
     }
-    const SENT_FLAGS = { day_before: ['dayBeforeSent'], evening_before: ['dayBeforeSent'], pre_intro: ['introSent'], intro_day_before: ['introSent', 'dayBeforeSent'], post_fit_followup: ['postFitSent'], service_or_issue_followup: ['serviceSent'] };
-    const flags = SENT_FLAGS[pending.templateKey] || [];
-    if (flags.length && pending.appointmentId) {
-      try { await DB.db.appointments.update(pending.appointmentId, Object.fromEntries(flags.map(flag => [flag, true]))); } catch (e) {}
-    }
-    this.pendingSentConfirmation = null; this.persistSentConfirmation(); App.closeModal(); Toast.show('Message marked as sent by you', 'success');
+    this._confirmingSend = true;
+    try {
+      await CommunicationService.advisorConfirmSent(pending.communicationId, pending.customerId, pending.reviewedSnapshot, purpose);
+      await this.finishSendDecision(pending, 'Message marked as sent by you');
+    } catch (error) { if(this.ownsSentConfirmation(pending))this._sentConfirmationOwner.element.textContent=error.message;Toast.show('Not updated. Your confirmation remains available to retry.', 'error'); }
+    finally { this._confirmingSend = false; }
   },
 
-  leaveHandoffUnconfirmed() {
+  async leaveHandoffUnconfirmed() {
     const pending = this.pendingSentConfirmation;
+    if (!pending?.communicationId || this._confirmingSend || !this.ownsSentConfirmation(pending)) return;
+    this._confirmingSend = true;
+    try {
+    await DB.resolveCommunicationSend(pending.communicationId, pending.customerId, 'not_sent');
     if (pending?.appointmentId && pending?.templateKey && typeof MessageScheduler !== 'undefined') {
       try { localStorage.removeItem(MessageScheduler._flag(pending.templateKey, pending.appointmentId)); } catch (e) {}
     }
-    this.pendingSentConfirmation = null; this.persistSentConfirmation(); App.closeModal(); Toast.show('Not marked sent — the reminder stays available', 'info');
+    await this.finishSendDecision(pending, 'Not marked sent — the reminder stays available', false);
+    } catch(error) { if(this.ownsSentConfirmation(pending))this._sentConfirmationOwner.element.textContent=error.message;Toast.show('Not updated. Please retry.', 'error'); }
+    finally { this._confirmingSend = false; }
+  },
+
+  async finishSendDecision(pending, message, clearDraft = true) {
+    // Clear only the draft of this confirmed purpose, never another editor.
+    if (clearDraft && pending.appointmentId && typeof DB.setPrivateSetting === 'function') {
+      try { await (this._draftSave || Promise.resolve()).catch(()=>{});await DB.setPrivateSetting(this.draftStorageKey(pending), null); } catch(error) { console.warn('Sent state saved; draft cleanup deferred',error); }
+    }
+    if (this.pendingSentConfirmation !== pending) return;
+    const ownsModal = this.ownsSentConfirmation(pending);
+    this.pendingSentConfirmation = null; this.persistSentConfirmation();
+    if (ownsModal) App.closeModal();
+    Toast.show(message,'success');
+    if (ownsModal && ['followups','today'].includes(App.currentFeature?.id)) App.navigate(App.currentHash || App.currentFeature.id);
   },
 
   async sendDayBefore(appointmentId) {

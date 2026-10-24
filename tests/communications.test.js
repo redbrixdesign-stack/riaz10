@@ -10,6 +10,11 @@ global.DB = {
   setContactPreference: async x => x,
   addCommunication: async x => { const r = { id: comms.length + 1, sentAt: null, createdAt: new Date().toISOString(), ...x }; comms.push(r); return r; },
   updateCommunication: async (id, patch) => Object.assign(comms.find(c => c.id === id), patch),
+  resolveCommunicationSend: async (id, customerId, decision) => {
+    if (decision !== 'sent' || comms.find(c => c.id === id)?.customerId !== customerId) throw Error('Invalid confirmation');
+    Object.assign(comms.find(c => c.id === id), { sentAt:new Date().toISOString(),status:'advisor_confirmed_sent' });
+    events.push({ communicationId:id, lifecycleState:'advisor_confirmed_sent' });
+  },
   recordCommunicationEvent: async (id, state, data, op) => { const x = { communicationId: id, state, ...data, operationId: op }; events.push(x); return x; },
   getCommunicationEvents: async id => events.filter(e => e.communicationId === id),
   enqueueIntegrationOutbox: async x => x,
@@ -27,6 +32,12 @@ const ok = (name, condition) => { if (!condition) { console.error('FAIL:', name)
   ok('handoff has no sent timestamp', comm.sentAt === null);
   let decorated = await CommunicationService.lifecycle(comm);
   ok('handoff lifecycle remains unconfirmed', decorated.lifecycleState === 'handed_off' && !CommunicationService.isConfirmed(decorated));
+  const resolver = DB.resolveCommunicationSend;
+  delete DB.resolveCommunicationSend;
+  let staleBlocked = false;
+  try { await CommunicationService.advisorConfirmSent(comm.id, 1); } catch(error) { staleBlocked = /app update/.test(error.message); }
+  ok('mixed-version database fails closed without marking sent', staleBlocked && !comms[0].sentAt && events.length === 1);
+  DB.resolveCommunicationSend = resolver;
   await CommunicationService.advisorConfirmSent(comm.id, 1);
   ok('advisor confirmation is separate explicit state', events[1].lifecycleState === 'advisor_confirmed_sent');
   ok('confirmation adds the sent timestamp', !!comms[0].sentAt);
