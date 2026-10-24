@@ -69,7 +69,7 @@ See the [feature inventory](BEELO_RELEASE_FEATURE_INVENTORY.md),
 | --- | --- | --- | --- |
 | M0 | Define narrow MVP, inspect baseline and record gates | This plan distinguishes source/evidence, planned slices, safety limits and readiness | Complete as planning only |
 | M1 | Trustworthy receipt capture: actual transaction date in new/edit expense, review extracted dates, retain receipt and entered values on failure | Synthetic historical receipt saves/reopens in correct date period; invalid dates rejected; no duplicate/dropped receipt; existing expense records preserved | Live `e8a1b52`, cache158; local/hosted/live browser verified. Native date-picker check blocked; not full MVP acceptance |
-| M2 | Connect context: explicit customer/visit associations where appropriate, plus business-wide/unassigned items; review/correct links | Seven different window records/notes/photos reopen under intended customer; a general fuel/tool receipt need not belong to a customer; wrong link can be corrected without copying/deleting evidence | Planned; association/data design reviewed first |
+| M2 | Connect context: explicit customer/visit associations where appropriate, plus business-wide/unassigned items; review/correct links | Seven different window records/notes/photos reopen under intended customer; a general fuel/tool receipt need not belong to a customer; wrong link can be corrected without copying/deleting evidence | M2a customer-linked expenses implemented/staged, held by C14 hosted offline failure; broader associations remain planned |
 | M3 | Find working memory: one deterministic local search entry, relevant type/date/customer filters and direct open of source record | Find synthetic customer by name/address, window description, typed/transcribed note and receipt description/date; clear empty/error states; no cloud indexing; audio is searchable by existing text/metadata, not untranscribed sound | Planned |
 | M4 | Prepare and close the day: next-visit brief and tomorrow plan reuse linked facts; one coherent pending-action view | Scan/manual entry → inspect context → plan/reorder without changing agreed time → review communication → record explicit outcome; resolved/expired work does not keep interrupting | Planned; retain existing lifecycle safeguards |
 | M5 | Personal money clarity and accountant handoff | Separate work/order value, expected earnings and manually confirmed receipts with receipt date/reference; reconcile synthetic payment/expense evidence; reviewed export totals match original records, corrections do not double-count | Planned; calculation/payment model requires review, no rewriting historical earnings |
@@ -150,9 +150,15 @@ unverified savings/carbon/traction claims. Select targets before pilot testing.
 ## Current next action
 
 M1 is released: [audit and limits](audits/M1_EXPENSE_DATES_2026-10-24.md).
-Start M2 by mapping existing customer/visit/measurement/media/expense ownership,
-then implement one small explicit association flow with correction and retrieval
-tests. Business-wide expenses must remain valid without a customer. Review
+M2a optional customer-linked expenses/profile retrieval is implemented and staged,
+but held after hosted C14 first-offline Quotes failure. Full local16 scripts and
+one enriched hosted run pass; neither establishes the earlier stall's cause.
+Public remains M1/cache158. Diagnose pending prerequisite delivery/completion
+before promotion, not rerun until green or speculate about caching. See M2a audit.
+After acceptance, prioritise all-date expense/receipt retrieval: general-business
+older receipts remain stored/backed up but lack an all-date finder. Distinguish
+read errors from empty results. Then extend explicit visit associations with
+correction semantics. Business-wide expenses remain valid without a customer. Review
 existing period/tax-summary endpoint conventions separately before certifying
 financial handoff; M1 did not change these calculations. Keep native/physical
 acceptance and C14 open, preserve existing modules and records, and do not add

@@ -37,4 +37,14 @@ passed both engines; no root-cause claim from that pass. Keep M2a stage unpromot
 and public M1/cache158 unchanged. Next: one hosted run of enriched diagnostics,
 inspect any new evidence, no assertion weakening or speculative runtime changes.
 
+Bounded enriched hosted Test40124297358 (`9cf6fb0`) passed units/server/audits and
+all16 browser scripts. Offline JSON verifies eight routes rendered in both engines,
+no page/console errors or failed requests, retained synthetic record on return
+online. No failure hook fired, so the new request/cache-body probes did not capture
+the failing state. This is evidence for that run only; C14 remains unresolved and
+M2a held. Both failed and passing results preserved in the M2a evidence folder.
+Next actionable evidence is the enriched trace of a naturally recurring stall;
+do not repeatedly run unchanged tests or change caching without it. A missing
+script response is not enough to blame the app, WebKit, SW or socket-drop harness.
+
 Do not change service-worker caching or lazy navigation speculatively. Do not skip/relax the offline assertion, loop reruns until green, or call C14 fixed. Inspect any captured failing route's network response and console error before choosing a runtime fix. If the hosted run is green, keep C14 open and retain diagnostics for the next natural failure. Production at the original investigation checkpoint was C13/cache153; current production is M1/cache158. No new deployment is justified by test-only changes.

@@ -1,7 +1,8 @@
 # M2a — customer-linked expense evidence
 
-Status: isolated implementation; full local gate passes, hosted offline gate
-failed. Staged READY but NOT promoted; public app remains M1/cache158.
+Status: isolated implementation; full local gate passes. Hosted40079956457 failed
+offline; enriched diagnostic40124297358 passed, not a root-cause resolution.
+Staged READY but NOT promoted; public app remains M1/cache158.
 First M2 slice, not completion of all context linking or MVP.
 
 ## Ownership map / scoped gap
@@ -80,6 +81,11 @@ only. Customer-linked evidence can be reached through its profile, but older
 general-business receipts remain in storage/backup without an all-date finder.
 Do not claim all receipts are now easy to find. Add date-spanning expense
 retrieval as a small next slice before extending more associations.
+That slice should also replace openRecordsModal's swallowed read errors with a
+visible retry state (a failed query must not say no records). Acceptance: retrieve
+an older unlinked fuel receipt by date/text, open/edit the original row, cancel
+without mutation, retain exact image/date/amount, and distinguish empty/error.
+Reuse the existing local expense store; do not add cloud indexing or tax rules.
 Global retrieval, all-media lifecycle, physical-device/accessibility/offline
 acceptance remain open; C14 not closed by another green run. Local scans are
 pilot-scale, not a large-dataset performance claim. No independent privacy,
@@ -117,6 +123,14 @@ than guessing a customer. No automatic repair is claimed.
 - Public sw.js independently rechecked: advisoros-v6-158-expense-dates. No M2
   native/live acceptance claimed. Profile screenshot is partly obscured by
   transient UI; DOM/click assertions are stronger evidence than that capture.
+- Enriched exact-source diagnostic Test40124297358 on `9cf6fb0` passed units/
+  server/audits and all16 browser scripts, including expense context and offline.
+  Both engines rendered all eight offline secondary routes with no page/console
+  errors or failed requests, then returned online with the synthetic record.
+  Evidence in hosted-enriched-pass/. No failure-only probe fired, so this run
+  adds no missing failing-request/cache-body evidence and cannot close C14.
+  No additional rerun, speculative fix or promotion. All six staged changed
+  assets byte-match source; stage READY/build10.477s recorded in stage-hold.txt.
 
 Production baseline remains M1 until the offline boundary is diagnosed and final
 gates, staged asset comparison and exact-build promotion pass. Original dirty

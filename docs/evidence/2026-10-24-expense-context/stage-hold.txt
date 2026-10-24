@@ -1,0 +1,21 @@
+Candidate (NOT promoted): dpl_5awdCzfbdexw13sVfJCcxRke2SSU
+Exact URL: https://beelo1-ix9r62jrc-beelomvp.vercel.app
+State: READY; buildingAt 1792832366430; ready 1792832376907 (10.477 seconds).
+Runtime: 51bae435b3aef2d571c2abc7bf3ec31176e4d540
+Test readiness correction: 8f6c178a2dcc959de8ff34044bfe6fbf5f565cdb
+Cache: advisoros-v6-159-expense-context
+
+Read-only authenticated byte comparisons against the isolated source all MATCH:
+index.html
+sw.js
+js/core/db.min.js
+js/features/money/money.min.js
+js/features/customer/customer.min.js
+js/features/appointments/appointments.min.js
+
+Public https://beelo.beelestial.co.uk/sw.js independently rechecked:
+const CACHE_NAME = 'advisoros-v6-158-expense-dates';
+
+Hosted40079956457 failed C14 first-offline WebKit Quotes. Hold is intentional.
+The READY status and matching bytes do not substitute for a passing release gate.
+No promotion, production customer changes, uploads, messages or provider calls.
