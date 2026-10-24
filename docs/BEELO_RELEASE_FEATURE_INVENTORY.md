@@ -64,6 +64,13 @@ refer to `js/services/`. Test names refer to `tests/`.
 
 ## Positioning recommendations — no feature removal
 
+24 October C22 evidence addendum: `visit-draft-status.test.js` checks truthful
+no-op/empty status, ordered clearing behind pending persistence and conflict
+preservation against source/compiled code. Full local/hosted fourteen-script
+gates pass. Native Simulator verifies draft leave/resume/reload, but not final
+booking Save; physical-device acceptance remains open. This is prototype
+evidence, not pilot approval or a new capability claim. See the C22 audit.
+
 Lead with the personal day around the job: capture → context → next action →
 adviser review → deliberate handoff → working history. Company systems serve
 the company; Beelo's intended role is the worker's private layer beside them.

@@ -1,6 +1,6 @@
 # C22 — truthful draft status and ordered clearing
 
-Status: confirmed; isolated implementation under verification, not yet deployed.
+Status: fixed and deployed; local/hosted/live browser verification passed.
 
 ## Native checkpoint / reproduction
 
@@ -50,7 +50,37 @@ settling that status. The maintained regression fails on the original source.
 delayed first write followed by clear, pending-write leave protection and
 conflict preservation. The real Chromium/WebKit recovery journey now checks
 both empty/no-op status and unchanged revision; existing scenarios remain.
-Full release-gate and deployment results will be added after verification.
+Full local unit/social/maintained-performance/build/token/diff checks and all
+fourteen synthetic browser scripts pass. Exact-source hosted Test
+40073833932 passed unit/server/dependency gates and all fourteen browser scripts.
+No assertions, permissions or timeouts were weakened, and no rerun was needed.
+
+## Release
+
+- Runtime `ded689147addb2b31ca5a536a237ae0b5e2f8677`, isolated branch
+  `codex/phone-contact-save`; original dirty runtime/dependencies preserved.
+- READY production build `dpl_9LRb58Y96VbNCaS41adinNJV8ERE`, build11s,
+  https://beelo1-7pch2bzip-beelomvp.vercel.app, staged without the custom domain.
+  Three changed runtime assets matched; public app remained on C21/cache156
+  until the hosted gate passed. Promoted this same build, not a rebuild, to
+  https://beelo.beelestial.co.uk/ on 24 October 2026.
+- Cache `advisoros-v6-157-draft-status-order`, VisitDraft v2. Other runtime
+  asset versions unchanged. Live index/SW/compiled service match local bytes.
+- Short deployment error/fatal scan returned no records; not independent
+  monitoring, client-error coverage or security assurance. No secrets inspected,
+  changed or published. Rollback C21 `0a71f42` /
+  `dpl_Bd9AqYUvbCptxBNSKSkUVgckgwd6` retains draft recovery and transcription
+  timeout but restores C22's status/ordering defects.
+- Evidence: `docs/evidence/2026-10-24-draft-status-order/`, including original
+  negative regression, full local outputs, hosted result and WebKit screenshot.
+
+Live genuine-key Chromium/WebKit repeat empty/no-op status, durable text/audio,
+leave/reload recovery, mocked stalled-transcription/late-response isolation,
+storage failure/update protection, validation/save cleanup and stale revisions.
+Both pass with no sends or page errors. Real microphone, physical iPhone and
+paid providers are not exercised. Live screenshots and outputs retained. The
+follow-up documentation-link/product-language check and diff check pass; the
+evidence-only commit does not require a second app deployment.
 
 Native input partially recovered, but an actual Save/readback and physical
 iPhone checklist are still open. C14 requires a captured failing offline route;
