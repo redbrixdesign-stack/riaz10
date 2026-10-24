@@ -1,0 +1,5 @@
+
+> advisoros@5.0.0 test:social
+> node tests/social.test.js
+
+social assistant: consent, privacy, safe context and editable drafts OK

@@ -1,0 +1,19 @@
+
+> advisoros@5.0.0 test:release:browser
+> node tests/verify-release.cjs
+
+PASS payment-link.e2e.cjs (30s)
+PASS protected-backup.e2e.cjs (9s)
+PASS context-encryption.e2e.cjs (8s)
+PASS lazy-state.e2e.cjs (6s)
+PASS social-share.e2e.cjs (9s)
+PASS cold-offline.e2e.cjs (6s)
+PASS claude-usage.e2e.cjs (4s)
+PASS test-session-boundary.e2e.cjs (13s)
+PASS visit-reminder-expiry.e2e.cjs (2s)
+PASS visit-reminder-lifecycle.e2e.cjs (3s)
+PASS visit-form-layout.e2e.cjs (3s)
+PASS modal-form-state.e2e.cjs (4s)
+PASS visit-draft.e2e.cjs (31s)
+PASS sw-update.e2e.js (2s)
+All synthetic browser acceptance checks passed. Evidence: /var/folders/mw/x5t4mxwn2gb8147zl7b1pk8m0000gn/T/beelo-release-s0WeFa

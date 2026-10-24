@@ -1,0 +1,5 @@
+
+> advisoros@5.0.0 test:performance:gate
+> node tests/lighthouse-gate.test.mjs
+
+PASS maintained Lighthouse gate: unchanged floors, every category/viewport enforced, missing scores/runtime errors fail closed

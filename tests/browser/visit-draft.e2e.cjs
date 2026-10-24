@@ -24,6 +24,9 @@ const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
   const saved=async()=>{await page.waitForFunction(()=>document.getElementById('visit-draft-status')?.textContent.startsWith('Draft saved encrypted'));};
   await open();
   assert.equal(await page.evaluate(()=>DB.getVisitDraft()),null,'An untouched empty form is not a draft');
+  await page.locator('#appt-name').dispatchEvent('input');
+  await page.waitForFunction(()=>document.getElementById('visit-draft-status')?.textContent.startsWith('No unfinished changes'));
+  assert.equal(await page.evaluate(()=>DB.getVisitDraft()),null,'An empty no-op event must not invent a saved draft');
   await page.locator('#appt-name').fill('SYNTHETIC Willow Recovery');
   await page.locator('#appt-address').fill('1 SYNTHETIC Lane — not a real address');
   await page.locator('#appt-access').fill('SYNTHETIC side gate');
@@ -31,6 +34,9 @@ const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
   await page.locator('#appt-notes').fill(note);
   await page.evaluate(()=>{NoteCapture.setRecordings('appt-notes',[{id:'synthetic-audio',dataUrl:'data:audio/webm;base64,QUJD',mediaType:'audio/webm',transcript:'SYNTHETIC transcript'}]);NoteCapture.refresh('appt-notes');});
   await saved();
+  const unchangedRevision=await page.evaluate(async()=>(await DB.getVisitDraft()).revision);
+  await page.locator('#appt-name').dispatchEvent('input');await saved();
+  assert.equal(await page.evaluate(async()=>(await DB.getVisitDraft()).revision),unchangedRevision,'No-op input must restore truthful Saved status without rewriting the draft');
   // A deliberately stalled transport must release the real New Visit gate.
   // Only this explicit synthetic call is intercepted; no provider is contacted.
   await page.clock.install();

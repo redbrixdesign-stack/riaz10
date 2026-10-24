@@ -23,7 +23,7 @@ const VisitDraft = {
     });
     window.addEventListener('pagehide', () => { if (this.isEditing()) this.flush().catch(() => {}); });
     window.addEventListener('beforeunload', event => {
-      if (!this.isEditing() || !this.hasWork()) return;
+      if (!this.isEditing() || (!this.hasWork() && !this.current.revision && !this.current.pendingWrites)) return;
       // Browser confirmation is best-effort on iOS; durable autosave is primary.
       this.flush().catch(() => {});
       event.preventDefault(); event.returnValue = '';
@@ -56,6 +56,7 @@ const VisitDraft = {
     if (el) el.textContent = text;
   },
   error(error) {
+    if (this.current) this.current.lastError = error;
     this.status(error?.message === 'draft_conflict'
       ? 'Draft changed in another tab. Keep this page open; do not overwrite the other draft.'
       : 'Draft not saved. Keep this page open and retry, or copy your notes.');
@@ -169,17 +170,31 @@ const VisitDraft = {
     const s = this.current;
     if (!s?.ready || !s.form.isConnected || s.closing) return Promise.resolve();
     clearTimeout(s.timer);
-    if (!this.hasWork() && !s.revision) return Promise.resolve();
+    const hasWork = this.hasWork();
     const snapshot = this.read();
     const signature = JSON.stringify(snapshot);
     const draft = { v: 1, id: s.id, params: s.params, ...snapshot, updatedAt: new Date().toISOString() };
+    const isCurrentSnapshot = () => this.current === s && JSON.stringify(this.read()) === signature;
+    s.pendingWrites = (s.pendingWrites || 0) + 1;
     const task = this.queue.catch(() => {}).then(async () => {
       if (s.closing) return;
-      if (!force && s.persisted === signature) return;
+      // Decide only after older writes finish: a clear event must not skip
+      // over a pending first write and leave stale text in recovery storage.
+      if (!hasWork && !s.revision) {
+        if (isCurrentSnapshot()) {
+          if (s.lastError) this.error(s.lastError);
+          else this.status('No unfinished changes to save. Nothing is booked.');
+        }
+        return;
+      }
+      if (!force && !s.lastError && s.persisted === signature) {
+        if (isCurrentSnapshot()) this.status('Draft saved encrypted on this device. Not booked until Save Visit.');
+        return;
+      }
       s.revision = await DB.writeVisitDraft(draft, s.revision);
-      s.persisted = signature;
-      if (this.current === s && JSON.stringify(this.read()) === signature) this.status('Draft saved encrypted on this device. Not booked until Save Visit.');
-    });
+      s.persisted = signature; s.lastError = null;
+      if (isCurrentSnapshot()) this.status('Draft saved encrypted on this device. Not booked until Save Visit.');
+    }).catch(error => { s.lastError = error; throw error; }).finally(() => { s.pendingWrites--; });
     this.queue = task;
     return task.catch(error => { if (this.current === s) this.error(error); throw error; });
   },
@@ -188,7 +203,7 @@ const VisitDraft = {
     const s = this.current;
     if (!this.isEditing()) return false;
     if (!s.ready) { this.detach(); return false; }
-    if (!this.hasWork() && !s.revision) { this.detach(); return false; }
+    if (!this.hasWork() && !s.revision && !s.pendingWrites) { this.detach(); return false; }
     if (window.location.hash.slice(1) !== App.currentHash) window.history.replaceState(null, '', '#' + App.currentHash);
     if (s.saving || this.busy()) { Toast.show('Finish saving, recording or transcription before leaving this visit.', 'warning'); return true; }
     this.target = { featureId, params };

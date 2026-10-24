@@ -1,0 +1,10 @@
+AssertionError [ERR_ASSERTION]: An unchanged event cannot leave a false Saving status
+    at run (/Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/visit-draft-status.test.js:16:9)
+    at async /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/visit-draft-status.test.js:36:94 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 'Saving unfinished visit…',
+  expected: /^Draft saved encrypted/,
+  operator: 'match',
+  diff: 'simple'
+}
