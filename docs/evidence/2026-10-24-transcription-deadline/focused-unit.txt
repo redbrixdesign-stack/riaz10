@@ -1,0 +1,2 @@
+PASS js/services/note-capture.js: bounded full-operation deadline, hanging fetch/body/credential/auth retry, late-result isolation, retained audio/text, released draft lock and explicit retry
+PASS js/services/note-capture.min.js: bounded full-operation deadline, hanging fetch/body/credential/auth retry, late-result isolation, retained audio/text, released draft lock and explicit retry

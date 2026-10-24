@@ -1,6 +1,6 @@
 # C21 — bounded client transcription and released visit controls
 
-Status: confirmed P2 reliability defect; fix in isolated release verification.
+Status: fixed and deployed; local/hosted/live browser verification passed.
 
 ## Reproduction and cause
 
@@ -47,8 +47,38 @@ and the rest of resume/reload/failed-save/discard/recovery checks still run.
 No real network transcription request or provider call is made.
 
 Full local unit/social/maintained-performance/build/token/diff checks and all
-fourteen synthetic browser scripts pass. Hosted acceptance and production status
-will be recorded after verification; this pending entry is not a deployment claim.
+fourteen synthetic browser scripts pass. The hosted exact-source run and live
+synthetic verification below passed without paid-provider calls.
+
+## Deployment / acceptance
+
+- Runtime commit: `0a71f4203758ba50ca99c7c462c7b711026dc5ab`.
+- Exact-source hosted Test [40072361485](https://github.com/redbrixdesign-stack/riaz10/actions/runs/40072361485)
+  passed unit/server/dependency audits and all fourteen browser scripts. The
+  current offline check passed there too; C14 is not thereby resolved.
+- Target: `beelomvp/beelo1`, production, vanilla static PWA/serverless project.
+  Status READY; build 13s; deployment `dpl_Bd9AqYUvbCptxBNSKSkUVgckgwd6`.
+  Exact build https://beelo1-fjws6w7gh-beelomvp.vercel.app was staged without
+  assigning the app domain, compared byte-for-byte and promoted unchanged to
+  https://beelo.beelestial.co.uk/ after acceptance.
+- Live cache `advisoros-v6-156-transcription-deadline`, note-capture v8.
+  All three changed served assets match. Existing C20 draft logic, App/DB v45,
+  appointment v61 and visit-draft v1 are unchanged.
+- Live disposable Chromium/WebKit repeated the full new-visit journey including
+  the stalled-transcription deadline and late-result isolation. Genuine local
+  passphrase setup; synthetic records/audio only; external services blocked;
+  no POSTs/page errors. This is not real microphone/provider or native iPhone
+  certification. Native input remains blocked as described below.
+- Ten-minute scoped production error/fatal scan found no matching logs. Static
+  client verification does not establish general client monitoring; drain
+  configuration was not changed or certified.
+- Evidence: `docs/evidence/2026-10-24-transcription-deadline/`, including original
+  failing regression, focused source/compiled checks, local/hosted summaries,
+  live journey/assets and synthetic screenshot. Original dirty runtime remains
+  untouched; this release contains only the scoped isolated change.
+- Rollback: C20 `d139e78` / `dpl_H9uYcKjemkoKTd8RRNVYaAH8jnTa`, cache155.
+  No data migration or provider configuration change to reverse. This rollback
+  retains drafts but lacks the new deadline safeguard.
 
 ## Remaining limits
 

@@ -1,0 +1,3 @@
+PASS live byte match: index.html
+PASS live byte match: js/services/note-capture.min.js
+PASS live byte match: sw.js

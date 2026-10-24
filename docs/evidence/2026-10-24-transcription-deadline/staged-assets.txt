@@ -1,0 +1,3 @@
+PASS staged byte match: sw.js
+PASS staged byte match: index.html
+PASS staged byte match: js/services/note-capture.min.js

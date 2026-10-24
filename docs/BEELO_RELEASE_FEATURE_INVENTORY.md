@@ -9,6 +9,11 @@ C20 addendum (24 October): runtime `d139e78` / cache155 adds the New Visit
 recovery row below. Exact-source hosted 40046216960 and live synthetic
 Chromium/WebKit checks pass; not physical-device acceptance or pilot approval.
 
+C21 reliability addendum: runtime `0a71f42` / cache156 bounds unified note
+transcription to a 75-second client operation, retains audio/text on timeout and
+releases busy visit controls. Source/compiled stall/late-response regressions,
+hosted 40072361485 and live synthetic checks pass; no real provider certification.
+
 ## Evidence rules
 
 - **Implemented:** readable source and a reachable route/action or domain API
