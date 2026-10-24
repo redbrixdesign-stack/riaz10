@@ -8,7 +8,7 @@ let responseStatus = 200;
 let lastBody;
 const messages = [];
 const field = { value: 'Original notes', dispatchEvent() {} };
-const sandbox = { console, Blob, Map, Set, Date, JSON, String, Promise, Event,
+const sandbox = { console, Blob, Map, Set, Date, JSON, String, Promise, Event, AbortController, setTimeout, clearTimeout,
   navigator: { onLine: true }, document: { getElementById: () => field },
   Toast: { show: message => messages.push(message) },
   fetch: async (url, options) => {

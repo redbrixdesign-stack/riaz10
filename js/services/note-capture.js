@@ -16,6 +16,9 @@ const NoteCapture = {
   // Base64 adds ~33%; keep the complete JSON request below the host's 4.5 MB cap.
   maxTranscriptionAudioBytes: 3_000_000,
   maxTranscriptionBodyBytes: 4_100_000,
+  // Covers upload, response body and the existing credential-recovery retry.
+  // The proxy's provider deadline is 60s; allow 15s for transport overhead.
+  transcriptionTimeoutMs: 75_000,
   transcriptionSizeMessage: 'Recording too large to transcribe (3 MB limit). Audio remains available; record a shorter note or type your notes.',
 
   setRecordings(fieldId, recordings = []) {
@@ -178,6 +181,7 @@ const NoteCapture = {
     if (!targetField) return Toast.show('Open the notes editor first', 'warning');
     if (this.transcribing.has(item)) return;
     this.transcribing.add(item);
+    let timer, timedOut = false;
     try {
       const dataUrl = String(item.dataUrl || '');
       const comma = dataUrl.indexOf(',');
@@ -187,26 +191,47 @@ const NoteCapture = {
       const body = JSON.stringify({ audio, mediaType: item.mediaType || 'audio/webm' });
       if (audioBytes > this.maxTranscriptionAudioBytes || new Blob([body]).size > this.maxTranscriptionBodyBytes) throw new Error(this.transcriptionSizeMessage);
       Toast.show('Transcribing — your audio remains saved', 'info', 5000);
-      let secret = typeof AIService !== 'undefined' ? AIService.config().secret : '';
-      const request = credential => fetch('/api/transcribe', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json', ...(credential ? { 'x-ai-key': credential } : {}) },
-          body
-        });
-      let response = await request(secret);
-      // CONFIG/session state can be evicted independently of IndexedDB on an
-      // installed iPhone PWA. Recover the encrypted device credential and retry
-      // exactly once before asking the adviser to register the device again.
-      if (response.status === 403 && typeof DB !== 'undefined' && typeof DB.getDeviceAISecret === 'function') {
-        const deviceSecret = await DB.getDeviceAISecret().catch(() => '');
-        if (deviceSecret && deviceSecret !== secret) {
-          secret = deviceSecret;
-          CONFIG.ai = { ...(CONFIG.ai || {}), secret };
-          try { sessionStorage.setItem('advisoros_ai_secret', secret); } catch (e) {}
-          response = await request(secret);
+      const controller = new AbortController();
+      const deadline = new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          timedOut = true;
+          controller.abort();
+          reject(new Error('Transcription timed out. Your audio is still available; try again or type your notes.'));
+        }, this.transcriptionTimeoutMs);
+      });
+      // Race the entire operation, not just receipt of response headers.
+      // Guards also stop late non-cooperative responses from changing keys,
+      // issuing a retry or appending text after the adviser has moved on.
+      const operation = (async () => {
+        let secret = typeof AIService !== 'undefined' ? AIService.config().secret : '';
+        const request = credential => {
+          controller.signal.throwIfAborted();
+          return fetch('/api/transcribe', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', ...(credential ? { 'x-ai-key': credential } : {}) },
+            body,
+            signal: controller.signal
+          });
+        };
+        let response = await request(secret);
+        // CONFIG/session state can be evicted independently of IndexedDB on an
+        // installed iPhone PWA. Recover the encrypted device credential and retry
+        // exactly once before asking the adviser to register the device again.
+        if (response.status === 403 && typeof DB !== 'undefined' && typeof DB.getDeviceAISecret === 'function') {
+          const deviceSecret = await DB.getDeviceAISecret().catch(() => '');
+          controller.signal.throwIfAborted();
+          if (deviceSecret && deviceSecret !== secret) {
+            secret = deviceSecret;
+            CONFIG.ai = { ...(CONFIG.ai || {}), secret };
+            try { sessionStorage.setItem('advisoros_ai_secret', secret); } catch (e) {}
+            response = await request(secret);
+          }
         }
-      }
-      const result = await response.json().catch(() => null);
+        const result = await response.json().catch(() => null);
+        controller.signal.throwIfAborted();
+        return { response, result };
+      })();
+      const { response, result } = await Promise.race([operation, deadline]);
       if (response.status === 413) throw new Error(this.transcriptionSizeMessage);
       if (response.status === 403) throw new Error('This device needs registering again in Settings → Claude AI');
       if (!response.ok || !result?.ok || !result.text) throw new Error(result?.message || 'Transcription failed');
@@ -220,8 +245,9 @@ const NoteCapture = {
       this.refresh(fieldId);
       Toast.show('Transcript added — review and edit before saving', 'success', 6000);
     } catch (error) {
-      Toast.show(error?.message || 'Could not transcribe; the audio remains saved', 'error', 6000);
+      Toast.show(timedOut ? 'Transcription timed out. Your audio is still available; try again or type your notes.' : error?.message || 'Could not transcribe; the audio remains saved', 'error', 6000);
     } finally {
+      clearTimeout(timer);
       this.transcribing.delete(item);
     }
   },

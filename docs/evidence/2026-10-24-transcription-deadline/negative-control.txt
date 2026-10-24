@@ -1,0 +1,13 @@
+AssertionError [ERR_ASSERTION]: A stalled transcription must have a bounded client deadline
+
+0 !== 1
+
+    at run (/Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/note-capture-timeout.test.js:29:9)
+    at async /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/note-capture-timeout.test.js:47:69 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 0,
+  expected: 1,
+  operator: 'strictEqual',
+  diff: 'simple'
+}

@@ -31,6 +31,21 @@ const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
   await page.locator('#appt-notes').fill(note);
   await page.evaluate(()=>{NoteCapture.setRecordings('appt-notes',[{id:'synthetic-audio',dataUrl:'data:audio/webm;base64,QUJD',mediaType:'audio/webm',transcript:'SYNTHETIC transcript'}]);NoteCapture.refresh('appt-notes');});
   await saved();
+  // A deliberately stalled transport must release the real New Visit gate.
+  // Only this explicit synthetic call is intercepted; no provider is contacted.
+  await page.clock.install();
+  await page.evaluate(()=>{
+   window.originalTranscriptionFetch=window.fetch;
+   window.fetch=(url,options)=>url==='/api/transcribe'?new Promise(resolve=>{window.releaseStalledTranscription=resolve;}):window.originalTranscriptionFetch(url,options);
+   window.stalledTranscription=NoteCapture.transcribe('appt-notes','synthetic-audio');
+  });
+  assert(await page.evaluate(()=>VisitDraft.busy()));
+  await page.evaluate(()=>App.navigate('today'));assert(await page.locator('#appt-name').isVisible());
+  await page.clock.fastForward(75_000);await page.evaluate(()=>window.stalledTranscription);
+  assert.equal(await page.evaluate(()=>VisitDraft.busy()),false);assert.equal(await page.locator('#appt-notes').inputValue(),note);
+  assert.equal(await page.evaluate(()=>NoteCapture.getRecordings('appt-notes').length),1);
+  await page.evaluate(()=>{window.fetch=window.originalTranscriptionFetch;window.releaseStalledTranscription({ok:true,status:200,json:async()=>({ok:true,text:'SYNTHETIC late transcript — must not append'})});});
+  await page.clock.resume();assert.equal(await page.locator('#appt-notes').inputValue(),note);
   assert(await page.evaluate(async()=>isEncrypted((await DB.db.settings.get('__new_visit_draft_v1__')).value)),'Raw persisted draft must be encrypted');
   assert.equal(await page.evaluate(()=>DB.db.appointments.count()),0);
   assert(!(await page.evaluate(()=>DB.exportAll())).settings.some(row=>row.key==='__new_visit_draft_v1__'),'Export excludes recovery data');
@@ -103,6 +118,6 @@ const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
   await page.getByRole('button',{name:'Discard saved draft',exact:true}).click();await page.locator('#modal-overlay').getByRole('button',{name:'Discard unfinished visit',exact:true}).click();await page.waitForFunction(()=>!VisitDraft.isEditing());
   assert.equal(await page.evaluate(()=>DB.getVisitDraft()),null);assert.equal(await page.evaluate(()=>DB.db.appointments.count()),2);
   assert.deepEqual(posts,[]);assert.deepEqual(errors,[]);
-  console.log(`PASS ${engine.name()}: real encryption/unlock, durable text/audio recovery and reload, no auto booking, leave/discard confirmation, export/import boundary, storage failure, blocked update, busy capture, validation/save cleanup, stale revision protection; no sends`);
+  console.log(`PASS ${engine.name()}: real encryption/unlock, durable text/audio recovery and reload, stalled transcription deadline/late-result isolation, no auto booking, leave/discard confirmation, export/import boundary, storage failure, blocked update, busy capture, validation/save cleanup, stale revision protection; no sends`);
  }finally{await browser.close();}
 }})().catch(e=>{console.error(e);process.exitCode=1;});
