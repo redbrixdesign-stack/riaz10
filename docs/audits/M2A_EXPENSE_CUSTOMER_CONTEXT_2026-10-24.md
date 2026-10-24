@@ -64,6 +64,12 @@ financial row or new accounting module is introduced.
   reassignment/cancel/unlink/reload, exact media/amount/date/capture preservation,
   invalid link, write/read failure and stale search. No POSTs/page errors or
   real provider/customer/send. Final maintained runner has16 browser scripts.
+- First full run reached WebKit reload but issued customer navigation after only
+  checking DB.isOpen. Captured screenshot/body/hash show Money, not a lost row:
+  app startup was still completing its initial route. Test now waits for rendered
+  Money before navigating, retaining exact persistence assertions and15s limit.
+  This is online bootstrap readiness, not C14 diagnosis. Failed full evidence
+  retained; runtime unchanged by this test correction and no stage promoted.
 
 ## Limits / next
 

@@ -32,7 +32,10 @@ const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42
   assert(await page.locator('#edit-expense-date').isVisible());assert.equal(await page.evaluate(async id=>(await DB.db.expenses.get(id)).amount,row.id),12.5);assert.equal(await page.evaluate(async id=>(await DB.db.expenses.get(id)).customerId,row.id),ids.b);
   await choose('Willow');await page.locator('#edit-expense-amount').fill('12.50');
   await page.evaluate(()=>{window.originalExpenseUpdate=DB.updateExpense;DB.updateExpense=async()=>{throw Error('SYNTHETIC disk failure');};});await page.getByRole('button',{name:'Save Changes',exact:true}).click();await page.waitForFunction(()=>!MoneyFeature._savingExpense);assert.equal(await page.locator('#edit-expense-customer-id').inputValue(),String(ids.b));assert.equal(await page.locator('.sheet-body img').getAttribute('src'),row.photo);await page.evaluate(()=>{DB.updateExpense=window.originalExpenseUpdate;});await save();
-  await page.reload();await page.waitForFunction(()=>typeof DB!=='undefined'&&DB.db?.isOpen());await profile(ids.b);await openEvidence();assert.equal(await page.locator('#edit-expense-customer-id').inputValue(),String(ids.b));
+  // An open IndexedDB handle is not app readiness: startup still has migrations
+  // and its initial hash navigation to finish. Wait for the actual Money UI
+  // before issuing a new route, just as a person must after reload.
+  await page.reload();await page.waitForFunction(()=>App.currentHash==='money'&&!!document.querySelector('button[data-action="MoneyFeature.openExpenseModal"]'));await profile(ids.b);await openEvidence();assert.equal(await page.locator('#edit-expense-customer-id').inputValue(),String(ids.b));
   // Older asynchronous searches must not replace the latest result set.
   await page.evaluate(()=>{window.originalExpenseSearch=DB.searchCustomers;window.expenseSearchReleases={};DB.searchCustomers=query=>new Promise(resolve=>{window.expenseSearchReleases[query]=resolve;});});
   await page.locator('#edit-expense-customer-search').fill('Cedar');await page.waitForFunction(()=>!!window.expenseSearchReleases.Cedar);await page.locator('#edit-expense-customer-search').fill('Willow');await page.waitForFunction(()=>!!window.expenseSearchReleases.Willow);

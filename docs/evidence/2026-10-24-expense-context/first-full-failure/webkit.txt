@@ -1,0 +1,6 @@
+{
+  "message": "locator.waitFor: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#customer-expense-evidence') to be visible\u001b[22m\n",
+  "url": "http://127.0.0.1:55277/#money",
+  "body": "Skip to content\nMoney\nreceipt_long\ndownload\nThis Week · Earnings (commission + visit fees)\n£0.00\n£600.00 to target\n0% of £600 target\nEarnings gap\n£600 to hit your £600 weekly target\n£600.00\nTax & deadlines\nTax year 2026-27 · 67 weeks to 31 Jan\nexpand_more\nProfit\n-£32.50\nTax due\n£0.00\nIncome tax\n£0.00\nClass 4 NIC\n£0.00\n31 January 2028\n67 weeks away\n£0.00\n31 July 2028\nPayment on account\n£0.00\nThis Week\nThis Month\n£0.00\nMileage claim\n£32.50\nExpenses\n2\nRecords\nreceipt\nLog Expense\nroute\nLog Mileage\nlist\nView Records\nbackup\nBackup Data\nhome\nHome\ncampaign\nFollow-ups\nview_kanban\nOrders\naccount_balance_wallet\nMoney\nconstruction\nTools",
+  "route": "money"
+}

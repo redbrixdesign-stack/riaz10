@@ -1,0 +1,33 @@
+
+> advisoros@5.0.0 test:release:browser
+> node tests/verify-release.cjs
+
+PASS payment-link.e2e.cjs (29s)
+PASS protected-backup.e2e.cjs (8s)
+PASS context-encryption.e2e.cjs (8s)
+PASS lazy-state.e2e.cjs (5s)
+PASS social-share.e2e.cjs (8s)
+PASS cold-offline.e2e.cjs (6s)
+PASS claude-usage.e2e.cjs (4s)
+PASS test-session-boundary.e2e.cjs (13s)
+PASS visit-reminder-expiry.e2e.cjs (2s)
+PASS visit-reminder-lifecycle.e2e.cjs (3s)
+PASS visit-form-layout.e2e.cjs (3s)
+PASS modal-form-state.e2e.cjs (4s)
+PASS visit-draft.e2e.cjs (37s)
+PASS expense-date.e2e.cjs (13s)
+FAIL expense-context.e2e.cjs (24s)
+PASS chromium: real customer search/link/profile/reassign/cancel/unlink/reload, exact expense evidence, invalid-link/write/read errors, stale search and general-business retention; no provider or sends
+locator.waitFor: Timeout 15000ms exceeded.
+Call log:
+[2m  - waiting for locator('#customer-expense-evidence') to be visible[22m
+
+    at profile (/Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/browser/expense-context.e2e.cjs:21:135)
+    at async /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/browser/expense-context.e2e.cjs:35:96 {
+  log: [
+    "  - waiting for locator('#customer-expense-evidence') to be visible"
+  ],
+  name: 'TimeoutError'
+}
+
+Browser acceptance stopped at expense-context.e2e.cjs
