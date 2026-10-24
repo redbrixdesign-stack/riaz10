@@ -20,4 +20,21 @@ The original hosted failure is Test 40002296334, WebKit secondary-route render a
 
 ## Decisions / next action
 
-Do not change service-worker caching or lazy navigation speculatively. Do not skip/relax the offline assertion, loop reruns until green, or call C14 fixed. Inspect any captured failing route's network response and console error before choosing a runtime fix. If the hosted run is green, keep C14 open and retain diagnostics for the next natural failure. Production remains C13/cache 153; no new deployment is justified by test-only changes.
+### 24 October — captured hosted failure, release held
+
+M2a hosted Test40079956457 (`8f6c178`) failed first offline Quotes in WebKit.
+The captured router has currentFeature quotes, currentHash settings?section=data,
+and a quote-document.min.js?v=3 script node but no corresponding response/failure.
+Its exact URL exists in the installed cache list; Quotes remains lazy. Screenshot
+is the loading skeleton; page/console error arrays empty. This narrows the broken
+boundary to dynamic prerequisite delivery/completion, not expense persistence.
+It does not yet distinguish WebKit/SW/socket-drop behavior or establish a root cause.
+Evidence is in ../evidence/2026-10-24-expense-context/hosted-offline-failure/.
+
+Additional failure-only diagnostics record script request times, proxy socket-drop
+requests, and bounded cached response status/body size. One enriched local check
+passed both engines; no root-cause claim from that pass. Keep M2a stage unpromoted
+and public M1/cache158 unchanged. Next: one hosted run of enriched diagnostics,
+inspect any new evidence, no assertion weakening or speculative runtime changes.
+
+Do not change service-worker caching or lazy navigation speculatively. Do not skip/relax the offline assertion, loop reruns until green, or call C14 fixed. Inspect any captured failing route's network response and console error before choosing a runtime fix. If the hosted run is green, keep C14 open and retain diagnostics for the next natural failure. Production at the original investigation checkpoint was C13/cache153; current production is M1/cache158. No new deployment is justified by test-only changes.

@@ -14,7 +14,8 @@ const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
   // genuinely fail, without changing the browser's network emulation flag.
   let target=base;
   if(engine===webkit && ['127.0.0.1','localhost'].includes(new URL(base).hostname)){
-   transport={blocked:false};transport.server=http.createServer((request,response)=>{
+   transport={blocked:false,requests:[]};transport.server=http.createServer((request,response)=>{
+    transport.requests.push({url:request.url,blocked:transport.blocked,time:Date.now()});
     if(transport.blocked){request.socket.destroy();return;}
     const upstream=http.get(new URL(request.url,base),result=>{response.writeHead(result.statusCode,result.headers);result.pipe(response);});
     upstream.on('error',()=>{response.writeHead(503);response.end('SYNTHETIC network unavailable');});
@@ -22,7 +23,7 @@ const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
   }
   const c=await browser.newContext({viewport:{width:390,height:844}});
   await c.addInitScript(()=>{localStorage.setItem('advisoros_config',JSON.stringify({onboardingComplete:true,unlockTimeoutMinutes:60}));localStorage.setItem('advisoros_consent',JSON.stringify({v:2}));});
-  const p=await c.newPage(),posts=[],errors=[],consoleErrors=[],scriptResponses=[],failedRequests=[],routeResults=[];let navigations=0;p.setDefaultTimeout(20000);p.on('request',r=>{if(r.isNavigationRequest()&&r.frame()===p.mainFrame())navigations++;if(r.method()==='POST')posts.push(r.url());});p.on('pageerror',e=>errors.push(e.message));
+  const p=await c.newPage(),posts=[],errors=[],consoleErrors=[],scriptRequests=[],scriptResponses=[],failedRequests=[],routeResults=[];let navigations=0;p.setDefaultTimeout(20000);p.on('request',r=>{if(r.resourceType()==='script')scriptRequests.push({url:r.url(),time:Date.now()});if(r.isNavigationRequest()&&r.frame()===p.mainFrame())navigations++;if(r.method()==='POST')posts.push(r.url());});p.on('pageerror',e=>errors.push(e.message));
   p.on('console',message=>{if(message.type()==='error')consoleErrors.push(message.text());});
   p.on('response',response=>{if(response.request().resourceType()==='script')scriptResponses.push({url:response.url(),status:response.status(),worker:response.fromServiceWorker()});});
   p.on('requestfailed',request=>failedRequests.push({url:request.url(),type:request.resourceType(),failure:request.failure()?.errorText}));
@@ -48,7 +49,11 @@ const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
    assert(!/Failed to load|Something went wrong/.test(rendered),`${engine.name()} first offline ${route} must render`);
    }catch(error){
     const state=await p.evaluate(()=>({hash:App.currentHash,current:App.currentFeature?.id,revision:App._navigationRevision,scripts:[...document.querySelectorAll('script[data-lazy-src]')].map(script=>script.src),features:[...App.features].map(([id,feature])=>({id,lazy:!!feature._lazy})),body:document.getElementById('main')?.innerText})).catch(captureError=>({captureError:captureError.message}));
-    const evidence={engine:engine.name(),route,error:error.message,rendered,state,routeResults,errors,consoleErrors,cached,scriptResponses,failedRequests};
+    const cacheProbe=await p.evaluate(()=>Promise.race([
+     Promise.all([...document.querySelectorAll('script[data-lazy-src]')].map(async script=>{const response=await caches.match(script.src);return {url:script.src,status:response?.status,bytes:response?(await response.arrayBuffer()).byteLength:null};})),
+     new Promise(resolve=>setTimeout(()=>resolve({timeout:true}),2000))
+    ])).catch(error=>({error:error.message}));
+    const evidence={engine:engine.name(),route,error:error.message,rendered,state,routeResults,errors,consoleErrors,cached,cacheProbe,scriptRequests,scriptResponses,failedRequests,transportRequests:transport?.requests};
     console.error('OFFLINE FAILURE',JSON.stringify(evidence));
     fs.writeFileSync(artifactPath(`beelo-cold-offline-failed-${engine.name()}-${route}.json`),JSON.stringify(evidence,null,2));
     await p.screenshot({path:artifactPath(`beelo-cold-offline-failed-${engine.name()}-${route}.png`),animations:'disabled'}).catch(captureError=>console.error('Screenshot capture failed:',captureError.message));

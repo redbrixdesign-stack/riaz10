@@ -1,7 +1,8 @@
 # M2a — customer-linked expense evidence
 
-Status: isolated implementation; focused tests pass, final release gate running.
-Not yet deployed. First M2 slice, not completion of all context linking or MVP.
+Status: isolated implementation; full local gate passes, hosted offline gate
+failed. Staged READY but NOT promoted; public app remains M1/cache158.
+First M2 slice, not completion of all context linking or MVP.
 
 ## Ownership map / scoped gap
 
@@ -74,6 +75,11 @@ financial row or new accounting module is introduced.
 ## Limits / next
 
 M2b must separately design explicit visit context and correction semantics.
+Next retrieval priority: Money's View Records currently queries this month
+only. Customer-linked evidence can be reached through its profile, but older
+general-business receipts remain in storage/backup without an all-date finder.
+Do not claim all receipts are now easy to find. Add date-spanning expense
+retrieval as a small next slice before extending more associations.
 Global retrieval, all-media lifecycle, physical-device/accessibility/offline
 acceptance remain open; C14 not closed by another green run. Local scans are
 pilot-scale, not a large-dataset performance claim. No independent privacy,
@@ -86,6 +92,32 @@ links are resolved or a link-aware build restored. Orphan links must be explicit
 cleared/reassigned in the new UI; invalid-reference restore fails closed rather
 than guessing a customer. No automatic repair is claimed.
 
-Production baseline remains M1 until final gates, staged asset comparison and
-exact-build promotion. Original dirty runtime/dependencies remain untouched.
-Release IDs, live results, rollback and evidence will be recorded after acceptance.
+## Release hold / captured C14 failure
+
+- Runtime `51bae435b3aef2d571c2abc7bf3ec31176e4d540`, test readiness correction
+  `8f6c178a2dcc959de8ff34044bfe6fbf5f565cdb`. Final full local build/unit/social/
+  performance and16-script browser gate passed (`final-gate.txt`, `summary.json`).
+- Staged READY `dpl_5awdCzfbdexw13sVfJCcxRke2SSU`, exact URL
+  https://beelo1-ix9r62jrc-beelomvp.vercel.app, cache159. Not promoted or accepted.
+- Exact-source hosted Test40079956457 failed the existing cold-offline WebKit
+  journey before the expense-context browser test ran. Unit/server job passed;
+  earlier hosted browser scripts passed, not a full release acceptance.
+- First useful captured C14 route: Quotes, first offline open after Settings.
+  Router currentFeature is quotes but currentHash still settings?section=data;
+  screenshot shows a loading skeleton, not an empty data list. The prerequisite
+  quote-document.min.js?v=3 has a script node and a cache key, but no recorded
+  response/failure. Quotes remains lazy, no page/console errors were recorded.
+  A cache key is not proof of delivery/evaluation. No evidence here of expense
+  record loss. Full JSON/log/screenshot preserved in hosted-offline-failure/.
+- Added diagnostic-only script request times, loopback proxy request/drop log,
+  and a bounded cache response/body-size probe on failure. One bounded local
+  two-engine check passed; this does not establish the hosted failure's cause.
+  A distinct hosted diagnostic is justified by missing request/cache-body evidence,
+  not by seeking a green rerun. Timeouts/assertions/offline mechanism unchanged.
+- Public sw.js independently rechecked: advisoros-v6-158-expense-dates. No M2
+  native/live acceptance claimed. Profile screenshot is partly obscured by
+  transient UI; DOM/click assertions are stronger evidence than that capture.
+
+Production baseline remains M1 until the offline boundary is diagnosed and final
+gates, staged asset comparison and exact-build promotion pass. Original dirty
+runtime/dependencies remain untouched. No speculative runtime/cache fix applied.

@@ -1,0 +1,418 @@
+{
+  "engine": "webkit",
+  "route": "quotes",
+  "error": "page.waitForFunction: Timeout 20000ms exceeded.",
+  "rendered": "",
+  "state": {
+    "hash": "settings?section=data",
+    "current": "quotes",
+    "revision": 3,
+    "scripts": [
+      "http://127.0.0.1:34145/js/features/settings/settings.min.js?v=24",
+      "http://127.0.0.1:34145/js/services/quote-document.min.js?v=3"
+    ],
+    "features": [
+      {
+        "id": "quotes",
+        "lazy": true
+      },
+      {
+        "id": "jobs",
+        "lazy": true
+      },
+      {
+        "id": "invoices",
+        "lazy": true
+      },
+      {
+        "id": "suppliers",
+        "lazy": true
+      },
+      {
+        "id": "capacity",
+        "lazy": true
+      },
+      {
+        "id": "profitability",
+        "lazy": true
+      },
+      {
+        "id": "retention",
+        "lazy": true
+      },
+      {
+        "id": "social",
+        "lazy": true
+      },
+      {
+        "id": "settings",
+        "lazy": false
+      },
+      {
+        "id": "legal",
+        "lazy": false
+      },
+      {
+        "id": "communications",
+        "lazy": false
+      },
+      {
+        "id": "onboarding",
+        "lazy": false
+      },
+      {
+        "id": "companion",
+        "lazy": false
+      },
+      {
+        "id": "today",
+        "lazy": false
+      },
+      {
+        "id": "appointments",
+        "lazy": false
+      },
+      {
+        "id": "customer",
+        "lazy": false
+      },
+      {
+        "id": "route",
+        "lazy": false
+      },
+      {
+        "id": "leads",
+        "lazy": false
+      },
+      {
+        "id": "followups",
+        "lazy": false
+      },
+      {
+        "id": "orders",
+        "lazy": false
+      },
+      {
+        "id": "money",
+        "lazy": false
+      },
+      {
+        "id": "talk",
+        "lazy": false
+      },
+      {
+        "id": "measure",
+        "lazy": false
+      },
+      {
+        "id": "ocr",
+        "lazy": false
+      },
+      {
+        "id": "control",
+        "lazy": false
+      }
+    ],
+    "body": ""
+  },
+  "routeResults": [],
+  "errors": [],
+  "consoleErrors": [],
+  "cached": [
+    "http://127.0.0.1:34145/js/services/note-capture.min.js?v=8",
+    "http://127.0.0.1:34145/js/services/visit-draft.min.js?v=2",
+    "http://127.0.0.1:34145/js/services/visit-summaries.min.js?v=1",
+    "http://127.0.0.1:34145/",
+    "http://127.0.0.1:34145/index.html",
+    "http://127.0.0.1:34145/manifest.json?v=3",
+    "http://127.0.0.1:34145/css/core.css?v=34",
+    "http://127.0.0.1:34145/css/components.css?v=59",
+    "http://127.0.0.1:34145/assets/fonts/material-symbols-rounded.woff2",
+    "http://127.0.0.1:34145/assets/fonts/hankengrotesk-latin.woff2",
+    "http://127.0.0.1:34145/assets/fonts/hankengrotesk-latinext.woff2",
+    "http://127.0.0.1:34145/assets/fonts/jetbrainsmono-latin.woff2",
+    "http://127.0.0.1:34145/assets/icons/badge-gold-72.png",
+    "http://127.0.0.1:34145/assets/icons/icon-gold-72.png",
+    "http://127.0.0.1:34145/assets/icons/icon-gold-96.png",
+    "http://127.0.0.1:34145/assets/icons/icon-gold-128.png",
+    "http://127.0.0.1:34145/assets/icons/icon-gold-144.png",
+    "http://127.0.0.1:34145/assets/icons/icon-gold-152.png",
+    "http://127.0.0.1:34145/assets/icons/icon-gold-192.png",
+    "http://127.0.0.1:34145/assets/icons/icon-gold-384.png",
+    "http://127.0.0.1:34145/assets/icons/icon-gold-512.png",
+    "http://127.0.0.1:34145/assets/icons/icon-gold-192-maskable.png",
+    "http://127.0.0.1:34145/assets/icons/icon-gold-512-maskable.png",
+    "http://127.0.0.1:34145/assets/icons/apple-touch-icon-gold-180.png",
+    "http://127.0.0.1:34145/assets/img/marker-icon.png",
+    "http://127.0.0.1:34145/assets/img/marker-icon-2x.png",
+    "http://127.0.0.1:34145/assets/img/marker-shadow.png",
+    "http://127.0.0.1:34145/js/vendor/dexie.min.js?v=1",
+    "http://127.0.0.1:34145/js/vendor/minidexie.min.js?v=12",
+    "http://127.0.0.1:34145/js/core/config.min.js?v=17",
+    "http://127.0.0.1:34145/js/core/utils.min.js?v=12",
+    "http://127.0.0.1:34145/js/core/db.min.js?v=46",
+    "http://127.0.0.1:34145/js/core/geo.min.js?v=15",
+    "http://127.0.0.1:34145/js/core/geoprovider.min.js?v=1",
+    "http://127.0.0.1:34145/js/core/search.min.js?v=4",
+    "http://127.0.0.1:34145/js/core/tax.min.js?v=3",
+    "http://127.0.0.1:34145/js/core/install-prompt.min.js?v=2",
+    "http://127.0.0.1:34145/js/services/voice-notes.min.js?v=1",
+    "http://127.0.0.1:34145/js/core/app.min.js?v=45",
+    "http://127.0.0.1:34145/js/core/lazy-features.min.js?v=9",
+    "http://127.0.0.1:34145/js/core/legal.min.js?v=4",
+    "http://127.0.0.1:34145/js/core/contact.min.js?v=4",
+    "http://127.0.0.1:34145/js/services/ai.min.js?v=13",
+    "http://127.0.0.1:34145/js/services/notification.min.js?v=12",
+    "http://127.0.0.1:34145/js/services/message-scheduler.min.js?v=13",
+    "http://127.0.0.1:34145/js/services/export.min.js?v=12",
+    "http://127.0.0.1:34145/js/services/weather.min.js?v=3",
+    "http://127.0.0.1:34145/js/services/tasks.min.js?v=7",
+    "http://127.0.0.1:34145/js/services/job-field-service.min.js?v=2",
+    "http://127.0.0.1:34145/js/services/capacity.min.js?v=1",
+    "http://127.0.0.1:34145/js/services/communications.min.js?v=3",
+    "http://127.0.0.1:34145/js/features/companion/companion.min.js?v=31",
+    "http://127.0.0.1:34145/js/features/onboarding/onboarding.min.js?v=7",
+    "http://127.0.0.1:34145/js/features/today/today.min.js?v=19",
+    "http://127.0.0.1:34145/js/features/appointments/appointments.min.js?v=62",
+    "http://127.0.0.1:34145/js/features/today/home-screen-controller.min.js?v=13",
+    "http://127.0.0.1:34145/js/features/customer/customer.min.js?v=16",
+    "http://127.0.0.1:34145/js/features/leads/leads.min.js?v=2",
+    "http://127.0.0.1:34145/js/features/followups/followups.min.js?v=28",
+    "http://127.0.0.1:34145/js/features/route/route.min.js?v=17",
+    "http://127.0.0.1:34145/js/features/orders/orders.min.js?v=18",
+    "http://127.0.0.1:34145/js/features/talk/talk.min.js?v=30",
+    "http://127.0.0.1:34145/js/features/money/money.min.js?v=13",
+    "http://127.0.0.1:34145/js/features/measure/measure.min.js?v=9",
+    "http://127.0.0.1:34145/js/features/ocr/ocr.min.js?v=23",
+    "http://127.0.0.1:34145/js/features/control/control.min.js?v=15",
+    "http://127.0.0.1:34145/js/services/quote-document.min.js?v=3",
+    "http://127.0.0.1:34145/js/features/quotes/quotes.min.js?v=2",
+    "http://127.0.0.1:34145/js/features/jobs/jobs.min.js?v=3",
+    "http://127.0.0.1:34145/js/services/finance-document.min.js?v=3",
+    "http://127.0.0.1:34145/js/features/invoices/invoices.min.js?v=2",
+    "http://127.0.0.1:34145/js/features/suppliers/suppliers.min.js?v=2",
+    "http://127.0.0.1:34145/js/features/capacity/capacity.min.js?v=1",
+    "http://127.0.0.1:34145/js/features/profitability/profitability.min.js?v=1",
+    "http://127.0.0.1:34145/js/features/retention/retention.min.js?v=2",
+    "http://127.0.0.1:34145/js/features/social/social.min.js?v=3",
+    "http://127.0.0.1:34145/js/features/settings/settings.min.js?v=24"
+  ],
+  "scriptResponses": [
+    {
+      "url": "http://127.0.0.1:34145/js/vendor/minidexie.min.js?v=12",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/core/db.min.js?v=46",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/vendor/dexie.min.js?v=1",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/core/config.min.js?v=17",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/core/utils.min.js?v=12",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/core/geoprovider.min.js?v=1",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/core/geo.min.js?v=15",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/core/search.min.js?v=4",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/core/tax.min.js?v=3",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/core/install-prompt.min.js?v=2",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/services/voice-notes.min.js?v=1",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/services/note-capture.min.js?v=8",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/services/visit-draft.min.js?v=2",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/services/visit-summaries.min.js?v=1",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/core/app.min.js?v=45",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/core/lazy-features.min.js?v=9",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/core/legal.min.js?v=4",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/core/contact.min.js?v=4",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/services/ai.min.js?v=13",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/services/notification.min.js?v=12",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/services/message-scheduler.min.js?v=13",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/services/export.min.js?v=12",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/services/weather.min.js?v=3",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/services/tasks.min.js?v=7",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/services/job-field-service.min.js?v=2",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/services/capacity.min.js?v=1",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/services/communications.min.js?v=3",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/features/onboarding/onboarding.min.js?v=7",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/features/companion/companion.min.js?v=31",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/features/today/today.min.js?v=19",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/features/today/home-screen-controller.min.js?v=13",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/features/appointments/appointments.min.js?v=62",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/features/customer/customer.min.js?v=16",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/features/route/route.min.js?v=17",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/features/leads/leads.min.js?v=2",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/features/followups/followups.min.js?v=28",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/features/orders/orders.min.js?v=18",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/features/money/money.min.js?v=13",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/features/talk/talk.min.js?v=30",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/features/measure/measure.min.js?v=9",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/features/ocr/ocr.min.js?v=23",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/features/control/control.min.js?v=15",
+      "status": 200,
+      "worker": false
+    },
+    {
+      "url": "http://127.0.0.1:34145/js/features/settings/settings.min.js?v=24",
+      "status": 200,
+      "worker": true
+    }
+  ],
+  "failedRequests": []
+}
