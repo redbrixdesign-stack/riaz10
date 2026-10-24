@@ -9,6 +9,42 @@ const MoneyFeature = {
   icon: 'account_balance_wallet',
   expensePhotoData: null,
 
+  // Expense dates are UK calendar days, stored as UK-midnight ISO instants
+  // so existing indexed date-period queries keep working without a migration.
+  expenseDateInstant(value) {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+    const [year, month, day] = value.split('-').map(Number);
+    if (year < 1000 || year > 9999) return null;
+    const check = new Date(Date.UTC(year, month - 1, day));
+    if (check.getUTCFullYear() !== year || check.getUTCMonth() !== month - 1 || check.getUTCDate() !== day) return null;
+    return Utils.ukMidnightInstant(year, month, day).toISOString();
+  },
+  expenseDateValue(value) {
+    const instant = new Date(value);
+    return value && Number.isFinite(instant.getTime()) ? Utils.formatDateUK(instant, 'iso') : '';
+  },
+  applyReceiptDate(value, field, previousValue) {
+    if (!field || document.getElementById('expense-date') !== field || field.value !== previousValue) return;
+    const valid = this.expenseDateInstant(value);
+    // Do not guess dd/mm versus mm/dd, roll impossible dates over, or retain
+    // today's default as if it had been read from an older receipt.
+    field.value = valid ? value : '';
+    const hint = document.getElementById('expense-date-hint');
+    if (hint) hint.textContent = valid ? 'Date read from receipt — check it before saving.' : 'Receipt date could not be confirmed. Enter the actual expense date.';
+    if (!valid) Toast.show('Check the receipt date and enter the actual expense date.', 'warning');
+  },
+  async readExpensePhoto(file, field) {
+    const request = this._expensePhotoRequest = { field, loading: true };
+    try {
+      const data = await Utils.fileToBase64(file);
+      if (this._expensePhotoRequest !== request || document.getElementById('expense-date') !== field) return null;
+      return { data, request };
+    } catch (_) {
+      if (this._expensePhotoRequest === request) Toast.show('Could not attach receipt. Choose it again before saving.', 'error');
+      return null;
+    } finally { request.loading = false; }
+  },
+
   render() {
     return this.renderAsync();
   },
@@ -296,6 +332,11 @@ const MoneyFeature = {
       </div>
       <div class="sheet-body">
         <div class="form-group">
+          <label for="edit-expense-date">Expense date</label>
+          <input type="date" class="input" id="edit-expense-date" value="${this.expenseDateValue(expense.date)}" aria-describedby="edit-expense-date-hint" required>
+          <div class="hint" id="edit-expense-date-hint">The date the expense happened, not the date you entered it.</div>
+        </div>
+        <div class="form-group">
           <label>Amount (&pound;)</label>
           <input type="number" class="input" inputmode="decimal" id="edit-expense-amount" placeholder="0.00" step="0.01" min="0" value="${expense.amount || ''}">
         </div>
@@ -327,24 +368,36 @@ const MoneyFeature = {
   },
 
   async saveEditExpense(expenseId) {
-    const amount = parseFloat(document.getElementById('edit-expense-amount')?.value);
+    if (this._savingExpense) return;
+    const dateField = document.getElementById('edit-expense-date');
+    const selectedDate = dateField?.value;
+    const date = this.expenseDateInstant(selectedDate);
+    const amount = Number(document.getElementById('edit-expense-amount')?.value);
     const category = document.getElementById('edit-expense-category')?.value;
     const description = document.getElementById('edit-expense-description')?.value.trim() || '';
 
-    if (!amount || amount <= 0) {
+    if (!date) { Toast.show('Please enter a valid expense date', 'error'); return; }
+    if (!Number.isFinite(amount) || amount <= 0) {
       Toast.show('Please enter a valid amount', 'error');
       return;
     }
 
+    this._savingExpense = true;
     try {
-      await DB.db.expenses.update(expenseId, { amount, category, description: description || category });
+      const expense = await DB.db.expenses.get(expenseId);
+      if (!expense) throw new Error('Expense no longer exists');
+      // Editing only amount/text must not rewrite a historical timestamp.
+      const storedDate = this.expenseDateValue(expense.date) === selectedDate ? expense.date : date;
+      const updated = await DB.db.expenses.update(expenseId, { date: storedDate, amount, category, description: description || category });
+      if (!updated) throw new Error('Expense no longer exists');
+      if (document.getElementById('edit-expense-date') !== dateField) return;
       App.closeModal();
       Toast.show('Expense updated', 'success');
       App.navigate('money');
     } catch (e) {
       console.error('Save expense error:', e);
       Toast.show('Failed to save changes', 'error');
-    }
+    } finally { this._savingExpense = false; }
   },
 
   confirmDeleteExpense(expenseId) {
@@ -478,6 +531,7 @@ const MoneyFeature = {
 
   openExpenseModal() {
     this.expensePhotoData = null;
+    this._expensePhotoRequest = null;
     const content = `
       <div class="sheet-handle"></div>
       <div class="sheet-header">
@@ -487,6 +541,11 @@ const MoneyFeature = {
         </button>
       </div>
       <div class="sheet-body">
+        <div class="form-group">
+          <label for="expense-date">Expense date</label>
+          <input type="date" class="input" id="expense-date" value="${Utils.formatDateUK(new Date(), 'iso')}" aria-describedby="expense-date-hint" required>
+          <div class="hint" id="expense-date-hint" role="status">Use the actual expense date, including for older receipts.</div>
+        </div>
         <div class="form-group">
           <label>Amount (&pound;)</label>
           <input type="number" class="input" inputmode="decimal" id="expense-amount" placeholder="0.00" step="0.01" min="0">
@@ -521,7 +580,11 @@ const MoneyFeature = {
   async handleExpensePhoto(event) {
     const file = event.target.files[0];
     if (!file) return;
-    const base64 = await Utils.fileToBase64(file);
+    const dateField = document.getElementById('expense-date');
+    const previousDate = dateField?.value;
+    const loaded = await this.readExpensePhoto(file, dateField);
+    if (!loaded) return;
+    const { data: base64, request } = loaded;
     this.expensePhotoData = base64;
     document.getElementById('expense-photo-preview').innerHTML = `<img class="max-w-full br-8" src="${base64}" >`;
 
@@ -530,6 +593,7 @@ const MoneyFeature = {
     const hintEl = document.getElementById('expense-photo-preview');
     hintEl.innerHTML = `${hintEl.innerHTML}<div class="fs-12 text-tertiary mt-10" >Analysing receipt…</div>`;
     const result = await AIService.extractReceipt(file);
+    if (this._savingExpense || this._expensePhotoRequest !== request || document.getElementById('expense-date') !== dateField) return;
 
     if (!result.ok || !result.fields) {
       const after = document.getElementById('expense-photo-preview');
@@ -539,6 +603,7 @@ const MoneyFeature = {
     }
 
     const { amount, vendor, date, description, category } = result.fields;
+    this.applyReceiptDate(date, dateField, previousDate);
     const amountEl = document.getElementById('expense-amount');
     const categoryEl = document.getElementById('expense-category');
     const descEl = document.getElementById('expense-description');
@@ -561,7 +626,11 @@ const MoneyFeature = {
   },
 
   async applyQuickCapture(file, fields = {}) {
-    const base64 = await Utils.fileToBase64(file);
+    const dateField = document.getElementById('expense-date');
+    const previousDate = dateField?.value;
+    const loaded = await this.readExpensePhoto(file, dateField);
+    if (!loaded) return;
+    const { data: base64 } = loaded;
     this.expensePhotoData = base64;
     const preview = document.getElementById('expense-photo-preview');
     if (preview) preview.innerHTML = `<img class="max-w-full br-8" src="${base64}" alt="Receipt preview">`;
@@ -569,6 +638,7 @@ const MoneyFeature = {
     const amountEl = document.getElementById('expense-amount');
     const categoryEl = document.getElementById('expense-category');
     const descEl = document.getElementById('expense-description');
+    if (fields.kind === 'expense') this.applyReceiptDate(fields.date, dateField, previousDate);
     if (amountEl && parsedAmount > 0) amountEl.value = parsedAmount;
     if (categoryEl && Array.from(categoryEl.options).some(option => option.value === fields.category)) categoryEl.value = fields.category;
     if (descEl && (fields.description || fields.vendor)) descEl.value = fields.description || fields.vendor;
@@ -576,6 +646,12 @@ const MoneyFeature = {
   },
 
   async saveExpense() {
+    if (this._savingExpense) return;
+    const dateField = document.getElementById('expense-date');
+    const date = this.expenseDateInstant(dateField?.value);
+    if (this._expensePhotoRequest?.field === dateField && this._expensePhotoRequest.loading) {
+      Toast.show('Wait for the receipt to attach before saving.', 'warning'); return;
+    }
     const amountEl = document.getElementById('expense-amount');
     const categoryEl = document.getElementById('expense-category');
     const descEl = document.getElementById('expense-description');
@@ -585,30 +661,33 @@ const MoneyFeature = {
       return;
     }
 
-    const amount = parseFloat(amountEl.value);
+    const amount = Number(amountEl.value);
     const category = categoryEl.value;
     const description = descEl ? descEl.value : '';
 
-    if (!amount || amount <= 0) {
+    if (!date) { Toast.show('Please enter a valid expense date', 'error'); return; }
+    if (!Number.isFinite(amount) || amount <= 0) {
       Toast.show('Please enter a valid amount', 'error');
       return;
     }
 
+    this._savingExpense = true;
     try {
       await DB.addExpense({
-        date: new Date().toISOString(),
+        date,
         amount,
         category,
         description: description || category,
         photo: this.expensePhotoData || null
       });
+      if (document.getElementById('expense-date') !== dateField) return;
       this.expensePhotoData = null;
       App.closeModal();
       Toast.show('Expense logged', 'success');
       App.navigate('money');
     } catch (e) {
       Toast.show('Failed to save expense', 'error');
-    }
+    } finally { this._savingExpense = false; }
   },
 
   openMileageModal() {

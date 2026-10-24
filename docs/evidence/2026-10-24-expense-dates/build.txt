@@ -1,0 +1,7 @@
+
+> advisoros@5.0.0 build
+> node build/minify.js
+
+  ⟳ js/features/money/money.js → js/features/money/money.min.js
+  ✓ Built 1/52 file(s)
+  ✓ sw.js ?v= tokens match shell and lazy manifests

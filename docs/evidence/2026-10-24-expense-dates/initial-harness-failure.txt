@@ -1,0 +1,10 @@
+locator.click: Timeout 15000ms exceeded.
+Call log:
+[2m  - waiting for getByRole('button', { name: 'Log Expense', exact: true })[22m
+
+    at /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/browser/expense-date.e2e.cjs:18:66 {
+  log: [
+    "  - waiting for getByRole('button', { name: 'Log Expense', exact: true })"
+  ],
+  name: 'TimeoutError'
+}
