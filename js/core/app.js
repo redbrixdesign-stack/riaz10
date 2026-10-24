@@ -124,6 +124,7 @@ const App = {
 
     // Setup event listeners
     this.setupEvents();
+    if (typeof VisitDraft !== 'undefined') VisitDraft.init();
 
     // First-run check: send to onboarding if not completed
     const onboardingDone = CONFIG.onboardingComplete || parsedSavedConfig?.onboardingComplete;
@@ -703,6 +704,7 @@ const App = {
       }
       return;
     }
+    if (typeof VisitDraft !== 'undefined' && VisitDraft.guardNavigation(featureId, cleanParams)) return;
     const navigationRevision = ++this._navigationRevision;
 
     // Dismiss any iOS keyboard/focused form control before replacing the
@@ -926,7 +928,7 @@ const App = {
     const objpath = m[1];
     const arglist = m[2].trim();
     const root = objpath.split('.')[0];
-    const KNOWN = ['App', 'AppointmentsFeature', 'SettingsFeature', 'MoneyFeature', 'TalkFeature', 'MeasureFeature', 'OnboardingFeature', 'RouteFeature', 'OrdersFeature', 'ContactFeature', 'HomeScreenController', 'CompanionFeature', 'ExportService', 'OCRFeature', 'ControlFeature', 'TodayFeature', 'Geo', 'CustomerFeature', 'FollowupsFeature', 'LeadsFeature', 'QuotesFeature', 'JobsFeature', 'InvoicesFeature', 'SuppliersFeature', 'CapacityFeature', 'ProfitabilityFeature', 'RetentionFeature', 'CommunicationsFeature', 'VoiceNotes', 'NoteCapture'];
+    const KNOWN = ['App', 'AppointmentsFeature', 'SettingsFeature', 'MoneyFeature', 'TalkFeature', 'MeasureFeature', 'OnboardingFeature', 'RouteFeature', 'OrdersFeature', 'ContactFeature', 'HomeScreenController', 'CompanionFeature', 'ExportService', 'OCRFeature', 'ControlFeature', 'TodayFeature', 'Geo', 'CustomerFeature', 'FollowupsFeature', 'LeadsFeature', 'QuotesFeature', 'JobsFeature', 'InvoicesFeature', 'SuppliersFeature', 'CapacityFeature', 'ProfitabilityFeature', 'RetentionFeature', 'CommunicationsFeature', 'VoiceNotes', 'NoteCapture', 'VisitDraft'];
     if (!KNOWN.includes(root)) return '';
     // Convert the JS-ish argument list into a JSON array string:
     //   'appointments', {tab: 'upcoming'}  ->  ["appointments", {"tab": "upcoming"}]
@@ -1024,6 +1026,7 @@ const App = {
       CommunicationsFeature,
       VoiceNotes: typeof VoiceNotes === 'undefined' ? null : VoiceNotes,
       NoteCapture: typeof NoteCapture === 'undefined' ? null : NoteCapture,
+      VisitDraft: typeof VisitDraft === 'undefined' ? null : VisitDraft,
       VisitSummaries: typeof VisitSummaries === 'undefined' ? null : VisitSummaries,
       InstallPrompt,
       Legal,
@@ -1441,7 +1444,13 @@ const App = {
           if (!hadController) { hadController = true; return; }
           if (suppressUpdateUI || refreshing) return;
           refreshing = true;
-          window.location.reload();
+          const reload = () => window.location.reload();
+          if (typeof VisitDraft !== 'undefined' && VisitDraft.isEditing()) {
+            VisitDraft.beforeReload().then(reload).catch(() => {
+              refreshing = false;
+              Toast.show('Update paused: keep this visit open until its draft is saved.', 'warning');
+            });
+          } else reload();
         });
 
         const offerUpdate = worker => {
@@ -1478,6 +1487,15 @@ const App = {
   applyServiceWorkerUpdate() {
     const worker = this._waitingServiceWorker;
     if (!worker) return;
+    if (typeof VisitDraft !== 'undefined' && VisitDraft.isEditing()) {
+      return VisitDraft.beforeReload().then(() => this.activateWaitingWorker(worker)).catch(error => {
+        Toast.show(error.message || 'Could not keep the draft. Update later.', 'warning');
+      });
+    }
+    this.activateWaitingWorker(worker);
+  },
+
+  activateWaitingWorker(worker) {
     const button = document.querySelector('[data-action="App.applyServiceWorkerUpdate"]');
     if (button) {
       button.disabled = true;

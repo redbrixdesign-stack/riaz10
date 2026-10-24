@@ -2144,7 +2144,7 @@ const AppointmentsFeature = {
     const jobRole = ['fitting', 'service', 'return_visit'].includes(params.jobRole) ? params.jobRole : null;
     if (typeof NoteCapture !== 'undefined') NoteCapture.setRecordings('appt-notes', []);
     return `
-      <div class="fade-in">
+      <div class="fade-in" id="new-visit-form">
         ${App.renderTopHeader({ 
           title: 'New Visit', 
           showBack: true, 
@@ -2537,7 +2537,17 @@ const AppointmentsFeature = {
 
     this._saveAppointmentInFlight = true;
     this.setSaveButtonState('working');
+    if (typeof VisitDraft !== 'undefined') VisitDraft.setSaving(true);
     try {
+      const entryDraftId = typeof VisitDraft !== 'undefined' ? await VisitDraft.prepareSave() : null;
+      if (entryDraftId) {
+        const existingEntry = (await DB.db.appointments.toArray()).find(a => a.entryDraftId === entryDraftId);
+        if (existingEntry) {
+          await VisitDraft.saved();
+          App.navigate('appointments', { id: existingEntry.id });
+          return;
+        }
+      }
       let linkedOrder = null;
       if (orderId) {
         linkedOrder = await DB.db.orders.get(orderId);
@@ -2545,6 +2555,7 @@ const AppointmentsFeature = {
         const linkedVisits = await DB.getAppointmentsByCustomer(linkedOrder.customerId);
         const alreadyBooked = linkedVisits.find(appt => appt.orderId === orderId && appt.type === 'fitting' && appt.status !== 'cancelled');
         if (alreadyBooked) {
+          if (typeof VisitDraft !== 'undefined') await VisitDraft.saved();
           Toast.show('This order already has a fitting visit', 'info');
           App.navigate('appointments', { id: alreadyBooked.id });
           return;
@@ -2588,6 +2599,7 @@ const AppointmentsFeature = {
       }
 
       const appointmentData = {
+        ...(entryDraftId ? { entryDraftId } : {}),
         clientName: name,
         phone,
         address,
@@ -2609,6 +2621,7 @@ const AppointmentsFeature = {
       if (leadId && typeof DB.convertLeadToVisit === 'function') {
         const result = await DB.convertLeadToVisit(leadId, appointmentData);
         const newAppt = result.appointment;
+        if (typeof VisitDraft !== 'undefined') await VisitDraft.saved();
         Toast.show('Enquiry converted and visit saved', 'success');
         if (typeof MessageScheduler !== 'undefined') MessageScheduler.reschedule();
         // Communication remains available in Follow-ups without interrupting entry.
@@ -2619,6 +2632,7 @@ const AppointmentsFeature = {
       if (jobId && typeof DB.scheduleJobVisit === 'function') {
         const result = await DB.scheduleJobVisit(jobId, { ...appointmentData, jobRole: jobRole || type, operationId: jobOperationId });
         const newAppt = result.appointment || result;
+        if (typeof VisitDraft !== 'undefined') await VisitDraft.saved();
         Toast.show('Job visit scheduled', 'success');
         if (typeof MessageScheduler !== 'undefined') MessageScheduler.reschedule();
         App.navigate('jobs', { id: jobId });
@@ -2660,6 +2674,7 @@ const AppointmentsFeature = {
         ...appointmentData
       });
 
+      if (typeof VisitDraft !== 'undefined') await VisitDraft.saved();
       Toast.show('Visit saved', 'success');
       if (typeof MessageScheduler !== 'undefined') MessageScheduler.reschedule();
       // Communication remains available in Follow-ups without interrupting entry.
@@ -2670,6 +2685,7 @@ const AppointmentsFeature = {
       Toast.show('Failed to save visit', 'error');
     } finally {
       this._saveAppointmentInFlight = false;
+      if (typeof VisitDraft !== 'undefined') VisitDraft.setSaving(false);
     }
 	  },
 
@@ -4007,6 +4023,10 @@ const AppointmentsFeature = {
     if (params.action === 'tomorrow' || params.action === 'today-plan') this.setupTomorrowDrag();
     // Auto-refresh when activated
     this.setupTabKeyboard();
+    if (params.action === 'add' && typeof VisitDraft !== 'undefined') {
+      VisitDraft.start(params);
+      return;
+    }
     if (params.tab) {
       this.switchTab(params.tab);
     }

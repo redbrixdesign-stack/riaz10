@@ -10,6 +10,7 @@ const NoteCapture = {
   playbackUrls: new Map(),
   active: null,
   transcribing: new Set(),
+  finalizing: new Set(),
   maxDurationMs: 3 * 60 * 1000,
   maxAudioBytes: 10 * 1024 * 1024,
   // Base64 adds ~33%; keep the complete JSON request below the host's 4.5 MB cap.
@@ -66,6 +67,7 @@ const NoteCapture = {
     this.releasePlaybackUrls(fieldId);
     const list = document.getElementById(`${fieldId}-audio-list`);
     if (list) list.innerHTML = this.renderList(fieldId);
+    if (typeof CustomEvent !== 'undefined' && typeof document.dispatchEvent === 'function') document.dispatchEvent(new CustomEvent('beelo:note-change', { detail: { fieldId } }));
   },
 
   playbackUrl(fieldId, item) {
@@ -125,12 +127,16 @@ const NoteCapture = {
         this.setRecordButton(fieldId, false);
         if (!blob.size) return Toast.show('No audio was captured', 'warning');
         if (blob.size > this.maxAudioBytes) return Toast.show('Recording is too large — keep voice notes under 3 minutes', 'warning');
-        const dataUrl = await this.blobToDataUrl(blob);
-        const rows = this.recordings.get(fieldId) || [];
-        rows.push({ id: Utils.generateId('audio-note'), dataUrl, mediaType: blob.type || 'audio/webm', durationMs: Date.now() - startedAt, transcript: '', createdAt: new Date().toISOString() });
-        this.recordings.set(fieldId, rows);
-        this.refresh(fieldId);
-        Toast.show('Audio captured — save this record to keep it', 'success');
+        this.finalizing.add(fieldId);
+        try {
+          const dataUrl = await this.blobToDataUrl(blob);
+          const rows = this.recordings.get(fieldId) || [];
+          rows.push({ id: Utils.generateId('audio-note'), dataUrl, mediaType: blob.type || 'audio/webm', durationMs: Date.now() - startedAt, transcript: '', createdAt: new Date().toISOString() });
+          this.recordings.set(fieldId, rows);
+          this.refresh(fieldId);
+          Toast.show('Audio captured — save this record to keep it', 'success');
+        } catch (_) { Toast.show('Could not capture the recording. Keep your notes open and try again.', 'error'); }
+        finally { this.finalizing.delete(fieldId); }
       };
       recorder.onerror = () => { stream.getTracks().forEach(track => track.stop()); this.active = null; this.setRecordButton(fieldId, false); Toast.show('Could not record audio', 'error'); };
       // A single complete recording is more reliable than concatenating timed

@@ -26,6 +26,9 @@ not verified live connections to those other systems.
   earnings/commission estimates. Background mileage/arrival detection is not
   guaranteed when the phone or browser suspends the app.
 - Local export/import and password-protected backup, with no hosted recovery.
+- Encrypted device-local unfinished New Visit recovery with explicit resume,
+  discard and leave confirmation. A draft is not a booking or cloud backup;
+  abrupt termination can still lose unpersisted keystrokes/active audio.
 
 The source also contains leads, quotes, operational jobs, invoices/payment
 records, suppliers, availability, profitability, aftercare and social-draft
@@ -74,7 +77,7 @@ npm run test:social
 npm run verify:release
 ```
 
-The release gate includes build/unit checks and 13 synthetic Chromium/WebKit
+The release gate includes build/unit checks and 14 synthetic Chromium/WebKit
 browser scripts. Playwright runtimes must be available; hosted acceptance uses
 a pinned version-matched image. This is not physical-iPhone, native-share,
 background-GPS or paid-provider certification. See the

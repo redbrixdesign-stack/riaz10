@@ -50,6 +50,7 @@ const PBKDF2_ITERATIONS = 100000;
 const KEY_LENGTH = 256;
 const IV_LENGTH = 12;
 const DEVICE_AI_SECRET_SETTING = '__device_ai_secret__';
+const NEW_VISIT_DRAFT_SETTING = '__new_visit_draft_v1__';
 
 let encryptionKey = null;
 let encryptionSalt = null;
@@ -1086,6 +1087,17 @@ const DB = {
     };
 
     const encrypted = await encryptAppointment(appointment);
+    if (appointment.entryDraftId) {
+      if (typeof this.db.transaction !== 'function') throw new Error('draft_transactions_unavailable');
+      const row = await this._runWrite(['appointments'], async () => {
+        const existing = (await this.db.appointments.toArray()).find(item => item.entryDraftId === appointment.entryDraftId);
+        if (existing) return existing;
+        const id = await this.db.appointments.add(encrypted);
+        return { ...encrypted, id };
+      });
+      if (typeof NotificationService !== 'undefined') NotificationService.queueVisitReminderRefresh();
+      return decryptAppointment(row);
+    }
     const id = await this.db.appointments.add(encrypted);
     if (typeof NotificationService !== 'undefined') NotificationService.queueVisitReminderRefresh();
     return { ...appointment, id };
@@ -2304,6 +2316,37 @@ const DB = {
   },
 
   // Settings
+  // Device-local unfinished entry, never an appointment or portable backup.
+  // Compare revisions inside the write transaction so stale tabs cannot
+  // silently replace/discard another tab's draft. Encrypt before entering it.
+  async getVisitDraft() {
+    const row = await this.db.settings.get(NEW_VISIT_DRAFT_SETTING);
+    if (!row) return null;
+    if (!isEncrypted(row.value) || typeof row.revision !== 'string') throw new Error('draft_unreadable');
+    return { revision: row.revision, draft: JSON.parse(await decryptField(row.value)) };
+  },
+
+  async writeVisitDraft(draft, expectedRevision = null) {
+    if (typeof this.db.transaction !== 'function') throw new Error('draft_transactions_unavailable');
+    const value = await encryptField(JSON.stringify(draft));
+    const revision = crypto.randomUUID();
+    return this._runWrite(['settings'], async () => {
+      const row = await this.db.settings.get(NEW_VISIT_DRAFT_SETTING);
+      if ((row?.revision || null) !== expectedRevision) throw new Error('draft_conflict');
+      await this.db.settings.put({ key: NEW_VISIT_DRAFT_SETTING, value, revision });
+      return revision;
+    });
+  },
+
+  async deleteVisitDraft(expectedRevision = null) {
+    if (typeof this.db.transaction !== 'function') throw new Error('draft_transactions_unavailable');
+    return this._runWrite(['settings'], async () => {
+      const row = await this.db.settings.get(NEW_VISIT_DRAFT_SETTING);
+      if ((row?.revision || null) !== expectedRevision) throw new Error('draft_conflict');
+      await this.db.settings.delete(NEW_VISIT_DRAFT_SETTING);
+    });
+  },
+
   async getSetting(key, defaultValue = null) {
     const setting = await this.db.settings.get(key);
     return setting ? setting.value : defaultValue;
@@ -2405,13 +2448,17 @@ const DB = {
     if(data.voiceNotes?.length)data.voiceNotes=await Promise.all(data.voiceNotes.map(decryptVoiceNote));
     if(data.measurements?.length)data.measurements=await Promise.all(data.measurements.map(decryptMeasurementAudio));
     if(data.photos?.length)data.photos=await Promise.all(data.photos.map(decryptPhoto));
-    const RUNTIME_SETTING_KEYS = ['__v6_legacy_migrated__', '__storage_probe__', 'pitchDemoSeeded', DEVICE_AI_SECRET_SETTING];
+    const RUNTIME_SETTING_KEYS = ['__v6_legacy_migrated__', '__storage_probe__', 'pitchDemoSeeded', DEVICE_AI_SECRET_SETTING, NEW_VISIT_DRAFT_SETTING];
     data.settings = (await this.db.settings.toArray()).filter(s => !RUNTIME_SETTING_KEYS.includes(s.key) && !s.key.startsWith('communication-draft:') && !s.key.startsWith('visit-plan:'));
     data.sequences = await this.db.sequences.toArray();
     return data;
   },
 
   async importAll(data) {
+    // Device-local recovery entries cannot be moved between encryption keys,
+    // or silently destroyed by replacing the working database.
+    if (await this.db.settings.get(NEW_VISIT_DRAFT_SETTING)) throw new Error('Resume and save, or explicitly discard your unfinished visit before restoring a backup.');
+    if (Array.isArray(data?.settings) && data.settings.some(row => row.key === NEW_VISIT_DRAFT_SETTING)) throw new Error('Backups cannot contain a device-local unfinished visit.');
     // Validate the whole backup — table shapes, record structure, primary
     // ID types, duplicate keys, date fields and every cross-table
     // relationship — BEFORE anything is touched on disk. A corrupt backup
