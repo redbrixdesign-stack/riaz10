@@ -20,7 +20,7 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
  await feature.openTomorrowRoutePreview();
  const button={disabled:false},status={textContent:''};root.querySelector=id=>id==='#planning-location-lookup'?button:status;
  let raw={id:1,address:'ENCRYPTED SYNTHETIC',latLng:null},coordinateWrites=0,release;
- s.DB.db={appointments:{get:async()=>structuredClone(raw),update:async(id,fields)=>{coordinateWrites++;raw={...raw,...fields};}}};s.DB._runWrite=async(tables,operation)=>operation();
+ s.DB.db={appointments:{get:async()=>structuredClone(raw),update:async(id,fields)=>{coordinateWrites++;raw={...raw,...fields};}}};s.DB.getAppointment=async()=>structuredClone(visits[0]);s.DB._runWrite=async(tables,operation)=>operation();
  s.Geo.geocode=async()=>({lat:0,lng:1,postcodeOnly:true});await feature.findPlanningLocations();assert.equal(coordinateWrites,0);assert.match(status.textContent,/Postcode-only/);
  s.Geo.geocode=()=>new Promise(resolve=>release=resolve);let operation=feature.findPlanningLocations();while(!release)await new Promise(resolve=>setTimeout(resolve,1));raw.address='CHANGED ENCRYPTED SYNTHETIC';release({lat:0,lng:1});await operation;assert.equal(coordinateWrites,0,'Edited record cannot get stale coordinates');
  release=null;operation=feature.findPlanningLocations();while(!release)await new Promise(resolve=>setTimeout(resolve,1));root.isConnected=false;release({lat:0,lng:1});await operation;assert.equal(coordinateWrites,0,'Closed preview cannot save a late lookup');root.isConnected=true;

@@ -191,6 +191,8 @@ const AppointmentsFeature = {
         if (!current()) return;
         if (RouteFeature.validPlanningPoint(visit.latLng) || !visit.address?.trim()) continue;
         const before = await DB.db.appointments.get(visit.id);
+        const latestVisit = await DB.getAppointment(visit.id);
+        if (!latestVisit || latestVisit.address !== visit.address || latestVisit.status === 'cancelled' || latestVisit.outcome || RouteFeature.validPlanningPoint(latestVisit.latLng)) continue;
         const point = await lookup(visit.address);
         if (!current()) return;
         if (!point || !before) continue;
