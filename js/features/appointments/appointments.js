@@ -114,35 +114,125 @@ const AppointmentsFeature = {
       </div>
       ${cards.length ? cards.join('') : `<div class="card"><p>No active visits booked for ${dayLabel}.</p><p>Use Scan to add on Home, or add a visit below.</p></div>`}
       <button class="btn btn-primary mb-md" data-action="App.navigate" data-args='["appointments",{"action":"add"}]'>Add visit</button>
-      <p class="text-tertiary fs-13">This is not an optimised route. A proposed time only changes the booking after you confirm customer agreement and review scheduling checks.</p>
+      <p class="text-tertiary fs-13">Preview route can suggest a geographical order, ignoring booked times. A proposed time only changes the booking after you confirm customer agreement and review scheduling checks.</p>
     </div></div>`;
   },
 
   async openTomorrowRoutePreview() {
+    const request = this._routePreviewRequest = (this._routePreviewRequest || 0) + 1;
+    const route = App.currentHash;
+    const modalOwner = document.getElementById('modal-overlay')?.classList.contains('active') ? document.getElementById('bottom-sheet')?.firstElementChild : null;
     try {
       const day = this._planningDay ? new Date(this._planningDay) : Utils.getTomorrow();
       const booked = (await DB.getAppointmentsForDate(day.toISOString())).filter(v => v.status !== 'cancelled' && !v.outcome).sort((a, b) => new Date(a.date) - new Date(b.date));
       const saved = JSON.parse(await DB.getPrivateSetting(`visit-plan:${Utils.formatDate(day, 'iso')}`, 'null'));
       const rank = new Map((Array.isArray(saved) ? saved : []).map((id, i) => [String(id), i]));
       const proposed = [...booked].sort((a, b) => (rank.get(String(a.id)) ?? Infinity) - (rank.get(String(b.id)) ?? Infinity));
-      const base = CONFIG.businessAddress ? CONFIG.businessLatLng : null;
-      const before = RouteFeature.planningDistancePreview(booked, base);
-      const after = RouteFeature.planningDistancePreview(proposed, base);
-      const backwards = proposed.some((v, i) => i > 0 && new Date(v.date) < new Date(proposed[i - 1].date));
+      const base = CONFIG.businessAddress?.trim() && RouteFeature.validPlanningPoint(CONFIG.businessLatLng) ? [...CONFIG.businessLatLng] : null;
+      const complete = base && booked.length && booked.every(v => RouteFeature.validPlanningPoint(v.latLng));
+      let suggested = complete ? RouteFeature.optimizeDayLoopOrder(proposed, { latLng: base }) : proposed;
+      if (complete && RouteFeature.calculateRawLoopDistance(suggested, { latLng: base }) > RouteFeature.calculateRawLoopDistance(proposed, { latLng: base })) suggested = proposed;
+      const before = RouteFeature.planningDistancePreview(proposed, base);
+      const after = RouteFeature.planningDistancePreview(suggested, base);
+      const ready = !!complete && after.totalKm !== null;
+      const activeModal = document.getElementById('modal-overlay')?.classList.contains('active') ? document.getElementById('bottom-sheet')?.firstElementChild : null;
+      if (request !== this._routePreviewRequest || route !== App.currentHash || !document.getElementById('tomorrow-plan') || modalOwner !== activeModal) return;
       App.openModal(`<div class="sheet-header"><h3>Proposed route preview</h3><button class="btn btn-ghost" aria-label="Close route preview" data-action="App.closeModal">Close</button></div><div class="sheet-body" id="planning-route-preview" style="overflow-wrap:anywhere">
-        <p>${Utils.formatDate(day, 'weekday-day-month')} · ${proposed.length} visits</p>
-        <p>Planning estimate only: saved coordinates, straight-line distance × 1.3. Not road directions, live traffic or a guaranteed saving. No locations are looked up or shared by this preview.</p>
-        <p>${after.hasBase ? 'Includes departure from and return to your saved business base.' : 'Between visits only. Business-base travel is excluded because its location is not saved.'}</p>
-        ${backwards ? '<p role="alert">This order goes backwards through booked times. Agree and save time changes before following it.</p>' : ''}
-        ${proposed.some(v => v.timeProposal?.status === 'pending') ? '<p role="alert">Some time proposals are still awaiting customer agreement.</p>' : ''}
-        ${!booked.length ? '<p>No active visits for this day.</p>' : `<p>Booked order estimate: <strong>${before.totalKm === null ? 'Unavailable — incomplete location data' : Utils.formatDistance(before.totalKm)}</strong></p>
-        <p>Proposed order estimate: <strong>${after.totalKm === null ? 'Unavailable — incomplete location data' : Utils.formatDistance(after.totalKm)}</strong></p>`}
-        <ol>${proposed.map(v => `<li>${Utils.escapeHtml(v.clientName || 'Customer')} — booked ${Utils.formatTime(v.date)}<br>${Utils.escapeHtml(v.address || 'Address not recorded')}</li>`).join('')}</ol>
-        <h4>Travel legs</h4>
-        ${after.legs.length ? after.legs.map(l => `<p>${Utils.escapeHtml(l.from)} → ${Utils.escapeHtml(l.to)}<br><strong>${l.km === null ? 'Unknown — location missing or implausible' : Utils.formatDistance(l.km) + ' estimated'}</strong></p>`).join('') : '<p>No between-visit travel to estimate.</p>'}
-        <p>Missing locations are not skipped to produce a misleading total. Bookings, navigation and mileage tracking are unchanged.</p>
-      </div>`);
+        <p>${Utils.formatDate(day, 'weekday-day-month')} · ${suggested.length} visits</p>
+        <p>Booked times ignored for this suggestion. Agree arrival times with customers before changing bookings. Nothing is sent.</p>
+        ${ready ? `<div id="planning-preview-map" class="planning-preview-map" aria-label="Suggested base-to-base route map"></div><p id="planning-map-status" role="status">Loading map…</p><button class="btn btn-outline" id="planning-map-retry" hidden data-action="RouteFeature.retryPlanningMap">Retry map</button>
+          <p>Suggested loop starts and ends at your saved business base. Numbered stops match the list below.</p>
+          <p>Your planned order: <strong>${before.totalKm === null ? 'Unavailable — incomplete location data' : Utils.formatDistance(before.totalKm)}</strong> · Suggested: <strong>${Utils.formatDistance(after.totalKm)}</strong></p>
+          <button class="btn btn-primary" data-action="AppointmentsFeature.useSuggestedRoute">Use this order</button>` : `<p role="alert">${!booked.length ? 'No active visits for this day.' : !base ? 'Save a business base and its map location in Settings → Business Base first.' : 'Some visit locations are missing, invalid or too far apart. Check the saved addresses and map locations before planning.'}</p><p>Unavailable — incomplete location data. No complete base-to-base map or total can be shown.</p>`}
+        ${booked.length && ((CONFIG.businessAddress?.trim() && !base) || booked.some(v => !RouteFeature.validPlanningPoint(v.latLng) && v.address?.trim())) ? '<button class="btn btn-outline" id="planning-location-lookup" data-action="AppointmentsFeature.findPlanningLocations">Find missing locations</button><p>Only when you tap: saved addresses are sent to Beelo’s existing address-lookup provider. Check the resulting map before using the order.</p><p id="planning-location-status" role="status"></p>' : ''}
+        <p>Planning sketch only: straight connecting lines, not road directions or live traffic. Distance estimates use straight-line distance × 1.3; this is not a guaranteed fastest route or saving. Map tiles come from OpenStreetMap and may be unavailable offline. Address lookup never runs automatically.</p>
+        ${base ? `<p><strong>Start · Business base</strong><br>${Utils.escapeHtml(CONFIG.businessAddress)}</p>` : ''}
+        <ol>${suggested.map(v => `<li>${Utils.escapeHtml(v.clientName || 'Customer')}<br>${Utils.escapeHtml(v.address || 'Address not recorded')}${!RouteFeature.validPlanningPoint(v.latLng) ? ' — Map location missing' : ''}</li>`).join('')}</ol>
+        ${base ? `<p><strong>Return · Business base</strong><br>${Utils.escapeHtml(CONFIG.businessAddress)}</p>` : ''}
+        <p>Only your proposed order is saved if you choose Use this order. Bookings, time proposals, messages, navigation and mileage tracking are unchanged.</p>
+      </div>`, { replace: true });
+      const root = document.getElementById('planning-route-preview');
+      root._suggestion = { day: day.toISOString(), key: `visit-plan:${Utils.formatDate(day, 'iso')}`, saved: JSON.stringify(saved), snapshot: this.planningSnapshot(booked), base: JSON.stringify([CONFIG.businessAddress, CONFIG.businessLatLng]), ids: suggested.map(v => v.id), ready };
+      if (ready) RouteFeature.drawPlanningMap(root, suggested, base, CONFIG.businessAddress);
     } catch (_) { Toast.show('Could not load route preview. Your plan is unchanged.', 'error'); }
+  },
+
+  planningSnapshot(visits) {
+    return JSON.stringify(visits.map(v => [v.id, v.date, v.status, v.outcome, v.address, v.latLng]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))));
+  },
+
+  async findPlanningLocations() {
+    const root = document.getElementById('planning-route-preview'), suggestion = root?._suggestion;
+    const button = root?.querySelector('#planning-location-lookup'), status = root?.querySelector('#planning-location-status');
+    if (!suggestion || !button || button.disabled) return;
+    button.disabled = true;
+    const current = () => root.isConnected && document.getElementById('planning-route-preview') === root;
+    let resolved = 0;
+    const lookup = async address => {
+      if (!current()) return null;
+      const result = await Utils.withTimeout(Geo.geocode(address), 4000, { resolveOnTimeout: null });
+      const point = result && !result.postcodeOnly ? [result.lat, result.lng] : null;
+      return current() && RouteFeature.validPlanningPoint(point) ? point : null;
+    };
+    try {
+      status.textContent = 'Finding missing map locations… You can close this preview to stop.';
+      const baseAddress = CONFIG.businessAddress?.trim();
+      if (baseAddress && !RouteFeature.validPlanningPoint(CONFIG.businessLatLng)) {
+        const point = await lookup(baseAddress);
+        if (!current()) return;
+        if (point && CONFIG.businessAddress?.trim() === baseAddress && !RouteFeature.validPlanningPoint(CONFIG.businessLatLng)) {
+          CONFIG.businessLatLng = point;
+          RouteFeature.persistBasePoint();
+          resolved++;
+        }
+      }
+      const visits = (await DB.getAppointmentsForDate(suggestion.day)).filter(v => v.status !== 'cancelled' && !v.outcome);
+      for (const visit of visits) {
+        if (!current()) return;
+        if (RouteFeature.validPlanningPoint(visit.latLng) || !visit.address?.trim()) continue;
+        const before = await DB.db.appointments.get(visit.id);
+        const point = await lookup(visit.address);
+        if (!current()) return;
+        if (!point || !before) continue;
+        // Compare the raw encrypted row inside the write transaction: a late
+        // lookup must not attach coordinates to an edited/deleted visit.
+        const written = await DB._runWrite(['appointments'], async () => {
+          if (!current()) return false;
+          const latest = await DB.db.appointments.get(visit.id);
+          if (JSON.stringify(latest) !== JSON.stringify(before)) return false;
+          await DB.db.appointments.update(visit.id, { latLng: point });
+          return true;
+        });
+        if (written) resolved++;
+      }
+      if (!current()) return;
+      if (resolved) {
+        await this.openTomorrowRoutePreview();
+        Toast.show('Map locations found. Check the markers before using the order.', 'success');
+      } else {
+        status.textContent = 'No precise locations found. Check the addresses, Business Base and your connection, then retry. Postcode-only matches are not used.';
+      }
+    } catch (_) { if (current()) status.textContent = 'Location lookup failed. Your bookings and proposed order are unchanged. Check your connection and retry.'; }
+    finally { if (current()) button.disabled = false; }
+  },
+
+  async useSuggestedRoute() {
+    const root = document.getElementById('planning-route-preview'), suggestion = root?._suggestion;
+    if (!suggestion?.ready || this._planSaving) return;
+    this._planSaving = true;
+    try {
+      const visits = (await DB.getAppointmentsForDate(suggestion.day)).filter(v => v.status !== 'cancelled' && !v.outcome);
+      const saved = JSON.parse(await DB.getPrivateSetting(suggestion.key, 'null'));
+      if (!root.isConnected) return;
+      if (suggestion.snapshot !== this.planningSnapshot(visits) || suggestion.saved !== JSON.stringify(saved) || suggestion.base !== JSON.stringify([CONFIG.businessAddress, CONFIG.businessLatLng])) {
+        Toast.show('The plan or locations changed. Open a fresh route preview.', 'warning');
+        return;
+      }
+      await DB.setPrivateSetting(suggestion.key, JSON.stringify(suggestion.ids));
+      await App.navigate('appointments', { action: this._planAction || 'tomorrow' });
+      Toast.show('Suggested order saved — agree times with customers; bookings unchanged', 'success');
+    } catch (_) { Toast.show('Could not save order. Your bookings are unchanged.', 'error'); }
+    finally { this._planSaving = false; }
   },
 
   async openTimeProposal(id) {

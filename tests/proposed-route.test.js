@@ -1,0 +1,28 @@
+'use strict';
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+(async()=>{for(const suffix of ['.js','.min.js']){
+ let saved='null',html='',drawn=0,writes=0,notice='';
+ const visits=[{id:1,date:'2030-01-02T09:00:00Z',clientName:'SYNTHETIC Far',address:'SYNTHETIC 3',latLng:[0,3]},{id:2,date:'2030-01-02T10:00:00Z',clientName:'SYNTHETIC Near <img>',address:'SYNTHETIC 1',latLng:[0,1]},{id:3,date:'2030-01-02T11:00:00Z',clientName:'SYNTHETIC Middle',address:'SYNTHETIC 2',latLng:[0,2]}];
+ const root={isConnected:true},s={console,Date,Intl,setTimeout,clearTimeout,window:{},document:{getElementById:id=>id==='tomorrow-plan'||id==='planning-route-preview'?root:null},CONFIG:{businessAddress:'SYNTHETIC Base',businessLatLng:[0,0]},Geo:{calculateDistance:(a,b,c,d)=>Math.hypot(a-c,b-d)},Toast:{show:t=>notice=t},DB:{getAppointmentsForDate:async()=>structuredClone(visits),getPrivateSetting:async()=>saved,setPrivateSetting:async(k,v)=>{writes++;saved=v;}},App:{registerFeature(){},openModal:h=>html=h,navigate:async()=>{}}};
+ vm.createContext(s);vm.runInContext(fs.readFileSync('js/core/utils.js','utf8'),s);
+ const route=vm.runInContext(fs.readFileSync('js/features/route/route'+suffix,'utf8')+'\nRouteFeature;',s);s.RouteFeature=route;route.drawPlanningMap=()=>drawn++;
+ const feature=vm.runInContext(fs.readFileSync('js/features/appointments/appointments'+suffix,'utf8')+'\nAppointmentsFeature;',s);feature._planningDay='2030-01-02T00:00:00Z';
+ for(const p of [null,[],[NaN,0],[0,Infinity],[91,0],[0,181],['0',0]])assert.equal(route.validPlanningPoint(p),false);
+ assert.equal(route.validPlanningPoint([0,0]),true);
+ const original=JSON.stringify(visits);await feature.openTomorrowRoutePreview();assert.equal(drawn,1);assert.match(html,/Booked times ignored/);assert(!html.includes('09:00'));assert(html.includes('&lt;img&gt;'));assert.match(html,/Start · Business base/);assert.match(html,/Return · Business base/);assert.equal(writes,0);
+ const ids=Array.from(root._suggestion.ids);assert.equal(route.calculateRawLoopDistance(ids.map(id=>visits.find(v=>v.id===id)),{latLng:[0,0]}),6);
+ await feature.useSuggestedRoute();assert.equal(writes,1);assert.deepEqual(JSON.parse(saved),ids);assert.equal(JSON.stringify(visits),original);
+ await feature.openTomorrowRoutePreview();visits[0].date='2030-01-02T12:00:00Z';await feature.useSuggestedRoute();assert.equal(writes,1);assert.match(notice,/changed/);
+ s.CONFIG.businessLatLng=null;await feature.openTomorrowRoutePreview();assert(!html.includes('id="planning-preview-map"'));assert(!root._suggestion.ready);assert.match(html,/Save a business base/);
+ s.CONFIG.businessLatLng=[0,0];visits[0].latLng=[NaN,0];await feature.openTomorrowRoutePreview();assert(!root._suggestion.ready);assert.match(html,/Map location missing/);
+ visits[0].latLng=[0,2];visits.length=0;await feature.openTomorrowRoutePreview();assert.match(html,/No active visits/);assert.equal(writes,1);
+ visits.push({id:1,date:'2030-01-02T09:00:00Z',address:'SYNTHETIC lookup',latLng:null});
+ await feature.openTomorrowRoutePreview();
+ const button={disabled:false},status={textContent:''};root.querySelector=id=>id==='#planning-location-lookup'?button:status;
+ let raw={id:1,address:'ENCRYPTED SYNTHETIC',latLng:null},coordinateWrites=0,release;
+ s.DB.db={appointments:{get:async()=>structuredClone(raw),update:async(id,fields)=>{coordinateWrites++;raw={...raw,...fields};}}};s.DB._runWrite=async(tables,operation)=>operation();
+ s.Geo.geocode=async()=>({lat:0,lng:1,postcodeOnly:true});await feature.findPlanningLocations();assert.equal(coordinateWrites,0);assert.match(status.textContent,/Postcode-only/);
+ s.Geo.geocode=()=>new Promise(resolve=>release=resolve);let operation=feature.findPlanningLocations();while(!release)await new Promise(resolve=>setTimeout(resolve,1));raw.address='CHANGED ENCRYPTED SYNTHETIC';release({lat:0,lng:1});await operation;assert.equal(coordinateWrites,0,'Edited record cannot get stale coordinates');
+ release=null;operation=feature.findPlanningLocations();while(!release)await new Promise(resolve=>setTimeout(resolve,1));root.isConnected=false;release({lat:0,lng:1});await operation;assert.equal(coordinateWrites,0,'Closed preview cannot save a late lookup');root.isConnected=true;
+ console.log('PASS '+suffix+': base loop, time-independent geographic order, no automatic save, explicit private order only, stale booking protection, escaped text, invalid/missing base and stops, empty state');
+}})().catch(e=>{console.error(e);process.exitCode=1;});

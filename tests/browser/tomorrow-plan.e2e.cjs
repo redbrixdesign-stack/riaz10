@@ -65,7 +65,7 @@ const assert = require('node:assert/strict');
     await page.getByRole('button', { name: 'Preview proposed route', exact: true }).click();
     await page.locator('#planning-route-preview').waitFor();
     assert.match(await page.locator('#planning-route-preview li').first().innerText(), /SYNTHETIC Later/);
-    assert.match(await page.locator('#planning-route-preview').innerText(), /goes backwards through booked times/);
+    assert.match(await page.locator('#planning-route-preview').innerText(), /Booked times ignored/);
     await page.waitForFunction(() => document.querySelectorAll('.toast').length === 0);
     await page.screenshot({ path: '/private/tmp/beelo-route-preview.png', fullPage: true, animations: 'disabled' });
     await page.getByRole('button', { name: 'Close route preview', exact: true }).click();

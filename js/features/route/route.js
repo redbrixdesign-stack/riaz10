@@ -16,6 +16,71 @@ const RouteFeature = {
 
   init() {},
 
+  validPlanningPoint(point) {
+    return Array.isArray(point) && point.length === 2 && point.every(Number.isFinite) && Math.abs(point[0]) <= 90 && Math.abs(point[1]) <= 180;
+  },
+
+  retryPlanningMap() {
+    document.getElementById('planning-route-preview')?._retryMap?.();
+  },
+
+  async drawPlanningMap(root, stops, base, address) {
+    const element = root.querySelector('#planning-preview-map');
+    if (!element || !root.isConnected) return;
+    root._disposeMap?.();
+    let map = null, cancelled = false;
+    const status = root.querySelector('#planning-map-status');
+    const retry = root.querySelector('#planning-map-retry');
+    const observer = new MutationObserver(() => { if (!root.isConnected) dispose(); });
+    const dispose = () => {
+      cancelled = true;
+      observer.disconnect();
+      if (map) { map.remove(); if (this._planningMap === map) this._planningMap = null; map = null; }
+      root._retryMap = null;
+    };
+    root._disposeMap = dispose;
+    observer.observe(document.body, { childList: true, subtree: true });
+    const current = () => !cancelled && root.isConnected && root.querySelector('#planning-preview-map') === element;
+    root._retryMap = () => {
+      if (!window.L) document.getElementById('leaflet-js')?.remove();
+      this.drawPlanningMap(root, stops, base, address);
+    };
+    retry.hidden = true;
+    status.textContent = 'Loading map…';
+    try {
+      this.loadLeaflet();
+      const deadline = Date.now() + 5000;
+      while (!window.L && current() && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 100));
+      if (!current()) return;
+      if (!window.L) throw new Error('Map library unavailable');
+      map = L.map(element, { scrollWheelZoom: false, attributionControl: true });
+      this._planningMap = map;
+      let tileFailed = false;
+      const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' });
+      tiles.on('tileerror', () => {
+        if (!current()) return;
+        tileFailed = true;
+        status.textContent = 'Map background unavailable. The numbered route sketch and stop list still show your saved locations.';
+        retry.hidden = false;
+      });
+      tiles.on('load', () => { if (current() && !tileFailed) status.textContent = 'Suggested route sketch. Booked times ignored.'; });
+      tiles.addTo(map);
+      const points = [base, ...stops.map(v => v.latLng), base];
+      const marker = (coords, label, popup) => L.marker(coords, { icon: L.divIcon({ className: 'planning-map-marker', html: `<span>${label}</span>`, iconSize: [30, 30], iconAnchor: [15, 15] }) }).addTo(map).bindPopup(popup);
+      marker(base, 'H', `Business base — start and return<br>${Utils.escapeHtml(address)}`);
+      stops.forEach((visit, i) => marker(visit.latLng, i + 1, `${i + 1}. ${Utils.escapeHtml(visit.clientName || 'Customer')}<br>${Utils.escapeHtml(visit.address || '')}`));
+      L.polyline(points, { color: '#ffbd0a', weight: 3, dashArray: '8, 8' }).addTo(map);
+      map.fitBounds(L.latLngBounds(points), { padding: [30, 30], maxZoom: 15 });
+      map.invalidateSize();
+      if (!tileFailed) status.textContent = 'Suggested route sketch. Booked times ignored.';
+    } catch (_) {
+      if (!current()) return;
+      if (map) { map.remove(); if (this._planningMap === map) this._planningMap = null; map = null; }
+      status.textContent = 'Map unavailable. Your suggested stop order is still available below. Connect to the internet and retry the map.';
+      retry.hidden = false;
+    }
+  },
+
   planningDistancePreview(visits, baseCoords = null) {
     const valid = p => Array.isArray(p) && p.length === 2 && p.every(Number.isFinite) && Math.abs(p[0]) <= 90 && Math.abs(p[1]) <= 180;
     const hasBase = valid(baseCoords);

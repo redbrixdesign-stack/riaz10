@@ -53,7 +53,7 @@ const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
  await c.setOffline(true);await rows.first().locator('summary').click();await rows.first().getByRole('button',{name:'Move visit 1 down',exact:true}).click();await p.waitForFunction(()=>document.querySelector('.plan-name')?.textContent.includes('Birch'));await c.setOffline(false);
  await p.reload();await rows.nth(6).waitFor();assert.match(await rows.first().innerText(),/Birch/);assert.match(await rows.nth(1).innerText(),/10:30/);
  assert.deepEqual(await p.evaluate(async ids=>Promise.all(ids.map(async id=>(await DB.getAppointment(id)).date)),data.ids),data.dates,'Proposal and reload must preserve original bookings');
- await p.getByRole('button',{name:'Preview proposed route',exact:true}).click();await p.locator('#planning-route-preview').waitFor();assert.match(await p.locator('#planning-route-preview').innerText(),/backwards through booked times/);await p.getByRole('button',{name:'Close route preview',exact:true}).click();
+ await p.getByRole('button',{name:'Preview proposed route',exact:true}).click();await p.locator('#planning-route-preview').waitFor();assert.match(await p.locator('#planning-route-preview').innerText(),/Booked times ignored/);assert.match(await p.locator('#planning-route-preview').innerText(),/Save a business base/);await p.getByRole('button',{name:'Close route preview',exact:true}).click();
  await p.getByRole('button',{name:'Reset to booked-time order',exact:true}).click();await p.waitForFunction(()=>document.querySelector('.plan-name')?.textContent.includes('Alder'));
  await rows.first().locator('.plan-name').click();await p.waitForFunction(id=>App.currentHash==='appointments?id='+id,data.ids[0]);
  assert.deepEqual(errors,[]);assert.deepEqual(posts,[]);
