@@ -1,0 +1,2 @@
+PASS chromium: real Leaflet with mock tiles, numbered base loop, ignores times, explicit order persistence/reload, original bookings intact, stale rejection, missing coordinates/base, tile/library failure/retry, cleanup/late load; no provider calls or messages
+PASS webkit: real Leaflet with mock tiles, numbered base loop, ignores times, explicit order persistence/reload, original bookings intact, stale rejection, missing coordinates/base, tile/library failure/retry, cleanup/late load; no provider calls or messages

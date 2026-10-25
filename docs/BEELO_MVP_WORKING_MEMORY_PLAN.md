@@ -1,5 +1,15 @@
 # Beelo working-memory MVP — sequential delivery plan
 
+## 25 October — proposed route map delivered, not full M4
+
+LIVE864388c/cache166: Today/Tomorrow preview now has a numbered saved-base loop,
+geographic suggestion ignoring booked times, explicit private-order save and
+approved opt-in missing-location lookup. Exact hosted40212190262 all22 checks
+pass; public synthetic Chromium/WebKit journey and five asset matches verified.
+No bookings/messages/finance changes. Broader scheduling agreement, native/field
+accuracy and M3b unified expense/media discovery remain open. Audit/evidence:
+docs/audits/PROPOSED_ROUTE_MAP_2026-10-25.md.
+
 24 October 2026. Strategy and acceptance contract, not a claim that planned
 features exist or that the product is pilot-approved. Muhammad asked to turn
 the day-to-day working-memory purpose into an MVP, one verified slice at a time.

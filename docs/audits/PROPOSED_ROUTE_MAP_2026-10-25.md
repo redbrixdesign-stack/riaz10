@@ -52,8 +52,30 @@ missing locations, opt-in lookup failure/retry, stale apply, map failure/retry,
 normal Route-map isolation and late-load cleanup. No real customer/provider
 request or message is sent during acceptance.
 
-Release gates and deployment: pending; this section is updated with exact
-source, acceptance run and deployment evidence before claiming LIVE.
+- LIVE at https://beelo.beelestial.co.uk/ after explicit promotion of tested stage
+  https://beelo1-1f6usy6o8-beelomvp.vercel.app,
+  dpl_7XrPW1WYdA3zToqtXnkHVtPQWMx4. Source
+  864388cd62740beb3ce41d44d9a782a0e42631f0; Other/build14.301s.
+  Appointments65/Route18/components61/cache166; DB49 unchanged.
+- Local22 maintained browser journeys passed; final safeguard also has fresh
+  source/minified units, full unit/integration and two-engine focused checks.
+  Local full gate overlapped final safeguard development: exact final-source
+  acceptance is hosted40212190262, all22 plus unit/server/dependency checks,
+  artifact sourceCommit verified. Earlier candidate40211902305 cancelled on
+  safeguard push, not accepted as final-source evidence.
+- Five staged/public runtime assets byte-match. Public Chromium/WebKit route/
+  opt-in lookup journeys pass with fresh synthetic records, mocked tiles and
+  geocoding; no real sends/provider calls. Legacy offline/next-morning planner
+  passes. Evidence: docs/evidence/2026-10-25-proposed-route/.
+- Production error/fatal scan16:31:45–16:41:45UTC returned no logs; a narrow
+  function-log window, not comprehensive monitoring or client-error coverage.
+  Runtime rollback: prior compact-plan dpl_GhGZGiXFD1bkiMZvSyS6gJETzqaj/cache165.
+- Prior documentation checkpoint4cf27b3/40207906705 failed expense-finder after
+  closing its editor but before refreshed results; retained separately, not
+  claimed green or fixed by this map change. Existing unchanged finder test
+  passes in the new local/hosted gates; timing recurrence remains a harness risk.
+- Original non-doc dirty diff SHA256 remains unchanged:
+  8b6f2a59c93c01d1e4bee30742536a538f010119e3acf6b99e9b2f63e8e295d1.
 
 Preliminary checks caught a tile-error status overwrite and raw colour-token
 debt; corrected without relaxing thresholds. Test harness now waits for completed

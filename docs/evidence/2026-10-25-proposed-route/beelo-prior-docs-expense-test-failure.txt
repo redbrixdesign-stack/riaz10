@@ -1,0 +1,55 @@
+Browser acceptance	Synthetic local browser acceptance	﻿2026-10-25T15:40:04.6690524Z ##[group]Run npm run test:release:browser
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:40:04.6690904Z ^[[36;1mnpm run test:release:browser^[[0m
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:40:04.6691271Z shell: sh -e {0}
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:40:04.6691797Z env:
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:40:04.6692017Z   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:40:04.6692410Z   BEELO_ARTIFACT_DIR: /home/runner/work/riaz10/riaz10/.test-results/release
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:40:04.6692797Z ##[endgroup]
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:40:04.8278218Z 
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:40:04.8278822Z > advisoros@5.0.0 test:release:browser
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:40:04.8279633Z > node tests/verify-release.cjs
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:40:04.8279976Z 
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:40:36.9425444Z PASS payment-link.e2e.cjs (32s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:40:46.8532215Z PASS protected-backup.e2e.cjs (10s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:40:58.3994439Z PASS context-encryption.e2e.cjs (12s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:41:04.9150354Z PASS lazy-state.e2e.cjs (7s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:41:14.6518815Z PASS social-share.e2e.cjs (10s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:41:21.2193731Z PASS cold-offline.e2e.cjs (7s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:42:55.5012426Z PASS script-load-deadline.e2e.cjs (94s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:43:00.1928847Z PASS claude-usage.e2e.cjs (5s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:43:13.6746243Z PASS test-session-boundary.e2e.cjs (13s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:43:15.6515558Z PASS visit-reminder-expiry.e2e.cjs (2s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:43:18.6313489Z PASS visit-reminder-lifecycle.e2e.cjs (3s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:43:21.9034215Z PASS visit-form-layout.e2e.cjs (3s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:43:29.3767348Z PASS modal-form-state.e2e.cjs (7s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:02.4316929Z PASS visit-draft.e2e.cjs (33s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:15.8921834Z PASS expense-date.e2e.cjs (13s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:34.7232458Z PASS communication-resolution.e2e.cjs (19s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:40.2112354Z AssertionError [ERR_ASSERTION]: The input did not match the regular expression /No matching expenses/. Input:
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:40.2113339Z 
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:40.2114111Z '1 matching expense · showing 1 · newest first\n' +
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:40.2114731Z   '\n' +
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:40.2115138Z   'receipt_long\n' +
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:40.2116435Z   '£12.50 · SYNTHETIC Cedar brackets\n' +
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:40.2117245Z   '2020-04-01 · Receipt attached\n' +
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:40.2117988Z   'SYNTHETIC Cedar <img onerror=alert(1)> · CUS-2026-0001\n' +
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:40.2118567Z   'chevron_right'
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:40.2118775Z 
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:40.2119164Z     at /__w/riaz10/riaz10/tests/browser/expense-finder.e2e.cjs:25:262 {
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:40.2119864Z   generatedMessage: true,
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:40.2120346Z   code: 'ERR_ASSERTION',
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:40.2121129Z   actual: '1 matching expense · showing 1 · newest first\n' +
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:40.2121960Z     '\n' +
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:40.2122307Z     'receipt_long\n' +
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:40.2122842Z     '£12.50 · SYNTHETIC Cedar brackets\n' +
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:40.2123565Z     '2020-04-01 · Receipt attached\n' +
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:40.2124424Z     'SYNTHETIC Cedar <img onerror=alert(1)> · CUS-2026-0001\n' +
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:40.2125120Z     'chevron_right',
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:40.2125598Z   expected: /No matching expenses/,
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:40.2126078Z   operator: 'match',
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:40.2126496Z   diff: 'simple'
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:40.2126862Z }
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:40.2127072Z 
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:40.2127415Z FAIL expense-finder.e2e.cjs (5s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:40.2128229Z Browser acceptance stopped at expense-finder.e2e.cjs
+Browser acceptance	Synthetic local browser acceptance	2026-10-25T15:44:40.2336989Z ##[error]Process completed with exit code 1.
