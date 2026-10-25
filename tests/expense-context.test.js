@@ -15,6 +15,7 @@ async function run(file,engine){
  const payload={date:'2026-10-20T12:00:00.000Z',amount:12.5,category:'tools',description:'SYNTHETIC brackets',photo:'data:image/png;base64,U1lOVEhFVElD'};
  const general=await DB.addExpense(payload);assert.equal(general.customerId,null);
  const linked=await DB.addExpense({...payload,customerId:a.id});
+ const index=await DB.getExpenseEvidenceIndex();assert.equal(index.length,2);assert(index.every(row=>row.hasReceipt&&!('photo' in row)),'Finder projects receipt presence without retaining full photos');assert.equal((await DB.db.expenses.get(linked.id)).photo,payload.photo);
  assert.equal((await DB.getExpensesByCustomer(a.id)).length,1);assert.equal((await DB.getExpensesByCustomer(b.id)).length,0);
  const captured=linked.createdAt;await DB.updateExpense(linked.id,{customerId:b.id});
  assert.equal((await DB.getExpensesByCustomer(a.id)).length,0);assert.equal((await DB.getExpensesByCustomer(b.id))[0].id,linked.id);assert.equal(await DB.db.expenses.count(),2);

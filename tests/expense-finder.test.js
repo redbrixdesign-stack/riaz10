@@ -1,0 +1,22 @@
+'use strict';
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const {execFileSync}=require('node:child_process');
+(async()=>{for(const file of ['js/features/money/money.js','js/features/money/money.min.js']){
+ const s={console,Date,Intl,URLSearchParams,App:{registerFeature(){},renderTopHeader:()=>''},document:{getElementById:()=>null}};vm.createContext(s);
+ for(const name of ['js/core/utils.js','js/core/config.js'])vm.runInContext(fs.readFileSync(name,'utf8'),s);
+ const source=process.env.BEELO_NEGATIVE_FINDER?execFileSync('git',['show','HEAD:'+file],{encoding:'utf8'}):fs.readFileSync(file,'utf8');
+ const money=vm.runInContext(source+'\nMoneyFeature;',s);assert.equal(typeof money.expenseFinderRows,'function','All-date expense finder must exist');
+ const records=[{id:1,date:'2020-04-01T10:00:00Z',amount:12.5,description:'SYNTHETIC brackets',category:'tools',customerId:7,hasReceipt:true},{id:2,date:'2026-04-05T23:00:00Z',amount:20,description:'SYNTHETIC fuel',category:'fuel',customerId:null,hasReceipt:false},{id:3,date:null,amount:8,description:'SYNTHETIC legacy',customerId:99}];
+ const customers=[{id:7,firstName:'SYNTHETIC Cedar'}];
+ let found=money.expenseFinderRows(records,customers,{});assert.equal(found.length,3);assert.equal(found[2].id,3,'Missing date remains retrievable');assert.equal(found[2].customerLabel,'Linked customer unavailable');
+ assert.equal(money.expenseFinderRows(records,customers,{q:'Cedar brackets'})[0].id,1);assert.equal(money.expenseFinderRows(records,customers,{amount:'12.50'})[0].id,1);
+ assert.equal(money.expenseFinderRows(records,customers,{from:'2026-04-06',to:'2026-04-06'})[0].id,2,'Date filter uses inclusive UK days at BST boundary');
+ assert.equal(money.expenseFinderRows(records,customers,{context:'general'})[0].id,2);assert.equal(money.expenseFinderRows(records,customers,{receipt:'yes'}).length,1);
+ assert.equal(money.expenseFinderRows(records,customers,{q:'not present'}).length,0);
+ for(const filters of [{from:'2026-02-30'},{from:'2026-10-02',to:'2026-10-01'},{amount:'Infinity'},{amount:'-1'}])assert.throws(()=>money.expenseFinderRows(records,customers,filters));
+ const before=JSON.stringify(records);s.DB={getExpenseEvidenceIndex:async()=>records,getCustomersByIds:async()=>customers};
+ s.DB.getExpenseEvidenceIndex=async()=>[...records,{id:4,date:'2020-01-01',amount:null}];let html=await money.render({view:'expenses'});assert(html.includes('Amount unavailable'),'Missing amount must not become invented zero');
+ money._expenseFinderFilters={q:'<img onerror=x>'};html=await money.render({view:'expenses'});assert(html.includes('&lt;img'));assert(!html.includes('<img onerror=x>'));
+ s.DB.getExpenseEvidenceIndex=async()=>{throw Error('SYNTHETIC read failure');};html=await money.render({view:'expenses'});assert(html.includes('Could not load your expense records'));assert(!html.includes('No matching expenses'),'Read failures never masquerade as empty records');
+ assert.equal(JSON.stringify(records),before,'Search never modifies evidence');console.log('PASS '+file+': all dates, customer/amount/receipt/general search, inclusive UK dates, legacy visibility, validation, escaping and explicit read failure');
+}})().catch(error=>{console.error(error);process.exitCode=1;});

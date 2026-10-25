@@ -1638,6 +1638,17 @@ const DB = {
       .toArray();
   },
 
+  async getExpenseEvidenceIndex() {
+    // Read-only projection: don't retain every full-size receipt in the finder.
+    const rows = [];
+    const collect = row => rows.push({ id:row.id, date:row.date, amount:row.amount,
+      category:row.category, description:row.description, customerId:row.customerId ?? null,
+      hasReceipt:!!row.photo });
+    if (typeof this.db.expenses.each === 'function') await this.db.expenses.each(collect);
+    else (await this.db.expenses.toArray()).forEach(collect); // minimal engine
+    return rows;
+  },
+
   // Trip operations
   async completeTrackedTrip(data) {
     if (!data.operationId) throw new Error('Trip operation id is required');

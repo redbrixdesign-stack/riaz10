@@ -127,9 +127,64 @@ const MoneyFeature = {
     } finally { request.loading = false; }
   },
 
-  render() {
+  render(params = {}) {
+    if (params.view === 'expenses') return this.renderExpenseFinder();
     return this.renderAsync();
   },
+
+  expenseFinderRows(rows, customers, filters = {}) {
+    const names = new Map(customers.map(customer => [Number(customer.id), this.expenseCustomerLabel(customer)]));
+    const q = String(filters.q || '').trim().toLowerCase();
+    for (const day of [filters.from, filters.to]) if (day && !this.expenseDateInstant(day)) throw Error('Enter valid start and end dates.');
+    if (filters.from && filters.to && filters.from > filters.to) throw Error('End date must be on or after start date.');
+    const amount = filters.amount === '' || filters.amount == null ? null : Number(filters.amount);
+    if (amount !== null && (!Number.isFinite(amount) || amount <= 0)) throw Error('Enter a valid positive amount.');
+    return rows.map(row => ({...row, customerLabel:row.customerId == null ? 'General business' : names.get(Number(row.customerId)) || 'Linked customer unavailable', day:this.expenseDateValue(row.date)}))
+      .filter(row => (!filters.from || row.day && row.day >= filters.from) && (!filters.to || row.day && row.day <= filters.to)
+        && (amount === null || Math.round(Number(row.amount)*100) === Math.round(amount*100))
+        && (!filters.category || row.category === filters.category)
+        && (!filters.receipt || (filters.receipt === 'yes' ? row.hasReceipt : !row.hasReceipt))
+        && (!filters.context || (filters.context === 'general' ? row.customerId == null : row.customerId != null))
+        && (!q || q.split(/\s+/).every(term => `${row.description || ''} ${row.customerLabel} ${row.category || ''}`.toLowerCase().includes(term))))
+      .sort((a,b) => (b.day || '').localeCompare(a.day || '') || Number(b.id)-Number(a.id));
+  },
+
+  async renderExpenseFinder() {
+    const filters = this._expenseFinderFilters || {};
+    const escape = value => Utils.escapeHtml(String(value ?? ''));
+    let rows = [], error = '';
+    try {
+      const index = await DB.getExpenseEvidenceIndex();
+      const customers = await DB.getCustomersByIds([...new Set(index.map(row=>row.customerId).filter(id=>id != null))]);
+      rows = this.expenseFinderRows(index, customers, filters);
+    } catch (failure) { error = failure.message?.startsWith('Enter ') || failure.message?.startsWith('End date') ? failure.message : 'Could not load your expense records. Nothing has been deleted. Retry when ready.'; }
+    const limit = this._expenseFinderLimit || 50;
+    const options = (list, selected) => list.map(([value,label])=>`<option value="${escape(value)}" ${selected === value ? 'selected' : ''}>${escape(label)}</option>`).join('');
+    return `<div class="fade-in">${App.renderTopHeader({title:'Receipts & expenses',showBack:true,backHref:'money'})}
+      <div class="p-md"><p>Find saved expenses from any date. Records stay on this device; this is not an accounting or filing service.</p>
+      <div class="card" id="expense-finder-filters">
+        <label for="finder-query">Description or customer</label><input class="input" type="search" id="finder-query" maxlength="200" data-event="keydown" data-key="Enter" data-action="MoneyFeature.applyExpenseFinder" value="${escape(filters.q)}" placeholder="e.g. brackets or customer name">
+        <details class="mt-sm" ${['from','to','amount','category','receipt','context'].some(key=>filters[key]) ? 'open' : ''}><summary>Filter by date, amount or receipt</summary>
+        <div class="grid-2 gap-12 mt-sm"><div><label for="finder-from">From date</label><input class="input" type="date" id="finder-from" value="${escape(filters.from)}"></div><div><label for="finder-to">To date</label><input class="input" type="date" id="finder-to" value="${escape(filters.to)}"></div></div>
+        <label for="finder-amount">Exact amount (£, optional)</label><input class="input" type="number" inputmode="decimal" step="0.01" min="0.01" id="finder-amount" value="${escape(filters.amount)}">
+        <label for="finder-category">Category</label><select class="select" id="finder-category">${options([['','All categories'],...CONFIG.expenseCategories.map(cat=>[cat.id,cat.name])],filters.category || '')}</select>
+        <label for="finder-receipt">Receipt</label><select class="select" id="finder-receipt">${options([['','With or without receipt'],['yes','Receipt attached'],['no','No receipt attached']],filters.receipt || '')}</select>
+        <label for="finder-context">Customer link</label><select class="select" id="finder-context">${options([['','All expenses'],['general','General business'],['linked','Customer-linked']],filters.context || '')}</select>
+        </details>
+        <div class="grid-2 gap-12 mt-sm"><button class="btn btn-primary" data-action="MoneyFeature.applyExpenseFinder">Find records</button><button class="btn btn-outline" data-action="MoneyFeature.clearExpenseFinder">Clear filters</button></div>
+      </div>
+      <section id="expense-finder-results" aria-live="polite">${error ? `<p role="alert">${escape(error)}</p><button class="btn btn-outline" data-action="MoneyFeature.retryExpenseFinder">Retry</button>` : `<p>${rows.length} matching expense${rows.length === 1 ? '' : 's'} · showing ${Math.min(limit,rows.length)} · newest first</p>${!rows.length ? '<p>No matching expenses. Try clearing filters, or log an expense from Money.</p>' : rows.slice(0,limit).map(row=>`<button type="button" class="area-customer-row w-full text-left mb-sm" data-action="MoneyFeature.openEditExpenseModal" data-args='${JSON.stringify([row.id,true])}'><span aria-hidden="true" class="material-symbols-rounded">receipt_long</span><span class="flex-1"><strong>${row.amount != null && row.amount !== '' && Number.isFinite(Number(row.amount)) ? escape(Utils.formatCurrency(Number(row.amount))) : 'Amount unavailable'} · ${escape(row.description || row.category || 'Expense')}</strong><small>${escape(row.day || 'Date unavailable')} · ${row.hasReceipt ? 'Receipt attached' : 'No receipt attached'}</small><small>${escape(row.customerLabel)}</small></span><span aria-hidden="true" class="material-symbols-rounded">chevron_right</span></button>`).join('')}${rows.length > limit ? '<button class="btn btn-outline btn-block" data-action="MoneyFeature.moreExpenseFinder">Show 50 more</button>' : ''}`}</section></div></div>`;
+  },
+
+  applyExpenseFinder() {
+    if (!document.getElementById('expense-finder-results')) return;
+    this._expenseFinderFilters = Object.fromEntries(['q','from','to','amount','category','receipt','context'].map((key,index)=>[key,document.getElementById(['finder-query','finder-from','finder-to','finder-amount','finder-category','finder-receipt','finder-context'][index]).value]));
+    this._expenseFinderLimit = 50;
+    App.navigate('money',{view:'expenses'});
+  },
+  clearExpenseFinder() { this._expenseFinderFilters = {};this._expenseFinderLimit=50;App.navigate('money',{view:'expenses'}); },
+  retryExpenseFinder() { App.navigate('money',{view:'expenses'}); },
+  moreExpenseFinder() { this._expenseFinderLimit=(this._expenseFinderLimit || 50)+50;App.navigate('money',{view:'expenses'}); },
 
   async renderAsync() {
     let taxSummary = null;
@@ -297,6 +352,7 @@ const MoneyFeature = {
             <button class="btn btn-primary btn-sm" data-action="MoneyFeature.openExpenseModal"><span class="material-symbols-rounded">receipt</span>Log Expense</button>
             <button class="btn btn-outline btn-sm" data-action="MoneyFeature.openMileageModal"><span class="material-symbols-rounded">route</span>Log Mileage</button>
             <button class="btn btn-outline btn-sm" data-action="MoneyFeature.openRecordsModal"><span class="material-symbols-rounded">list</span>View Records</button>
+            <button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='["money",{"view":"expenses"}]'><span aria-hidden="true" class="material-symbols-rounded">search</span>Find receipts & expenses</button>
             <button class="btn btn-outline btn-sm" data-action="ExportService.exportBackup"><span class="material-symbols-rounded">backup</span>Backup Data</button>
           </div>
         </div>
@@ -396,13 +452,19 @@ const MoneyFeature = {
         </button>
       </div>
       <div class="sheet-body">
-        <img class="max-w-full br-8" src="${expense.photo}" >
+        <img class="max-w-full br-8" src="${Utils.escapeHtml(expense.photo)}" alt="Saved receipt">
       </div>
     `);
   },
 
-  async openEditExpenseModal(expenseId) {
+  async openEditExpenseModal(expenseId, fromFinder = false) {
+    const revision = App._navigationRevision;
+    const request = this._expenseEditorRequest = {};
+    const origin = fromFinder ? document.getElementById('expense-finder-results') : null;
+    const modalBody = document.querySelector?.('#modal-overlay .sheet-body');
     const expense = await DB.db.expenses.get(expenseId);
+    if (document.querySelector?.('#modal-overlay .sheet-body') !== modalBody) return;
+    if (App._navigationRevision !== revision || this._expenseEditorRequest !== request || (fromFinder && (!origin || document.getElementById('expense-finder-results') !== origin))) return;
     if (!expense) { Toast.show('Expense not found', 'error'); return; }
     const content = `
       <div class="sheet-handle"></div>
@@ -436,7 +498,7 @@ const MoneyFeature = {
         ${expense.photo ? `
           <div class="form-group">
             <label>Receipt</label>
-            <img class="max-w-full br-8" src="${expense.photo}" >
+            <img class="max-w-full br-8" src="${Utils.escapeHtml(expense.photo)}" alt="Saved receipt">
           </div>
         ` : ''}
         <button class="btn btn-primary btn-block" data-action="MoneyFeature.saveEditExpense" data-args='${JSON.stringify([(expenseId)])}'>
@@ -448,6 +510,8 @@ const MoneyFeature = {
       </div>
     `;
     App.openModal(content);
+    const editor = document.getElementById('edit-expense-date');
+    if (editor) editor._expenseFinderOrigin = fromFinder;
     this.loadExpenseCustomer('edit-');
   },
 
@@ -479,7 +543,7 @@ const MoneyFeature = {
       if (document.getElementById('edit-expense-date') !== dateField) return;
       App.closeModal();
       Toast.show('Expense updated', 'success');
-      App.navigate('money');
+      App.navigate('money',dateField._expenseFinderOrigin ? {view:'expenses'} : {});
     } catch (e) {
       console.error('Save expense error:', e);
       Toast.show(e.message?.includes('customer') ? e.message : 'Failed to save changes', 'error');
