@@ -74,35 +74,44 @@ const AppointmentsFeature = {
       ].filter(Boolean);
       const args = Utils.escapeHtml(JSON.stringify(['appointments', { id: visit.id }]));
       const messageArgs = Utils.escapeHtml(JSON.stringify([visit.id]));
-      return `<article class="card mb-md" data-plan-index="${index}" style="overflow-wrap:anywhere">
-        <h2 class="fs-18">${index + 1}. ${Utils.escapeHtml(visit.clientName || 'Customer')}</h2>
-        <div class="flex gap-sm" style="flex-wrap:wrap">
-          <button class="btn btn-outline" data-plan-drag="${index}" style="touch-action:none" aria-label="Drag ${Utils.escapeHtml(visit.clientName || 'visit')} to reorder">Drag to reorder</button>
-          <button class="btn btn-outline" ${index === 0 ? 'disabled' : ''} data-action="AppointmentsFeature.moveTomorrowVisit" data-args='[${index},${index - 1}]' aria-label="Move visit ${index + 1} up">↑</button>
-          <button class="btn btn-outline" ${index === visits.length - 1 ? 'disabled' : ''} data-action="AppointmentsFeature.moveTomorrowVisit" data-args='[${index},${index + 1}]' aria-label="Move visit ${index + 1} down">↓</button>
+      const name = visit.clientName || [customer?.firstName, customer?.lastName].filter(Boolean).join(' ') || 'Customer';
+      const pending = visit.timeProposal?.status === 'pending';
+      return `<article class="plan-row" data-plan-index="${index}">
+        <div class="plan-row-grid">
+          <button class="btn btn-ghost plan-drag" data-plan-drag="${index}" aria-label="Drag ${Utils.escapeHtml(name)} to reorder"><span class="material-symbols-rounded" aria-hidden="true">drag_indicator</span></button>
+          <div class="plan-client"><span class="plan-label">Client</span><h2><button class="plan-name" data-action="App.navigate" data-args='${args}'>${index + 1}. ${Utils.escapeHtml(name)}</button></h2></div>
+          <div class="plan-arrival"><span class="plan-label">Arrival window</span><strong>${visit.arrivalStart && visit.arrivalEnd ? `${Utils.escapeHtml(visit.arrivalStart)}–${Utils.escapeHtml(visit.arrivalEnd)}` : 'Not recorded'}</strong></div>
+          <div class="plan-proposed"><span class="plan-label">Proposed time</span><button class="plan-time" data-action="AppointmentsFeature.openTimeProposal" data-args='${messageArgs}' aria-label="${pending ? 'Review proposed time' : 'Propose a time'} for ${Utils.escapeHtml(name)}">${pending ? Utils.escapeHtml(visit.timeProposal.time) : 'Set time'}</button>${pending ? '<span class="plan-proposal-status">Not agreed</span>' : ''}</div>
+          <div class="plan-address"><span class="plan-label">Address</span><span>${Utils.escapeHtml(visit.address || 'Not recorded — check before travelling')}</span></div>
         </div>
-        <p>Booked: ${Utils.formatTime(visit.date)} · ${Utils.escapeHtml(type)}</p>
-        ${visit.timeProposal?.status === 'pending' ? `<p class="fw-700">Proposed: ${Utils.escapeHtml(visit.timeProposal.time)} — awaiting customer agreement</p>` : ''}
-        ${visit.timeProposal?.status === 'agreed' ? '<p>Time change recorded as agreed by customer</p>' : ''}
-        <button class="btn btn-outline mb-sm" data-action="AppointmentsFeature.openTimeProposal" data-args='${messageArgs}'>${visit.timeProposal?.status === 'pending' ? 'Review time proposal' : 'Propose another time'}</button>
-        ${visit.arrivalStart && visit.arrivalEnd ? `<p>Arrival window: ${Utils.escapeHtml(visit.arrivalStart)}–${Utils.escapeHtml(visit.arrivalEnd)}</p>` : ''}
-        <p>${Utils.escapeHtml(visit.address || 'Address not recorded — check before travelling')}</p>
-        <p class="text-secondary">${context.length ? context.map(text => Utils.escapeHtml(Utils.truncate(text, 220))).join('<br>') : 'No context saved yet. Open the visit to add useful details.'}</p>
-        <p class="fs-13">${visit.dayBeforeSent ? 'Reminder marked sent — this does not confirm customer agreement.' : visit.introSent ? 'Introduction marked sent · Reminder not marked sent' : 'Introduction and reminder not marked sent'}</p>
-        <div class="flex gap-sm" style="flex-wrap:wrap">
-          <button class="btn btn-outline" data-action="App.navigate" data-args='${args}'>Review visit</button>
-          ${!isToday ? `<button class="btn btn-outline" data-action="TalkFeature.sendDayBefore" data-args='${messageArgs}'>Review pre-visit message</button>` : '<span class="text-secondary">Open the visit for today’s communication options.</span>'}
-          <button class="btn btn-ghost" data-action="TalkFeature.openSavedDrafts" data-args='${messageArgs}'>Saved messages</button>
-        </div>
+        <details class="plan-row-details">
+          <summary aria-label="Details and actions for ${Utils.escapeHtml(name)}">Details &amp; actions</summary>
+          <div class="plan-row-expanded">
+            <p>Booked diary time: ${Utils.formatTime(visit.date)} · ${Utils.escapeHtml(type)}</p>
+            ${visit.timeProposal?.status === 'agreed' ? '<p>Time change recorded as agreed by customer</p>' : ''}
+            ${pending ? '<p>Proposed time is awaiting customer agreement. Booking unchanged.</p>' : ''}
+            <p class="text-secondary">${context.length ? context.map(text => Utils.escapeHtml(Utils.truncate(text, 220))).join('<br>') : 'No context saved yet. Open the visit to add useful details.'}</p>
+            <p class="fs-13">${visit.dayBeforeSent ? 'Reminder marked sent — this does not confirm customer agreement.' : visit.introSent ? 'Introduction marked sent · Reminder not marked sent' : 'Introduction and reminder not marked sent'}</p>
+            <div class="plan-row-actions">
+              <button class="btn btn-outline btn-sm" ${index === 0 ? 'disabled' : ''} data-action="AppointmentsFeature.moveTomorrowVisit" data-args='[${index},${index - 1}]' aria-label="Move visit ${index + 1} up">↑ Move up</button>
+              <button class="btn btn-outline btn-sm" ${index === visits.length - 1 ? 'disabled' : ''} data-action="AppointmentsFeature.moveTomorrowVisit" data-args='[${index},${index + 1}]' aria-label="Move visit ${index + 1} down">↓ Move down</button>
+              <button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='${args}'>Review visit</button>
+              ${!isToday ? `<button class="btn btn-outline btn-sm" data-action="TalkFeature.sendDayBefore" data-args='${messageArgs}'>Review pre-visit message</button>` : '<span class="text-secondary">Open the visit for today’s communication options.</span>'}
+              <button class="btn btn-ghost btn-sm" data-action="TalkFeature.openSavedDrafts" data-args='${messageArgs}'>Saved messages</button>
+            </div>
+          </div>
+        </details>
       </article>`;
     }));
     return `<div class="fade-in">${header}<div class="px-md" id="tomorrow-plan">
       <nav class="flex gap-sm mb-md" aria-label="Planning day"><button class="btn btn-outline" aria-pressed="${isToday}" data-action="App.navigate" data-args='["appointments",{"action":"today-plan"}]'>Today</button><button class="btn btn-outline" aria-pressed="${!isToday}" data-action="App.navigate" data-args='["appointments",{"action":"tomorrow"}]'>Tomorrow</button></nav>
       <p>${Utils.formatDate(tomorrow, 'weekday-day-month')} · ${visits.length} planned visit${visits.length === 1 ? '' : 's'}</p>
-      <p class="text-secondary">Proposed visit order only — booked times and navigation routes stay unchanged. Agree time changes directly with customers before editing the bookings.</p>
-      <p id="plan-order-status" role="status" aria-live="polite">Changes save on this device. New visits appear at the end of a saved plan.</p>
-      ${visits.length ? '<button class="btn btn-primary mb-md" data-action="AppointmentsFeature.openTomorrowRoutePreview">Preview proposed route</button>' : ''}
-      ${visits.length > 1 ? '<button class="btn btn-outline mb-md" data-action="AppointmentsFeature.resetTomorrowOrder">Reset to booked-time order</button>' : ''}
+      <p class="text-secondary fs-13">Drag to plan the order. Booked times and navigation stay unchanged until you agree and save a change.</p>
+      <p class="fs-12 text-tertiary" id="plan-order-status" role="status" aria-live="polite">Order saves on this device; new visits appear at the end.</p>
+      <div class="plan-toolbar">
+        ${visits.length ? '<button class="btn btn-primary btn-sm" aria-label="Preview proposed route" data-action="AppointmentsFeature.openTomorrowRoutePreview">Preview route</button>' : ''}
+        ${visits.length > 1 ? '<button class="btn btn-outline btn-sm" aria-label="Reset to booked-time order" data-action="AppointmentsFeature.resetTomorrowOrder">Reset order</button>' : ''}
+      </div>
       ${cards.length ? cards.join('') : `<div class="card"><p>No active visits booked for ${dayLabel}.</p><p>Use Scan to add on Home, or add a visit below.</p></div>`}
       <button class="btn btn-primary mb-md" data-action="App.navigate" data-args='["appointments",{"action":"add"}]'>Add visit</button>
       <p class="text-tertiary fs-13">This is not an optimised route. A proposed time only changes the booking after you confirm customer agreement and review scheduling checks.</p>

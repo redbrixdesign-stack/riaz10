@@ -1,0 +1,10 @@
+page.waitForFunction: TypeError: Cannot read properties of null (reading 'textContent')
+    at eval (eval at predicate (eval at evaluate (:311:30)), <anonymous>:1:41)
+    at predicate (eval at evaluate (:311:30), <anonymous>:7:27)
+    at next (eval at evaluate (:311:30), <anonymous>:29:33)
+    at eval (eval at evaluate (:311:30), <anonymous>:42:13)
+    at UtilityScript.evaluate (<anonymous>:313:16)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+    at /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/browser/compact-plan.e2e.cjs:56:93 {
+  log: []
+}

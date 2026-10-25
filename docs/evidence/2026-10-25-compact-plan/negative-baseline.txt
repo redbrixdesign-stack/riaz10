@@ -1,0 +1,12 @@
+AssertionError [ERR_ASSERTION]: Active visits must use compact rows
+
+0 !== 2
+
+    at /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/compact-plan.test.js:9:9 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 0,
+  expected: 2,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
