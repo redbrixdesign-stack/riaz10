@@ -1731,6 +1731,21 @@ const DB = {
     return Promise.all(rows.map(decryptMeasurementAudio));
   },
 
+  // Search text only: never decrypt or retain attached photo/audio payloads.
+  async getMeasurementSearchRecords(ids) {
+    if (!ids.length) return [];
+    const rows = await this.db.measurements.where('appointmentId').anyOf(ids).toArray();
+    return Promise.all(rows.map(async row => {
+      const record = { id: row.id, appointmentId: row.appointmentId };
+      for (const field of MEASUREMENT_CONTEXT_FIELDS) {
+        record[field] = isEncrypted(row[field]) ? await decryptField(row[field]) : row[field];
+      }
+      record.transcripts = await Promise.all((row.audioNotes || []).map(async note =>
+        isEncrypted(note.transcript) ? await decryptField(note.transcript) : note.transcript || ''));
+      return record;
+    }));
+  },
+
   async updateMeasurement(id, data) {
     await this.db.measurements.update(id, await encryptMeasurementAudio(data));
     return this.getMeasurement(id);

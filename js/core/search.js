@@ -65,109 +65,82 @@ const Search = {
     }));
   },
 
+  // No persistent plaintext index: read current decrypted text only for this query.
+  text(...values) {
+    return values.flat(Infinity).filter(value => typeof value === 'string' || typeof value === 'number')
+      .join(' ').normalize('NFKC').toLowerCase().replace(/\s+/g, ' ').trim();
+  },
+
   async search(query, options = {}) {
-    if (!query || query.trim().length < 2) return [];
-
-    const normalized = query.toLowerCase().trim();
+    if (typeof query !== 'string' || query.trim().length < 2) return [];
+    const terms = this.text(query).split(' ').filter(Boolean);
+    const matches = (...values) => {
+      const text = this.text(...values);
+      return terms.every(term => text.includes(term));
+    };
+    const wants = type => !options.types || options.types.includes(type);
     const results = [];
+    // A failed read must reject, not masquerade as "no matches".
+    const customers = await DB.getAllCustomers();
+    const customerMap = new Map(customers.map(c => [c.id, c]));
+    const customerName = c => c ? [c.firstName, c.lastName].filter(Boolean).join(' ') || c.fullName || 'Customer' : 'Linked customer unavailable';
+    const customerText = c => c ? [
+      customerName(c), c.phone, c.email, c.customerNumber, c.notes,
+      c.address?.line1, c.address?.town, c.address?.city,
+      c.address?.postcode, c.address?.postcodeNormalized, c.postcodeNormalized,
+      String(c.address?.postcode || '').replace(/\s/g, '')
+    ] : [];
+    const transcripts = row => (row.audioNotes || []).map(note => note.transcript || '');
+    const visitDate = row => row.date && Number.isFinite(new Date(row.date).getTime())
+      ? Utils.formatDate(row.date, 'short') + ' — ' + Utils.formatTime(row.date) : 'Date unavailable';
 
-    // Search customers
-    if (!options.types || options.types.includes('customer')) {
-      try {
-        const customers = await DB.searchCustomers(normalized);
-        results.push(...customers.map(c => ({
-          type: 'customer',
-          id: c.id,
-          title: `${c.firstName} ${c.lastName}`,
-          subtitle: c.customerNumber,
-          detail: c.address ? `${c.address.line1}${c.address.postcode ? ', ' + c.address.postcode : ''}` : '',
-          icon: 'person',
-          data: c
-        })));
-      } catch (e) { console.error('Customer search failed:', e); }
+    if (wants('customer')) {
+      for (const c of customers) {
+        if (!matches(customerText(c), transcripts(c))) continue;
+        results.push({ type: 'customer', id: c.id, title: customerName(c),
+          subtitle: c.customerNumber || 'Customer',
+          detail: [c.address?.line1, c.address?.postcode].filter(Boolean).join(', '),
+          icon: 'person', data: c });
+      }
     }
 
-    // Search appointments. Match if the customer already matched the query
-    // above (so searching "Smith" surfaces John Smith's past visits too),
-    // OR if the appointment's own notes contain the query.
-    if (!options.types || options.types.includes('appointment')) {
-      try {
-        const matchedCustomerIds = new Set(
-          results.filter(r => r.type === 'customer').map(r => r.id)
-        );
-
-        // Notes are encrypted at rest, so the notes match must run against
-        // decrypted rows (DB.getAllAppointments decrypts PII) rather than a
-        // raw IndexedDB filter. The customer-id match alone could stay raw,
-        // but the notes OR-clause forces the decrypted read anyway.
-        const appointments = (await DB.getAllAppointments())
-          .filter(a => matchedCustomerIds.has(a.customerId) ||
-                       (a.notes && a.notes.toLowerCase().includes(normalized)))
-          .slice(0, 10);
-
-        // Batch fetch the customers these appointments belong to, instead
-        // of an IndexedDB round-trip per appointment. The previous code
-        // re-fetched each customer individually - N+1 reads for a result
-        // set that was almost always just 1-3 distinct customers.
-        const neededCustomerIds = [...new Set(appointments.map(a => a.customerId))];
-        const customerMap = new Map();
-        if (neededCustomerIds.length) {
-          const fetched = await DB.getCustomersByIds(neededCustomerIds);
-          for (const c of fetched) if (c) customerMap.set(c.id, c);
-        }
-
-        for (const appt of appointments) {
-          const customer = customerMap.get(appt.customerId);
-          results.push({
-            type: 'appointment',
-            id: appt.id,
-            title: `${Utils.formatDate(appt.date, 'short')} — ${Utils.formatTime(appt.date)}`,
-            subtitle: customer ? `${customer.firstName} ${customer.lastName}` : 'Unknown',
-            detail: CONFIG.appointmentTypes.find(t => t.id === appt.type)?.name || appt.type,
-            icon: 'event',
-            data: appt
-          });
-        }
-      } catch (e) { console.error('Appointment search failed:', e); }
+    if (wants('appointment')) {
+      const appointments = [...await DB.getAllAppointments()];
+      const measurements = await DB.getMeasurementSearchRecords(appointments.map(a => a.id));
+      const byVisit = new Map();
+      for (const m of measurements) {
+        if (!byVisit.has(m.appointmentId)) byVisit.set(m.appointmentId, []);
+        byVisit.get(m.appointmentId).push(m);
+      }
+      const measurementText = m => [m.windowName, m.room, m.productName, m.description, m.notes, m.transcripts];
+      appointments.sort((a, b) => (Date.parse(b.date) || 0) - (Date.parse(a.date) || 0) || b.id - a.id);
+      for (const a of appointments) {
+        const customer = customerMap.get(a.customerId);
+        const windows = byVisit.get(a.id) || [];
+        const shared = [customerText(customer), a.clientName, a.address, a.type,
+          CONFIG.appointmentTypes.find(t => t.id === a.type)?.name, a.status, a.outcome, a.date, visitDate(a)];
+        // Match one source at a time: don't combine unrelated windows to fabricate a match.
+        const window = windows.find(m => matches(shared, measurementText(m)));
+        if (!window && !matches(shared, a.notes, a.access, transcripts(a))) continue;
+        results.push({ type: 'appointment', id: a.id, title: visitDate(a),
+          subtitle: customer ? customerName(customer) : a.clientName || 'Visit',
+          detail: window ? 'Window: ' + [window.windowName, window.description || window.productName].filter(Boolean).join(' · ')
+            : (CONFIG.appointmentTypes.find(t => t.id === a.type)?.name || a.type || 'Visit') + ' · Saved visit context',
+          icon: window ? 'straighten' : 'event', data: a });
+      }
     }
 
-    // Search orders - uses .filter() rather than a .where().or() chain,
-    // since .or() isn't implemented in this app's IndexedDB shim.
-    if (!options.types || options.types.includes('order')) {
-      try {
-        const orders = await DB.db.orders
-          .filter(o =>
-            (o.orderNumber || '').toLowerCase().startsWith(normalized) ||
-            (o.supplierOrderNumber || '').toLowerCase().startsWith(normalized)
-          )
-          .limit(10)
-          .toArray();
-
-        // Same batched fetch as appointments - one round-trip for all the
-        // order rows' customers, not one per order.
-        const neededCustomerIds = [...new Set(orders.map(o => o.customerId))];
-        const customerMap = new Map();
-        if (neededCustomerIds.length) {
-          const fetched = await DB.getCustomersByIds(neededCustomerIds);
-          for (const c of fetched) if (c) customerMap.set(c.id, c);
-        }
-
-        for (const order of orders) {
-          const customer = customerMap.get(order.customerId);
-          results.push({
-            type: 'order',
-            id: order.id,
-            title: order.orderNumber,
-            subtitle: customer ? `${customer.firstName} ${customer.lastName}` : 'Unknown',
-            detail: `£${order.total}`,
-            icon: 'receipt',
-            data: order
-          });
-        }
-      } catch (e) { console.error('Order search failed:', e); }
+    if (wants('order')) {
+      const orders = await DB.db.orders.toArray();
+      for (const order of orders) {
+        const customer = customerMap.get(order.customerId);
+        if (!matches(customerText(customer), order.orderNumber, order.supplierOrderNumber, order.status)) continue;
+        results.push({ type: 'order', id: order.id, title: order.orderNumber || 'Order',
+          subtitle: customerName(customer), detail: 'Order', icon: 'receipt', data: order });
+      }
     }
-
-    return results.slice(0, options.limit || 20);
+    const limit = Number.isInteger(options.limit) && options.limit > 0 ? options.limit : 20;
+    return results.slice(0, limit);
   },
 
   async searchByPostcode(postcode) {

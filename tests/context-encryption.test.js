@@ -27,6 +27,12 @@ const assert = require('node:assert/strict');
     assert.equal((await api.DB.getPhotosForCustomer(3))[0].caption,'SYNTHETIC photo');
     assert.equal((await api.DB.getMeasurementsForAppointments([9]))[0].windowName,fields.windowName);
     assert.equal((await api.DB.getMeasurementsForAppointments([])).length,0);
+    row.audioNotes=[{transcript:await enc('SYNTHETIC navy fabric'),dataUrl:{iv:'invalid',ct:'invalid'}}];
+    row.photos=[{iv:'invalid',ct:'invalid'}];
+    const projected=(await api.DB.getMeasurementSearchRecords([9]))[0];
+    assert.equal(projected.windowName,fields.windowName);
+    assert.equal(projected.transcripts[0],'SYNTHETIC navy fabric');
+    assert(!('photos' in projected)&&!('audioNotes' in projected),'Search must not decrypt or return media bytes');
     console.log('PASS '+file+': protected and legacy context readers, photos, Unicode, dimensions and batch API');
   }
 })().catch(e=>{console.error(e);process.exitCode=1;});

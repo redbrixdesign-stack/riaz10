@@ -1365,6 +1365,8 @@ const AppointmentsFeature = {
   },
 
   openCustomerSearch(customerOnly = false) {
+    clearTimeout(this._searchDebounceTimer);
+    this._searchRequest = (this._searchRequest || 0) + 1;
     this._customerSearchOnly = customerOnly === true;
     const content = `
       <div class="sheet-handle"></div>
@@ -1375,11 +1377,12 @@ const AppointmentsFeature = {
         </button>
       </div>
       <div class="sheet-body">
-        <input type="search" class="input" id="customer-search-input" placeholder="Name, postcode, phone, or product..."
+        <label class="fs-13 text-secondary" for="customer-search-input">Search saved information on this device</label>
+        <input type="search" class="input" id="customer-search-input" placeholder="${this._customerSearchOnly ? 'Name, postcode, phone or customer notes...' : 'Name, postcode, notes or window description...'}"
                data-event="input" data-action="AppointmentsFeature.debouncedCustomerSearch" data-args='${JSON.stringify(["__value__"])}' autocomplete="off">
-        <div class="mt-12" id="customer-search-results" >
+        <div class="mt-12" id="customer-search-results" role="status" aria-live="polite">
           <div class="fs-13 text-tertiary text-center py-24" >
-            Try a name, postcode (e.g. M14), phone number, or product (e.g. "roman blinds")
+            ${this._customerSearchOnly ? 'Find a customer by name, postcode, phone or saved customer notes.' : 'Try a name, postcode, saved note or window description (e.g. "Cedar bedroom"). Untranscribed audio and photo contents are not searched.'}
           </div>
         </div>
       </div>
@@ -1390,12 +1393,17 @@ const AppointmentsFeature = {
 
   debouncedCustomerSearch(query) {
     clearTimeout(this._searchDebounceTimer);
+    this._searchRequest = (this._searchRequest || 0) + 1;
+    const results = document.getElementById('customer-search-results');
+    if (results) results.innerHTML = '<div class="fs-13 text-tertiary text-center py-24">Searching saved information…</div>';
     this._searchDebounceTimer = setTimeout(() => this.runCustomerSearch(query), 150);
   },
 
   async runCustomerSearch(query) {
     const resultsEl = document.getElementById('customer-search-results');
     if (!resultsEl) return;
+    const request = this._searchRequest = (this._searchRequest || 0) + 1;
+    const current = () => this._searchRequest === request && document.getElementById('customer-search-results') === resultsEl;
 
     if (!query || query.trim().length < 2) {
       resultsEl.innerHTML = `<div class="fs-13 text-tertiary text-center py-24" >Keep typing (2+ characters)...</div>`;
@@ -1406,23 +1414,26 @@ const AppointmentsFeature = {
     try {
       results = await Search.search(query, this._customerSearchOnly ? { types: ['customer'] } : {});
     } catch (e) {
-      console.error('Search failed:', e);
+      if (!current()) return;
       resultsEl.innerHTML = `<div class="fs-13 text-danger text-center py-24" >Search failed - try again</div>`;
       return;
     }
+
+    if (!current()) return;
 
     if (results.length === 0) {
       resultsEl.innerHTML = `<div class="fs-13 text-tertiary text-center py-24" >No matches for "${Utils.escapeHtml(query)}"</div>`;
       return;
     }
 
-    resultsEl.innerHTML = results.map(r => `
+    resultsEl.innerHTML = '<div class="fs-12 text-tertiary mb-8">Up to 20 matches. Refine your search if needed.</div>' + results.map(r => `
       <button class="area-customer-row w-full text-left"  data-action="AppointmentsFeature.openSearchResult" data-args='${JSON.stringify([r.type, (r.id)])}'>
-        <span class="material-symbols-rounded">${r.icon}</span>
+        <span class="material-symbols-rounded">${Utils.escapeHtml(r.icon)}</span>
         <span>
           <strong>${Utils.escapeHtml(r.title)}</strong>
           <small>${Utils.escapeHtml(r.subtitle || '')}${r.detail ? ' · ' + Utils.escapeHtml(r.detail) : ''}</small>
         </span>
+        <span class="material-symbols-rounded" aria-hidden="true">chevron_right</span>
       </button>
     `).join('');
   },
