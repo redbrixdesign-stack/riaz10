@@ -1,0 +1,26 @@
+{
+  "sourceCommit": null,
+  "serviceWorkerSha256": "673bf083bf380b80e92c1abe9a4dbdaadf585501833cd6ba13e8614b37fe6b17",
+  "instrumented": true,
+  "releaseAcceptance": false,
+  "results": [
+    {
+      "mode": "socket-drop",
+      "status": 0,
+      "verified": true,
+      "expectedFailure": false
+    },
+    {
+      "mode": "origin-stop",
+      "status": 0,
+      "verified": true,
+      "expectedFailure": false
+    },
+    {
+      "mode": "cache-miss-control",
+      "status": 1,
+      "verified": true,
+      "expectedFailure": true
+    }
+  ]
+}

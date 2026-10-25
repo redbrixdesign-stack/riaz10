@@ -1,0 +1,3 @@
+PASS diagnostic socket-drop
+PASS diagnostic origin-stop
+PASS diagnostic cache-miss-control (must detect missing cached asset)

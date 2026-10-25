@@ -1,5 +1,11 @@
 # C24 — persistent, adviser-controlled WhatsApp completion
 
+Status update25 October: now included in the C25 production release, runtime
+bde3320/cache162. C25 repairs the cache-hit network coupling and passes exact
+hosted40133427558/all18 browser journeys; staged/public assets match. Earlier
+hold observations below remain historical evidence, not current release status.
+See `C25_OFFLINE_PRECACHE_FIRST_2026-10-24.md` for release/live checks and limits.
+
 ## Story and evidence
 
 The adviser sent introductions in WhatsApp but saw the same introduction drafts

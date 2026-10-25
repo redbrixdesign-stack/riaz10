@@ -1,0 +1,30 @@
+[
+  {
+    "mode": "socket-drop",
+    "asset": "quote-document.min.js?v=3",
+    "cacheHit": true,
+    "response": 200,
+    "networkStarts": 0
+  },
+  {
+    "mode": "socket-drop",
+    "asset": "quotes.min.js?v=2",
+    "cacheHit": true,
+    "response": 200,
+    "networkStarts": 0
+  },
+  {
+    "mode": "origin-stop",
+    "asset": "quote-document.min.js?v=3",
+    "cacheHit": true,
+    "response": 200,
+    "networkStarts": 0
+  },
+  {
+    "mode": "origin-stop",
+    "asset": "quotes.min.js?v=2",
+    "cacheHit": true,
+    "response": 200,
+    "networkStarts": 0
+  }
+]

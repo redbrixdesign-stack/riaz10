@@ -52,6 +52,59 @@ actual Quotes render, with no network refresh for that exact installed version.
 - C24 communication behavior must still pass as part of the18 maintained browser
   journeys. Never send customer messages or mark real messages sent in testing.
 
+## Verified release decision — 25 October
+
+Runtime `bde332019df0224e7ccd2cff1b618e25a78bd96d` passes the full local
+18-script gate and exact-source hosted **40133427558**, including unit/server,
+root/server dependency audits and all18 browser journeys. This is the first
+hosted run of the repaired worker, not a rerun of the old failing source.
+The strengthened normal offline test also rejects offline script-network work.
+Hosted WebKit Quotes contains the actual Quotes/empty-state UI and records no
+page/console errors. C24 communication and held M2a expense-context journeys pass.
+
+Local test-only instrumented socket-drop and stopped-origin cells pass; both
+Quotes dependency traces show cached200/response200 and **zero network starts**.
+Deliberately deleting the dependency still yields the expected cache miss/504 and
+failed journey; the diagnostic detects it. No diagnostic worker is deployed.
+These are materially new causal-contract and transport observations, not a waiver
+based on a repeated green run. The automated C14 release boundary is satisfied;
+physical Safari/iPhone return/offline acceptance and wider product assurance
+remain limited, not silently certified. Earlier failed artifacts remain retained.
+
+READY production-configured stage `dpl_9tSQdQzyzAP3MEDU7PHtHR82gKXQ`,
+https://beelo1-bba07u0vg-beelomvp.vercel.app, framework Other,
+build-to-ready9.366s, cache162. All11 changed runtime assets byte-match the tested
+source, including previously held C23/M2a/C24 assets. Existing team/project
+beelomvp/beelo1 explicitly verified. No secret, protection or DNS change.
+Promotion/live checks are recorded below after completion. M1/cache158 deployment
+`dpl_5yN4v2iF2gAwA24K9yAnspNPNvmT` is the known previous public rollback target;
+rolling back must preserve storage and does not undo adviser-confirmed records.
+
+## Live verification — 25 October
+
+Promoted that exact stage (no rebuild) to **https://beelo.beelestial.co.uk/**.
+All11 public runtime assets match bde3320, including cache162. No marketing-site,
+credential, protection or customer-record change. C23 recovery, M2a optional
+customer-linked expenses and C24 communication repair are now included live.
+
+Disposable public-origin browser sessions verify C24's full handoff/confirmation/
+already-sent/reload/failure/isolation flow in Chromium and WebKit, and M2a's
+customer search/link/profile/reassign/unlink/error/reload flow in both. The opener
+is mocked and external origins blocked in those tests: no WhatsApp/provider send
+or real customer data. Public Chromium passes the complete first-offline nine-route
+journey and online reload with retained synthetic customer. Public WebKit verifies
+cached assets but does not claim first-offline execution, because its network
+emulation blocks that delivery; the local/hosted socket-drop journey covers the
+automated execution separately. Physical iPhone remains a stated separate limit.
+
+Ten-minute production error/fatal scan01:53–02:03UTC25 October returned no logs.
+This is short server-log evidence, not full client monitoring/security assurance.
+Original dirty non-doc diff remains SHA256
+`8b6f2a59c93c01d1e4bee30742536a538f010119e3acf6b99e9b2f63e8e295d1`.
+No real records were used or marked sent by validation. Users apply the existing
+Update and reload prompt when ready; never clear site data to obtain an update.
+Evidence: `../evidence/2026-10-25-offline-precache-first/`.
+
 ## Primary references
 
 The implementation follows the documented cache-first sequence: check the cache

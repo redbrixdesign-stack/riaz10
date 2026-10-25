@@ -1,0 +1,10 @@
+CHECK chromium first offline quotes
+CHECK chromium first offline jobs
+CHECK chromium first offline invoices
+CHECK chromium first offline suppliers
+CHECK chromium first offline capacity
+CHECK chromium first offline profitability
+CHECK chromium first offline retention
+CHECK chromium first offline social
+PASS chromium (context offline): fresh install, no online lazy opens, first offline Settings/protected-dialog plus all eight other secondary routes, online reload and retained mock customer; no uploads
+LIMITATION webkit public origin: cached lazy assets verified; automated first-offline script loading not certified (context offline blocks SW scripts). Local socket-drop journey covers this separately.

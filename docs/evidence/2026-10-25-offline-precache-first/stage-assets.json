@@ -1,0 +1,61 @@
+{
+  "deployment": "https://beelo1-bba07u0vg-beelomvp.vercel.app",
+  "commit": "bde332019df0224e7ccd2cff1b618e25a78bd96d",
+  "results": [
+    {
+      "path": "index.html",
+      "sha256": "5fc33d64414b09717819fa7d3cbcc7d2d43064dda48f8f6cbdd26c32df49a877",
+      "matches": true
+    },
+    {
+      "path": "sw.js",
+      "sha256": "673bf083bf380b80e92c1abe9a4dbdaadf585501833cd6ba13e8614b37fe6b17",
+      "matches": true
+    },
+    {
+      "path": "js/core/app.min.js",
+      "sha256": "176712ee9e42a4380ccf61da3d1a5e7197ce3899f33b5abbddd94a2832bdc622",
+      "matches": true
+    },
+    {
+      "path": "js/core/db.min.js",
+      "sha256": "01f5e5a7f17bd5aff6f28a435a5e5d1350b9b6b53e56e61ca975fc6e835092fc",
+      "matches": true
+    },
+    {
+      "path": "js/services/communications.min.js",
+      "sha256": "2061adc46298f25242b543b0c165d22529866bfeed5c03c93b275e8e5b26409b",
+      "matches": true
+    },
+    {
+      "path": "js/features/companion/companion.min.js",
+      "sha256": "52111fc5af63a510f03bf27a2dd41d71f90350eac9f5cf8d67ffa1aed5fef50c",
+      "matches": true
+    },
+    {
+      "path": "js/features/followups/followups.min.js",
+      "sha256": "8fdc95362d3bf9a435a85956b52add21038c4cad538b5a5a8e701e3cdb40d0ad",
+      "matches": true
+    },
+    {
+      "path": "js/features/talk/talk.min.js",
+      "sha256": "6096aacc94abbd800eee5e420ea5eb2bceae6385dcaf6a2bf866cc3e48d6c9f2",
+      "matches": true
+    },
+    {
+      "path": "js/features/money/money.min.js",
+      "sha256": "566f55e67213ea5ba5e1e59871b5e53febf572d4247ff7e70e5aed60e942305e",
+      "matches": true
+    },
+    {
+      "path": "js/features/customer/customer.min.js",
+      "sha256": "2d91b809eee10c1235011f46df2770aaa7d3d2b06e62f3717df7ca3cf3b6ff86",
+      "matches": true
+    },
+    {
+      "path": "js/features/appointments/appointments.min.js",
+      "sha256": "7c2b979e8f5218b9845777740f30e20f9a9b398975260a779c098ba141051110",
+      "matches": true
+    }
+  ]
+}
