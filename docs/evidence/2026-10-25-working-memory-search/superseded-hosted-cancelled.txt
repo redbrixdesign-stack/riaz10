@@ -1,0 +1,137 @@
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40155787434
+Triggered via push less than a minute ago
+
+JOBS
+* test (ID 121056794437)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  * Install and test (repo root)
+  * Audit server dependency lock
+  * Test server package
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40155787434
+Triggered via push less than a minute ago
+
+JOBS
+✓ test in 46s (ID 121056794437)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 121056933967)
+  ✓ Set up job
+  * Initialize containers
+  * Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  * Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Run npm ci
+  * Verify preinstalled browser runtime
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Stop containers
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40155787434
+Triggered via push about 1 minute ago
+
+JOBS
+✓ test in 46s (ID 121056794437)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 121056933967)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Run npm ci
+  * Verify preinstalled browser runtime
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  * Stop containers
+Refreshing run status every 30 seconds. Press Ctrl+C to quit.
+
+* codex/phone-contact-save Test · 40155787434
+Triggered via push about 2 minutes ago
+
+JOBS
+✓ test in 46s (ID 121056794437)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+* Browser acceptance (ID 121056933967)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  ✓ Verify preinstalled browser runtime
+  * Synthetic local browser acceptance
+  * Synthetic acceptance evidence
+  * Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  * Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  * Stop containers
+X codex/phone-contact-save Test · 40155787434
+Triggered via push about 2 minutes ago
+
+JOBS
+✓ test in 46s (ID 121056794437)
+  ✓ Set up job
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Install server dependencies
+  ✓ Install and test (repo root)
+  ✓ Audit server dependency lock
+  ✓ Test server package
+  ✓ Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Complete job
+X Browser acceptance in 1m21s (ID 121056933967)
+  ✓ Set up job
+  ✓ Initialize containers
+  ✓ Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Run npm ci
+  ✓ Verify preinstalled browser runtime
+  X Synthetic local browser acceptance
+  ✓ Synthetic acceptance evidence
+  - Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+  ✓ Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  ✓ Stop containers
+  ✓ Complete job
+
+ANNOTATIONS
+X Canceling since a higher priority waiting request for tests-refs/heads/codex/phone-contact-save exists
+Browser acceptance: .github#1
+
+X The operation was canceled.
+Browser acceptance: .github#14
+

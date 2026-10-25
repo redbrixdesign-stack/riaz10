@@ -69,8 +69,8 @@ See the [feature inventory](BEELO_RELEASE_FEATURE_INVENTORY.md),
 | --- | --- | --- | --- |
 | M0 | Define narrow MVP, inspect baseline and record gates | This plan distinguishes source/evidence, planned slices, safety limits and readiness | Complete as planning only |
 | M1 | Trustworthy receipt capture: actual transaction date in new/edit expense, review extracted dates, retain receipt and entered values on failure | Synthetic historical receipt saves/reopens in correct date period; invalid dates rejected; no duplicate/dropped receipt; existing expense records preserved | Live `e8a1b52`, cache158; local/hosted/live browser verified. Native date-picker check blocked; not full MVP acceptance |
-| M2 | Connect context: explicit customer/visit associations where appropriate, plus business-wide/unassigned items; review/correct links | Seven different window records/notes/photos reopen under intended customer; a general fuel/tool receipt need not belong to a customer; wrong link can be corrected without copying/deleting evidence | M2a customer-linked expenses implemented/staged, held by C14 hosted offline failure; broader associations remain planned |
-| M3 | Find working memory: one deterministic local search entry, relevant type/date/customer filters and direct open of source record | Find synthetic customer by name/address, window description, typed/transcribed note and receipt description/date; clear empty/error states; no cloud indexing; audio is searchable by existing text/metadata, not untranscribed sound | Planned |
+| M2 | Connect context: explicit customer/visit associations where appropriate, plus business-wide/unassigned items; review/correct links | Seven different window records/notes/photos reopen under intended customer; a general fuel/tool receipt need not belong to a customer; wrong link can be corrected without copying/deleting evidence | M2a expense/customer links live via C25; broader associations require inventory/acceptance |
+| M3 | Find working memory: one deterministic local search entry, relevant type/date/customer filters and direct open of source record | Find synthetic customer by name/address, window description, typed/transcribed note and receipt description/date; clear empty/error states; no cloud indexing; audio is searchable by existing text/metadata, not untranscribed sound | M3a customer/visit/window text search live2c0ac31/cache164; M2b expense finder live separately. Unified expense/media entry and wider date/type filters remain planned |
 | M4 | Prepare and close the day: next-visit brief and tomorrow plan reuse linked facts; one coherent pending-action view | Scan/manual entry → inspect context → plan/reorder without changing agreed time → review communication → record explicit outcome; resolved/expired work does not keep interrupting | Planned; retain existing lifecycle safeguards |
 | M5 | Personal money clarity and accountant handoff | Separate work/order value, expected earnings and manually confirmed receipts with receipt date/reference; reconcile synthetic payment/expense evidence; reviewed export totals match original records, corrections do not double-count | Planned; calculation/payment model requires review, no rewriting historical earnings |
 | M6 | End-to-end hardening and controlled pilot acceptance | Four work-type journeys, offline/return-online, updates, backup/download/different-key restore, media, keyboard/accessibility and physical Safari/PWA checklist; all critical failures resolved | Open; existing test evidence reused, gaps not called passed |
@@ -149,17 +149,21 @@ unverified savings/carbon/traction claims. Select targets before pilot testing.
 
 ## Current next action
 
-M1 is released: [audit and limits](audits/M1_EXPENSE_DATES_2026-10-24.md).
-M2a optional customer-linked expenses/profile retrieval is implemented and staged,
-but held after hosted C14 first-offline Quotes failure. Full local16 scripts and
-one enriched hosted run pass; neither establishes the earlier stall's cause.
-Public remains M1/cache158. Diagnose pending prerequisite delivery/completion
-before promotion, not rerun until green or speculate about caching. See M2a audit.
-After acceptance, prioritise all-date expense/receipt retrieval: general-business
-older receipts remain stored/backed up but lack an all-date finder. Distinguish
-read errors from empty results. Then extend explicit visit associations with
-correction semantics. Business-wide expenses remain valid without a customer. Review
-existing period/tax-summary endpoint conventions separately before certifying
-financial handoff; M1 did not change these calculations. Keep native/physical
-acceptance and C14 open, preserve existing modules and records, and do not add
-new services or label the whole MVP ready from this single release.
+M1 dates, M2a customer links, M2b all-date expenses and M3a customer/visit/window
+text retrieval are live. Current runtime2c0ac31/cache164; final local20 and
+exact hosted40155911005 pass; public Search and expense-finder journeys pass
+both engines. Audit/limits: audits/M3A_WORKING_MEMORY_SEARCH_2026-10-25.md.
+C25 resolved the automated C14 boundary through a narrow worker repair plus
+negative contract/transport evidence and exact hosted acceptance, not a rerun
+waiver; historical failures and physical-device limits remain documented.
+
+Next M3b: connect expense/media discovery coherently to the existing Search,
+reusing the all-date expense finder and source records rather than introducing
+another separate search. Inventory photo captions and standalone recording
+metadata before adding coverage; never imply raw audio/photo content is searched.
+Date/type filters across the wider search remain planned. Preserve explicit
+links/corrections, general-business receipts and existing capture flows. Then
+M4 tomorrow planning/contextual pending work. Review period/payment/tax-summary
+conventions separately before any financial-handoff claim. These releases did
+not change calculations or add providers. Physical iPhone/VoiceOver/large-library
+acceptance remains open; no whole-MVP or pilot approval is inferred.

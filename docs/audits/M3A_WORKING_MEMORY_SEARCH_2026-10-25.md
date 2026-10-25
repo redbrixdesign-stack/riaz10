@@ -63,7 +63,7 @@ offline query, empty/error/retry, late-response ownership, reload persistence,
 no record mutation, no POST/provider calls. Screenshots visually reviewed.
 Release acceptance expands from19 to20 browser scripts; thresholds unchanged.
 
-Release results and deployment evidence are appended after acceptance.
+Release evidence below distinguishes preliminary and final acceptance.
 
 Local acceptance: npm run verify:release completed successfully, including
 all20 maintained browser scripts, unit/server/social checks and unchanged
@@ -83,7 +83,34 @@ alone do not satisfy the query. Candidate84fd10e/stage
 dpl_Fog4SuN5WchahpMkBQqn4qJDREvM is superseded, not promoted.
 Its passing local20 suite is preliminary evidence, not final release acceptance.
 
-## Boundaries and next slices
+## Final release — LIVE
+
+Runtime2c0ac31bc558d3d1e15b1cd8fed9a804b7c2351d. Final local
+npm run verify:release passes all20 browser scripts plus unit/server/social
+and maintained performance assertions. Exact-source hosted run40155911005
+SUCCESS: unit/server/dependency scans and all20 browser scripts; downloaded
+summary records the same SHA. Preliminary40155787434 was cancelled by the
+newer commit, not accepted as final evidence.
+
+READY production stage dpl_AmJp1XqwpFF9rmZQgoHrxw68yxJ3,
+https://beelo1-cc3z1u179-beelomvp.vercel.app, Other/build10.256s,
+was promoted without rebuilding to https://beelo.beelestial.co.uk/.
+DB49/Search5/Appointments63/cache164-working-memory-search. Five staged and
+public assets byte-match source. Prior M2b/cache163 deployment
+dpl_HQSDVuWhomcjSPTKxUfe7yygYaqH remains rollback; never clear site storage.
+
+Public synthetic Search and expense-finder journeys pass in Chromium/WebKit,
+including encrypted source retrieval, in-session offline search, reload,
+retained receipt/editor behavior, no record mutation and no POST/provider
+contacts. Final local/hosted screenshots visually inspected. A10-minute server
+error/fatal scan02:48–02:58UTC returned no logs, not complete monitoring or
+security assurance. Evidence: docs/evidence/2026-10-25-working-memory-search/.
+
+Original checkout's pre-existing non-doc diff stays byte-identical:
+8b6f2a59c93c01d1e4bee30742536a538f010119e3acf6b99e9b2f63e8e295d1.
+Runtime was built/deployed only from the isolated clean release checkout.
+
+## Remaining scope
 
 - M3a is not a universal media finder. No raw audio listening, photo-content OCR,
   captions/library browsing, standalone voice-note title index, or document/job/

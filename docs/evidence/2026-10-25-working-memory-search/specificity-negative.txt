@@ -1,0 +1,9 @@
+AssertionError [ERR_ASSERTION]: Name-only search must not imply a particular window matched
+    at /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/working-memory-search.test.js:15:2 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
