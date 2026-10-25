@@ -1,0 +1,26 @@
+{
+  "url": "https://beelo1-npdijc54e-beelomvp.vercel.app",
+  "commit": "4d9f7d66ad46a5292f75fe4d49553a08501ae2d3",
+  "results": [
+    {
+      "path": "index.html",
+      "matches": true,
+      "sha256": "a6a481c3d8557827b5a80f1b170312d978bf2d38afc97ae5a6691940c937b48d"
+    },
+    {
+      "path": "sw.js",
+      "matches": true,
+      "sha256": "b7afbe2f0c8ba604d62591d9217ae728cd1bd7d666b6f3f0f05365366e9a06f6"
+    },
+    {
+      "path": "js/core/db.min.js",
+      "matches": true,
+      "sha256": "0385b0a28ac6f9d05ab755a8024301692489dea07cea11b5fa913c141e418231"
+    },
+    {
+      "path": "js/features/money/money.min.js",
+      "matches": true,
+      "sha256": "091a21434349287aa79dbbd81d42cc9644919a3836008cca94ce318368613d9d"
+    }
+  ]
+}

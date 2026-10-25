@@ -35,7 +35,7 @@ The legacy monthly error treatment remains a separate known limitation.
 - Read failures show an explicit retry error, never an empty-success list.
   Invalid dates/ranges/amounts retain controls for correction. Late read results
   cannot replace another editor or a navigated-away finder. Labels, keyboard
-  Enter search, native buttons and responsive390px layout are covered.
+  Enter action and native buttons are provided; responsive390px layout is tested.
 - Searches stay on-device; no new plaintext search index, URL query containing
   customer names, analytics, provider call or upload. Filters stay in memory for
   edit/navigation continuity; reload intentionally resets filters to all dates
@@ -64,6 +64,41 @@ The legacy monthly error treatment remains a separate known limitation.
   for earlier financial, protected-backup, communications or offline assertions.
   One earlier partial run was stopped for final editor/unknown-value hardening;
   it is not final acceptance. Full local/hosted/stage/live results follow.
+
+## Verified release acceptance
+
+Runtime `4d9f7d66ad46a5292f75fe4d49553a08501ae2d3` passes the final full local
+19-journey gate and exact-source hosted **40154291996**, including units/server,
+root/server dependency scans and all19 normal browser journeys. No assertion,
+financial rule or browser wait relaxed. Finder and prior offline/communications/
+expense-date/customer-link/protected-backup journeys all pass. Final screenshots
+visually inspected; record text and receipt/customer labels are readable.
+
+READY production-configured stage `dpl_HQSDVuWhomcjSPTKxUfe7yygYaqH`, exact
+https://beelo1-npdijc54e-beelomvp.vercel.app, framework Other,
+build-to-ready11.902s. Four changed runtime assets (shell, worker, DB and Money)
+byte-match the tested source. Project/team beelomvp/beelo1 explicitly verified;
+no credentials pulled, protection disabled, DNS or marketing-site change.
+Previous public C25 `dpl_9tSQdQzyzAP3MEDU7PHtHR82gKXQ` /cache162 is the rollback
+target; rolling back hides the finder, not its underlying expense evidence.
+Preserve site storage and backups. Promotion and live checks follow.
+
+## LIVE — 25 October
+
+Promoted that exact stage (no rebuild) to https://beelo.beelestial.co.uk/.
+All four public assets match4d9f7d6/cache163. Disposable public Chromium and
+WebKit sessions pass the complete finder journey and existing expense-context
+journey: historical/customer/date/amount search, paging, receipt byte retention,
+cancel/edit return, invalid/read-error states, offline search, online reload and
+late-editor isolation. No POSTs, provider contacts or real records used. These
+are in-session offline searches; no new physical-iPhone or cold-reload claim.
+
+Ten-minute production error/fatal scan02:23–02:33UTC25 October returned no logs;
+not complete client monitoring or security assurance. Original non-doc dirty
+diff remains SHA2568b6f2a59c93c01d1e4bee30742536a538f010119e3acf6b99e9b2f63e8e295d1.
+No migrations, secrets/protection/marketing changes, record deletion or financial
+rule changes. Use existing app Update and reload when ready; never clear site
+data. Evidence: `../evidence/2026-10-25-expense-finder/`.
 
 ## Boundaries
 
