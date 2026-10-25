@@ -120,7 +120,7 @@ const Search = {
         const shared = [customerText(customer), a.clientName, a.address, a.type,
           CONFIG.appointmentTypes.find(t => t.id === a.type)?.name, a.status, a.outcome, a.date, visitDate(a)];
         // Match one source at a time: don't combine unrelated windows to fabricate a match.
-        const window = windows.find(m => matches(shared, measurementText(m)));
+        const window = matches(shared) ? null : windows.find(m => matches(shared, measurementText(m)));
         if (!window && !matches(shared, a.notes, a.access, transcripts(a))) continue;
         results.push({ type: 'appointment', id: a.id, title: visitDate(a),
           subtitle: customer ? customerName(customer) : a.clientName || 'Visit',

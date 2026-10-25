@@ -76,6 +76,13 @@ journey passed both engines. One earlier focused assertion read the previous
 query before debounce settled; the harness now waits for the actual matching
 window text. No production timeout or acceptance threshold was relaxed.
 
+Pre-promotion review found that a name-only query could label a visit with
+an arbitrary first window. Added a failing negative assertion and repaired
+specificity: a window label appears only when the shared customer/visit fields
+alone do not satisfy the query. Candidate84fd10e/stage
+dpl_Fog4SuN5WchahpMkBQqn4qJDREvM is superseded, not promoted.
+Its passing local20 suite is preliminary evidence, not final release acceptance.
+
 ## Boundaries and next slices
 
 - M3a is not a universal media finder. No raw audio listening, photo-content OCR,

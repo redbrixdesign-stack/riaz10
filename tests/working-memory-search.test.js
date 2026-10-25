@@ -12,6 +12,7 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
  vm.createContext(s);const source=process.env.BEELO_NEGATIVE_SEARCH?require('node:child_process').execFileSync('git',['show','4d9f7d6:'+file],{encoding:'utf8'}):fs.readFileSync(file,'utf8');const search=vm.runInContext(source+'\nSearch;',s);
  const before=JSON.stringify({customers,appointments,windows});
  assert((await search.search('Cedar bedroom')).some(r=>r.type==='appointment'&&r.id===7));
+ assert(!(await search.search('Cedar',{types:['appointment']}))[0].detail.startsWith('Window:'),'Name-only search must not imply a particular window matched');
  assert((await search.search('Cedar navy')).some(r=>r.id===7&&r.type==='appointment'));
  assert((await search.search('Cedar control')).some(r=>r.id===7&&r.type==='appointment'));
  assert((await search.search('garage Cedar')).some(r=>r.id===7&&r.type==='appointment'));
