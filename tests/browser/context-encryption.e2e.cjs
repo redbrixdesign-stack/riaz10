@@ -14,6 +14,7 @@ const expectEncryption=process.env.BEELO_EXPECT_CONTEXT_ENCRYPTION==='1';
   const c=await browser.newContext({viewport:{width:390,height:844},timezoneId:'Europe/London'});
   await c.addInitScript(()=>{localStorage.setItem('advisoros_config',JSON.stringify({onboardingComplete:true,unlockTimeoutMinutes:60}));localStorage.setItem('advisoros_consent',JSON.stringify({v:2}));});
   const p=await c.newPage(),posts=[],errors=[];
+  const expandPlanContext=async()=>{const details=p.locator('#tomorrow-plan .plan-row-details').first();await details.waitFor({state:'attached'});if(!await details.evaluate(el=>el.open))await details.locator('summary').click();};
   await p.clock.setFixedTime(new Date('2026-10-23T23:44:00Z'));
   p.on('request',r=>{if(r.method()==='POST')posts.push(r.url());});p.on('pageerror',e=>errors.push(e.message));
   await p.goto(base);await p.locator('#enc-passphrase-new').fill('SYNTHETIC-context-device');await p.locator('#enc-passphrase-confirm').fill('SYNTHETIC-context-device');await p.getByRole('button',{name:'Set Passphrase',exact:true}).click();
@@ -49,21 +50,21 @@ const expectEncryption=process.env.BEELO_EXPECT_CONTEXT_ENCRYPTION==='1';
   assert(await p.locator('.sheet-body img').evaluate(img=>img.complete&&img.naturalWidth>0));
   if(expectEncryption){await p.locator('#photo-viewer-caption').fill('SYNTHETIC edited caption');await p.getByRole('button',{name:/Save caption/}).click();await p.waitForFunction(async id=>(await DB.getPhoto(id)).caption==='SYNTHETIC edited caption',ids.photo);assert(await p.evaluate(async id=>isEncrypted((await DB.db.photos.get(id)).caption),ids.photo));}
   await p.evaluate(()=>App.closeModal());await p.evaluate(()=>App.navigate('appointments',{action:'tomorrow'}));
-  await p.getByText('Access: SYNTHETIC side gate 1234',{exact:false}).first().waitFor();
+  await expandPlanContext();await p.getByText('Access: SYNTHETIC side gate 1234',{exact:false}).first().waitFor();
   const backup=await p.evaluate(()=>DB.exportAll());
   assert.equal(backup.measurements[0].notes,'اردو 🪟');assert.equal(backup.photos[0].caption,expectEncryption?'SYNTHETIC edited caption':'SYNTHETIC photo caption');assert.equal(backup.customers[0].fullName,'SYNTHETIC Context');
   if(expectEncryption){
    await p.evaluate(async ids=>{await DB.db.customers.update(ids.customer,{fullName:'SYNTHETIC Context',postcodeNormalized:'M147FZ'});await DB.db.appointments.update(ids.visit,{access:'SYNTHETIC side gate 1234'});await DB.db.measurements.update(ids.measurement,{notes:'اردو 🪟'});await DB.db.photos.update(ids.photo,{caption:'SYNTHETIC edited caption'});},ids);
-   await p.reload();await p.getByText('SYNTHETIC side gate 1234',{exact:false}).first().waitFor();
+   await p.reload();await expandPlanContext();await p.getByText('SYNTHETIC side gate 1234',{exact:false}).first().waitFor();
    assert(await p.evaluate(async ids=>isEncrypted((await DB.db.customers.get(ids.customer)).fullName)&&isEncrypted((await DB.db.appointments.get(ids.visit)).access)&&isEncrypted((await DB.db.measurements.get(ids.measurement)).notes)&&isEncrypted((await DB.db.photos.get(ids.photo)).caption),ids),'Legacy fields migrate during real reload');
   }
   await c.setOffline(true);
   if(engine===chromium) await p.reload({waitUntil:'domcontentloaded'});
   else { await p.evaluate(id=>App.navigate('customer',{id}),ids.customer);await p.getByText('SYNTHETIC bedroom',{exact:false}).first().waitFor();await p.evaluate(()=>App.navigate('appointments',{action:'tomorrow'})); }
-  await p.getByText('SYNTHETIC side gate 1234',{exact:false}).first().waitFor();
+  await expandPlanContext();await p.getByText('SYNTHETIC side gate 1234',{exact:false}).first().waitFor();
   await p.waitForTimeout(500);
   await p.screenshot({path:artifactPath(`beelo-context-readers-${engine.name()}.png`),animations:'disabled'});
-  await c.setOffline(false);await p.reload();await p.getByText('SYNTHETIC side gate 1234',{exact:false}).first().waitFor();
+  await c.setOffline(false);await p.reload();await expandPlanContext();await p.getByText('SYNTHETIC side gate 1234',{exact:false}).first().waitFor();
   assert.deepEqual(posts,[]);assert.deepEqual(errors,[]);
   console.log(`PASS ${engine.name()}: real unlock, protected mixed records in customer/visit/plan/gallery/postcode search, readable export, ${engine===chromium?'offline reload':'offline in-app navigation (offline reload not certified: WebKit internal navigation error)'}, online reload/reconnect; no uploads`);
  }finally{await browser.close();}

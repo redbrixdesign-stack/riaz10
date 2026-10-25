@@ -54,6 +54,15 @@ communication or route-calculation change; no removals of existing functionality
 Final full acceptance, deployment and public verification are recorded below
 after they complete. Evidence lives in docs/evidence/2026-10-25-compact-plan/.
 
+The preliminary full gate stopped at context-encryption.e2e.cjs: saved access
+notes were correctly present but hidden in the new closed details section.
+Updated that journey to expand details before each existing visibility check,
+including after reload/offline navigation. All encryption/migration/export/
+offline assertions and timeouts are retained; the failure log is preserved.
+The older shared-message entry journey also opens the disclosure before its
+unchanged message assertions. The adjusted legacy tomorrow-plan journey passes
+its full route/cold-offline/next-morning behavior checks on the isolated server.
+
 ## Decisions and remaining limits
 
 Keep four facts glanceable without horizontal scrolling on a phone; address

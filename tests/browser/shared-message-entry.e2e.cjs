@@ -38,6 +38,7 @@ const assert = require('node:assert/strict');
       await page.getByText('Before visits (1)', { exact: true }).waitFor();
       assert.equal(await page.getByRole('button', { name: 'Review pre-visit message for SYNTHETIC Far', exact: true }).count(), 0);
       await page.evaluate(() => App.navigate('appointments', { action: 'tomorrow' }));
+      await page.locator('#tomorrow-plan .plan-row-details summary').first().click();
       await page.getByRole('button', { name: 'Review pre-visit message', exact: true }).click();
       await page.locator('#talk-message-preview').waitFor();
       assert.equal(await page.evaluate(() => TalkFeature.pendingMessage.templateKey), 'day_before');

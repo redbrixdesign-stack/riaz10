@@ -1,0 +1,2082 @@
+
+> advisoros@5.0.0 verify:release
+> npm run build && npm test && npm run test:social && npm run test:performance:gate && npm run test:release:browser
+
+
+> advisoros@5.0.0 build
+> node build/minify.js
+
+  ✓ 52 file(s) already up to date
+  ✓ sw.js ?v= tokens match shell and lazy manifests
+
+> advisoros@5.0.0 pretest
+> node tests/compact-plan.test.js && node tests/working-memory-search.test.js && node tests/expense-finder.test.js && node tests/sw-precache.test.js && node tests/communication-resolution.test.js && node tests/transcription-usage.test.mjs && node tests/protected-backup.test.js && node tests/context-encryption.test.js && node tests/lazy-state.test.js && node tests/social-share.test.js && node tests/sw-lifecycle.test.js && node tests/claude-usage.test.mjs && node tests/test-session-boundary.test.js && node tests/visit-reminder-expiry.test.js && node tests/visit-reminder-lifecycle.test.js && node tests/modal-form-state.test.js && node tests/visit-draft.test.js && node tests/visit-draft-status.test.js && node tests/note-capture-timeout.test.js && node tests/expense-date.test.js && node tests/expense-context.test.js && node tests/expense-context-ui.test.js
+
+PASS js/features/appointments/appointments.js: four requested fields, collapsed retained context/actions, escaped names, missing values, active/saved order, today/empty/error and no record changes
+PASS js/features/appointments/appointments.min.js: four requested fields, collapsed retained context/actions, escaped names, missing values, active/saved order, today/empty/error and no record changes
+PASS js/core/search.js: multi-term context, notes/transcripts/windows, customer isolation, legacy dates, type-only matching, postcode, explicit failure and no mutation
+PASS js/core/search.min.js: multi-term context, notes/transcripts/windows, customer isolation, legacy dates, type-only matching, postcode, explicit failure and no mutation
+PASS js/features/money/money.js: all dates, customer/amount/receipt/general search, inclusive UK dates, legacy visibility, validation, escaping and explicit read failure
+PASS js/features/money/money.min.js: all dates, customer/amount/receipt/general search, inclusive UK dates, legacy visibility, validation, escaping and explicit read failure
+PASS precache: cached immutable scripts have zero network/lifetime dependency; misses, versions, private API and POST boundaries retained
+Database initialized
+PASS js/core/db.js Dexie: atomic failure rollback, multi-customer isolation, purpose flags, duplicate confirmation, superseded attempts, not sent, reschedule guard and manual already-sent idempotence
+Database initialized
+PASS js/core/db.js fallback: transaction-unavailable fails closed without flags or false sent state
+PASS js/core/db.min.js Dexie: atomic failure rollback, multi-customer isolation, purpose flags, duplicate confirmation, superseded attempts, not sent, reschedule guard and manual already-sent idempotence
+PASS js/core/db.min.js fallback: transaction-unavailable fails closed without flags or false sent state
+[transcribe] shared usage protection unavailable
+[transcribe] shared usage protection unavailable
+[transcribe] shared usage protection unavailable
+[transcribe] shared usage protection unavailable
+[transcribe] shared usage protection unavailable
+[transcribe] shared usage protection unavailable
+[transcribe] rejected device credential { credentialPresent: true }
+[transcribe] rejected origin { hasOrigin: true }
+PASS shared transcription guard wiring, exact approved limits, fail-closed store, no provider on denial, auth/payload exclusion and all-path lease release
+PASS protected backups js/services/export.js: 4 MB/Unicode roundtrip, wrong password/tamper, legacy envelope, secret exclusion, filename and failure metadata
+PASS protected backups js/services/export.min.js: 4 MB/Unicode roundtrip, wrong password/tamper, legacy envelope, secret exclusion, filename and failure metadata
+PASS js/core/db.js: protected and legacy context readers, photos, Unicode, dimensions and batch API
+PASS js/core/db.min.js: protected and legacy context readers, photos, Unicode, dimensions and batch API
+PASS js/core/app.js: stalled-script deadline, shared rejection, explicit retry, late callback isolation and timer cleanup
+Feature registered: today
+Feature registered: lazy
+Feature registered: lazy
+Feature registered: primary
+Feature registered: primary
+Feature registered: async
+Feature registered: slow
+Render error: Error: SYNTHETIC load error
+    at /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/lazy-state.test.js:47:50
+PASS js/core/app.js: canonical state/lifecycle, primary nav policy, stale same-route result and late error isolation
+PASS js/core/app.min.js: stalled-script deadline, shared rejection, explicit retry, late callback isolation and timer cleanup
+Render error: Error: SYNTHETIC load error
+    at /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/lazy-state.test.js:47:50
+PASS js/core/app.min.js: canonical state/lifecycle, primary nav policy, stale same-route result and late error isolation
+Could not persist social draft Error: SYNTHETIC disk failure
+    at Object.updateAppointment (/Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/social-share.test.js:6:258)
+    at Object.generate (evalmachine.<anonymous>:150:16)
+    at /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/social-share.test.js:24:150
+Could not persist social draft Error: Post permission was not retained against this fitting
+    at Object.generate (evalmachine.<anonymous>:153:15)
+    at async /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/social-share.test.js:26:147
+PASS js/features/social/social.js: live checks, photo/video identity, replacement, stale AI, save/withdraw failure, cancel and manual fallback; no publication
+Could not persist social draft Error: SYNTHETIC disk failure
+    at Object.updateAppointment (/Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/social-share.test.js:6:258)
+    at Object.generate (evalmachine.<anonymous>:1:8242)
+    at /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/social-share.test.js:24:150
+Could not persist social draft Error: Post permission was not retained against this fitting
+    at Object.generate (evalmachine.<anonymous>:1:8488)
+    at async /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/social-share.test.js:26:147
+PASS js/features/social/social.min.js: live checks, photo/video identity, replacement, stale AI, save/withdraw failure, cancel and manual fallback; no publication
+Service Worker registered: undefined
+Service Worker registered: undefined
+PASS js/core/app.js: first-install claim keeps page, installed update waits for adviser, activation/reload single-flight
+PASS js/core/app.min.js: first-install claim keeps page, installed update waits for adviser, activation/reload single-flight
+PASS Claude usage guard: missing/partial/unavailable production store returns retryable 503 without provider; healthy shared allow/deny and auth unchanged; dev-only memory; no payload/credential logs
+PASS .js: public/vercel/lookalike/file origins cannot select fixture key; only explicit loopback flag opt-in; all exemptions use the same boundary
+PASS .min.js: public/vercel/lookalike/file origins cannot select fixture key; only explicit loopback flag opt-in; all exemptions use the same boundary
+PASS js/services/notification.js: late/early/disabled/unavailable/invalid/replayed/rescheduled/async expiry guards and valid grace boundary
+PASS js/services/notification.min.js: late/early/disabled/unavailable/invalid/replayed/rescheduled/async expiry guards and valid grace boundary
+PASS js/services/notification.js: timed expiry/countdown, booking changes, editor/stack ownership, dismissal, read failure, async form race and disabling
+PASS js/services/notification.min.js: timed expiry/countdown, booking changes, editor/stack ownership, dismissal, read failure, async form race and disabling
+PASS js/core/app.js: detached snapshot, live values/checks/options, no visible mutation, secret/file/gate exclusions
+PASS js/core/app.min.js: detached snapshot, live values/checks/options, no visible mutation, secret/file/gate exclusions
+PASS js/core/db.js: AES encryption/no key failure, atomic cross-session CAS, stale delete rejection, unreadable preservation, no unsafe transaction fallback
+PASS js/core/db.min.js: AES encryption/no key failure, atomic cross-session CAS, stale delete rejection, unreadable preservation, no unsafe transaction fallback
+PASS js/services/visit-draft.js: session-bound exit does not unlock a new recovery chooser
+PASS js/services/visit-draft.min.js: session-bound exit does not unlock a new recovery chooser
+PASS js/services/visit-draft.js: truthful no-op/empty status, ordered clear behind pending write, leave protection and conflict preservation
+PASS js/services/visit-draft.min.js: truthful no-op/empty status, ordered clear behind pending write, leave protection and conflict preservation
+PASS js/services/note-capture.js: bounded full-operation deadline, hanging fetch/body/credential/auth retry, late-result isolation, retained audio/text, released draft lock and explicit retry
+PASS js/services/note-capture.min.js: bounded full-operation deadline, hanging fetch/body/credential/auth retry, late-result isolation, retained audio/text, released draft lock and explicit retry
+PASS js/features/money/money.js: strict UK dates, historical/create/edit/receipt review, unchanged timestamp, validation, duplicate guard and failure retention
+PASS js/features/money/money.min.js: strict UK dates, historical/create/edit/receipt review, unchanged timestamp, validation, duplicate guard and failure retention
+Database initialized
+PASS js/core/db.js dexie: general/link/reassign/unlink, preserved evidence, invalid-reference/atomic-update guards, backup validation/restore and customer-delete retention
+Database initialized
+PASS js/core/db.js shim: general/link/reassign/unlink, preserved evidence, invalid-reference/atomic-update guards, backup validation/restore and customer-delete retention
+PASS js/core/db.min.js dexie: general/link/reassign/unlink, preserved evidence, invalid-reference/atomic-update guards, backup validation/restore and customer-delete retention
+PASS js/core/db.min.js shim: general/link/reassign/unlink, preserved evidence, invalid-reference/atomic-update guards, backup validation/restore and customer-delete retention
+PASS js/features/money/money.js: pending-selection Save guard, replacement/clear isolation, latest search only, escaped names and explicit read errors
+PASS js/features/money/money.min.js: pending-selection Save guard, replacement/clear isolation, latest search only, escaped names and explicit read errors
+
+> advisoros@5.0.0 test
+> node tests/transcription-size.test.js && node tests/outcome-timing.test.js && node tests/audit-fixes.test.js && node tests/phone.test.js && node tests/datetime.test.js && node tests/storage.test.js && node tests/voice-notes.test.js && node tests/ai.test.js && node tests/proxy-server.test.js && node tests/companion.test.js && node tests/quick-capture.test.js && node tests/visit-reminders.test.js && node tests/appointments-onsite.test.js && node tests/followups.test.js && node tests/tasks.test.js && node tests/leads.test.js && node tests/quotes.test.js && node tests/quote-document.test.js && node tests/quote-followups.test.js && node tests/jobs.test.js && node tests/job-field-service.test.js && node tests/job-followups.test.js && node tests/invoices.test.js && node tests/finance-document.test.js && node tests/invoice-followups.test.js && node tests/suppliers.test.js && node tests/supplier-followups.test.js && node tests/capacity.test.js && node tests/retention.test.js && node tests/retention-followups.test.js && node tests/communications.test.js && node tests/scheduler.test.js && node tests/ocr.test.js && node tests/measure.test.js && node tests/money.test.js && node tests/route.test.js && node tests/settings.test.js && node tests/geoprovider.test.js && node tests/weather.test.js && node tests/features.test.js && node tests/action-router.test.js && node tests/appointments-save.test.js && node tests/appointments-type.test.js && node tests/docs.test.js && node tests/note-capture.test.js && node tests/note-capture-lifecycle.test.js && node tests/followup-deadlines.test.js && node tests/fitting-booking.test.js && node tests/transcribe-proxy.test.js && node tests/legal.test.js && node tests/visit-review.test.mjs
+
+PASS transcription size: preflight/no upload, boundary sizes, UTF-8 envelope, local audio/notes retained, non-JSON 413 and retry
+PASS outcome timing: future/ongoing/end/overdue, excluded states, legacy/invalid durations, arrival-window independence, DST, reschedule and snooze
+Failed to save trip: Error: quota failure
+    at Object.completeTrackedTrip (/Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/audit-fixes.test.js:25:53)
+    at Object.finishTrip (evalmachine.<anonymous>:237:16)
+    at async /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/audit-fixes.test.js:26:16
+PASS: trip failure/recovery/migration, cancelled persistence, real GPS ETA, duplicate methods, concurrent script loading and retry
+utils.js: phone normalization checks passed (no network requests)
+utils.min.js: phone normalization checks passed (no network requests)
+  OK ukParts reads the instant through BST (UTC+1)
+  OK ukParts keeps the UK calendar date in BST
+  OK ukParts weekday follows the UK date (Sat)
+  OK ukParts reads the instant through GMT
+  OK ukParts weekday follows the UK date (Thu)
+  OK 00:30Z on 29 Mar is still GMT (00:30)
+  OK 01:30Z on 29 Mar has already jumped to 02:30 BST
+  OK 02:30Z on 25 Oct fell back to 02:30 GMT (not 03:30 BST)
+  OK getToday is the UK calendar day
+  OK formatTimeUK renders BST hour
+  OK formatTimeUK renders GMT hour
+  OK formatTimeUK pads minutes
+  OK formatDateUK short is UK day + month
+  OK formatDateUK long includes the UK weekday
+  OK formatDateUK medium includes the year
+  OK formatDateUK iso is the UK calendar date
+  OK formatDateUK datetime carries the UK time
+  OK hourUK returns the UK hour
+  OK 23:30Z on 15 Aug is 00:30 BST on the 16th
+  OK Sunday sits inside the week window
+  OK Monday of that week sits inside the window
+  OK following Monday is outside the window
+  OK week start is UK midnight of Monday 10 Aug (BST: 23:00Z on the 9th)
+  OK week end is UK midnight of Monday 17 Aug (BST: 23:00Z on the 16th)
+  OK month start is UK midnight of 1 Aug (BST: 23:00Z on 31 Jul)
+  OK month start in GMT is 00:00Z on the 1st
+  OK month end is UK midnight of the last day (31 Aug, BST: 23:00Z on the 30th)
+  OK Monday 10 Aug BST picks Monday 10 Aug as week start (no drift)
+  OK week start in GMT is 00:00Z on the Monday
+  OK daysBetween: plain pair is exact
+  OK daysBetween: spring-forward 23h day is still 1 day
+  OK daysBetween: autumn 25h day is still 1 day
+  OK daysBetween: across the spring jump (Mar 30 noon vs Mar 28 23:30) is 2 days
+  OK daysBetween: 00:30 BST next morning is 0 days
+  OK daysBetween: future dates stay negative
+
+ALL DATE/TIME TESTS PASSED
+
+Test 1a: parity — real Dexie
+  OK dexie: sequences increment to 1,2,3
+  OK dexie: transactional sequence uniqueness
+  OK dexie: add returns ids
+  OK dexie: between range
+  OK dexie: anyOf
+  OK dexie: bulkGet
+  OK dexie: update
+  OK dexie: null field survives update
+  OK dexie: count
+  OK dexie: where.delete
+  OK dexie: sortBy asc
+  OK dexie: clear
+
+Test 1b: parity — bundled shim
+  OK shim: sequences increment to 1,2,3
+  OK shim: add returns ids
+  OK shim: between range
+  OK shim: anyOf
+  OK shim: bulkGet
+  OK shim: update
+  OK shim: null field survives update
+  OK shim: count
+  OK shim: where.delete
+  OK shim: sortBy asc
+  OK shim: clear
+
+Test 1c: localStorage fallback migration — real Dexie
+AdvisorOS: migrated 5 record(s) from the previous storage engine
+Database initialized
+  OK dexie: localStorage customers migrated
+  OK dexie: localStorage numbering intact
+  OK dexie: localStorage appts migrated
+  OK dexie: localStorage sequence guarded
+  OK dexie: localStorage settings migrated
+  OK dexie: migration flag set
+
+Test 2: db.js boot path — real Dexie (with legacy migration)
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK dexie: completion failure propagates
+  OK dexie: failed transaction leaves no trip
+  OK dexie: trip retry is idempotent
+  OK dexie: completion advances appointment
+  OK dexie: legacy customers migrated
+  OK dexie: legacy customer numbering intact
+  OK dexie: legacy appts migrated
+  OK dexie: legacy outcome renamed
+  OK dexie: settings migrated
+  OK dexie: sequence guarded
+  OK dexie: customer transcription audio encrypted at rest
+  OK dexie: customer transcription audio decrypts
+  OK dexie: search by name
+  OK dexie: search by phone
+  OK dexie: appointment transcription audio encrypted at rest
+  OK dexie: summary requires explicit approval
+  OK dexie: approved summary encrypted at rest
+  OK dexie: approved summary decrypts without changing notes/audio
+  OK dexie: summary is available through customer query
+  OK dexie: measurement backup contains portable audio, not old-key ciphertext
+  OK dexie: restored measurement audio is re-encrypted and readable
+  OK dexie: summary survives backup restore encrypted
+  OK dexie: deleting audio preserves approved summary
+  OK dexie: appointment transcription audio decrypts
+  OK dexie: getAppointmentsForDate excludes cancelled
+  OK dexie: order numbering continues after backfilled legacy orders
+  OK dexie: deposit via App.calculateDeposit
+  OK dexie: customer totals recomputed
+  OK dexie: week stats count ordered only
+  OK dexie: referred survey creates one linked order without a prior order
+  OK dexie: referred survey does not invent a payment balance
+  OK dexie: survey retains fitting order link
+  OK dexie: survey and service earnings counted without new sales
+  OK dexie: cancelled service fee excluded
+  OK dexie: pipeline includes quoted, not cancelled
+  OK dexie: expense roundtrip
+  OK dexie: photo stored with id and caption
+  OK dexie: photo data roundtrip and encrypted at rest
+  OK dexie: full photo data URL is normalised before storage
+  OK dexie: photos are per customer
+  OK dexie: photo deletable
+  OK dexie: voice note stores linked offline audio
+  OK dexie: voice note title updates
+  OK dexie: voice note audio and title are encrypted at rest
+  OK dexie: exportAll shape
+  OK dexie: corrupt import rejected
+  OK dexie: corrupt import leaves every table intact
+  OK dexie: corrupt import (duplicate id) rejected
+  OK dexie: corrupt import leaves every table intact
+  OK dexie: deleteCustomer cascades
+  OK dexie: customer gone after cascade
+  OK dexie: photos gone after customer cascade
+  OK dexie: voice notes gone after customer cascade
+  OK dexie: day query finds ISO-string rows
+  OK dexie: day query finds Date-object rows
+  OK dexie: UK 01:30 row lands in the UK day window
+  OK dexie: UK 23:00 previous-day row stays out of the window
+  OK dexie: range query finds Date-object rows
+  OK dexie: upcoming finds Date-object rows
+  OK dexie: exact window is sorted and excludes cancelled rows
+  OK dexie: exact window excludes its upper bound
+  OK dexie: future query uses explicit instants
+  OK dexie: UK spring-forward calendar day is 23 hours
+  OK dexie: UK autumn-fallback calendar day is 25 hours
+  OK dexie: spring day includes last instant and excludes next midnight
+  OK dexie: autumn day includes last instant and excludes next midnight
+  OK dexie: deleteAllData empties every table
+  OK dexie: deleteAllData removes advisoros localStorage keys
+
+Test 3: db.js boot path — shim fallback (with legacy migration)
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK shim: completion failure propagates
+  OK shim: trip retry is idempotent
+  OK shim: completion advances appointment
+  OK shim: legacy customers migrated
+  OK shim: legacy customer numbering intact
+  OK shim: legacy appts migrated
+  OK shim: legacy outcome renamed
+  OK shim: settings migrated
+  OK shim: sequence guarded
+  OK shim: customer transcription audio encrypted at rest
+  OK shim: customer transcription audio decrypts
+  OK shim: search by name
+  OK shim: search by phone
+  OK shim: appointment transcription audio encrypted at rest
+  OK shim: summary requires explicit approval
+  OK shim: approved summary encrypted at rest
+  OK shim: approved summary decrypts without changing notes/audio
+  OK shim: summary is available through customer query
+  OK shim: measurement backup contains portable audio, not old-key ciphertext
+  OK shim: restored measurement audio is re-encrypted and readable
+  OK shim: summary survives backup restore encrypted
+  OK shim: deleting audio preserves approved summary
+  OK shim: appointment transcription audio decrypts
+  OK shim: getAppointmentsForDate excludes cancelled
+  OK shim: order numbering continues after backfilled legacy orders
+  OK shim: deposit via App.calculateDeposit
+  OK shim: customer totals recomputed
+  OK shim: week stats count ordered only
+  OK shim: referred survey creates one linked order without a prior order
+  OK shim: referred survey does not invent a payment balance
+  OK shim: survey retains fitting order link
+  OK shim: survey and service earnings counted without new sales
+  OK shim: cancelled service fee excluded
+  OK shim: pipeline includes quoted, not cancelled
+  OK shim: expense roundtrip
+  OK shim: photo stored with id and caption
+  OK shim: photo data roundtrip and encrypted at rest
+  OK shim: full photo data URL is normalised before storage
+  OK shim: photos are per customer
+  OK shim: photo deletable
+  OK shim: voice note stores linked offline audio
+  OK shim: voice note title updates
+  OK shim: voice note audio and title are encrypted at rest
+  OK shim: exportAll shape
+  OK shim: corrupt import rejected
+  OK shim: corrupt import leaves every table intact
+  OK shim: corrupt import (duplicate id) rejected
+  OK shim: corrupt import leaves every table intact
+  OK shim: deleteCustomer cascades
+  OK shim: customer gone after cascade
+  OK shim: photos gone after customer cascade
+  OK shim: voice notes gone after customer cascade
+  OK shim: day query finds ISO-string rows
+  OK shim: day query finds Date-object rows
+  OK shim: UK 01:30 row lands in the UK day window
+  OK shim: UK 23:00 previous-day row stays out of the window
+  OK shim: range query finds Date-object rows
+  OK shim: upcoming finds Date-object rows
+  OK shim: exact window is sorted and excludes cancelled rows
+  OK shim: exact window excludes its upper bound
+  OK shim: future query uses explicit instants
+  OK shim: UK spring-forward calendar day is 23 hours
+  OK shim: UK autumn-fallback calendar day is 25 hours
+  OK shim: spring day includes last instant and excludes next midnight
+  OK shim: autumn day includes last instant and excludes next midnight
+  OK shim: deleteAllData empties every table
+  OK shim: deleteAllData removes advisoros localStorage keys
+
+Test 4: customer deletion cascade — real Dexie
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK dexie: cascade removes full graph
+  OK dexie: cascade removes measurements
+  OK dexie: cascade removes trips
+  OK dexie: cascade removes appointments
+  OK dexie: cascade removes orders
+  OK dexie: cascade removes communications
+  OK dexie: cascade removes photos
+  OK dexie: cascade removes customer
+  OK dexie: other customer appointments survive
+  OK dexie: other customer measurements survive
+  OK dexie: other customer trips survive
+  OK dexie: other customer orders survive
+  OK dexie: other customer communications survive
+  OK dexie: other customer photos survive
+  OK dexie: other customer survives
+  OK dexie: only other measurements remain
+  OK dexie: only other trips remain
+  OK dexie: second cascade removes full graph
+  OK dexie: second cascade leaves no measurements
+  OK dexie: second cascade leaves no trips
+  OK dexie: no-appointment customer deletes cleanly
+  OK dexie: no-appointment customer gone
+  OK dexie: appointments-only customer deletes cleanly
+  OK dexie: appointments-only customer appointments gone
+  OK dexie: appointments-only customer leaves no orphan measurements
+  OK dexie: appointments-only customer leaves no orphan trips
+
+Test 5: customer deletion cascade — bundled shim
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK shim: cascade removes full graph
+  OK shim: cascade removes measurements
+  OK shim: cascade removes trips
+  OK shim: cascade removes appointments
+  OK shim: cascade removes orders
+  OK shim: cascade removes communications
+  OK shim: cascade removes photos
+  OK shim: cascade removes customer
+  OK shim: other customer appointments survive
+  OK shim: other customer measurements survive
+  OK shim: other customer trips survive
+  OK shim: other customer orders survive
+  OK shim: other customer communications survive
+  OK shim: other customer photos survive
+  OK shim: other customer survives
+  OK shim: only other measurements remain
+  OK shim: only other trips remain
+  OK shim: second cascade removes full graph
+  OK shim: second cascade leaves no measurements
+  OK shim: second cascade leaves no trips
+  OK shim: no-appointment customer deletes cleanly
+  OK shim: no-appointment customer gone
+  OK shim: appointments-only customer deletes cleanly
+  OK shim: appointments-only customer appointments gone
+  OK shim: appointments-only customer leaves no orphan measurements
+  OK shim: appointments-only customer leaves no orphan trips
+
+Test 6: operational backup roundtrip — real Dexie
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK dexie: private setting decrypts on this device
+  OK dexie: private setting is encrypted at rest
+  OK dexie: backup exports all 39 tables
+  OK dexie: backup carries photos
+  OK dexie: backup drops runtime-only settings
+  OK dexie: backup carries sequences
+  OK dexie: backup photo payloads exact
+  OK dexie: backup carries voice-note audio
+  OK dexie: import reconstructs every table equivalently
+  OK dexie: photo count after restore
+  OK dexie: photo data integrity after restore
+  OK dexie: photo customer links intact
+  OK dexie: voice note restores with links intact
+  OK dexie: settings restored
+  OK dexie: runtime settings NOT restored
+  OK dexie: device secret never travels in the backup
+  OK dexie: numbering continues after restore
+  OK dexie: order numbering continues after restore
+  OK dexie: legacy-format import restores 7 tables
+  OK dexie: legacy-format import raises customer counter
+  OK dexie: legacy-format import raises order counter
+  OK dexie: no collision after legacy import
+  OK dexie: empty backup (no tables) rejected
+  OK dexie: empty backup (no tables) leaves database intact
+  OK dexie: unknown backup table rejected
+  OK dexie: unknown backup table leaves database intact
+  OK dexie: malformed record rejected
+  OK dexie: malformed record leaves database intact
+  OK dexie: duplicate customer id rejected
+  OK dexie: duplicate customer id leaves database intact
+  OK dexie: dangling customer reference rejected
+  OK dexie: dangling customer reference leaves database intact
+  OK dexie: appointment without customerId accepted
+  OK dexie: orphan appointment restored
+  OK dexie: state restored after orphan-appointment test
+  OK dexie: trip without appointmentId accepted
+  OK dexie: communication without customerId accepted
+  OK dexie: state restored after orphan trip/comm test
+  OK dexie: dangling measurement reference rejected
+  OK dexie: dangling measurement reference leaves database intact
+  OK dexie: dangling trip reference rejected
+  OK dexie: dangling trip reference leaves database intact
+  OK dexie: non-integer id rejected
+  OK dexie: non-integer id leaves database intact
+  OK dexie: invalid photo data rejected
+  OK dexie: invalid photo data leaves database intact
+  OK dexie: invalid appointment date rejected
+  OK dexie: invalid appointment date leaves database intact
+Import failed: Error: injected import failure
+    at DB.db.orders.bulkAdd (/Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/storage.test.js:876:45)
+    at Transaction.<anonymous> (evalmachine.<anonymous>:2638:36)
+  OK dexie: mid-import failure rejected
+  OK dexie: mid-import failure leaves every table intact
+  OK dexie: corrupt photo payload rejected
+  OK dexie: corrupt photo rejection leaves data intact
+
+Test 7: operational backup roundtrip — bundled shim
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK shim: private setting decrypts on this device
+  OK shim: private setting is encrypted at rest
+  OK shim: backup exports all 39 tables
+  OK shim: backup carries photos
+  OK shim: backup drops runtime-only settings
+  OK shim: backup carries sequences
+  OK shim: backup photo payloads exact
+  OK shim: backup carries voice-note audio
+  OK shim: import reconstructs every table equivalently
+  OK shim: photo count after restore
+  OK shim: photo data integrity after restore
+  OK shim: photo customer links intact
+  OK shim: voice note restores with links intact
+  OK shim: settings restored
+  OK shim: runtime settings NOT restored
+  OK shim: device secret never travels in the backup
+  OK shim: numbering continues after restore
+  OK shim: order numbering continues after restore
+  OK shim: legacy-format import restores 7 tables
+  OK shim: legacy-format import raises customer counter
+  OK shim: legacy-format import raises order counter
+  OK shim: no collision after legacy import
+  OK shim: empty backup (no tables) rejected
+  OK shim: empty backup (no tables) leaves database intact
+  OK shim: unknown backup table rejected
+  OK shim: unknown backup table leaves database intact
+  OK shim: malformed record rejected
+  OK shim: malformed record leaves database intact
+  OK shim: duplicate customer id rejected
+  OK shim: duplicate customer id leaves database intact
+  OK shim: dangling customer reference rejected
+  OK shim: dangling customer reference leaves database intact
+  OK shim: appointment without customerId accepted
+  OK shim: orphan appointment restored
+  OK shim: state restored after orphan-appointment test
+  OK shim: trip without appointmentId accepted
+  OK shim: communication without customerId accepted
+  OK shim: state restored after orphan trip/comm test
+  OK shim: dangling measurement reference rejected
+  OK shim: dangling measurement reference leaves database intact
+  OK shim: dangling trip reference rejected
+  OK shim: dangling trip reference leaves database intact
+  OK shim: non-integer id rejected
+  OK shim: non-integer id leaves database intact
+  OK shim: invalid photo data rejected
+  OK shim: invalid photo data leaves database intact
+  OK shim: invalid appointment date rejected
+  OK shim: invalid appointment date leaves database intact
+Import failed partway through — rolling back to pre-import state: Error: injected import failure
+    at DB.db.orders.bulkAdd (/Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/storage.test.js:876:45)
+    at Object.importAll (evalmachine.<anonymous>:2662:34)
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at process.processImmediate (node:internal/timers:472:9)
+    at async runBackupRoundtrip (/Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/storage.test.js:880:9)
+    at async /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/storage.test.js:1480:3
+  OK shim: mid-import failure rejected
+  OK shim: mid-import failure leaves every table intact
+  OK shim: corrupt photo payload rejected
+  OK shim: corrupt photo rejection leaves data intact
+
+Test 8: backup envelope (ExportService)
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK envelope: authoritative storage contract is schema 9 / format 1
+  OK envelope: backupFormatVersion present
+  OK envelope: databaseSchemaVersion present
+  OK envelope: appVersion present
+  OK envelope: legacy version field kept
+  OK envelope: exportedAt timestamp
+  OK envelope: carries all 39 data tables
+  OK envelope: photos in backup
+  OK envelope: no proxy secret in backup config
+  OK envelope: secret absent from serialized file
+  OK envelope: full restore reconstructs data
+  OK envelope: config restored
+  OK envelope: import never overwrites device proxy secret
+  OK envelope: unknown legacy version rejected
+  OK envelope: future format version rejected
+  OK envelope: future database schema rejected
+  OK envelope: future schema rejection leaves every table intact
+  OK envelope: malformed exportedAt metadata rejected
+  OK envelope: malformed exportedAt leaves every table intact
+  OK envelope: malformed database schema metadata rejected
+  OK envelope: malformed database schema leaves every table intact
+  OK envelope: malformed app version metadata rejected
+  OK envelope: malformed app version leaves every table intact
+  OK envelope: corrupt data rejected
+  OK envelope: malformed JSON rejected
+  OK envelope: malformed JSON leaves database untouched
+  OK envelope: legacy 5.0 file still imports
+  OK envelope: legacy 4.0 file still imports
+  OK envelope: unknown config key rejected
+  OK envelope: type-mismatched config value rejected
+  OK envelope: injected secret cannot override device secret
+
+Test 9: cross-install restore — real Dexie
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK dexie: backup carries plaintext customer PII
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK dexie: restore under different key decrypts
+  OK dexie: restored row re-encrypted at rest
+  OK dexie: restored customer searchable
+
+Test 10: cross-install restore — bundled shim
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK shim: backup carries plaintext customer PII
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK shim: restore under different key decrypts
+  OK shim: restored row re-encrypted at rest
+  OK shim: restored customer searchable
+
+Test 11: mutation boundaries — real Dexie
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK dexie: outcome creates exactly one linked order
+  OK dexie: door payment applied and clamped
+  OK dexie: retry token prevents duplicate payment
+  OK dexie: re-save preserves paid amount without resurrecting full balance
+  OK dexie: reconciliation removes duplicate linked orders
+  OK dexie: payment never exceeds balance
+  OK dexie: ordered outcome reversal removes linked order and totals
+  OK dexie: outcome mutation failure rolls back all records
+  OK dexie: fitting payment context resolves explicit older order
+  OK dexie: fitting payment/retry preserves other order
+  OK dexie: stale displayed order payment blocked before changes
+  OK dexie: legacy unlinked payment blocked before changes
+  OK dexie: unlinked fitting can finish without inventing a payment
+  OK dexie: missing linked order payment blocked before changes
+  OK dexie: different customer payment blocked before changes
+  OK dexie: externally managed referral payment blocked before changes
+  OK dexie: new sale deposit uses own order despite newer customer order
+
+Test 12: mutation boundaries — bundled shim
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK shim: outcome creates exactly one linked order
+  OK shim: door payment applied and clamped
+  OK shim: retry token prevents duplicate payment
+  OK shim: re-save preserves paid amount without resurrecting full balance
+  OK shim: reconciliation removes duplicate linked orders
+  OK shim: payment never exceeds balance
+  OK shim: ordered outcome reversal removes linked order and totals
+  OK shim: fitting payment context resolves explicit older order
+  OK shim: fitting payment/retry preserves other order
+  OK shim: stale displayed order payment blocked before changes
+  OK shim: legacy unlinked payment blocked before changes
+  OK shim: unlinked fitting can finish without inventing a payment
+  OK shim: missing linked order payment blocked before changes
+  OK shim: different customer payment blocked before changes
+  OK shim: externally managed referral payment blocked before changes
+  OK shim: new sale deposit uses own order despite newer customer order
+
+Test 13: Phase 0 fixtures — real Dexie
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK dexie: current-install fixture source counts match manifest
+  OK dexie: current-install fixture restores expected records
+  OK dexie: current-install fixture enforces sequence floors
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK dexie: legacy-backup fixture source counts match manifest
+  OK dexie: legacy-backup fixture restores expected records
+  OK dexie: legacy-backup fixture enforces sequence floors
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK dexie: pre-phase0-current-backup fixture source counts match manifest
+  OK dexie: pre-phase0-current-backup fixture restores expected records
+  OK dexie: pre-phase0-current-backup fixture enforces sequence floors
+
+Test 14: Phase 0 fixtures — bundled shim
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK shim: current-install fixture source counts match manifest
+  OK shim: current-install fixture restores expected records
+  OK shim: current-install fixture enforces sequence floors
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK shim: legacy-backup fixture source counts match manifest
+  OK shim: legacy-backup fixture restores expected records
+  OK shim: legacy-backup fixture enforces sequence floors
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK shim: pre-phase0-current-backup fixture source counts match manifest
+  OK shim: pre-phase0-current-backup fixture restores expected records
+  OK shim: pre-phase0-current-backup fixture enforces sequence floors
+
+Test 15: Phase 1 durable work storage — real Dexie
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK dexie: lead PII encrypted at rest
+  OK dexie: lead PII decrypts
+  OK dexie: task PII encrypted at rest
+  OK dexie: completion is idempotent
+  OK dexie: snooze is idempotent
+  OK dexie: derived suggestion deduplicates
+  OK dexie: lead conversion is retry-safe
+  OK dexie: Phase 1 tables exported readable
+  OK dexie: Phase 1 graph restores
+  OK dexie: customer deletion removes linked Phase 1 graph
+
+Test 16: Phase 1 durable work storage — bundled shim
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK shim: lead PII encrypted at rest
+  OK shim: lead PII decrypts
+  OK shim: task PII encrypted at rest
+  OK shim: completion is idempotent
+  OK shim: snooze is idempotent
+  OK shim: derived suggestion deduplicates
+  OK shim: lead conversion is retry-safe
+  OK shim: Phase 1 tables exported readable
+  OK shim: Phase 1 graph restores
+  OK shim: customer deletion removes linked Phase 1 graph
+
+Test 17: Phase 2 quote storage — real Dexie
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK dexie: quote totals derive from line items
+  OK dexie: historic appointment value is untouched
+  OK dexie: quote content encrypted at rest
+  OK dexie: draft update replaces items and recalculates
+  OK dexie: issued quote is immutable
+  OK dexie: issued quote can be explicitly expired idempotently
+  OK dexie: version preserves number and supersedes old
+  OK dexie: accepted quote converts exactly once
+  OK dexie: quote sequence initialized
+  OK dexie: quote graph backup restores
+  OK dexie: quote numbering continues after restore
+
+Test 18: Phase 2 quote storage — bundled shim
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK shim: quote totals derive from line items
+  OK shim: historic appointment value is untouched
+  OK shim: quote content encrypted at rest
+  OK shim: draft update replaces items and recalculates
+  OK shim: issued quote is immutable
+  OK shim: issued quote can be explicitly expired idempotently
+  OK shim: version preserves number and supersedes old
+  OK shim: accepted quote converts exactly once
+  OK shim: quote sequence initialized
+  OK shim: quote graph backup restores
+  OK shim: quote numbering continues after restore
+
+Test 19: Phase 3 job storage — real Dexie
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK dexie: job creation dedupes operation but permits multiple jobs per order
+  OK dexie: job PII encrypted at rest
+  OK dexie: job visit scheduling is retry-safe
+  OK dexie: scheduling failure rolls back appointment
+  OK dexie: mandatory checklist blocks completion
+  OK dexie: open issue blocks completion
+  OK dexie: issue resolution requires confirmation
+  OK dexie: completion and sign-off are explicit and separate from payment
+  OK dexie: job operational PII encrypted
+  OK dexie: job graph backup restores
+  OK dexie: customer deletion removes job graph
+
+Test 20: Phase 3 job storage — bundled shim
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK shim: job creation dedupes operation but permits multiple jobs per order
+  OK shim: job PII encrypted at rest
+  OK shim: job visit scheduling is retry-safe
+  OK shim: mandatory checklist blocks completion
+  OK shim: open issue blocks completion
+  OK shim: issue resolution requires confirmation
+  OK shim: completion and sign-off are explicit and separate from payment
+  OK shim: job operational PII encrypted
+  OK shim: job graph backup restores
+  OK shim: customer deletion removes job graph
+
+Test 21: Phase 4 finance storage — real Dexie
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK dexie: unambiguous legacy payment migrates exactly once
+  OK dexie: ledger payment idempotent and projects order
+  OK dexie: refunds are append-only and cannot over-credit
+  OK dexie: invoice totals derive from items
+  OK dexie: issued invoice immutable and credits bounded
+  OK dexie: invoice balance reconciles payments and credits
+  OK dexie: document metadata links without binary
+  OK dexie: finance PII encrypted at rest
+  OK dexie: finance graph backup restores
+  OK dexie: invoice numbering continues after restore
+
+Test 22: Phase 4 finance storage — bundled shim
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK shim: unambiguous legacy payment migrates exactly once
+  OK shim: ledger payment idempotent and projects order
+  OK shim: refunds are append-only and cannot over-credit
+  OK shim: invoice totals derive from items
+  OK shim: issued invoice immutable and credits bounded
+  OK shim: invoice balance reconciles payments and credits
+  OK shim: document metadata links without binary
+  OK shim: finance PII encrypted at rest
+  OK shim: finance graph backup restores
+  OK shim: invoice numbering continues after restore
+
+Test 23: Phase 5 profitability storage — real Dexie
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK dexie: quote profitability is deterministic
+  OK dexie: financial mode changes revenue basis
+  OK dexie: actual costs are explicit, rounded and idempotent
+  OK dexie: later policy does not rewrite historic result
+  OK dexie: job cost PII encrypted at rest
+  OK dexie: Phase 5 profitability graph restores
+
+Test 24: Phase 5 profitability storage — bundled shim
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK shim: quote profitability is deterministic
+  OK shim: financial mode changes revenue basis
+  OK shim: actual costs are explicit, rounded and idempotent
+  OK shim: later policy does not rewrite historic result
+  OK shim: job cost PII encrypted at rest
+  OK shim: Phase 5 profitability graph restores
+
+Test 25: Phase 6 retention storage — real Dexie
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK dexie: retention records are linked, retry-safe and lifecycle-aware
+  OK dexie: consent history retains current preference
+  OK dexie: communication lifecycle events are append-only and idempotent
+  OK dexie: integration provenance, conflicts and outbox retain state
+  OK dexie: Phase 6 sensitive metadata encrypted
+  OK dexie: Phase 6 graph backup restores
+  OK dexie: customer deletion removes retention and consent graph
+
+Test 26: Phase 6 retention storage — bundled shim
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK shim: retention records are linked, retry-safe and lifecycle-aware
+  OK shim: consent history retains current preference
+  OK shim: communication lifecycle events are append-only and idempotent
+  OK shim: integration provenance, conflicts and outbox retain state
+  OK shim: Phase 6 sensitive metadata encrypted
+  OK shim: Phase 6 graph backup restores
+  OK shim: customer deletion removes retention and consent graph
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK dexie: phone write is idempotent and never invents sent flags
+  OK dexie: invalid contact outcome rejected
+  OK dexie: stale agreement rejected without changing history
+  OK dexie: unanswered calls retained as separate evidence
+  OK dexie: correction is append-only and duplicate-safe
+  OK dexie: missing correction target rejected
+  OK dexie: ended visits allow history correction without sent flags
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK shim: phone write is idempotent and never invents sent flags
+  OK shim: invalid contact outcome rejected
+  OK shim: stale agreement rejected without changing history
+  OK shim: unanswered calls retained as separate evidence
+  OK shim: correction is append-only and duplicate-safe
+  OK shim: missing correction target rejected
+  OK shim: ended visits allow history correction without sent flags
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK dexie: new context writes encrypted
+  OK dexie: edits protect context and retain photo bytes
+Encrypted 3 customer record(s)
+Encrypted 1 appointment record(s)
+  OK dexie: interruption propagates without deleting data
+  OK dexie: migration resumes and is idempotent
+  OK dexie: migrated context imports under different key
+  OK dexie: imported context encrypted at rest
+AdvisorOS: migrated 7 record(s) from the previous storage engine
+Migrated 1 appointment(s) from legacy outcome ids
+Backfilled 2 legacy order(s) from sold appointments
+Database initialized
+  OK shim: new context writes encrypted
+  OK shim: edits protect context and retain photo bytes
+Encrypted 3 customer record(s)
+Encrypted 1 appointment record(s)
+  OK shim: interruption propagates without deleting data
+  OK shim: migration resumes and is idempotent
+  OK shim: migrated context imports under different key
+  OK shim: imported context encrypted at rest
+
+ALL TESTS PASSED
+OK: feature detects microphone recording support
+OK: opening recorder does not request or start recording automatically
+OK: recorder clearly states local-only and no upload
+OK: recorder exposes explicit Start and Stop controls
+OK: voice-note list renders playback and duration
+OK: voice-note title is escaped
+OK: voice-note list exposes rename and permanent-delete paths
+OK: finished recording saves local audio with record links
+OK: finished recording returns to linked visit
+OK: save confirmation is local-only
+
+VOICE NOTE TESTS PASSED
+
+Test A: serverless proxy (api/claude.mjs)
+[claude.mjs] ALLOWED_ORIGIN is not set — CORS defaults to "*". Set ALLOWED_ORIGIN to your site's origin (and AI_SECRET for a shared-secret guard) so strangers can't use this public URL.
+  OK proxy: GET rejected 405
+  OK proxy: OPTIONS 204
+  OK proxy: CORS echo origin
+  OK proxy: CORS allows x-ai-key
+[claude.mjs] Redis REST credentials not set — rate limiting falls back to per-instance in-memory state. Connect Upstash and set either UPSTASH_REDIS_REST_* or KV_REST_API_* variables.
+  OK proxy: bad type 400
+  OK proxy: ocr without image 400
+  OK proxy: draft without context 400
+  OK proxy: oversized image 413
+  OK proxy: oversized text field 413
+  OK proxy: oversized body 413
+  OK proxy: unsupported image media type 400
+  OK proxy: missing secret 403
+  OK proxy: wrong secret 403
+  OK proxy: disallowed origin 403
+[claude.mjs] Proxy misconfigured: set ALLOWED_ORIGIN in production
+  OK proxy: production without ALLOWED_ORIGIN fails closed 500
+[claude.mjs] Proxy misconfigured: set AI_SECRET in production
+  OK proxy: production without AI_SECRET fails closed 500
+  OK proxy: ping posts to /v1/messages
+  OK proxy: ping sends API key header
+  OK proxy: ping uses haiku 4.5
+  OK proxy: ping carries no image payload
+  OK proxy: ping 200 with pong
+  OK proxy: ping usage enriched with cost
+  OK proxy: ping returns model + type
+  OK proxy: every upstream call hits the allowlisted endpoint
+  OK proxy: ocr model passthrough
+  OK proxy: ocr sends base64 image block
+  OK proxy: ocr sends OCR system prompt
+  OK proxy: ocr prompt keeps slot ranges whole
+  OK proxy: ocr 200 forwards text
+  OK proxy: unknown model falls back to ocr default
+  OK proxy: fallback model request succeeds
+  OK proxy: draft model default haiku 4.5
+  OK proxy: draft sends context string
+  OK proxy: draft uses max_tokens cap for haiku
+  OK proxy: draft uses spec master prompt
+  OK proxy: draft prompt demands JSON only
+  OK proxy: draft prompt includes configured social links
+  OK proxy: draft 200 with text
+  OK proxy: sonnet max_tokens 2000
+  OK proxy: upstream 401 -> 502 auth
+  OK proxy: upstream 429 -> 502 rate_limited
+  OK proxy: upstream 529 -> 502 overloaded
+  OK proxy: upstream errors are generic, no provider detail leaked
+  OK proxy: upstream error codes still mapped for the client
+  OK proxy: sonnet cost computed
+  OK proxy: receipt without image 400
+  OK proxy: receipt model passthrough
+  OK proxy: receipt sends base64 image block
+  OK proxy: receipt system prompt lists categories
+  OK proxy: receipt prompt anchors today
+  OK proxy: receipt 200 forwards text
+  OK proxy: unknown model falls back to receipt default
+  OK proxy: receipt fallback model request succeeds
+  OK proxy: supplier quote uses fixed extraction prompt
+  OK proxy: supplier quote image request succeeds
+  OK proxy: quick capture uses cautious classification prompt
+  OK proxy: quick capture image request succeeds
+  OK proxy: social post without approved context 400
+  OK proxy: social prompt prohibits invented testimonials and precise addresses
+  OK proxy: social request carries only the approved context string
+  OK proxy: social post request succeeds
+  OK proxy: assistant without snapshot 400
+  OK proxy: assistant model default haiku 4.5
+  OK proxy: assistant uses companion prompt
+  OK proxy: assistant carries snapshot + turn
+  OK proxy: assistant history default none
+  OK proxy: assistant 200 forwards text
+  OK proxy: customer brief rejects an empty fact list
+  OK proxy: customer brief caps each fact
+  OK proxy: customer brief uses dedicated restrictive prompt
+  OK proxy: customer brief forwards only the fact array
+  OK proxy: customer brief happy path
+  OK proxy: route without text 400
+  OK proxy: route model default haiku 4.5
+  OK proxy: route sends the question, not business data
+  OK proxy: route uses the intent-router prompt
+  OK proxy: route 200 forwards command
+  OK proxy: rate limit allows within window
+  OK proxy: rate limit blocks excess with 429
+  OK proxy: rate limit 429 body + retry-after header
+  OK proxy: rate limit is per client address
+  OK proxy: hung upstream aborts -> 504 timeout
+  OK proxy: timeout message is generic, no internals leaked
+
+Test B: client AI service (js/services/ai.js)
+  OK client: disabled without proxyUrl
+  OK client: proxyUrl required
+  OK client: ping payload type
+  OK client: posts to configured proxyUrl
+  OK client: content-type json
+  OK client: testConnection ok
+  OK client: sends X-AI-Key when secret set
+  OK client: no X-AI-Key without secret
+  OK client: ocr payload carries model
+  OK client: ocr payload carries base64 + mediaType
+  OK client: ocr maps fields and trims
+  OK client: non-JSON falls back to empty fields + raw text
+  OK client: fenced JSON still maps fields
+  OK client: preamble + fences still map fields
+  OK client: trims values and drops unknown keys
+  OK client: slot time kept whole as 15:00-18:00
+  OK client: single 12h time canonicalized to 15:00
+  OK client: unparsable time passes through untouched
+  OK client: receipt payload type/model
+  OK client: receipt payload carries base64 + mediaType
+  OK client: receipt maps fields, trims and drops unknown keys
+  OK client: supplier quote uses dedicated request type
+  OK client: supplier quote parser normalizes reviewed fields
+  OK client: quick capture uses dedicated request type
+  OK client: quick capture classifies and normalizes visit data
+  OK client: unknown appointment type is safely left blank
+  OK client: social post sends only approved descriptive fields
+  OK client: social captions and safe hashtags are normalized
+  OK client: unknown receipt category falls back to other
+  OK client: fenced receipt JSON still maps fields
+  OK client: receipt non-JSON degrades with raw text
+  OK client: draft payload type/model
+  OK client: draft context stringified
+  OK client: draft returns text
+  OK client: draft parses nudge + draft_message
+  OK client: customer brief uses dedicated request type
+  OK client: customer brief sends only allowlisted facts
+  OK client: customer brief parses strict JSON shape
+  OK client: customer brief rejects non-JSON model output
+  OK client: _parseDraft plain text
+  OK client: _parseDraft fenced json
+  OK client: _parseDraft json-with-preamble
+  OK client: _parseDraft missing nudge tolerated
+  OK client: _parseDraft junk keeps raw
+  OK client: upstream error maps to message
+  OK client: network failure degrades gracefully
+  OK client: timeout degrades gracefully
+  OK client: lastUsage recorded for draft
+  OK client: formatUsage includes cost
+  OK client: assistant payload type/model
+  OK client: assistant snapshot stringified
+  OK client: assistant carries turn text
+  OK client: assistant returns reply
+  OK client: assistant suggestions whitelisted
+  OK client: _parseAssistant plain text fallback
+  OK client: _parseAssistant fenced json
+  OK client: _parseAssistant preamble json keeps whitelist
+  OK client: _parseAssistant junk keeps raw + no suggestions
+  OK client: route payload type/model/text
+  OK client: routeCommand returns the parsed command
+  OK client: _parseRoute preamble json
+  OK client: _parseRoute rejects unknown commands
+  OK client: _parseRoute junk defaults
+  OK client: routeCommand degrades on failure
+
+ALL TESTS PASSED
+  OK server: /health 200 ok
+[claude.mjs] ALLOWED_ORIGIN is not set — CORS defaults to "*". Set ALLOWED_ORIGIN to your site's origin (and AI_SECRET for a shared-secret guard) so strangers can't use this public URL.
+  OK server: GET rejected 405
+  OK server: OPTIONS 204
+  OK server: CORS echo origin
+  OK server: CORS allows x-ai-key
+  OK server: /api/ai OPTIONS 204 (backwards-compatible mount)
+[claude.mjs] Redis REST credentials not set — rate limiting falls back to per-instance in-memory state. Connect Upstash and set either UPSTASH_REDIS_REST_* or KV_REST_API_* variables.
+  OK server: bad type 400
+  OK server: oversized body 413 via JSON contract
+  OK server: missing secret 403
+  OK server: wrong secret 403
+  OK server: disallowed origin 403
+  OK server: allowed origin reaches upstream
+[claude.mjs] Proxy misconfigured: set ALLOWED_ORIGIN in production
+  OK server: production without ALLOWED_ORIGIN fails closed 500
+[claude.mjs] Proxy misconfigured: set AI_SECRET in production
+  OK server: production without AI_SECRET fails closed 500
+  OK server: production configured passes the guard
+  OK server: ping 200 ok:true
+  OK server: ping returns model + type + usage
+  OK server: upstream 401 -> 502 auth
+  OK server: provider error detail never reaches the client
+  OK server: upstream 529 -> 502 overloaded
+  OK server: rate limit allows within window
+  OK server: rate limit blocks excess with 429
+  OK server: rate limit is per client address
+  OK server (redis): rate limit allows within window
+  OK server (redis): rate limit blocks excess with 429
+  OK server (redis): one atomic Redis script runs for every request
+  OK server (redis): rate limit is per client address
+[claude.mjs] Shared usage protection unavailable
+  OK server (redis): production outage fails closed with retryable 503
+
+ALL PROXY-SERVER TESTS PASSED
+OK: CompanionFeature registered
+OK: plain key routes
+OK: alias "Money & Tax" routes to money
+OK: alias "follow ups" routes
+OK: help phrasing routes
+OK: greeting routes
+OK: unknown routes to default
+OK: empty routes to default
+OK: Home prefers the promised arrival window
+OK: Home ignores an incomplete arrival window
+OK: Week facts carry earnings/sales/target/orders
+OK: Week text celebrates the target
+OK: Week suggestions whitelisted
+OK: Money facts carry week earnings
+OK: Money facts carry month expenses
+OK: Money facts carry tax estimate
+OK: Money actions include Open Money
+OK: Money actions include Log Expense
+OK: Today facts carry visit count
+OK: Today facts carry done count
+OK: Today facts carry next visit
+OK: Today text names remaining visits
+OK: Today actions include My Day
+OK: Next visit names the customer
+OK: Next visit computes an ETA from the route model
+OK: Next visit offers the morning message draft
+OK: Follow-ups text counts due items
+OK: Follow-ups facts list due customers
+OK: Follow-up action text is trimmed of the not-sent suffix
+OK: Follow-ups action present
+OK: Greeting mentions the due count
+OK: Help suggests the commands
+OK: Default answer is honest about limits
+OK: All rule suggestions stay in the whitelist
+OK: Snapshot carries today visits
+OK: Snapshot visit rows carry name/time
+OK: Snapshot carries week figures
+OK: Snapshot carries month money
+OK: Snapshot carries due follow-ups
+OK: Snapshot carries weather
+OK: My Day opens the weekly calendar panel in a modal
+OK: "messages" routes to the message rule
+OK: "who hasn't paid" routes to orders
+OK: Period extractor finds "june"
+OK: Period extractor ignores non-period text
+OK: Day extractor finds "tomorrow"
+OK: Welcome chips are live: next visit + intro follow-up
+OK: Messages rule names the owed booking
+OK: Messages rule reports intro-not-sent with the date
+OK: Messages rule clears a customer once the intro is sent
+OK: Person lookup carries the next visit
+OK: Person lookup carries outstanding balance
+OK: Person lookup offers the intro draft
+OK: Person lookup with no match returns null
+OK: Person lookup offers a picker for multiple matches
+OK: Unpaid sweep lists the outstanding order
+OK: Order-number lookup shows balance due
+OK: Money period carries earned commission
+OK: Money period carries sales value
+OK: Money period breaks expenses into top categories
+OK: Date rule counts tomorrow visits
+OK: Date rule handles an empty day
+OK: Follow-ups filter by kind (quotes)
+OK: Home starts with the advisor name and gold full stop
+OK: Home exposes scan and manual fallbacks without the redundant quick-add labels
+OK: Appointment feed uses the single Upcoming heading
+OK: Home puts the calendar above the thumb-reachable scan control
+OK: Home does not render the Route section
+OK: Home renders one appointment schedule panel
+OK: Schedule contains featured visit and compact rows
+OK: Featured upcoming appointment renders saved customer context
+OK: Schedule shows promised time ranges without redundant labels
+OK: Featured visit shows concise saved customer context
+OK: Featured visit shows sourced visit and area context
+OK: Featured visit brief remains addressable for an optional verified AI rephrase
+OK: Featured visit exposes the three field actions
+OK: Home leaves arrival and departure to automatic trip state instead of duplicate taps
+OK: Local customer brief combines operational facts across Customer 360 history
+OK: Local brief reports repeat-customer history without inventing detail
+OK: Local brief includes context saved directly on the customer profile
+OK: Snapshot visits carry no street addresses
+OK: Snapshot visit times are UK wall-clock
+OK: Snapshot date is the UK calendar day
+OK: Draft context carries no address/postcode/lead source
+OK: Draft context keeps name + quote value
+OK: Draft context keeps the order summary
+
+COMPANION TEST PASSED
+quick capture routes visits and expenses safely
+  OK visit alerts default to enabled
+  OK visit reminder is scheduled 15 minutes before
+  OK phone notification names the next appointment
+  OK notification deep-links to the visit
+  OK visible app shows actionable reminder sheet
+  OK completed visit does not alert
+VISIT REMINDER TESTS PASSED
+  OK duration helper records elapsed minutes
+  OK arrival starts on-site state
+  OK arrival protects the active visit from re-locking
+  OK leave records an end timestamp
+  OK leave records visit duration
+  OK leaving restarts normal lock timing
+  OK advisor receives duration confirmation
+ON-SITE TIMER TESTS PASSED
+OK: A booking 10 days out gets an intro task
+OK: The intro task points at the far-out booking
+OK: The intro task is due with the pre_intro template
+OK: Tomorrow first contact combines introduction and confirmation
+OK: Combined communication suppresses duplicate standalone intro
+OK: Intro task drops once introSent is set
+OK: Intro task drops when customer communication history shows a sent message
+OK: Returning customers get no intro task
+OK: Atomic sent-state mapping clears both combined communication obligations
+OK: Concluded visits never generate pre-visit follow-ups even with confirmed status
+OK: Far-out first contact has standalone introduction
+OK: Tomorrow combines even outside exact 24 hours
+OK: Returning customer gets confirmation without another intro
+OK: Same-day first contact gets combined message
+OK: Same-day returning customer still gets reminder
+OK: Confirmed reminder does not repeat
+OK: Pre-visit purpose expires at visit start
+OK: Cancelled appointment has no pre-visit message
+OK: UK tomorrow classification survives autumn clock change
+
+FOLLOWUPS TEST PASSED
+OK: stable quote natural key
+OK: unlinked derived suggestion is preserved
+OK: linked durable task replaces derived duplicate
+OK: future snooze is not due
+OK: manual task merges alongside source-linked suggestion
+OK: blank title rejected
+OK: invalid due date rejected
+OK: manual task created with normalized defaults
+OK: completion operation is idempotent
+OK: unresolved source suggestion returns after linked record resolves/disappears
+OK: completed, cancelled and linked order resolve snoozed/source reminders
+OK: manual, service, postfit and missing source reminders preserved
+OK: resolution never invents sent flags
+OK: automatic resolution is idempotent
+OK: other customer order does not clear a quote
+OK: cancelled order does not clear a quote
+Tasks: source reconciliation deferred Error: Synthetic read failure
+    at DB.getAppointment (/Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/tasks.test.js:111:43)
+    at Object.merge (eval at <anonymous> (/Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/tasks.test.js:39:10), <anonymous>:78:33)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/tasks.test.js:112:12
+Tasks: source reconciliation deferred Error: Synthetic read failure
+    at DB.getAppointment (/Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/tasks.test.js:111:43)
+    at Object.merge (eval at <anonymous> (/Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/tasks.test.js:39:10), <anonymous>:78:33)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/tasks.test.js:112:12
+Tasks: source reconciliation deferred Error: Synthetic read failure
+    at DB.getAppointment (/Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/tasks.test.js:111:43)
+    at Object.merge (eval at <anonymous> (/Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/tasks.test.js:39:10), <anonymous>:78:33)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/tasks.test.js:112:12
+OK: read failure never clears reminders
+OK: old intro and reminder consolidate into current combined purpose
+OK: latest explicit snooze survives purpose transition
+OK: duplicate history retained with consolidation reason
+OK: expired saved previsit reminder is resolved without pretending sent
+OK: no answer fulfills neither purpose
+OK: explicit phone outcome fulfills both without sent flags
+OK: saved combined reminder resolves by phone provenance
+OK: changed slot invalidates agreement but retains introduction
+OK: phone evidence never transfers to a reassigned customer
+OK: original combined phone record is effective
+OK: retracted record no longer fulfills either purpose
+OK: correction does not invalidate another independent introduction
+OK: lead inbox is a secondary route, not primary navigation
+OK: empty inbox has an enquiry CTA
+OK: empty-state illustration sizing does not enlarge CTA icons
+OK: manual enquiry saves without a customer or appointment
+OK: enquiry safely exists before conversion
+OK: active enquiry renders in the inbox
+OK: book visit passes leadId to existing appointment flow
+OK: lead PII is not serialized into navigation
+OK: customer-only conversion opens Customer 360
+OK: mark lost requires and stores a reason
+OK: appointment save delegates atomic conversion to the DB domain API
+OK: appointment form hydrates PII locally from leadId
+
+LEADS TEST PASSED
+OK: quotes is a secondary workflow, not a new primary nav item
+OK: subtotal derives from line items with currency rounding
+OK: discount, tax and total are derived deterministically
+OK: issued quote detail shows number, items and version action
+OK: issued quote cannot be edited in place
+OK: status and version actions use DB domain APIs
+OK: saved tax treatment matches the live tax-inclusive preview
+OK: new version opens as a separate draft
+OK: visit detail can create a linked structured quote
+OK: Customer 360 lists and creates structured quotes
+OK: Orders board merges structured and legacy quoted cards
+OK: legacy appointment quote pipeline remains intact
+
+QUOTES TEST PASSED
+OK: loads canonical quote envelope
+OK: uses authoritative totals
+OK: customer-ready identifying fields render
+OK: line items and totals render
+OK: user content is escaped
+OK: issued quote has no draft watermark
+OK: draft preview is unmistakably labelled
+OK: print stylesheet works offline
+OK: linked appointment quote does not duplicate existing derived chase
+OK: unlinked quote near expiry creates attention
+OK: older issued unlinked quote creates one follow-up
+OK: accepted unconverted quote requests conversion
+OK: converted accepted quote creates no task
+OK: structured quote task links customer
+OK: Jobs is secondary and does not change primary navigation
+OK: order job list opens existing jobs and intentionally allows another
+OK: job detail includes operational stage and field-service workspace
+OK: linked fitting visit preserves and displays its arrival window
+OK: current operational stage is exposed accessibly
+OK: completion and sign-off remain explicit checked actions, separate from stage/payment
+OK: stage transition uses the DB domain API
+OK: job visit reuses the appointment scheduler with an explicit return role
+OK: job scheduling puts no customer PII in the URL
+OK: job appointment save retains arrival-window validation and uses a retry-safe job domain operation
+OK: order sheet opens its jobs without altering commercial stages
+OK: Customer 360 lists linked jobs
+OK: legacy order stage workflow remains present
+
+JOBS TEST PASSED
+OK: mandatory incomplete checklist blocks normal completion
+OK: open issue is included in completion blockers
+OK: checklist and issue render
+OK: user content is escaped
+OK: completion copy separates payment
+OK: checklist response is persisted explicitly
+OK: completed mandatory checklist with no issues is clear
+OK: return-visit job creates one task
+OK: task has stable job key
+OK: existing appointment service task prevents duplicate job task
+OK: clear active job creates no task
+OK: Invoices is secondary and does not alter primary navigation
+OK: dynamic invoice item controls have unique associated labels
+OK: order finance view lists invoices and records payments
+OK: payment ledger exposes append-only corrections and receipt
+OK: finance actions use native accessible controls
+OK: issued invoice shows items, reconciled balance and document action
+OK: issue uses invoice domain API
+OK: payment write is explicit and retry-keyed
+OK: order balance is reconciled from the ledger
+OK: refund and reversal append domain records rather than editing history
+OK: Orders links finance documents while preserving compatibility payment UX
+OK: Customer 360 includes invoices and immutable ledger history
+
+INVOICES TEST PASSED
+OK: invoice loads canonical envelope and items
+OK: invoice document contains customer and due total
+OK: invoice content is escaped
+OK: receipt is distinct customer-ready document
+OK: credit is represented as credit document
+OK: documents have no network dependency
+OK: draft invoice is visibly marked
+OK: unlinked overdue invoice creates task
+OK: overdue task uses reconciled partial balance
+OK: linked order payment avoids duplicate invoice task
+OK: paid and future invoices create no task
+OK: invoice task has stable key
+✓ supplier purchase workflow is additive and order-stage safe
+✓ supplier delays and issues appear in follow-ups
+OK: outside-hours warning is deterministic
+OK: duration-aware overlap detected
+OK: leave blocks capacity
+OK: suggestions are advisory and avoid occupied time
+CAPACITY TEST PASSED
+✓ retention lifecycle and explicit contact preference workflow
+✓ due aftercare appears in follow-ups once
+OK: opt-out preference blocks contact
+OK: app handoff records handed_off only
+OK: handoff has no sent timestamp
+OK: handoff lifecycle remains unconfirmed
+OK: mixed-version database fails closed without marking sent
+OK: advisor confirmation is separate explicit state
+OK: confirmation adds the sent timestamp
+OK: confirmed lifecycle is safe for sent history
+OK: manual inbound reply is recorded with provenance
+OK: built-in manual adapter is disabled by default
+OK: enabled adapter queues local-first outbox with provenance
+OK: disconnect preserves local data and provenance links
+
+Test A: Utils.firstNameFrom (honorific handling)
+  OK plain name keeps first word
+  OK Dr title skipped
+  OK Mrs title skipped
+  OK Mr title skipped
+  OK standalone title never becomes the greeting name
+  OK name parts strip the title before saving
+  OK customer greeting skips a title-only firstName and uses scanned full name
+  OK customer greeting strips a title from profile fullName
+  OK empty falls back to "there"
+  OK missing falls back to "there"
+
+Test B: UK-time scheduling math
+  OK evening today at 18:00 is 6h out
+  OK morning tomorrow at 08:00 is 20h out
+  OK a passed slot fires immediately (catch-up)
+  OK day distance: tomorrow visit is 1
+  OK day distance: today visit is 0
+  OK day distance: yesterday visit is -1
+
+Test C: reschedule places timers from upcoming appointments
+  OK three timers scheduled
+  OK evening-before fires today at 18:00
+  OK morning-of fires tomorrow at 09:00 (11:00 visit - 2h buffer)
+  OK morning-of for today fires now (past 08:00 catch-up)
+
+Test C2: a changed booking must not retain fired-stage suppression
+  OK time change clears the old morning-stage flag
+  OK time change schedules morning prompt again
+  OK unchanged time retains single-fire protection
+  OK old callback cannot open a moved booking draft
+  OK cancelled visit cannot open scheduled draft
+
+Test D: disabled config schedules nothing
+  OK no timers when disabled
+  OK settings() reports disabled
+
+Test E: due routine reminders stay quiet
+  OK multiple due customers never open a preview
+  OK routine timers never spend AI quota
+  OK quiet evaluation does not mark a message sent or shown
+  OK morning and evening catch-up remain quiet
+
+Test G: explicit departure flow remains available
+  OK on-my-way sheet opened
+  OK AI draft includes the live ETA
+  OK ETA hint explains the estimate
+  OK departure fires once
+
+Test H: departure without a live ETA flags it as a placeholder
+  OK placeholder hint when no live ETA
+
+Test K: evening-before / morning-of are per-type (AI off)
+  fitting evening_before: Hi Alice, just to confirm — I'm with you tomorrow at 14:00 at 12 Example Street, M14 7FZ to fit. If you can clear the area around the window(s) and take down any existing blinds or curtains beforehand, I'll get straight to it when I arrive. If anything's changed, just reply here. — Tom Advisor
+  fitting morning_of:    Hi Alice, looking forward to fitting today at 14:00. If you can clear the area around the window(s) and take down any existing blinds or curtains, I'll get straight to it when I arrive. See you shortly! — Tom Advisor
+  measure evening_before: Hi Alice, a quick reminder that I'll be with you tomorrow at 14:00 at 12 Example Street, M14 7FZ for the survey. Please clear the area around each window we're measuring so I can take accurate sizes, and let me know if parking or access has changed. — Tom Advisor
+  OK fitting evening-before asks to clear the area + remove existing blinds
+  OK fitting morning-of asks to clear the area + take down blinds
+  OK measure never asks which blinds (consultation question)
+  OK consultation asks for scope, rooms and inspiration
+  OK service_call references the reported issue, not a generic compliment
+  OK all 12 type × stage combinations produce genuinely distinct copy
+  OK evening-before all say "tomorrow"; morning-of all say "today"
+  OK per-type messages end with the advisor sign-off
+
+Test L: pre_intro resolves per-type through the same selection
+  OK pre_intro fitting asks to clear the area + take down blinds
+  OK pre_intro introduces with the advisor title placeholder (consultation)
+  OK pre_intro known-customer stages do NOT carry the title (fitting)
+  OK pre_intro measure asks for clear windows, not blinds preference
+  OK pre_intro unknown type falls back to the professional consultation discovery
+  OK outcome-keyed maps are untouched by per-type resolution
+
+Test J: notification service reliability (popup fallback + UK-day tiers)
+  OK popup-blocked send falls back to tab navigation
+  OK booking confirmation tiers tomorrow correctly
+  OK booking confirmation tiers later with the reminder promise
+  OK booking confirmation follows the UK day across the autumn DST jump
+
+ALL TESTS PASSED
+date selection
+  OK single "Tuesday 11 August" -> 2026-08-11
+  OK history date ignored; real appointment picked
+  OK weekday/date mismatch rejected ("Monday 13")
+  OK lone mismatched weekday yields no date
+  OK stale date (Sun 10 May) rolls to next year
+  OK status-bar clock line ignored
+  OK appointment-labelled line preferred
+  OK year-anchored "13 August 2026" -> 2026-08-13
+  OK year-anchored "12 Aug 2026" with label -> 2026-08-12
+  OK US-style "August 13, 2026" -> 2026-08-13
+  OK status-bar clock ignored; year-anchored date picked
+  OK history year-anchored date ignored
+  OK appointment-labelled weekday line beats year-anchored decoy
+  OK Wed 11 Aug 2027 -> 2027-08-11
+  OK "Tuesday 11 August" rejected in 2027 (mismatch both years)
+  OK stale date near year-end rolls to 2027
+normalizeDateField
+  OK normalizeDateField("2026-08-11") -> "2026-08-11"
+  OK normalizeDateField("2026-8-3") -> "2026-08-03"
+  OK normalizeDateField("11/08/2026") -> "2026-08-11"
+  OK normalizeDateField("11.08.26") -> "2026-08-11"
+  OK normalizeDateField("11 Aug 2026") -> "2026-08-11"
+  OK normalizeDateField("Tuesday 11 August") -> "2026-08-11"
+  OK normalizeDateField("") -> ""
+  OK normalizeDateField("not a date") -> ""
+rollStaleYearForward
+  OK rollStaleYearForward("") -> ""
+  OK rollStaleYearForward("garbage") -> "garbage"
+  OK rollStaleYearForward("2026-08-11") -> "2026-08-11"
+  OK rollStaleYearForward("2026-08-25") -> "2026-08-25"
+  OK rollStaleYearForward("2026-07-12") -> "2026-07-12"
+  OK rollStaleYearForward("2025-08-11") -> "2026-08-11"
+  OK rollStaleYearForward("2024-08-11") -> "2026-08-11"
+  OK rollStaleYearForward("2020-01-01") -> "2025-01-01"
+normalizeTimeField + resolveVisitIso
+  OK normalizeTimeField("15:00") -> "15:00"
+  OK normalizeTimeField("9:00") -> "09:00"
+  OK normalizeTimeField("3:00 PM") -> "15:00"
+  OK normalizeTimeField("3:00 pm") -> "15:00"
+  OK normalizeTimeField("12:00 AM") -> "00:00"
+  OK normalizeTimeField("12:00 PM") -> "12:00"
+  OK normalizeTimeField("3pm") -> "15:00"
+  OK normalizeTimeField("09:15:30") -> "09:15"
+  OK normalizeTimeField("") -> ""
+  OK normalizeTimeField("evening") -> ""
+  OK resolveVisitIso converts 3:00 PM to 15:00 same day
+  OK resolveVisitIso falls back to today when date unusable
+  OK resolveVisitIso falls back to 09:00 when time unusable
+splitTimeRange
+  OK splitTimeRange("15:00-18:00") -> {"start":"15:00","end":"18:00"}
+  OK splitTimeRange("3:00 PM - 6:00 PM") -> {"start":"15:00","end":"18:00"}
+  OK splitTimeRange("3pm to 6pm") -> {"start":"15:00","end":"18:00"}
+  OK splitTimeRange("09:00 – 12:00") -> {"start":"09:00","end":"12:00"}
+  OK splitTimeRange("9:00 AM - 11:00") -> {"start":"09:00","end":"11:00"}
+  OK splitTimeRange("12:00 AM - 2:00 PM") -> {"start":"00:00","end":"14:00"}
+  OK splitTimeRange("15:00") -> null
+  OK splitTimeRange("3:00 PM") -> null
+  OK splitTimeRange("18:00-15:00") -> null
+  OK splitTimeRange("") -> null
+  OK splitTimeRange("not a time") -> null
+  OK resolveVisitIso anchors a range on its start (15:00)
+appointment slot time extraction
+  OK "Arriving 3:00 PM - 6:00 PM" -> 15:00-18:00
+  OK "Appointment: 9:00 AM - 12:00 PM" -> 09:00-12:00
+  OK single "Arriving 3:00 PM" still -> 15:00
+  OK status-bar clock alone yields no time
+duplicate prevention (findExistingVisit)
+  OK same customer + same day is detected
+  OK phone/address fallback catches cross-customer duplicates
+  OK no match returns null
+duplicate prevention (saveToCustomer)
+  OK duplicate scan does NOT create a second appointment
+  OK duplicate scan navigates to the existing visit
+  OK duplicate scan shows a warning toast
+  OK non-duplicate scan still creates the appointment
+  OK non-duplicate scan navigates to the new visit
+
+parsing (mm)
+  OK mm: valid positive parsed
+  OK mm: decimal parsed
+  OK mm: sub-millimetre parsed
+  OK mm: empty string is missing (null)
+  OK mm: whitespace is missing (null)
+  OK mm: unparseable is invalid (null)
+  OK mm: undefined is missing (null)
+  OK mm: null is missing (null)
+  OK mm: explicit zero stays zero, NOT missing
+  OK mm: negative stays negative, NOT missing
+  OK mm: negative decimal parsed
+
+unit conversion
+  OK cm: 50 cm -> 500 mm
+  OK cm: decimal 12.5 cm -> 125 mm
+  OK cm: empty is missing (null)
+  OK cm: zero stays zero
+  OK cm: mmToDisplay 125 mm -> 12.5 cm
+  OK cm: mmToDisplay round-trips 250 mm -> 25 cm
+  OK inches: 2 in -> 50.8 mm
+  OK inches: 1.5 in -> 38.1 mm
+  OK inches: 0.125 in (1/8) -> 3.175 mm
+  OK inches: empty is missing (null)
+  OK inches: mmToDisplay 50.8 mm -> 2 in
+  OK inches: mmToDisplay 38.1 mm -> 1.5 in
+
+widthLeast / widthUsed / dropLeast / dropUsed
+  OK group: complete recess uses least
+  OK group: complete exact/vertical uses least as-is
+  OK group: equal measurements
+  OK group: decimals keep precision
+  OK group: one missing -> least null (never 0)
+  OK group: all missing -> nulls
+  OK group: explicit zero -> nulls (never 0 or negative used)
+  OK group: negative -> nulls (never negative used)
+  OK group: drop never has tolerance subtracted
+
+diagonal variance / squareness
+  OK diag: equal diagonals -> variance 0, square
+  OK diag: exactly 5 mm variance -> square (5 <= 5)
+  OK diag: 6 mm variance -> not square
+  OK diag: exactly 5 mm (reversed) -> square
+  OK diag: missing one diagonal -> variance null, isSquare null
+  OK diag: missing the other diagonal -> nulls
+  OK diag: both missing -> nulls (never "square")
+  OK diag: zero diagonal -> nulls (check never happened)
+  OK diag: negative diagonal -> nulls
+
+save validation (zero / negative / missing)
+  OK save: explicit zero width rejected
+  OK save: negative width rejected
+  OK save: zero drop rejected
+  OK save: zero diagonal rejected
+  OK save: zero tolerance rejected
+  OK save: negative tolerance rejected
+  OK save: missing (null) is allowed, not rejected
+  OK save: fully empty measurement is allowed (stays missing)
+  OK save: all valid positives pass
+
+formatMeasurement
+  OK display: null -> --
+  OK display: zero -> --
+  OK display: negative -> --
+  OK display: valid -> formatted
+  OK display: rounds to 0.1 mm
+
+save path (read values -> validation gate)
+  OK save: typed "0" is rejected before storage
+  OK save: blank field is missing, not rejected
+  OK save: incomplete group stores nulls, not 0/-10
+
+ALL TESTS PASSED
+Database initialized
+money.test.js: 57 OK
+getDayMode (UK wall-clock weekday)
+  OK UK Monday -> sales
+  OK UK Wednesday -> fitting
+  OK UK Sunday -> mixed
+  OK getDayMode passes the date into ukParts
+  OK default salesDays (Tue=2) apply without config
+getActiveRouteLeg (never a completed stop as "next")
+  OK pending visit leg is the active leg
+  OK all completed with a return leg -> return leg (no next visit)
+  OK all completed without a base -> null (day is over)
+  OK single pending stop is the active leg
+  OK empty legs -> null
+getAreaLabel
+  OK postcode outward code used as area
+  OK penultimate comma part used without postcode
+  OK no address -> Area unknown
+AI index summary (never claim a connection that is not there)
+  OK disabled -> Off
+commission index summary (decimal rate rendered as a percentage)
+  OK 0.122 effective rate -> 12.2%
+  OK does not display the decimal as 0.122%
+  OK enabled without proxy URL -> Needs setup
+  OK enabled with proxy URL -> Connected
+single render path per screen (vestigial duplicates removed)
+  OK renderCommissionDetail exists
+  OK renderAutoMessagesDetail exists
+  OK renderAIDetail exists
+  OK renderCommissionCard gone
+  OK renderAutoMessagesCard gone
+  OK renderAICard gone
+detail screens render
+  OK commission detail renders example line
+  OK units detail renders HMRC mileage hint for GB
+  OK navigation detail offers ask + three map apps
+  OK ask every time is selected by default
+  OK app lock offers minute and hour choices
+  OK app lock explains the active-visit exception
+navigation preference persists
+  OK Waze becomes the active preference
+  OK navigation preference is saved locally
+  OK settings index reflects saved map
+app-lock timeout persists
+  OK 30-minute timeout becomes active
+  OK unlock timeout is saved locally
+  OK changing timeout refreshes the current grace window
+AI shared secret persists as a device-only credential
+  OK secret reaches encrypted-device storage API
+  OK secret remains available to the current session
+  OK ordinary saved config excludes the secret
+  OK AI settings explains device-only encrypted storage
+  OK forget secret clears device and session copies
+
+Test A: GeoProvider interface
+  OK GeoProvider has geocode
+  OK GeoProvider has getRouteSummary
+  OK GeoProvider has getDistanceKm
+  OK GeoProvider has getTravelTimeMin
+  OK GeoProvider has calculateDistance
+  OK GeoProvider has buildNavigationUrl
+
+Test B: PublicGeoProvider extends GeoProvider
+  OK instanceof GeoProvider
+  OK has geocode
+  OK has getRouteSummary
+  OK has getDistanceKm
+  OK has getTravelTimeMin
+  OK has calculateDistance (Haversine)
+  OK has buildNavigationUrl
+
+Test C: GeoProviderRegistry
+  OK returns PublicGeoProvider by default
+  OK singleton behavior
+  OK can set custom provider
+  OK reset restores default
+
+Test D: Haversine distance calculation (local, no network)
+  OK London to Manchester ~260km
+  OK same point = 0
+
+Test E: Geo delegates to provider
+  OK geocode delegates to provider
+  OK geocode returns provider result
+  OK calculateDistance delegates
+  OK buildNavigationUrl delegates
+  OK getDrivingRouteSummary delegates
+  OK getDrivingDistanceKm delegates
+
+Test F: Geo.calculateDistance uses provider Haversine
+  OK uses Haversine
+
+Test F2: Starting the next journey closes prior on-site sessions
+  OK only a different open visit is closed
+  OK departure clears on-site state and records duration
+  OK normal lock timing resumes after inferred departure
+
+Test G: Navigation URL format
+  OK contains Google Maps base
+  OK contains destination
+  OK contains origin
+  OK Apple Maps uses its native app scheme
+  OK Waze uses its native app scheme
+  OK Google Maps uses its native app scheme
+  OK multi-stop Google route uses the native URL wrapper
+  OK navigation initiates GPS and hands off to Maps
+  OK failed optional trip does not trigger departure messaging
+  OK navigation handoff uses same browsing context
+  OK ask preference opens the three-app chooser
+  OK saved preference bypasses chooser
+
+Test H: Provider swap does not break Geo API
+  OK Geo.init exists
+  OK Geo.getCurrentPosition exists
+  OK Geo.startTrip exists
+  OK Geo.finishTrip exists
+  OK Geo.cancelTrip exists
+  OK Geo.geocode exists
+  OK Geo.calculateDistance exists
+  OK Geo.buildNavigationUrl exists
+  OK Geo.buildNavigationAppUrl exists
+  OK Geo.buildGoogleMapsAppUrl exists
+  OK Geo.isIOS exists
+  OK Geo.openNavigationChooser exists
+  OK Geo.launchNavigationChoice exists
+  OK Geo.launchExternalUrl exists
+  OK Geo.optimizeRoute exists
+  OK Geo.calculateRouteDistance exists
+  OK Geo.getDrivingDistanceKm exists
+  OK Geo.getDrivingRouteSummary exists
+  OK Geo.persistActiveTrip exists
+  OK Geo.clearPersistedTrip exists
+  OK Geo.restoreActiveTrip exists
+  OK Geo.renderTripBanner exists
+  OK Geo.updateTripBanner exists
+  OK Geo.removeTripBanner exists
+  OK Geo.destroy exists
+
+Test I: Fetch timeout falls back to estimate, does not hang
+Route summary lookup failed, using estimate: Error: timeout
+    at attempt (evalmachine.<anonymous>:155:17)
+    at async PublicGeoProvider.getRouteSummary (evalmachine.<anonymous>:240:24)
+    at async /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/geoprovider.test.js:329:21
+  OK timeout aborts the request
+  OK returns within a bounded time (< 3s)
+  OK falls back to estimate source
+  OK estimate is plausible (~260km * 1.3)
+  OK estimate has a duration
+
+Test J: Geocode persistent cache serves repeat addresses offline
+  OK first geocode resolves via network
+  OK repeat geocode served from cache offline
+  OK no additional network call for cached address
+  OK cache persisted to localStorage
+Geocoding failed: Error: offline
+    at sandbox.fetch (/Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/geoprovider.test.js:357:41)
+    at attempt (evalmachine.<anonymous>:142:28)
+    at attempt (evalmachine.<anonymous>:169:18)
+    at async PublicGeoProvider.geocode (evalmachine.<anonymous>:199:24)
+    at async /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/geoprovider.test.js:365:18
+  OK offline miss returns null
+  OK cache key is case/space normalised
+
+Test K: MapboxGeoProvider class exists and implements interface
+  OK MapboxGeoProvider class exported
+  OK instanceof GeoProvider
+  OK has geocode
+  OK has getRouteSummary
+  OK has getDistanceKm
+  OK has getTravelTimeMin
+  OK has calculateDistance
+  OK has buildNavigationUrl
+
+Test L: GeoProviderRegistry prefers Mapbox when key is set
+  OK returns MapboxGeoProvider when key set
+  OK getActiveProviderName returns mapbox
+
+Test M: GeoProviderRegistry falls back to PublicGeoProvider when no key
+  OK returns PublicGeoProvider when key empty
+  OK getActiveProviderName returns public
+
+Test N: Mapbox geocode uses Mapbox API (mocked)
+  OK geocode calls Mapbox API
+  OK geocode returns coords
+  OK getRouteSummary calls Mapbox API
+  OK getRouteSummary returns road distance
+
+Test O: Mapbox falls back to estimate when API fails
+Mapbox route lookup failed: Error: network error
+    at Object.fetch (/Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/geoprovider.test.js:450:50)
+    at fetch (/Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/geoprovider.test.js:48:29)
+    at MapboxGeoProvider._fetchWithRateLimit (evalmachine.<anonymous>:356:26)
+    at MapboxGeoProvider.getRouteSummary (evalmachine.<anonymous>:416:35)
+    at /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/geoprovider.test.js:455:40
+  OK returns estimate on API failure
+  OK estimate distance is plausible
+
+ALL TESTS PASSED
+
+Test A: Fresh cache hits without any network call
+  OK fresh cached data returned
+  OK no network call
+
+Test B: Stale same-day cache + offline fetch failure = stale data
+Weather fetch failed: Error: offline
+    at fetchImpl (/Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/weather.test.js:92:47)
+    at Object.fetchCurrent (evalmachine.<anonymous>:67:25)
+    at Object.getTodayWeather (evalmachine.<anonymous>:29:31)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+  OK stale same-day reading served
+  OK fetch was attempted
+
+Test C: Stale previous-day cache + offline = null (no wrong-day badge)
+Weather fetch failed: Error: offline
+    at fetchImpl (/Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/weather.test.js:103:38)
+    at Object.fetchCurrent (evalmachine.<anonymous>:67:25)
+    at Object.getTodayWeather (evalmachine.<anonymous>:29:31)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+  OK no wrong-day weather shown
+
+Test D: Fetch success refreshes cache and returns fresh data
+  OK fresh data returned
+  OK cache refreshed with new timestamp
+  OK cached data matches response
+
+Test E: No coords (no business base) still serves same-day cache, else null
+  OK same-day cache served without coords
+Weather fetch failed: Error: No mock fetch
+    at fetchImpl (/Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/weather.test.js:38:56)
+    at Object.fetchCurrent (evalmachine.<anonymous>:67:25)
+    at Object.getTodayWeather (evalmachine.<anonymous>:29:31)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+  OK no coords and no same-day cache = null
+
+Test F: Corrupt cache is ignored, fetch proceeds
+  OK corrupt cache ignored, fresh fetch succeeded
+
+Test G: Fetch timeout (hung API) aborts and falls back to stale
+Weather fetch failed: Error [AbortError]: The operation was aborted.
+    at AbortSignal.<anonymous> (/Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/weather.test.js:165:21)
+    at [nodejs.internal.kHybridDispatch] (node:internal/event_target:843:20)
+    at AbortSignal.dispatchEvent (node:internal/event_target:776:26)
+    at runAbort (node:internal/abort_controller:547:10)
+    at abortSignal (node:internal/abort_controller:518:3)
+    at AbortController.abort (node:internal/abort_controller:566:5)
+    at Timeout.<anonymous> (evalmachine.<anonymous>:65:49)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+  OK hung request aborted
+  OK bounded by the 5s fetch timeout (< 6s)
+  OK stale same-day badge served
+
+ALL TESTS PASSED
+OK: FollowupsFeature registered
+OK: Orders + Customer features registered
+OK: Both are bottom-nav tabs
+OK: loadTasks returns 3 unresolved tasks (got 3)
+OK: Linked order replaces quote chase; returning customer gets reminder without repeat introduction
+OK: All three unresolved tasks are due
+OK: Unrelated order does not suppress quote chase
+OK: Payment task references order
+OK: getDueCount() === 3 (got 3)
+OK: Paid order drops out of the inbox (got 2)
+OK: Customer 360 profile renders
+OK: Outstanding quotes section present
+OK: Order row present in profile
+OK: Measurement row present in profile
+OK: Customer name present
+OK: No raw script injection in profile
+OK: Next-visit card labels customer context
+OK: Next-visit card renders saved customer context
+OK: Next-visit card indicates saved voice context
+OK: Context carries first name
+OK: daysSince counted from visit (got 5)
+OK: Quote value reaches the context
+OK: Measured window reaches the context
+OK: Outcome action label reaches the context
+OK: Deposit figure reaches the context
+OK: Order balance in history
+OK: Days since last message counted (got 2)
+OK: Message count reaches the context
+OK: Recent message content in context
+OK: Live ETA/delay thread into context
+OK: Spec context carries customer first name
+OK: Repeat customer flagged with correct visit count
+OK: Window history + blind count in spec context
+OK: quoted follow-up maps to its distinct outcome stage
+OK: partner follow-up keeps its distinct outcome stage
+OK: price concern keeps its distinct outcome stage
+OK: Outcome + label reach the spec context
+OK: Quote amount in spec context
+OK: Order summary in spec context
+OK: days_since_last_visit counted
+OK: Message history in spec context
+OK: Template key/text in spec context
+OK: Access note parsed from the convention
+OK: Parking note parsed from the convention
+OK: Empty notes yield empty field
+OK: First-time customer flagged
+OK: AI greeting receives the given name, never an honorific
+OK: Legacy title-only firstName recovers the given name from the appointment
+OK: pre_intro template maps to pre_intro stage
+OK: Reminder stages map
+OK: ETA stages map
+OK: Intro task auto-due for first-time customer
+OK: No post-fit task without a completed fitting
+OK: Post-fit task for completed fitting
+OK: Service task for parts_needed, high priority
+OK: Send flags remove post-fit + service tasks
+OK: Sheet shows the quote amount
+OK: Sheet shows the measured window
+OK: Sheet shows days since visit
+OK: Sheet shows recent message history
+OK: No duplicate warning at 2 days since last message
+OK: Outcome alternatives offered for quoted
+
+SMOKE TEST PASSED
+ACTION ROUTER TEST PASSED
+APPOINTMENT SAVE TEST PASSED
+appointments: editable existing type and new-visit weekday defaults OK
+documentation and product-language contracts
+  OK release README names Beelo and separates prototype from approval
+  OK release README describes the actual build and backend boundaries
+  OK release documentation retains non-filing and human-control boundaries
+  OK proxy guide documents production shared-store requirement, not fallback
+  OK README.md reference exists: docs/BEELO_RELEASE_FEATURE_INVENTORY.md
+  OK README.md reference exists: docs/BEELO_IPHONE_PILOT_ACCEPTANCE.md
+  OK README.md reference exists: docs/audits/M1_EXPENSE_DATES_2026-10-24.md
+  OK README.md reference exists: docs/audits/C14_OFFLINE_INVESTIGATION_2026-10-23.md
+  OK README.md reference exists: docs/BEELO_MVP_WORKING_MEMORY_PLAN.md
+  OK README.md reference exists: README-AI.md
+  OK README-AI.md reference exists: docs/audits/C07_CLAUDE_USAGE_FIX_2026-10-23.md
+  OK README-AI.md reference exists: docs/audits/BEELO_TRANSCRIPTION_USAGE_2026-10-23.md
+  OK --bg #0A0A0A agrees in CSS and design guide
+  OK --surface #121212 agrees in CSS and design guide
+  OK --surface-elevated #171717 agrees in CSS and design guide
+  OK --surface-muted #202020 agrees in CSS and design guide
+  OK --warning #C08A2D agrees in CSS and design guide
+  OK --danger #C0563F agrees in CSS and design guide
+  OK visual-baseline script exists: tests/browser/capture-review.js
+  OK unlock UI uses Beelo
+  OK morning notification uses Beelo
+  OK shared back button has an accessible name
+  OK shared back icon is decorative
+  OK local passphrase uses masked-text account-credential avoidance when supported
+  OK passphrase markup is generated through the non-account credential helper
+  OK app launch restores trip state without proactively requesting location
+  OK navigation clears focused controls and resets app plus window scroll
+  OK all generated dialogs receive an accessible name
+  OK CSP is delivered once as a response header, not duplicated in meta markup
+  OK manifest has a stable app identity and required install fields
+  OK service-worker updates wait for deliberate activation
+  OK offline HTML fallback is restricted to navigation requests
+  OK service worker deletes only Beelo-owned caches
+  OK production Lighthouse performance regression floor remains enforced
+  OK Leaflet stays off the first-screen path until Route is activated
+  OK secondary workflows are route-split rather than eager script tags
+  OK lazy workflows are cached for first offline use without eager page scripts
+  OK inline style debt does not grow (85 <= 93)
+  OK raw component colour debt does not grow (14 <= 15)
+  OK audio is retained against the existing notes field
+  OK capture UI offers recording
+  OK saved audio offers explicit transcription
+  OK saved audio offers deliberate deletion
+  OK saved audio uses a Blob URL for iPhone-compatible playback
+  OK saved audio does not embed the full data URL in the player
+  OK detail screens can render saved audio inside the owning notes section
+  OK callers receive copies rather than mutating stored metadata
+  OK authorisation failure reloads encrypted device credential before retrying
+  OK persistent authorisation failure gives an actionable registration message
+  OK visit Notes uses unified capture
+  OK customer context uses unified capture
+  OK visit detail nests embedded and legacy audio inside Notes
+  OK customer profile nests embedded and legacy audio inside Customer context
+  OK new visits and visit lifecycle context use unified capture
+  OK lead and follow-up context use unified capture
+  OK quote and invoice notes use unified capture
+  OK job issue and resolution context use unified capture
+  OK aftercare and contact-preference context use unified capture
+  OK expanded record types encrypt retained audio
+
+ALL NOTE CAPTURE TESTS PASSED
+PASS notes lifecycle: js/services/note-capture.js
+PASS notes lifecycle: js/services/note-capture.min.js
+PASS deadline classification and storage retry: followups.js
+PASS deadline classification and storage retry: followups.min.js
+Fitting booking prompt tests passed
+  OK valid audio returns transcript
+  OK proxy uses fixed OpenAI transcription endpoint
+  OK proxy keeps API key server-side
+  OK proxy sends multipart audio
+[transcribe] rejected origin { hasOrigin: true }
+  OK wrong origin is rejected
+[transcribe] rejected device credential { credentialPresent: true }
+  OK wrong shared secret is rejected
+  OK unsupported media is rejected
+  OK audio above conservative 3 MB limit is rejected before provider
+  OK audio boundary 2999999 accepted with mocked provider
+  OK audio boundary 3000000 accepted with mocked provider
+  OK parsed envelope at exact 4.1 MB accepted
+  OK streamed envelope at exact 4.1 MB accepted
+  OK parsed envelope one byte over rejected before provider
+  OK streamed envelope one byte over rejected before provider
+  OK oversized declared length rejected before parsing/provider
+  OK parsed envelope counts UTF-8 bytes, not characters
+
+ALL TRANSCRIPTION PROXY TESTS PASSED
+legal identity and network-disclosure contracts
+  OK verified legal company name
+  OK verified company number
+  OK verified service address
+  OK published privacy contact
+  OK OpenAI voice transcription is disclosed
+  OK address and route providers are disclosed
+  OK weather provider is disclosed
+  OK Claude processor is disclosed
+  OK obsolete no-server claim is absent
+  OK obsolete only-Claude egress claim is absent
+  OK material disclosure update requires version 2 acknowledgement
+PASS visit review: validation, grouping, approval, replacement, discard; no cloud dependencies
+
+> advisoros@5.0.0 test:social
+> node tests/social.test.js
+
+social assistant: consent, privacy, safe context and editable drafts OK
+
+> advisoros@5.0.0 test:performance:gate
+> node tests/lighthouse-gate.test.mjs
+
+PASS maintained Lighthouse gate: unchanged floors, every category/viewport enforced, missing scores/runtime errors fail closed
+
+> advisoros@5.0.0 test:release:browser
+> node tests/verify-release.cjs
+
+PASS payment-link.e2e.cjs (30s)
+PASS protected-backup.e2e.cjs (8s)
+FAIL context-encryption.e2e.cjs (34s)
+locator.waitFor: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for getByText('Access: SYNTHETIC side gate 1234').first() to be visible[22m
+[2m    64 × locator resolved to hidden <p class="text-secondary">…</p>[22m
+
+    at /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/browser/context-encryption.e2e.cjs:52:79 {
+  log: [
+    "  - waiting for getByText('Access: SYNTHETIC side gate 1234').first() to be visible",
+    '    64 × locator resolved to hidden <p class="text-secondary">…</p>'
+  ],
+  name: 'TimeoutError'
+}
+
+Browser acceptance stopped at context-encryption.e2e.cjs
