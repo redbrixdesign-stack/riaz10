@@ -150,9 +150,11 @@ unverified savings/carbon/traction claims. Select targets before pilot testing.
 ## Current next action
 
 M1 dates, M2a customer links, M2b all-date expenses and M3a customer/visit/window
-text retrieval are live. Current runtime2c0ac31/cache164; final local20 and
-exact hosted40155911005 pass; public Search and expense-finder journeys pass
-both engines. Audit/limits: audits/M3A_WORKING_MEMORY_SEARCH_2026-10-25.md.
+text retrieval are live. Compact Today/Tomorrow planning rows are also live,
+presentation only, not M4 completion. Current source5117165/cache165; final
+local21/exact hosted40206831224 and public planner/Search journeys pass both
+engines. Audits/limits: audits/COMPACT_PLAN_ROWS_2026-10-25.md and
+audits/M3A_WORKING_MEMORY_SEARCH_2026-10-25.md.
 C25 resolved the automated C14 boundary through a narrow worker repair plus
 negative contract/transport evidence and exact hosted acceptance, not a rerun
 waiver; historical failures and physical-device limits remain documented.

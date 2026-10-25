@@ -1,0 +1,30 @@
+{
+  "source": "51171652acb6a9168d501bca77db0fed7e4b7143",
+  "deployment": "dpl_GhGZGiXFD1bkiMZvSyS6gJETzqaj",
+  "items": [
+    {
+      "path": "index.html",
+      "expected": "f5ac26617e83f0d825e1c426f6924b0a8d1526d56ed1ab986f9a888bd304418e",
+      "actual": "f5ac26617e83f0d825e1c426f6924b0a8d1526d56ed1ab986f9a888bd304418e",
+      "match": true
+    },
+    {
+      "path": "sw.js",
+      "expected": "df8245c58c2d839a3ca21a1f828b836dd0e72b8903faf37487d4a8e6384f758d",
+      "actual": "df8245c58c2d839a3ca21a1f828b836dd0e72b8903faf37487d4a8e6384f758d",
+      "match": true
+    },
+    {
+      "path": "css/components.css",
+      "expected": "91db453802bb278179ebad228ae715b28e90da9ee8eae81ce1af78c39db8d528",
+      "actual": "91db453802bb278179ebad228ae715b28e90da9ee8eae81ce1af78c39db8d528",
+      "match": true
+    },
+    {
+      "path": "js/features/appointments/appointments.min.js",
+      "expected": "5832a79cd7b627bbbc8978d1b97e48f534c7c2c36baa26dbd587f88744071283",
+      "actual": "5832a79cd7b627bbbc8978d1b97e48f534c7c2c36baa26dbd587f88744071283",
+      "match": true
+    }
+  ]
+}

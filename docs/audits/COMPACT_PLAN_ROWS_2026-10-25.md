@@ -51,8 +51,8 @@ communication or route-calculation change; no removals of existing functionality
   missing row during async rerender. Null-safe waiting fixed the test, not app
   timeouts/assertions. Final focused two-engine run passes.
 
-Final full acceptance, deployment and public verification are recorded below
-after they complete. Evidence lives in docs/evidence/2026-10-25-compact-plan/.
+Final acceptance, deployment and public verification are recorded below.
+Evidence lives in docs/evidence/2026-10-25-compact-plan/.
 
 The preliminary full gate stopped at context-encryption.e2e.cjs: saved access
 notes were correctly present but hidden in the new closed details section.
@@ -73,3 +73,33 @@ and VoiceOver still need device acceptance. The change also applies to Today
 because both views intentionally use the same renderer; day-specific actions
 and stored planning keys are unchanged. Original dirty checkout is not a build
 source and its unrelated changes must remain byte-identical.
+
+## Final release — LIVE
+
+Final source51171652acb6a9168d501bca77db0fed7e4b7143 (UI code introduced
+in c603f69; subsequent fixes are test disclosure interactions). Final full local
+npm run verify:release passes all21 maintained browser scripts, unit/server/
+social tests and unchanged performance assertions. Exact-source hosted
+40206831224 SUCCESS, all21 plus unit/server/dependency scans; downloaded summary
+records the same SHA. Earlier40206672935 was superseded/cancelled, not accepted.
+
+READY dpl_GhGZGiXFD1bkiMZvSyS6gJETzqaj, exact
+https://beelo1-51dwzmfjq-beelomvp.vercel.app, Other/build13.519s, was promoted
+without rebuilding to https://beelo.beelestial.co.uk/. Appointments64/
+components.css60/cache165-compact-plan. Four changed staged and public assets
+byte-match source; no DB/schema migration. Previous M3a/cache164,
+dpl_AmJp1XqwpFF9rmZQgoHrxw68yxJ3, is rollback; preserve site storage.
+
+Live compact-plan and existing working-memory Search journeys pass Chromium/
+WebKit in fresh synthetic stores: no POSTs/provider contacts or real records.
+Reordering and saving proposals preserve original booked times; offline saves
+and return-online reload retain the plan. Final screenshots inspected. Physical
+iPhone/touch/VoiceOver and whole-MVP/pilot acceptance remain open. A10-minute
+production error/fatal scan15:26–15:36UTC returned no logs, not monitoring/security
+assurance. No credentials, environment, providers or marketing changes.
+
+Original checkout's unrelated non-doc diff remains byte-identical:
+8b6f2a59c93c01d1e4bee30742536a538f010119e3acf6b99e9b2f63e8e295d1.
+Build/deployment used the isolated release checkout only. This is a presentation
+slice, not completion of M4 planning logic; M3b expense/media discovery remains
+the recorded next MVP priority.
