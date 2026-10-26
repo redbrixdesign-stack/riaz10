@@ -1,0 +1,61 @@
+Vercel CLI 58.5.1 (Node.js 24.18.0)
+Retrieving project…
+Deploying beelomvp/beelo1
+Uploading [--------------------] (0.0B/135.2KB)
+Uploading [=======-------------] (48.0KB/135.2KB)
+Uploading [===========---------] (80.0KB/135.2KB)
+Uploading [================----] (112.0KB/135.2KB)
+Uploading [====================] (135.2KB/135.2KB)
+  Inspect         https://vercel.com/beelomvp/beelo1/C9vBuonBtMaRtTPiQtFbiUutX82Q
+▲ Production      https://beelo1-qcu3u848l-beelomvp.vercel.app
+Building…
+Running build in Washington, D.C., USA (East) – iad1
+Build machine configuration: 2 cores, 8 GB
+Retrieving list of deployment files...
+Downloading 156 deployment files...
+Downloading 156 deployment files...
+Restored build cache from previous deployment (2AD1LSSnCvWd732XPrCjhyktBYs2)
+Running "vercel build"
+Vercel CLI 65.1.0
+Installing dependencies...
+npm warn Unknown env config "cache-dir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+up to date in 771ms
+19 packages are looking for funding
+run `npm fund` for details
+Running "npm run build"
+npm warn Unknown env config "cache-dir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+> advisoros@5.0.0 build
+> node build/minify.js
+✓ 52 file(s) already up to date
+✓ sw.js ?v= tokens match shell and lazy manifests
+Build Completed in /vercel/output [8s]
+Deploying outputs...
+[2K[1A[2K[G▲ Production      https://beelo1-qcu3u848l-beelomvp.vercel.app
+Completing…
+▲ Aliased         https://beelo1-beelomvp.vercel.app
+{
+  "status": "ok",
+  "deployment": {
+    "id": "dpl_C9vBuonBtMaRtTPiQtFbiUutX82Q",
+    "url": "https://beelo1-qcu3u848l-beelomvp.vercel.app",
+    "inspectorUrl": "https://vercel.com/beelomvp/beelo1/C9vBuonBtMaRtTPiQtFbiUutX82Q",
+    "readyState": "READY",
+    "target": "production",
+    "deploymentApiUrl": "https://api.vercel.com/v13/deployments/dpl_C9vBuonBtMaRtTPiQtFbiUutX82Q"
+  },
+  "message": "Deployment beelo1-qcu3u848l-beelomvp.vercel.app ready.",
+  "next": [
+    {
+      "command": "vercel curl https://beelo1-qcu3u848l-beelomvp.vercel.app",
+      "when": "Verify deployment, including when Deployment Protection is enabled"
+    },
+    {
+      "command": "vercel inspect beelo1-qcu3u848l-beelomvp.vercel.app --scope beelomvp",
+      "when": "Inspect deployment"
+    },
+    {
+      "command": "vercel deploy --prod --scope beelomvp",
+      "when": "Promote to production"
+    }
+  ]
+}
