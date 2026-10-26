@@ -231,8 +231,9 @@ const TalkFeature = {
       const footer = !introduced && this.socialLinkLines() ? `\n\n${this.socialLinkLines()}` : '';
       if (introduced) {
         const purpose = { consultation: 'for your consultation', measure: 'for your survey and final measurements', fitting: 'for your fitting', service_call: 'to look at the issue you reported', review: 'for your review visit', follow_up: 'to follow up on your visit' }[appt?.type] || 'for your visit';
+        const job = ['fitting', 'service_call'].includes(appt?.type) ? await this.buildJobSummary(appt.customerId) : '';
         const prep = ['consultation', 'measure', 'fitting', 'service_call'].includes(appt?.type) ? ' Please keep the area around the windows clear for safe access.' : '';
-        return `Hi ${name}, just to confirm — I'll be with you${when}${addressPart} ${purpose}.${prep} If anything has changed with parking or access, or you have a question, just reply here.`;
+        return `Hi ${name}, just to confirm — I'll be with you${when}${addressPart} ${purpose}.${job ? ` ${job}` : ''}${prep} If anything has changed with parking or access, or you have a question, just reply here.`;
       }
 
       // Known-customer stages: the advisor knows this customer and their
