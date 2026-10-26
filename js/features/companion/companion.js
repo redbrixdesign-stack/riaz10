@@ -177,6 +177,16 @@ const CompanionFeature = {
     return { text: Utils.formatTimeUK(appt.date), isWindow: false };
   },
 
+  outcomesAwaitingResult(visits = [], now = new Date()) {
+    // Same scheduled-finish boundary as Follow-ups. A future/ongoing visit
+    // is not a missing result, and an arrival window is not its duration.
+    return visits.filter(visit => {
+      if (visit.status !== 'confirmed' || visit.outcome) return false;
+      const due = Utils.visitOutcomeDueAt(visit);
+      return !!due && due <= now && Utils.isSameDay(visit.date, now);
+    });
+  },
+
   /* ---------- lifecycle (called by TodayFeature) ---------- */
 
   mount(containerId) {
@@ -670,7 +680,7 @@ const CompanionFeature = {
     // below, with customer/purpose details in that inbox, not a second alert.
 
     // Unlogged outcomes today
-    const unloggedToday = todayAppts.filter(a => !a.outcome && a.status !== 'completed');
+    const unloggedToday = this.outcomesAwaitingResult(todayAppts);
     if (unloggedToday.length > 0) {
       attention.push({
         icon: 'event_busy',
@@ -1779,7 +1789,7 @@ const CompanionFeature = {
     const actions = [];
 
     // 1. Today's visits without outcome logged
-    const unloggedToday = todayAppts.filter(a => !a.outcome && a.status !== 'completed');
+    const unloggedToday = this.outcomesAwaitingResult(todayAppts);
     if (unloggedToday.length) {
       facts.push({ label: 'Outcomes not logged', value: `${unloggedToday.length} visit${unloggedToday.length === 1 ? '' : 's'} today` });
       actions.push({ label: 'Log outcomes', onclick: "App.navigate('appointments', {tab: 'upcoming'})" });
