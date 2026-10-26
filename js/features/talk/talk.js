@@ -1191,7 +1191,7 @@ const TalkFeature = {
       : 'Order details not supplied.';
 
     const alreadyIntroduced = await this.introductionAlreadyRecorded(appt, customerVisits, allMessages);
-    const introStage = this.isIntroductionTemplate(templateKey);
+    const introStage = this.isIntroductionTemplate(templateKey) || !alreadyIntroduced && ['day_before', 'evening_before'].includes(templateKey);
     const previsitStage = introStage || ['day_before', 'evening_before'].includes(templateKey);
     const safeTemplate = previsitStage ? await this.buildPrevisitMessage(appt, customer, templateKey) : this._interpolateTemplateText(templateText, customer, appt, advisorName, visitTypeLabel);
 
