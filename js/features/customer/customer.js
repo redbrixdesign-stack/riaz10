@@ -35,6 +35,7 @@ const CustomerFeature = {
     let appts = [];
     let orders = [];
     let comms = [];
+    let communicationLoadFailed = false;
     let photos = [];
     let voiceNotes = [];
     let structuredQuotes = [];
@@ -46,8 +47,8 @@ const CustomerFeature = {
     let linkedExpenses = null;
     try { appts = await DB.getAppointmentsByCustomer(customerId); } catch (e) {}
     try { orders = await DB.db.orders.where('customerId').equals(customerId).toArray(); } catch (e) {}
-    try { comms = await DB.db.communications.where('customerId').equals(customerId).toArray(); } catch (e) {}
-    try { if (typeof CommunicationService !== 'undefined') comms = await CommunicationService.decorate(comms); } catch (e) {}
+    try { comms = await DB.db.communications.where('customerId').equals(customerId).toArray(); } catch (e) { communicationLoadFailed = true; }
+    try { if (typeof CommunicationService !== 'undefined') comms = await CommunicationService.decorate(comms); } catch (e) { communicationLoadFailed = true; }
     try { photos = await DB.getPhotosForCustomer(customerId); } catch (e) {}
     try { voiceNotes = await DB.getVoiceNotes({ customerId }); } catch (e) {}
     try { if (typeof DB.getQuotes === 'function') structuredQuotes = await DB.getQuotes({ customerId }); } catch (e) {}
@@ -161,8 +162,17 @@ const CustomerFeature = {
           </div>
           <div class="flex gap-sm mt-sm">
             <button class="btn btn-ghost btn-sm flex-1" data-action="CommunicationsFeature.openPreferences" data-args='${JSON.stringify([customerId])}'><span class="material-symbols-rounded fs-16">privacy_tip</span>Contact preference</button>
-            <button class="btn btn-ghost btn-sm flex-1" data-action="CustomerFeature.openReplyModal" data-args='${JSON.stringify([customerId])}'><span class="material-symbols-rounded fs-16">move_to_inbox</span>Log reply</button>
+            <button class="btn btn-ghost btn-sm flex-1" data-action="CustomerFeature.openReplyModal" data-args='${JSON.stringify([customerId])}'><span class="material-symbols-rounded fs-16" aria-hidden="true">move_to_inbox</span>Log reply</button>
           </div>
+        </div>
+
+        <div class="card card-page" id="customer-communication-record">
+          <div class="fs-13 fw-600 text-secondary mb-sm">Communication record</div>
+          ${communicationLoadFailed ? '<p role="alert">Some communication history could not be loaded. Reopen this profile to retry; counts below may be incomplete.</p>' : ''}
+          <p class="fs-13">${comms.filter(c => c.direction !== 'inbound' && ['advisor_confirmed_sent', 'delivered', 'replied'].includes(c.lifecycleState)).length} confirmed sent · ${comms.filter(c => c.direction === 'inbound').length} replies recorded · ${comms.filter(c => c.direction !== 'inbound' && c.lifecycleState === 'handed_off').length} send confirmations outstanding</p>
+          <p class="hint">Only activity recorded in Beelo. No reply recorded does not mean the customer is unresponsive or the visit is cancelled. WhatsApp replies are not imported automatically; use Log reply above.</p>
+          <button class="btn btn-outline btn-sm" data-action="CustomerFeature.openContactAttempt" data-args='${JSON.stringify([customerId])}'>Log contact attempt</button>
+          ${comms.length ? `<details><summary>Read saved messages and replies (${comms.length})</summary>${[...comms].sort((a,b) => new Date(b.receivedAt || b.sentAt || b.createdAt || 0) - new Date(a.receivedAt || a.sentAt || a.createdAt || 0)).map(c => `<div class="py-8"><strong>${Utils.escapeHtml(c.direction === 'inbound' ? 'Customer reply' : ({advisor_confirmed_sent:'Confirmed sent',handed_off:'Opened — sending unconfirmed',cancelled:'Not sent',drafted:'Draft',note:'Internal note',delivered:'Delivered'})[c.lifecycleState] || 'Recorded activity')}</strong><div class="hint">${Utils.formatDate(c.receivedAt || c.sentAt || c.createdAt, 'short')} · ${Utils.escapeHtml(c.channel || c.type || 'Message')}</div><p class="fs-13" style="white-space:pre-wrap;overflow-wrap:anywhere">${Utils.escapeHtml(c.content || 'No message text captured')}</p></div>`).join('')}</details>` : '<p class="fs-13 text-tertiary">No messages or replies recorded yet.</p>'}
         </div>
 
         <div class="card card-page">
@@ -330,6 +340,20 @@ const CustomerFeature = {
 
   scrollToHistory() {
     document.getElementById('customer-history-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  },
+
+  openContactAttempt(customerId) {
+    App.openModal(`<div class="sheet-header"><h3>Log contact attempt</h3><button class="btn btn-ghost btn-sm" aria-label="Close" data-action="App.closeModal">Close</button></div><div class="sheet-body"><p class="hint">Record what happened, not a judgement about the customer. This does not mark a message sent, a reply received or a visit cancelled.</p><label for="customer-attempt-text">Contact attempt</label><textarea id="customer-attempt-text" class="textarea" rows="4" placeholder="For example: Called before departure; no answer. Left voicemail."></textarea><button class="btn btn-primary btn-block" data-action="CustomerFeature.saveContactAttempt" data-args='${JSON.stringify([Number(customerId)])}'>Save contact attempt</button></div>`);
+  },
+
+  async saveContactAttempt(customerId) {
+    const content = document.getElementById('customer-attempt-text')?.value.trim() || '';
+    if (!content) return Toast.show('Describe the contact attempt first', 'warning');
+    try {
+      if (!Number.isInteger(Number(customerId)) || Number(customerId) <= 0 || !await DB.getCustomer(Number(customerId))) throw new Error('Customer not found');
+      await DB.addCommunication({ customerId: Number(customerId), type: 'note', channel: 'manual', direction: 'internal', content: `Contact attempt: ${content}`, createdAt: new Date().toISOString() });
+      App.closeModal(); Toast.show('Contact attempt saved', 'success'); App.navigate('customer', { id: Number(customerId) });
+    } catch (_) { Toast.show('Could not save the contact attempt', 'error'); }
   },
 
   openReplyModal(customerId) {

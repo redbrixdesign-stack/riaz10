@@ -151,9 +151,26 @@ const TalkFeature = {
     return `Hi ${name}, I'm on my way${context.eta ? ` and should be with you in about ${context.eta}` : ''}. See you soon!`;
   },
 
+  async buildPrevisitMessage(appt, customer, key) {
+    const base = await this.buildIntroMessage(appt, customer);
+    if (!base) return null;
+    const reminder = ['day_before', 'evening_before', 'intro_day_before'].includes(key);
+    // Combine only when the booking is tomorrow, not for a later first contact.
+    const tomorrowDate = new Date(); tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const tomorrow = Utils.formatDateUK(tomorrowDate, 'iso');
+    const combined = this.isIntroductionTemplate(key) && Utils.formatDateUK(appt.date, 'iso') === tomorrow;
+    const line = reminder || combined
+      ? "Please reply when you can to let me know you're expecting me. If your plans have changed, please let me know early—it helps avoid an unnecessary journey. I'll call before setting off and message my estimated arrival time; please keep your phone handy."
+      : "On your appointment day, I'll call before setting off and message my estimated arrival time. Please keep your phone handy on the day.";
+    // Keep social links at the bottom, once. No reply never cancels a visit.
+    const footerAt = base.search(/\n\n(?:Facebook|Instagram):/);
+    return footerAt < 0 ? `${base}\n\n${line}` : `${base.slice(0, footerAt)}\n\n${line}${base.slice(footerAt)}`;
+  },
+
   applyCommunicationPolicy(text, context) {
     if (['on_the_way', 'late'].includes(context.stage)) return this.journeyMessage(context);
     const fallback = context.safe_template_text || text;
+    if (context.previsit_contact_expectations && (!/call before setting off/i.test(text) || !/estimated arrival time/i.test(text) || /cancel|won't attend|will not attend|secure your appointment/i.test(text) || /Please reply when you can/.test(fallback) && !/Please reply when you can/.test(text))) text = fallback;
     const selfIntro = /\b(?:my name is|let me introduce|introducing myself|your (?:independent )?(?:advi[sz]or|fitter|window coverings expert))\b/i.test(text) || /\bI(?:'|’)?m\s+/i.test(text) && [context.advisor_name, context.advisor_role].some(value => value && text.toLowerCase().includes(value.toLowerCase()));
     if (!context.introduction_required && selfIntro) text = fallback;
     if (context.introduction_required && (!text.includes(context.advisor_name) || context.advisor_role && !text.includes(context.advisor_role) || !/clear[^.!?]*window|window[^.!?]*clear/i.test(text) || (!context.parking_notes && !/parking/i.test(text)))) text = fallback;
@@ -663,8 +680,8 @@ const TalkFeature = {
     // profile (title + type-aware prep + known parking/access acknowledged)
     // — falls back to the static pre_intro template if that ever fails.
     let message = null;
-    if (this.isIntroductionTemplate(templateKey)) {
-      message = await this.buildIntroMessage(appt, customer);
+    if (this.isIntroductionTemplate(templateKey) || ['day_before', 'evening_before'].includes(templateKey)) {
+      message = await this.buildPrevisitMessage(appt, customer, templateKey);
     }
     if (['on_my_way', 'running_late'].includes(templateKey)) message = this.journeyMessage({ stage: this.stageForTemplateKey(templateKey), customer_name: Utils.customerFirstName(customer, appt?.clientName), eta: extraVars.eta || eta, delay_reason: extraVars.delay || delay });
     if (!message) {
@@ -1175,7 +1192,8 @@ const TalkFeature = {
 
     const alreadyIntroduced = await this.introductionAlreadyRecorded(appt, customerVisits, allMessages);
     const introStage = this.isIntroductionTemplate(templateKey);
-    const safeTemplate = introStage ? await this.buildIntroMessage(appt, customer) : this._interpolateTemplateText(templateText, customer, appt, advisorName, visitTypeLabel);
+    const previsitStage = introStage || ['day_before', 'evening_before'].includes(templateKey);
+    const safeTemplate = previsitStage ? await this.buildPrevisitMessage(appt, customer, templateKey) : this._interpolateTemplateText(templateText, customer, appt, advisorName, visitTypeLabel);
 
     return {
       advisor_name: advisorName,
@@ -1186,6 +1204,7 @@ const TalkFeature = {
       introduction_required: introStage && !alreadyIntroduced && !['fitting', 'service_call', 'review', 'follow_up'].includes(appt?.type),
       include_social_links: introStage && !alreadyIntroduced,
       safe_template_text: safeTemplate || '',
+      previsit_contact_expectations: previsitStage,
       customer_name: Utils.customerFirstName(customer, appt?.clientName),
       customer_is_first_visit_at_address: pastVisits.length === 0,
       customer_visit_count: pastVisits.length,

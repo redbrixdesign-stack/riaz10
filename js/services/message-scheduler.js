@@ -248,6 +248,11 @@ const MessageScheduler = {
   },
 
   async _buildMessage(appt, stage, pending, extra) {
+    if (['intro_day_before', 'evening_before', 'day_before'].includes(stage) && typeof TalkFeature.buildPrevisitMessage === 'function') {
+      const customer = appt.customerId ? await DB.getCustomer(appt.customerId) : null;
+      const message = await TalkFeature.buildPrevisitMessage(appt, customer, stage);
+      if (message) return message;
+    }
     if (stage === 'intro_day_before' && typeof TalkFeature.buildIntroMessage === 'function') {
       let customer = null;
       try { customer = appt.customerId ? await DB.getCustomer(appt.customerId) : null; } catch (e) {}

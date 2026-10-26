@@ -3864,7 +3864,8 @@ body:has(.comp-page) {
   left: 12px;
   right: 12px;
   bottom: calc(var(--nav-height) + var(--safe-bottom) + 8px);
-  z-index: 200;
+  /* Status stays behind modal dialogs, never over their save controls. */
+  z-index: 190;
   display: flex;
   align-items: center;
   justify-content: center;
