@@ -1,0 +1,1 @@
+Visual capture only: genuine WebKit preview, synthetic records, toasts allowed to expire; no text/style changes, no AI call or WhatsApp handoff.

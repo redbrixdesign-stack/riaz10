@@ -61,8 +61,40 @@ separate reminder flag. Delayed mocked AI cannot replace user-edited wording.
 Only synthetic records and mock AI transport; no WhatsApp handoff, external
 provider request, real credential or real customer data.
 
-Release gates/deployment pending. Exact source, hosted acceptance, asset parity,
-public checks and rollback are recorded here before claiming LIVE.
+LIVE at https://beelo.beelestial.co.uk/. Final source
+57aef0d28d0d9e7ffa194855e6f90395cf7e4c69; exact hosted40400736308
+artifact sourceCommit verified, all23 browser journeys and unit/server/dependency
+checks passed. Local23 run passed during guard development; final frozen unit/
+integration and source/minified continuity checks also passed. Earlier candidate
+runs superseded by guard commits are not accepted as final-source evidence.
+
+Promoted unchanged production stage
+https://beelo1-nyipxy2cr-beelomvp.vercel.app,
+dpl_5mK86FQD4Rm9QFsa5f1Mki8zc5pW, Other/build16.157s.
+Talk32/AI14/MessageScheduler14/cache167; DB49, other runtime features unchanged.
+Five staged/public browser assets byte-match the final build. API prompt tested
+through the shared real handler with mocked upstream in the unit/server gate;
+no paid production model call or claim of exhaustive live-model evaluation.
+
+Public Chromium/WebKit synthetic continuity journeys pass, including mock AI
+response guard, concurrent typing protection, recorded introduction, short
+journey updates, preserved drafts, offline editing and reload. External services
+mocked/blocked; no WhatsApp handoff or real customer messages.
+Evidence: docs/evidence/2026-10-26-communication-continuity/.
+Clean visual-only WebKit captures allowed toasts to expire and scrolled the
+existing textarea to show the footer; no product text/style modifications.
+
+Preliminary browser failure exposed an icon in the AI button's accessible name;
+icon made decorative without changing the button action. A later fixture with
+no coordinates attempted the existing Home address lookup; request blocked,
+fixture given saved synthetic coordinates. Final assertions remain strict.
+No source/runtime files in the original dirty checkout were modified.
+Original non-doc diff SHA256 unchanged:
+8b6f2a59c93c01d1e4bee30742536a538f010119e3acf6b99e9b2f63e8e295d1.
+
+Production error/fatal function-log window21:00:24–21:10:24UTC empty; this is a
+narrow window, not complete client monitoring. Rollback is the previous route-map
+release dpl_7XrPW1WYdA3zToqtXnkHVtPQWMx4/cache166. No site-data clearing required.
 
 ## Open limits / next priorities
 

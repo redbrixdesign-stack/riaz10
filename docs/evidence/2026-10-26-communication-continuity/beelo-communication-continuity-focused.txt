@@ -1,0 +1,10 @@
+locator.click: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for getByRole('button', { name: 'Rewrite with AI', exact: true })[22m
+
+    at /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/browser/communication-continuity.e2e.cjs:29:66 {
+  log: [
+    "  - waiting for getByRole('button', { name: 'Rewrite with AI', exact: true })"
+  ],
+  name: 'TimeoutError'
+}

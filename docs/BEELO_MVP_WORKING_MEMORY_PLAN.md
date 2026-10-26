@@ -1,5 +1,13 @@
 # Beelo working-memory MVP — sequential delivery plan
 
+## 26 October — communication continuity foundation repaired
+
+LIVE57aef0d/cache167: no repeat identity in short local journey updates; explicit
+introduction evidence, initial preparation/parking/social links, retained drafts
+and guarded asynchronous AI. Exact hosted40400736308 all23/unit/server checks and
+public synthetic Chromium/WebKit flow pass. No autonomous send, schema/finance
+change or whole-MVP completion. Audit: docs/audits/COMMUNICATION_CONTINUITY_2026-10-26.md.
+
 ## 25 October — proposed route map delivered, not full M4
 
 LIVE864388c/cache166: Today/Tomorrow preview now has a numbered saved-base loop,
