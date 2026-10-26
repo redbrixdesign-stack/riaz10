@@ -29,5 +29,6 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
  appt.notes='Parking: permit supplied\nAccess: side gate';text=await talk.buildIntroMessage(appt,customer);assert.match(text,/noted parking: permit supplied/);assert(!text.includes('parking restrictions'));
  appt.type='measure';text=await talk.buildIntroMessage(appt,customer);assert.match(text,/survey|measure up/);assert(!text.includes('roughly how many'));assert.match(text,/clear the area/);
  context.CONFIG.socialLinks={facebook:'javascript:alert(1)',instagram:''};assert.equal(talk.socialLinkLines(),'');text=await talk.buildIntroMessage(appt,customer);assert(!text.includes('javascript:'));
+ c=await talk.buildMessageContext({customerId:1,appointmentId:1,templateKey:'pre_intro'});assert(!talk.applyCommunicationPolicy(c.safe_template_text+'\nInstagram: https://invented.invalid/',c).includes('invented.invalid'),'No links means no model-invented footer');
  console.log('PASS '+suffix+': confirmed/phone/prior-customer introduction continuity, retraction/no-show/handoff isolation, initial prep/parking/social links, survey purpose, guarded model fallback, journey updates without repeat intro/socials/model or invented ETA');
 }})().catch(e=>{console.error(e);process.exitCode=1;});

@@ -159,6 +159,7 @@ const TalkFeature = {
     if (context.introduction_required && (!text.includes(context.advisor_name) || context.advisor_role && !text.includes(context.advisor_role) || !/clear[^.!?]*window|window[^.!?]*clear/i.test(text) || (!context.parking_notes && !/parking/i.test(text)))) text = fallback;
     if (context.include_social_links) {
       const links = this.socialLinkLines();
+      if (!links && /https?:\/\/|(?:Facebook|Instagram):/i.test(text)) text = fallback;
       if (links) {
         const urls = links.split('\n').map(link => link.slice(link.indexOf(': ') + 2));
         const unexpectedURL = (text.match(/https?:\/\/\S+/gi) || []).some(url => !urls.includes(url));
