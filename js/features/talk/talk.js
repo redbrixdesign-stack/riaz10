@@ -160,6 +160,10 @@ const TalkFeature = {
     if (context.include_social_links) {
       const links = this.socialLinkLines();
       if (links) {
+        const urls = links.split('\n').map(link => link.slice(link.indexOf(': ') + 2));
+        const unexpectedURL = (text.match(/https?:\/\/\S+/gi) || []).some(url => !urls.includes(url));
+        const inlineURL = text.split('\n').some(line => urls.some(url => line.includes(url)) && !links.split('\n').includes(line.trim()));
+        if ((unexpectedURL || inlineURL) && context.safe_template_text) text = context.safe_template_text;
         // Canonical footer once; do not repeat model-added links or invent one.
         text = text.split('\n').filter(line => !/^\s*(Facebook|Instagram):/i.test(line) && !links.split('\n').some(link => line.includes(link.slice(link.indexOf(': ') + 2)))).join('\n').trim();
         text += `\n\n${links}`;
