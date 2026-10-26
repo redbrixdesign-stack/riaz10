@@ -350,6 +350,7 @@ const AIService = {
   // unchanged: the template remains the starting point, the draft is a
   // suggestion the advisor reviews and edits.
   async draftMessage(context) {
+    if (['on_the_way', 'late'].includes(context.stage) && typeof TalkFeature !== 'undefined') return { ok: true, text: TalkFeature.journeyMessage(context), nudge: '', local: true };
     const result = await this._request({
       type: 'draft',
       model: this.config().draftModel,
@@ -358,7 +359,8 @@ const AIService = {
     if (!result.ok) return result;
     const rawText = result.data.text || '';
     const parsed = this._parseDraft(rawText);
-    return { ok: true, text: parsed.draft_message || rawText, nudge: parsed.nudge || '', rawText, usage: result.data.usage };
+    const text = typeof TalkFeature !== 'undefined' ? TalkFeature.applyCommunicationPolicy(parsed.draft_message || rawText, context) : parsed.draft_message || rawText;
+    return { ok: true, text, nudge: parsed.nudge || '', rawText, usage: result.data.usage };
   },
 
   async createSocialPosts(fields = {}) {

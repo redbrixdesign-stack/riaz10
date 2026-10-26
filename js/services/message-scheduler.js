@@ -257,6 +257,7 @@ const MessageScheduler = {
     const context = await TalkFeature.buildMessageContext(pending);
     if (extra.eta) context.eta = extra.eta;
     if (extra.delay) context.delay = extra.delay;
+    if (['on_my_way', 'running_late'].includes(stage) && typeof TalkFeature.journeyMessage === 'function') return TalkFeature.journeyMessage({ ...context, eta: extra.eta || '', delay_reason: extra.delay || '' });
 
     if (AIService.isEnabled()) {
       try {

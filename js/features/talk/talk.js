@@ -112,6 +112,62 @@ const TalkFeature = {
     return 'there';
   },
 
+  isIntroductionTemplate(key = '') {
+    return ['pre_intro', 'intro_day_before'].includes(key) || key.startsWith('confirmation.');
+  },
+
+  socialLinkLines() {
+    return ['facebook', 'instagram'].flatMap(network => {
+      const value = String(CONFIG.socialLinks?.[network] || '').trim();
+      try {
+        const url = new URL(value);
+        if (url.protocol !== 'https:' || url.username || url.password || /[\r\n]/.test(value)) return [];
+        return [`${network === 'facebook' ? 'Facebook' : 'Instagram'}: ${value}`];
+      } catch (_) { return []; }
+    }).join('\n');
+  },
+
+  async introductionAlreadyRecorded(appt, visits = null, messages = null) {
+    const introduced = visit => !!visit && (!!visit.introSent || (typeof TaskService !== 'undefined' && !!TaskService.contactEvidence(visit).introduced));
+    if (introduced(appt)) return true;
+    if (!appt?.customerId) return false;
+    try {
+      visits = visits || await DB.getAppointmentsByCustomer(appt.customerId);
+      if (visits.some(v => String(v.customerId) === String(appt.customerId) && introduced(v))) return true;
+      if (visits.some(v => v.status !== 'cancelled' && v.outcome && !['cancelled', 'customer_no_show', 'advisor_unavailable'].includes(v.outcome) && new Date(v.date) < new Date())) return true;
+    } catch (_) { /* no inferred contact when history cannot be read */ }
+    try {
+      if (!messages) {
+        messages = await DB.db.communications.where('customerId').equals(appt.customerId).toArray();
+        if (typeof CommunicationService !== 'undefined') messages = await CommunicationService.decorate(messages);
+      }
+      return messages.some(m => String(m.customerId) === String(appt.customerId) && m.direction !== 'inbound' && this.isIntroductionTemplate(m.confirmedTemplate || m.template || '') && (typeof CommunicationService === 'undefined' ? !!m.sentAt : CommunicationService.isConfirmed(m)));
+    } catch (_) { return false; }
+  },
+
+  journeyMessage(context) {
+    const name = context.customer_name || 'there';
+    if (context.stage === 'late') return `Hi ${name}, I'm sorry, I'm running late.${context.eta ? ` I expect to be with you in about ${context.eta}.` : context.delay_reason ? ` I'm delayed by about ${context.delay_reason} minutes.` : " I'll update you when I have a reliable arrival estimate."} Thanks for your patience.`;
+    return `Hi ${name}, I'm on my way${context.eta ? ` and should be with you in about ${context.eta}` : ''}. See you soon!`;
+  },
+
+  applyCommunicationPolicy(text, context) {
+    if (['on_the_way', 'late'].includes(context.stage)) return this.journeyMessage(context);
+    const fallback = context.safe_template_text || text;
+    const selfIntro = /\b(?:my name is|let me introduce|introducing myself|your (?:independent )?(?:advi[sz]or|fitter|window coverings expert))\b/i.test(text) || /\bI(?:'|’)?m\s+/i.test(text) && [context.advisor_name, context.advisor_role].some(value => value && text.toLowerCase().includes(value.toLowerCase()));
+    if (!context.introduction_required && selfIntro) text = fallback;
+    if (context.introduction_required && (!text.includes(context.advisor_name) || context.advisor_role && !text.includes(context.advisor_role) || !/clear[^.!?]*window|window[^.!?]*clear/i.test(text) || (!context.parking_notes && !/parking/i.test(text)))) text = fallback;
+    if (context.include_social_links) {
+      const links = this.socialLinkLines();
+      if (links) {
+        // Canonical footer once; do not repeat model-added links or invent one.
+        text = text.split('\n').filter(line => !/^\s*(Facebook|Instagram):/i.test(line) && !links.split('\n').some(link => line.includes(link.slice(link.indexOf(': ') + 2)))).join('\n').trim();
+        text += `\n\n${links}`;
+      }
+    } else text = text.split('\n').filter(line => !/^\s*(Facebook|Instagram):/i.test(line) && !/https?:\/\/(?:[^/]+\.)?(?:facebook|instagram)\.com\//i.test(line)).join('\n').trim();
+    return text;
+  },
+
   // The actual job for a customer, from their order → quote line items
   // (the delivery note): "5 blinds — 2 roman, 3 vertical — about 33 minutes
   // each (around 2h45 in total)". Falls back to the number of windows
@@ -171,6 +227,13 @@ const TalkFeature = {
       const timePart = this.apptTimeText(appt);
       const addressPart = appt?.address ? ` at ${appt.address}` : '';
       const when = timePart ? ` on ${dayPart} at ${timePart}` : ` on ${dayPart}`;
+      const introduced = await this.introductionAlreadyRecorded(appt);
+      const footer = !introduced && this.socialLinkLines() ? `\n\n${this.socialLinkLines()}` : '';
+      if (introduced) {
+        const purpose = { consultation: 'for your consultation', measure: 'for your survey and final measurements', fitting: 'for your fitting', service_call: 'to look at the issue you reported', review: 'for your review visit', follow_up: 'to follow up on your visit' }[appt?.type] || 'for your visit';
+        const prep = ['consultation', 'measure', 'fitting', 'service_call'].includes(appt?.type) ? ' Please keep the area around the windows clear for safe access.' : '';
+        return `Hi ${name}, just to confirm — I'll be with you${when}${addressPart} ${purpose}.${prep} If anything has changed with parking or access, or you have a question, just reply here.`;
+      }
 
       // Known-customer stages: the advisor knows this customer and their
       // property — confirm the job, never re-introduce or re-ask basics.
@@ -178,15 +241,15 @@ const TalkFeature = {
         const job = (await this.buildJobSummary(appt.customerId) || '').replace(/\.+$/, '');
         const jobLine = job ? ` ${job}.` : '';
         if (appt.type === 'fitting') {
-          return `Hi ${name}, it's ${advisor}. Just to confirm — I'll be with you${when}${addressPart} to fit your new blinds.${jobLine} If you can clear the area around the window(s) and take down any existing blinds or curtains beforehand, I'll get straight to it when I arrive. If anything's changed, just reply here.`;
+          return `Hi ${name}, just to confirm — I'll be with you${when}${addressPart} to fit your new blinds.${jobLine} Please clear the area around the windows so I can work safely. If anything's changed with parking or access, just reply here.${footer}`;
         }
         if (appt.type === 'service_call') {
-          return `Hi ${name}, it's ${advisor}. Just to confirm — I'll be with you${when}${addressPart} to sort out the issue you reported.${jobLine} If anything's changed, just reply here.`;
+          return `Hi ${name}, just to confirm — I'll be with you${when}${addressPart} to look at the issue you reported.${jobLine} Please keep the window area accessible and let me know about any parking or access changes.${footer}`;
         }
         if (appt.type === 'review') {
-          return `Hi ${name}, it's ${advisor}. Just to confirm — I'll be with you${when}${addressPart} to see how everything's looking.${jobLine} If anything's come up since the fitting, just reply here and I'll take a look.`;
+          return `Hi ${name}, just to confirm — I'll be with you${when}${addressPart} to see how everything's looking.${jobLine} If anything's come up since the fitting, just reply here and I'll take a look.${footer}`;
         }
-        return `Hi ${name}, it's ${advisor}. Just to confirm — I'll be with you${when}${addressPart} to follow up.${jobLine} If anything's changed since we last spoke, just reply here.`;
+        return `Hi ${name}, just to confirm — I'll be with you${when}${addressPart} to follow up.${jobLine} If anything's changed since we last spoke, just reply here.${footer}`;
       }
 
       // New-customer stages: introduction with the title + profile-aware asks.
@@ -194,7 +257,7 @@ const TalkFeature = {
       const TYPE = {
         consultation: {
           verb: 'for a consultation',
-          ask: ''
+          ask: 'Please clear the area around the windows so I can access them safely.'
         },
         measure: {
           verb: 'to measure up',
@@ -211,10 +274,10 @@ const TalkFeature = {
       const windows = (this._parseNoteField(appt?.notes || '', 'windows') || this._parseNoteField(appt?.notes || '', 'blinds') || '').replace(/\.+$/, '');
       const inspiration = (this._parseNoteField(appt?.notes || '', 'inspiration') || this._parseNoteField(appt?.notes || '', 'style') || '').replace(/\.+$/, '');
       let profile = '';
-      if (parking && access) profile = ` I can see parking is ${parking} and I've noted ${access} for access.`;
-      else if (parking) profile = ` I can see parking is ${parking}.`;
-      else if (access) profile = ` I've noted ${access} for access.`;
-      else profile = ' Please also let me know about parking or access considerations, such as gates, stairs or pets.';
+      if (parking && access) profile = ` I've noted parking: ${parking}; access: ${access}. Please let me know if those arrangements change.`;
+      else if (parking) profile = ` I've noted parking: ${parking}. Please let me know about any access arrangements, such as gates, stairs or pets.`;
+      else if (access) profile = ` I've noted access: ${access}. Please let me know about parking restrictions, permits or where it is best to park.`;
+      else profile = ' Please let me know about parking restrictions, permits and any access arrangements, such as gates, stairs or pets.';
 
       let ask = t.ask;
       if (appt?.type !== 'measure') {
@@ -225,11 +288,12 @@ const TalkFeature = {
         const gapList = gaps.length > 2
           ? `${gaps.slice(0, -1).join(', ')}, and ${gaps[gaps.length - 1]}`
           : gaps.join(' and ');
-        ask = gaps.length
+        ask += ' ' + (gaps.length
           ? `To help me bring the right ideas and make our time useful, could you send me ${gapList}?`
-          : `I've noted the windows, rooms and look you have in mind, so I can come prepared.`;
+          : `I've noted the windows, rooms and look you have in mind, so I can come prepared.`);
       }
-      return `Hi ${name}, I'm ${advisor}, an ${title}, and I'll be with you${when}${addressPart} ${t.verb}.\n\n${ask}${profile}\n\nIf anything changes or you have a question before the visit, just reply here.`;
+      const opening = introduced ? `Hi ${name}, just to confirm — I'll be with you` : `Hi ${name}, I'm ${advisor}, an ${title}, and I'll be with you`;
+      return `${opening}${when}${addressPart} ${t.verb}.\n\n${ask}${profile}\n\nIf anything changes or you have a question before the visit, just reply here.${footer}`;
     } catch (e) {
       return null; // caller falls back to the static template
     }
@@ -571,8 +635,8 @@ const TalkFeature = {
       return;
     }
 
-    let eta = '15-20 minutes';
-    let delay = '10-15';
+    let eta = '';
+    let delay = '';
     let etaIsEstimateOnly = true;
 
     if (templateKey === 'on_my_way' || templateKey === 'running_late') {
@@ -593,9 +657,10 @@ const TalkFeature = {
     // profile (title + type-aware prep + known parking/access acknowledged)
     // — falls back to the static pre_intro template if that ever fails.
     let message = null;
-    if (templateKey === 'pre_intro' || templateKey === 'intro_day_before') {
+    if (this.isIntroductionTemplate(templateKey)) {
       message = await this.buildIntroMessage(appt, customer);
     }
+    if (['on_my_way', 'running_late'].includes(templateKey)) message = this.journeyMessage({ stage: this.stageForTemplateKey(templateKey), customer_name: Utils.customerFirstName(customer, appt?.clientName), eta: extraVars.eta || eta, delay_reason: extraVars.delay || delay });
     if (!message) {
       // {{jobSummary}} names the actual job (blinds, types, timing) for
       // fitting/service reminders — leading space so the sentence reads the
@@ -630,7 +695,7 @@ const TalkFeature = {
     };
 
     const etaHint = (templateKey === 'on_my_way' || templateKey === 'running_late')
-      ? (etaIsEstimateOnly ? "Couldn't work out a live ETA (location unavailable) - this is a placeholder, edit before sending." : "Time estimated from your current distance to this visit - double-check before sending.")
+      ? (etaIsEstimateOnly ? "Couldn't work out a live ETA — no arrival estimate has been invented. Edit before sending." : "Time estimated from your current distance to this visit - double-check before sending.")
       : null;
     this.openPreviewSheet(message, this.pendingMessage, etaHint);
   },
@@ -662,6 +727,7 @@ const TalkFeature = {
         this._draftBookingSnapshot = saved.bookingSnapshot || null;
         needsBookingReview = this._draftBookingSnapshot !== currentBooking;
         hint = 'Saved unsent draft restored. Check the appointment details before sending.';
+        if (['on_my_way', 'running_late'].includes(templateKey)) hint = 'Saved wording preserved. It may repeat an old introduction or ETA. Edit it, or choose Use short journey update to rebuild from the visit details; nothing is sent automatically.';
       }
     }
     this._aiDraftPrev = null;
@@ -713,9 +779,9 @@ const TalkFeature = {
         <textarea class="textarea" id="talk-message-preview" aria-label="Message preview (editable)" data-action="TalkFeature.savePreviewDraft" data-event="input" style="min-height:110px;">${Utils.escapeHtml(message)}</textarea>
 
         <div class="flex items-center gap-sm mt-sm wrap" >
-          <button class="btn btn-sm ${AIService.isEnabled() ? 'btn-outline' : 'btn-ghost'}" data-action="TalkFeature.aiDraft">
-            <span class="material-symbols-rounded fs-16" >auto_awesome</span>Rewrite with AI
-          </button>
+          ${['on_my_way', 'running_late'].includes(templateKey) ? '<button class="btn btn-sm btn-outline" data-action="TalkFeature.refreshJourneyDraft">Use short journey update</button><span class="fs-12 text-secondary">No repeated introduction, preparation requests or social links. Edit freely above.</span>' : `<button class="btn btn-sm ${AIService.isEnabled() ? 'btn-outline' : 'btn-ghost'}" data-action="TalkFeature.aiDraft">
+            <span class="material-symbols-rounded fs-16" aria-hidden="true">auto_awesome</span>Rewrite with AI
+          </button>`}
           <div id="talk-ai-actions" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;">
             <button class="btn btn-sm btn-ghost" data-action="TalkFeature.regenerateDraft">
               <span class="material-symbols-rounded fs-16" >refresh</span>Regenerate
@@ -781,6 +847,7 @@ const TalkFeature = {
   // reviews and edits. The nudge Claude returns lands in the #talk-nudge
   // slot above the textarea.
   async aiDraft() {
+    if (['on_my_way', 'running_late'].includes(this.pendingMessage?.templateKey)) return this.refreshJourneyDraft();
     if (!AIService.isEnabled()) {
       Toast.show('AI drafting is off — enable it in Settings first', 'warning');
       return;
@@ -792,11 +859,18 @@ const TalkFeature = {
     }
     const textarea = document.getElementById('talk-message-preview');
     if (!textarea) return;
+    const original = textarea.value;
+    const request = this._aiDraftRequest = (this._aiDraftRequest || 0) + 1;
 
     Toast.show('Drafting with AI…', 'info');
     try {
       const context = await this.buildMessageContext(pending);
       const result = await AIService.draftMessage(context);
+      if (request !== this._aiDraftRequest || this.pendingMessage !== pending || !textarea.isConnected) return;
+      if (textarea.value !== original) {
+        Toast.show('Your wording changed while drafting — it has been kept. Rewrite again only if wanted.', 'info');
+        return;
+      }
       if (!result.ok) {
         Toast.show(result.reason === 'timeout' ? 'AI draft timed out — try again' : result.message || 'AI draft unavailable', 'error');
         return;
@@ -831,6 +905,19 @@ const TalkFeature = {
 
   async regenerateDraft() {
     await this.aiDraft();
+  },
+
+  async refreshJourneyDraft() {
+    const pending = this.pendingMessage, field = document.getElementById('talk-message-preview');
+    if (!pending || !field || !['on_my_way', 'running_late'].includes(pending.templateKey)) return;
+    const original = field.value;
+    try {
+      const context = await this.buildMessageContext(pending);
+      if (this.pendingMessage !== pending || !field.isConnected || field.value !== original) return;
+      field.value = this.journeyMessage(context);
+      await this.savePreviewDraft();
+      Toast.show('Short journey update ready — check the ETA and edit before sending', 'success');
+    } catch (_) { Toast.show('Could not refresh the message. Your wording is unchanged.', 'error'); }
   },
 
   // Restores the text that was in the box before the first AI rewrite.
@@ -998,12 +1085,14 @@ const TalkFeature = {
     // toDateString so multiple appointments on the same day aren't counted
     // twice.
     let pastVisits = [];
+    let customerVisits = [];
     let measuresByAppt = {};
     try {
       if (customerId) {
         const all = await DB.getAppointmentsByCustomer(customerId);
+        customerVisits = all;
         all.sort((a, b) => new Date(a.date) - new Date(b.date));
-        pastVisits = all.filter(a => a.date && new Date(a.date) < new Date() && a.status !== 'cancelled' && a.id !== appointmentId);
+        pastVisits = all.filter(a => a.date && new Date(a.date) < new Date() && a.status !== 'cancelled' && a.outcome && !['cancelled', 'customer_no_show', 'advisor_unavailable'].includes(a.outcome) && a.id !== appointmentId);
         const seen = new Set();
         pastVisits = pastVisits.filter(a => {
           const key = new Date(a.date).toDateString();
@@ -1011,7 +1100,9 @@ const TalkFeature = {
           seen.add(key);
           return true;
         });
-        const ids = pastVisits.map(a => a.id).filter(Boolean);
+        // Saved measurements are real context even if the visit's outcome has
+        // not been logged; they are not proof that a visit actually happened.
+        const ids = all.filter(a => a.date && new Date(a.date) < new Date() && a.status !== 'cancelled' && a.id !== appointmentId).map(a => a.id).filter(Boolean);
         if (ids.length) {
           const measures = await DB.getMeasurementsForAppointments(ids);
           for (const m of measures) {
@@ -1048,9 +1139,10 @@ const TalkFeature = {
 
     let templateText = '';
     try {
-      const keys = templateKey.split('.');
+      const keys = (templateKey === 'intro_day_before' ? 'pre_intro' : templateKey).split('.');
       let t = CONFIG.templates;
       for (const k of keys) t = t?.[k];
+      if (t && typeof t === 'object' && 'consultation' in t) t = t[appt?.type] || t.consultation;
       templateText = typeof t === 'string' ? t : '';
     } catch (e) { /* ignore */ }
 
@@ -1073,13 +1165,21 @@ const TalkFeature = {
 
     const orderSummary = latestOrder
       ? `Order ${latestOrder.orderNumber || ''}${latestOrder.supplierOrderNumber ? ` (supplier ref ${latestOrder.supplierOrderNumber})` : ''}, total ${Utils.formatCurrency(latestOrder.total || 0)}${depositPaid > 0 ? `, deposit paid ${Utils.formatCurrency(depositPaid)}` : latestOrder.depositRequired > 0 ? `, deposit due ${Utils.formatCurrency(latestOrder.depositRequired)}` : ''}${latestOrder.balanceDue > 0 ? `, ${Utils.formatCurrency(latestOrder.balanceDue)} remaining` : ''}`
-      : 'no order yet';
+      : 'Order details not supplied.';
+
+    const alreadyIntroduced = await this.introductionAlreadyRecorded(appt, customerVisits, allMessages);
+    const introStage = this.isIntroductionTemplate(templateKey);
+    const safeTemplate = introStage ? await this.buildIntroMessage(appt, customer) : this._interpolateTemplateText(templateText, customer, appt, advisorName, visitTypeLabel);
 
     return {
       advisor_name: advisorName,
       advisor_role: CONFIG.advisorTitle || 'window coverings advisor',
-      facebook_url: String(CONFIG.socialLinks?.facebook || '').trim(),
-      instagram_url: String(CONFIG.socialLinks?.instagram || '').trim(),
+      facebook_url: introStage && !alreadyIntroduced ? (this.socialLinkLines().split('\n').find(l => l.startsWith('Facebook: ')) || '').slice(10) : '',
+      instagram_url: introStage && !alreadyIntroduced ? (this.socialLinkLines().split('\n').find(l => l.startsWith('Instagram: ')) || '').slice(11) : '',
+      advisor_already_introduced: alreadyIntroduced,
+      introduction_required: introStage && !alreadyIntroduced && !['fitting', 'service_call', 'review', 'follow_up'].includes(appt?.type),
+      include_social_links: introStage && !alreadyIntroduced,
+      safe_template_text: safeTemplate || '',
       customer_name: Utils.customerFirstName(customer, appt?.clientName),
       customer_is_first_visit_at_address: pastVisits.length === 0,
       customer_visit_count: pastVisits.length,

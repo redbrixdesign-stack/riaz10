@@ -253,7 +253,7 @@ const assert = (cond, msg) => { if (!cond) { console.error('FAIL:', msg); proces
   // order, outcome, history) and maps templates onto the spec stages.
   const mctx = await Talk.buildMessageContext({ customerId: 1, appointmentId: 11, templateKey: 'follow_up.quote' });
   assert(mctx.customer_name === 'Sarah', 'Spec context carries customer first name');
-  assert(mctx.customer_is_first_visit_at_address === false && mctx.customer_visit_count === 1, 'Repeat customer flagged with correct visit count');
+  assert(mctx.customer_is_first_visit_at_address === true && mctx.customer_visit_count === 0 && mctx.advisor_already_introduced === true, 'Elapsed unlogged visit is not attendance; completed current visit is separate contact evidence');
   assert(mctx.blind_count === 1 && mctx.window_history_summary.includes('Lounge Bay'), 'Window history + blind count in spec context');
   assert(mctx.stage === 'outcome_quoted', 'quoted follow-up maps to its distinct outcome stage');
   assert(Talk.stageForTemplateKey('follow_up.partner', 'partner') === 'outcome_talk_to_partner', 'partner follow-up keeps its distinct outcome stage');
