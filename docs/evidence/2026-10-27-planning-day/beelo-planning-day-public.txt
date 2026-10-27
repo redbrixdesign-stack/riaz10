@@ -1,0 +1,2 @@
+PASS chromium: real Today/Tomorrow Add controls, UK/foreign device midnight/DST/year rollover, encrypted offline draft/reload and explicit resume preserves prior day; no automatic bookings/sends; explicit Save stores the selected UK day
+PASS webkit: real Today/Tomorrow Add controls, UK/foreign device midnight/DST/year rollover, encrypted offline draft/reload and explicit resume preserves prior day; no automatic bookings/sends; explicit Save stores the selected UK day

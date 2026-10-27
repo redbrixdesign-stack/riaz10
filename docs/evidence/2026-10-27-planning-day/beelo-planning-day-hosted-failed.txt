@@ -1,0 +1,41 @@
+Browser acceptance	Synthetic local browser acceptance	﻿2026-10-27T05:50:03.1014755Z ##[group]Run npm run test:release:browser
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:50:03.1015443Z ^[[36;1mnpm run test:release:browser^[[0m
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:50:03.1015831Z shell: sh -e {0}
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:50:03.1016038Z env:
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:50:03.1016247Z   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:50:03.1016659Z   BEELO_ARTIFACT_DIR: /home/runner/work/riaz10/riaz10/.test-results/release
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:50:03.1017062Z ##[endgroup]
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:50:03.2676055Z 
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:50:03.2676947Z > advisoros@5.0.0 test:release:browser
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:50:03.2677633Z > node tests/verify-release.cjs
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:50:03.2678006Z 
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:50:35.2491043Z PASS payment-link.e2e.cjs (32s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:50:45.0582828Z PASS protected-backup.e2e.cjs (10s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:50:56.4807027Z PASS context-encryption.e2e.cjs (11s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:51:02.9195728Z PASS lazy-state.e2e.cjs (6s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:51:12.7271479Z PASS social-share.e2e.cjs (10s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:51:19.2089803Z PASS cold-offline.e2e.cjs (6s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:52:53.4964429Z PASS script-load-deadline.e2e.cjs (94s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:52:58.4069347Z PASS claude-usage.e2e.cjs (5s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:53:11.9989917Z PASS test-session-boundary.e2e.cjs (14s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:53:14.1129420Z PASS visit-reminder-expiry.e2e.cjs (2s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:53:17.2482461Z PASS visit-reminder-lifecycle.e2e.cjs (3s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:53:20.6346767Z PASS visit-form-layout.e2e.cjs (3s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:53:28.0856235Z PASS modal-form-state.e2e.cjs (7s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:54:01.4064648Z PASS visit-draft.e2e.cjs (33s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:54:15.0232512Z PASS expense-date.e2e.cjs (14s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:54:33.8299085Z PASS communication-resolution.e2e.cjs (19s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:55:09.6735382Z FAIL expense-finder.e2e.cjs (36s)
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:55:09.6736068Z locator.waitFor: Timeout 30000ms exceeded.
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:55:09.6736461Z Call log:
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:55:09.6737086Z   - waiting for locator('#expense-finder-results').getByText('No matching expenses.') to be visible
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:55:09.6737708Z 
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:55:09.6738181Z     at /__w/riaz10/riaz10/tests/browser/expense-finder.e2e.cjs:25:294 {
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:55:09.6739099Z   log: [
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:55:09.6739867Z     "  - waiting for locator('#expense-finder-results').getByText('No matching expenses.') to be visible"
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:55:09.6740642Z   ],
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:55:09.6740896Z   name: 'TimeoutError'
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:55:09.6741188Z }
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:55:09.6741340Z 
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:55:09.6741877Z Browser acceptance stopped at expense-finder.e2e.cjs
+Browser acceptance	Synthetic local browser acceptance	2026-10-27T05:55:09.6915673Z ##[error]Process completed with exit code 1.
