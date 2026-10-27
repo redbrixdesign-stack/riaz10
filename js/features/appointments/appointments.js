@@ -113,7 +113,7 @@ const AppointmentsFeature = {
         ${visits.length > 1 ? '<button class="btn btn-outline btn-sm" aria-label="Reset to booked-time order" data-action="AppointmentsFeature.resetTomorrowOrder">Reset order</button>' : ''}
       </div>
       ${cards.length ? cards.join('') : `<div class="card"><p>No active visits booked for ${dayLabel}.</p><p>Use Scan to add on Home, or add a visit below.</p></div>`}
-      <button class="btn btn-primary mb-md" data-action="App.navigate" data-args='["appointments",{"action":"add"}]'>Add visit</button>
+      <button class="btn btn-primary mb-md" data-action="App.navigate" data-args='${JSON.stringify(["appointments", { action: "add", date: Utils.formatDateUK(tomorrow, "iso") }])}'>Add visit</button>
       <p class="text-tertiary fs-13">Preview route can suggest a geographical order, ignoring booked times. A proposed time only changes the booking after you confirm customer agreement and review scheduling checks.</p>
     </div></div>`;
   },

@@ -16,6 +16,7 @@ checks.splice(checks.indexOf('expense-context.e2e.cjs'),0,'proposed-route.e2e.cj
 checks.splice(checks.indexOf('expense-context.e2e.cjs'),0,'communication-continuity.e2e.cjs');
 checks.splice(checks.indexOf('expense-context.e2e.cjs'),0,'home-outcome-timing.e2e.cjs');
 checks.splice(checks.indexOf('expense-context.e2e.cjs'),0,'eod-earnings.e2e.cjs');
+checks.splice(checks.indexOf('expense-context.e2e.cjs'),0,'planning-day.e2e.cjs');
 // Manual investigation adds evidence before the maintained release journeys;
 // it cannot substitute for release acceptance or silently run until green.
 if(process.env.GITHUB_EVENT_NAME==='workflow_dispatch')checks.unshift('offline-delivery-diagnostic.cjs');

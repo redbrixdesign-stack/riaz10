@@ -79,9 +79,8 @@ const Utils = {
   },
 
   getTomorrow() {
-    const t = this.getToday();
-    t.setDate(t.getDate() + 1);
-    return t;
+    const p = this.ukParts();
+    return this.ukMidnightInstant(p.year, p.month, p.day + 1);
   },
 
   // Week/month windows follow the UK calendar day (same rule as getToday):
