@@ -55,7 +55,10 @@ const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
  assert.deepEqual(await p.evaluate(async ids=>Promise.all(ids.map(async id=>(await DB.getAppointment(id)).date)),data.ids),data.dates,'Proposal and reload must preserve original bookings');
  await p.getByRole('button',{name:'Preview proposed route',exact:true}).click();await p.locator('#planning-route-preview').waitFor();assert.match(await p.locator('#planning-route-preview').innerText(),/Booked times ignored/);assert.match(await p.locator('#planning-route-preview').innerText(),/Save a business base/);await p.getByRole('button',{name:'Close route preview',exact:true}).click();
  await p.getByRole('button',{name:'Reset to booked-time order',exact:true}).click();await p.waitForFunction(()=>document.querySelector('.plan-name')?.textContent.includes('Alder'));
- await rows.first().locator('.plan-name').click();await p.waitForFunction(id=>App.currentHash==='appointments?id='+id,data.ids[0]);
+ await rows.first().locator('.plan-name').click();await p.waitForFunction(id=>{
+  const [route,query]=App.currentHash.split('?');const params=new URLSearchParams(query);
+  return route==='appointments'&&params.get('id')===String(id)&&params.get('returnVisit')===String(id)&&params.get('returnAction')==='tomorrow'&&params.get('returnDay')===Utils.formatDateUK(Utils.getTomorrow(),'iso');
+ },data.ids[0]);
  assert.deepEqual(errors,[]);assert.deepEqual(posts,[]);
  console.log('PASS '+engine.name()+': seven compact rows at320/390/768, four fields/missing values, collapsed context/keyboard actions, real pointer reorder, saved order/offline/reload, proposal without agreement/booked-time changes, preview and original visit; no uploads');
  }catch(error){if(p)await p.screenshot({path:artifactPath('beelo-compact-plan-failure-'+engine.name()+'.png')}).catch(()=>{});throw error;}finally{await browser.close();}
