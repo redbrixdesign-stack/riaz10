@@ -47,18 +47,24 @@ const TodayFeature = {
   },
 
   async openEODModal() {
-    const today = Utils.getToday();
-    let appointments = [];
-    try { appointments = await DB.getAppointmentsForDate(today.toISOString()); } catch (e) {}
+    const day = Utils.ukParts();
+    const today = Utils.ukMidnightInstant(day.year, day.month, day.day);
+    const tomorrow = Utils.ukMidnightInstant(day.year, day.month, day.day + 1);
+    let appointments, stats;
+    try {
+      [appointments, stats] = await Promise.all([
+        DB.getAppointmentsForDate(today.toISOString()),
+        DB.getWeekStats(today.toISOString(), tomorrow.toISOString())
+      ]);
+    } catch (error) {
+      console.error('End of Day records could not be read:', error);
+      Toast.show('Could not load today’s records. Please try again.', 'error');
+      return;
+    }
     const completed = appointments.filter(a => a.outcome).length;
-    // "Earned" is commission, matching the Money screen - showing raw sale
-    // value here under the same word made the two screens disagree about
-    // what the advisor actually took home.
-    const earned = appointments.reduce((sum, a) => {
-      if (a.outcome !== 'ordered') return sum;
-      if (typeof a.commission === 'number' && a.commission > 0) return sum + a.commission;
-      return sum + TaxCalculator.estimateCommission(a.value || 0);
-    }, 0);
+    // The same read-only calculation as Money: sales commission, completed
+    // survey earnings and attended service fees, within this UK calendar day.
+    const earned = stats.earnings;
 
     const content = `
       <div class="sheet-handle"></div>
@@ -76,7 +82,7 @@ const TodayFeature = {
           </div>
           <div class="stat-card">
             <div class="value">${completed}/${appointments.length}</div>
-            <div class="label">Visits Done</div>
+            <div class="label">Results Logged</div>
           </div>
         </div>
 
