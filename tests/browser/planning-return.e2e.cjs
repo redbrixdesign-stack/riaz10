@@ -23,6 +23,7 @@ const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8038';
  await p.getByRole('button',{name:'Back',exact:true}).click();await p.waitForFunction(id=>document.activeElement?.closest('[data-plan-id]')?.dataset.planId===String(id),expected);
  assert.match(await p.locator('#main').innerText(),/Wednesday 28 Oct/);assert.match(await names.first().innerText(),/Return 6/);assert.equal(await p.getByRole('button',{name:'Today',exact:true}).getAttribute('aria-pressed'),'true');assert(Math.abs((await p.evaluate(()=>Math.max(document.getElementById('main').scrollTop,window.scrollY,document.scrollingElement?.scrollTop||0)))-before)<3,'App Back restores scroll');
  await p.screenshot({path:artifactPath('beelo-planning-return-'+engine.name()+'.png'),animations:'disabled'});
+ assert.equal(await p.locator('[data-action="TalkFeature.sendDayBefore"]').count(),0,'Retained plan now today must not offer a day-before shortcut');
  // Browser Back uses the replaced planning history entry, not a generic diary.
  await names.nth(5).click();await p.waitForFunction(()=>App.currentHash.startsWith('appointments?id='));await p.goBack();await p.waitForFunction(id=>document.activeElement?.closest('[data-plan-id]')?.dataset.planId===String(id),seed.order[5]);assert.match(await names.first().innerText(),/Return 6/);
  // Detail reload retains its explicit return destination. Offline Back needs no server.

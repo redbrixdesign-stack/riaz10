@@ -152,7 +152,7 @@ const AppointmentsFeature = {
               <button class="btn btn-outline btn-sm" ${index === 0 ? 'disabled' : ''} data-action="AppointmentsFeature.moveTomorrowVisit" data-args='[${index},${index - 1}]' aria-label="Move visit ${index + 1} up">↑ Move up</button>
               <button class="btn btn-outline btn-sm" ${index === visits.length - 1 ? 'disabled' : ''} data-action="AppointmentsFeature.moveTomorrowVisit" data-args='[${index},${index + 1}]' aria-label="Move visit ${index + 1} down">↓ Move down</button>
               <button class="btn btn-outline btn-sm" data-action="AppointmentsFeature.openPlanningVisit" data-args='${args}'>Review visit</button>
-              ${!isToday ? `<button class="btn btn-outline btn-sm" data-action="TalkFeature.sendDayBefore" data-args='${messageArgs}'>Review pre-visit message</button>` : '<span class="text-secondary">Open the visit for today’s communication options.</span>'}
+              ${date > Utils.formatDateUK(Utils.getToday(), 'iso') ? `<button class="btn btn-outline btn-sm" data-action="TalkFeature.sendDayBefore" data-args='${messageArgs}'>Review pre-visit message</button>` : '<span class="text-secondary">Open the visit for current communication options.</span>'}
               <button class="btn btn-ghost btn-sm" data-action="TalkFeature.openSavedDrafts" data-args='${messageArgs}'>Saved messages</button>
             </div>
           </div>
