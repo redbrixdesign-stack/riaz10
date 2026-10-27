@@ -19,7 +19,7 @@ const AppointmentsFeature = {
   },
 
   render(params = {}) {
-    if (params.action === 'tomorrow' || params.action === 'today-plan') return this.renderTomorrowPlan(params.action);
+    if (params.action === 'tomorrow' || params.action === 'today-plan') return this.renderTomorrowPlan(params.action, params);
     if (params.action === 'add') {
       return this.renderAddForm(params);
     }
@@ -30,7 +30,7 @@ const AppointmentsFeature = {
     if (params.id) {
       // Handle string IDs from URL params
       const id = parseInt(params.id) || params.id;
-      return this.renderDetail(id);
+      return this.renderDetail(id, params);
     }
     // Deep links / action cards can request a specific tab
     // (e.g. {"tab":"upcoming"} from the Home attention card): render the
@@ -43,13 +43,69 @@ const AppointmentsFeature = {
     return this.renderList();
   },
 
-  async renderTomorrowPlan(action = 'tomorrow') {
+  planningDate(value) {
+    if (typeof value !== 'string' || !/^[1-9]\d{3}-\d{2}-\d{2}$/.test(value)) return '';
+    const [year, month, date] = value.split('-').map(Number);
+    const day = Utils.ukMidnightInstant(year, month, date);
+    return Number.isFinite(day.getTime()) && Utils.formatDateUK(day, 'iso') === value ? value : '';
+  },
+
+  planningParams(extra = {}) {
+    return { action: this._planAction || 'tomorrow', planDate: this._planningDay ? Utils.formatDateUK(new Date(this._planningDay), 'iso') : '', ...extra };
+  },
+
+  planningReturn(params = {}) {
+    const planDate = this.planningDate(params.returnDay);
+    if (!planDate || !['today-plan', 'tomorrow'].includes(params.returnAction)) return null;
+    const focusVisit = String(params.returnVisit || '');
+    if (!/^[a-zA-Z0-9_-]{1,80}$/.test(focusVisit)) return null;
+    const planScroll = Math.min(100000, Math.max(0, Number(params.returnScroll) || 0));
+    return { action: params.returnAction, planDate, focusVisit, planScroll };
+  },
+
+  openPlanningVisit(id) {
+    const root = document.getElementById('tomorrow-plan');
+    if (!root || !this._tomorrowIds?.some(value => String(value) === String(id))) return;
+    const main = document.getElementById('main');
+    const scroll = Math.max(main?.scrollTop || 0, window.scrollY || 0, document.scrollingElement?.scrollTop || 0);
+    const back = this.planningParams({ focusVisit: String(id), planScroll: Math.round(scroll) });
+    // Preserve this entry for the browser Back gesture too; no booking writes.
+    const hash = `appointments?${new URLSearchParams(back)}`;
+    window.history.replaceState(null, '', '#' + hash);
+    App.currentHash = hash;
+    App.navigate('appointments', { id, returnDay: back.planDate, returnAction: back.action, returnVisit: back.focusVisit, returnScroll: back.planScroll });
+  },
+
+  restorePlanningPosition(params) {
+    const root = document.getElementById('tomorrow-plan');
+    const revision = App._navigationRevision;
+    if (!root || !params.focusVisit || !this.planningDate(params.planDate)) return;
+    // Shared navigation deliberately resets scroll again at180ms (iOS keyboard).
+    setTimeout(() => {
+      if (!root.isConnected || App._navigationRevision !== revision) return;
+      const row = [...root.querySelectorAll('[data-plan-id]')].find(item => item.dataset.planId === String(params.focusVisit));
+      const main = document.getElementById('main');
+      if (!row || !main) return;
+      row.querySelector('.plan-name')?.focus({ preventScroll: true });
+      const scroll = Math.min(100000, Math.max(0, Number(params.planScroll) || 0));
+      main.scrollTop = scroll;
+      window.scrollTo({ top: scroll, behavior: 'instant' });
+      const bounds = row.getBoundingClientRect(), viewport = main.getBoundingClientRect();
+      if (bounds.bottom < Math.max(0, viewport.top) || bounds.top > Math.min(window.innerHeight, viewport.bottom)) row.scrollIntoView({ block: 'nearest' });
+    }, 240);
+  },
+
+  async renderTomorrowPlan(action = 'tomorrow', params = {}) {
     const isToday = action === 'today-plan';
-    const tomorrow = isToday ? Utils.getToday() : Utils.getTomorrow();
-    const dayLabel = isToday ? 'today' : 'tomorrow';
+    const selectedDay = this.planningDate(params.planDate);
+    const tomorrow = selectedDay ? Utils.ukMidnightInstant(...selectedDay.split('-').map(Number)) : isToday ? Utils.getToday() : Utils.getTomorrow();
+    const date = Utils.formatDateUK(tomorrow, 'iso');
+    const actualToday = date === Utils.formatDateUK(Utils.getToday(), 'iso');
+    const actualTomorrow = date === Utils.formatDateUK(Utils.getTomorrow(), 'iso');
+    const dayLabel = actualToday ? 'today' : actualTomorrow ? 'tomorrow' : Utils.formatDate(tomorrow, 'weekday-day-month');
     this._planAction = action;
     this._planningDay = tomorrow.toISOString();
-    const header = App.renderTopHeader({ title: isToday ? 'Today’s plan' : 'Plan tomorrow', showBack: true });
+    const header = App.renderTopHeader({ title: actualToday ? 'Today’s plan' : actualTomorrow ? 'Plan tomorrow' : 'Visit plan', showBack: true });
     let visits;
     try {
       visits = (await DB.getAppointmentsForDate(tomorrow.toISOString()))
@@ -61,7 +117,7 @@ const AppointmentsFeature = {
       visits.sort((a, b) => (rank.get(String(a.id)) ?? Infinity) - (rank.get(String(b.id)) ?? Infinity));
       this._tomorrowIds = visits.map(a => a.id);
     } catch (error) {
-      return `${header}<div class="card card-page-mb"><p>Could not load the selected day’s visits. Your appointments have not been changed.</p><button class="btn btn-outline" data-action="App.navigate" data-args='${JSON.stringify(['appointments', { action }])}'>Try again</button></div>`;
+      return `${header}<div class="card card-page-mb"><p>Could not load the selected day’s visits. Your appointments have not been changed.</p><button class="btn btn-outline" data-action="App.navigate" data-args='${JSON.stringify(['appointments', this.planningParams()])}'>Try again</button></div>`;
     }
     const cards = await Promise.all(visits.map(async (visit, index) => {
       let customer = null;
@@ -72,14 +128,14 @@ const AppointmentsFeature = {
         visit.notes || '',
         customer?.notes ? `Customer: ${customer.notes}` : ''
       ].filter(Boolean);
-      const args = Utils.escapeHtml(JSON.stringify(['appointments', { id: visit.id }]));
+      const args = Utils.escapeHtml(JSON.stringify([visit.id]));
       const messageArgs = Utils.escapeHtml(JSON.stringify([visit.id]));
       const name = visit.clientName || [customer?.firstName, customer?.lastName].filter(Boolean).join(' ') || 'Customer';
       const pending = visit.timeProposal?.status === 'pending';
-      return `<article class="plan-row" data-plan-index="${index}">
+      return `<article class="plan-row" data-plan-index="${index}" data-plan-id="${Utils.escapeHtml(String(visit.id))}">
         <div class="plan-row-grid">
           <button class="btn btn-ghost plan-drag" data-plan-drag="${index}" aria-label="Drag ${Utils.escapeHtml(name)} to reorder"><span class="material-symbols-rounded" aria-hidden="true">drag_indicator</span></button>
-          <div class="plan-client"><span class="plan-label">Client</span><h2><button class="plan-name" data-action="App.navigate" data-args='${args}'>${index + 1}. ${Utils.escapeHtml(name)}</button></h2></div>
+          <div class="plan-client"><span class="plan-label">Client</span><h2><button class="plan-name" data-action="AppointmentsFeature.openPlanningVisit" data-args='${args}'>${index + 1}. ${Utils.escapeHtml(name)}</button></h2></div>
           <div class="plan-arrival"><span class="plan-label">Arrival window</span><strong>${visit.arrivalStart && visit.arrivalEnd ? `${Utils.escapeHtml(visit.arrivalStart)}–${Utils.escapeHtml(visit.arrivalEnd)}` : 'Not recorded'}</strong></div>
           <div class="plan-proposed"><span class="plan-label">Proposed time</span><button class="plan-time" data-action="AppointmentsFeature.openTimeProposal" data-args='${messageArgs}' aria-label="${pending ? 'Review proposed time' : 'Propose a time'} for ${Utils.escapeHtml(name)}">${pending ? Utils.escapeHtml(visit.timeProposal.time) : 'Set time'}</button>${pending ? '<span class="plan-proposal-status">Not agreed</span>' : ''}</div>
           <div class="plan-address"><span class="plan-label">Address</span><span>${Utils.escapeHtml(visit.address || 'Not recorded — check before travelling')}</span></div>
@@ -95,7 +151,7 @@ const AppointmentsFeature = {
             <div class="plan-row-actions">
               <button class="btn btn-outline btn-sm" ${index === 0 ? 'disabled' : ''} data-action="AppointmentsFeature.moveTomorrowVisit" data-args='[${index},${index - 1}]' aria-label="Move visit ${index + 1} up">↑ Move up</button>
               <button class="btn btn-outline btn-sm" ${index === visits.length - 1 ? 'disabled' : ''} data-action="AppointmentsFeature.moveTomorrowVisit" data-args='[${index},${index + 1}]' aria-label="Move visit ${index + 1} down">↓ Move down</button>
-              <button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='${args}'>Review visit</button>
+              <button class="btn btn-outline btn-sm" data-action="AppointmentsFeature.openPlanningVisit" data-args='${args}'>Review visit</button>
               ${!isToday ? `<button class="btn btn-outline btn-sm" data-action="TalkFeature.sendDayBefore" data-args='${messageArgs}'>Review pre-visit message</button>` : '<span class="text-secondary">Open the visit for today’s communication options.</span>'}
               <button class="btn btn-ghost btn-sm" data-action="TalkFeature.openSavedDrafts" data-args='${messageArgs}'>Saved messages</button>
             </div>
@@ -104,7 +160,7 @@ const AppointmentsFeature = {
       </article>`;
     }));
     return `<div class="fade-in">${header}<div class="px-md" id="tomorrow-plan">
-      <nav class="flex gap-sm mb-md" aria-label="Planning day"><button class="btn btn-outline" aria-pressed="${isToday}" data-action="App.navigate" data-args='["appointments",{"action":"today-plan"}]'>Today</button><button class="btn btn-outline" aria-pressed="${!isToday}" data-action="App.navigate" data-args='["appointments",{"action":"tomorrow"}]'>Tomorrow</button></nav>
+      <nav class="flex gap-sm mb-md" aria-label="Planning day"><button class="btn btn-outline" aria-pressed="${actualToday}" data-action="App.navigate" data-args='["appointments",{"action":"today-plan"}]'>Today</button><button class="btn btn-outline" aria-pressed="${actualTomorrow}" data-action="App.navigate" data-args='["appointments",{"action":"tomorrow"}]'>Tomorrow</button></nav>
       <p>${Utils.formatDate(tomorrow, 'weekday-day-month')} · ${visits.length} planned visit${visits.length === 1 ? '' : 's'}</p>
       <p class="text-secondary fs-13">Drag to plan the order. Booked times and navigation stay unchanged until you agree and save a change.</p>
       <p class="fs-12 text-tertiary" id="plan-order-status" role="status" aria-live="polite">Order saves on this device; new visits appear at the end.</p>
@@ -231,7 +287,7 @@ const AppointmentsFeature = {
         return;
       }
       await DB.setPrivateSetting(suggestion.key, JSON.stringify(suggestion.ids));
-      await App.navigate('appointments', { action: this._planAction || 'tomorrow' });
+      await App.navigate('appointments', this.planningParams());
       Toast.show('Suggested order saved — agree times with customers; bookings unchanged', 'success');
     } catch (_) { Toast.show('Could not save order. Your bookings are unchanged.', 'error'); }
     finally { this._planSaving = false; }
@@ -296,7 +352,7 @@ const AppointmentsFeature = {
     try {
       await DB.updateAppointment(id, { timeProposal: null });
       App.closeModal();
-      if (document.getElementById('tomorrow-plan')) App.navigate('appointments', { action: this._planAction || 'tomorrow' });
+      if (document.getElementById('tomorrow-plan')) App.navigate('appointments', this.planningParams());
       else App.navigate('appointments', { id });
     } catch (_) { Toast.show('Could not discard proposal', 'error'); }
   },
@@ -322,7 +378,7 @@ const AppointmentsFeature = {
     this._planSaving = true;
     try {
       await DB.setPrivateSetting(this._tomorrowKey, JSON.stringify(ids));
-      await App.navigate('appointments', { action: this._planAction || 'tomorrow' });
+      await App.navigate('appointments', this.planningParams());
       Toast.show('Proposed order saved — booked times unchanged', 'success');
     } catch (_) { Toast.show('Could not save order. Please try again.', 'error'); }
     finally { this._planSaving = false; }
@@ -333,7 +389,7 @@ const AppointmentsFeature = {
     this._planSaving = true;
     try {
       await DB.setPrivateSetting(this._tomorrowKey, 'null');
-      await App.navigate('appointments', { action: this._planAction || 'tomorrow' });
+      await App.navigate('appointments', this.planningParams());
     } catch (_) { Toast.show('Could not reset order. Please try again.', 'error'); }
     finally { this._planSaving = false; }
   },
@@ -1947,7 +2003,9 @@ const AppointmentsFeature = {
     App.navigate('appointments', { id });
   },
 
-  async renderDetail(id) {
+  async renderDetail(id, params = {}) {
+    const planReturn = this.planningReturn(params);
+    const backHref = planReturn ? `appointments?${new URLSearchParams(planReturn)}` : 'appointments';
     let appt = null;
     try {
       appt = await DB.getAppointment(id);
@@ -2005,7 +2063,7 @@ const AppointmentsFeature = {
         ${App.renderTopHeader({ 
           title: 'Visit', 
           showBack: true, 
-          backHref: 'appointments' 
+          backHref
         })}
 
         <!-- Customer Info -->
@@ -4138,7 +4196,10 @@ const AppointmentsFeature = {
   },
 
   activate(params = {}) {
-    if (params.action === 'tomorrow' || params.action === 'today-plan') this.setupTomorrowDrag();
+    if (params.action === 'tomorrow' || params.action === 'today-plan') {
+      this.setupTomorrowDrag();
+      this.restorePlanningPosition(params);
+    }
     // Auto-refresh when activated
     this.setupTabKeyboard();
     if (params.action === 'add' && typeof VisitDraft !== 'undefined') {
