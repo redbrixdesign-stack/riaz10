@@ -1,0 +1,12 @@
+'use strict';
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+for(const suffix of ['.js','.min.js']){
+ const fields=new Map(),calls=[];const s={console,Date,Intl,CONFIG:{appointmentTypes:[{id:'consultation',name:'Consultation'}]},App:{registerFeature(){},renderTopHeader:options=>JSON.stringify(options),navigate:(...args)=>calls.push(args)},AIService:{isEnabled:()=>false},document:{getElementById:id=>fields.get(id)||null}};
+ vm.createContext(s);vm.runInContext(fs.readFileSync('js/core/utils.js','utf8'),s);const ocr=vm.runInContext(fs.readFileSync('js/features/ocr/ocr'+suffix,'utf8')+'\nOCRFeature;',s),visits=vm.runInContext(fs.readFileSync('js/features/appointments/appointments'+suffix,'utf8')+'\nAppointmentsFeature;',s);
+ for(const valid of ['2026-10-28','2026-03-29','2027-01-01'])assert.equal(ocr.bookingDay(valid),valid);for(const bad of ['',null,'undefined','2026-02-30','2026-13-01','2026-00-01','2026-10-28\" onclick=bad'])assert.equal(ocr.bookingDay(bad),'');
+ let html=ocr.render({date:'2026-10-28'});assert(html.includes('Selected planning day: 2026-10-28'));assert(html.includes('appointments?action=add&date=2026-10-28'));assert(html.includes('id="ocr-manual-date" value="2026-10-28"'));
+ for(const id of ['ocr-loading','ocr-result','ocr-fields'])fields.set(id,{style:{},innerHTML:'',insertAdjacentHTML(){}});ocr.extractedData={name:'SYNTHETIC no-date',appointmentType:'consultation'};ocr.renderResult();assert(fields.get('ocr-fields').innerHTML.includes('id="ocr-appointmentDate" value="2026-10-28"'));assert.equal(ocr.extractedData.appointmentDate,undefined,'Do not claim fallback was extracted');
+ ocr.extractedData.appointmentDate='2026-10-30';ocr.renderResult();assert(fields.get('ocr-fields').innerHTML.includes('id="ocr-appointmentDate" value="2026-10-30"'),'Explicit document date wins');
+ ocr.render();assert.equal(ocr.bookingDate,'','A new general scan must not inherit prior planning context');fields.set('appt-date',{value:'2026-10-29'});visits.scanVisitDetails();assert.deepEqual(JSON.parse(JSON.stringify(calls.at(-1))),['ocr',{date:'2026-10-29'}]);fields.set('appt-date',{value:''});visits.scanVisitDetails();assert.deepEqual(JSON.parse(JSON.stringify(calls.at(-1))),['ocr',{}]);
+ console.log('PASS scan date '+suffix+': valid context, visible manual/result date, extracted date wins, no false extraction, Back day, current form date, no stale context or booking');
+}

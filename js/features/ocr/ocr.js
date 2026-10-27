@@ -50,14 +50,25 @@ const OCRFeature = {
     document.head.appendChild(script);
   },
 
-  render() {
+  bookingDay(value) {
+    const date = String(value || '');
+    const p = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return p && Number(p[1]) >= 1000 &&
+      Utils.formatDateUK(Utils.ukMidnightInstant(+p[1], +p[2], +p[3]), 'iso') === date ? date : '';
+  },
+
+  render(params = {}) {
+    // This is a user-selected fallback, not a date claimed to be read from
+    // the document. Reset on every entry so another scan cannot inherit it.
+    this.bookingDate = this.bookingDay(params.date);
     return `<div class="fade-in">
       ${App.renderTopHeader({ 
         title: 'Scan Document', 
         showBack: true, 
-        backHref: "appointments?action=add" 
+        backHref: "appointments?action=add" + (this.bookingDate ? `&date=${this.bookingDate}` : '')
       })}
       <div class="p-md" >
+        ${this.bookingDate ? `<p class="hint" id="ocr-planning-day">Selected planning day: ${Utils.escapeHtml(this.bookingDate)}. If the document has no date, use this day. Review the date before saving.</p>` : ''}
         <div class="center-box" >
           <span class="material-symbols-rounded fs-64 text-tertiary mb-md" >document_scanner</span>
           <div class="fw-600 mb-sm" >Capture from Order Screenshot or Business Card</div>
@@ -84,7 +95,8 @@ const OCRFeature = {
             <div class="form-group"><label>Address</label><input type="text" class="input" id="ocr-manual-address" placeholder="House number and street, town"></div>
             <div class="form-group"><label>Postcode</label><input type="text" class="input text-uppercase" id="ocr-manual-postcode" placeholder="e.g. M14 7FZ" ></div>
             <div class="form-group"><label for="ocr-manual-type">Appointment type</label><select class="select" id="ocr-manual-type">${CONFIG.appointmentTypes.map(type => `<option value="${Utils.escapeHtml(type.id)}">${Utils.escapeHtml(type.name)}</option>`).join('')}</select></div>
-            <button class="btn btn-primary btn-block" data-action="OCRFeature.saveManual">Save Customer</button>
+            <div class="form-group"><label for="ocr-manual-date">Visit date</label><input class="input" type="date" id="ocr-manual-date" value="${this.bookingDate || Utils.formatDateUK(new Date(), 'iso')}"></div>
+            <button class="btn btn-primary btn-block" data-action="OCRFeature.saveManual">Save Customer &amp; Visit</button>
           </div>
         </div>
       </div>
@@ -215,9 +227,9 @@ const OCRFeature = {
       </div>
       <div class="form-group"><label for="ocr-appointmentType">Appointment type</label><select class="select" id="ocr-appointmentType">${CONFIG.appointmentTypes.map(type => `<option value="${Utils.escapeHtml(type.id)}" ${type.id === resolvedType ? 'selected' : ''}>${Utils.escapeHtml(type.name)}</option>`).join('')}</select><div class="hint">Check this before saving—the message wording follows this visit type.</div></div>
       ${orderedKeys
-        .filter(k => k === 'name' || k === 'postcode' || this.extractedData[k])
+        .filter(k => k === 'name' || k === 'postcode' || (k === 'appointmentDate' && this.bookingDate) || this.extractedData[k])
         .map(k => {
-          const v = this.extractedData[k] || '';
+          const v = this.extractedData[k] || (k === 'appointmentDate' ? this.bookingDate : '') || '';
           const upper = k === 'postcode' ? ' style="text-transform:uppercase;"' : '';
           const label = fieldLabels[k] || k.replace(/([A-Z])/g,' $1').trim();
           return `<div class="form-group"><label class="text-capitalize" >${Utils.escapeHtml(label)}</label><input type="text" class="input" id="ocr-${Utils.escapeHtml(k)}" value="${Utils.escapeHtml(v)}"${upper}></div>`;
@@ -788,7 +800,7 @@ const OCRFeature = {
       // Saving from a scanned document should land the visit in the diary
       // immediately — no second form to stumble over. The extracted date
       // (or today, when only a business card was read) is used as-is.
-      const visitDate = this.rollStaleYearForward(this.normalizeDateField(date) || Utils.formatDate(new Date(), 'iso'));
+      const visitDate = this.rollStaleYearForward(this.normalizeDateField(date) || this.bookingDate || Utils.formatDate(new Date(), 'iso'));
       const visitTime = time || '09:00';
 
       // A second scan of the same document must not stack a duplicate visit
@@ -869,7 +881,7 @@ const OCRFeature = {
     if (date) {
       const normalized = this.normalizeDateField(date);
       if (!normalized) {
-        issues.push('the date couldn\'t be read — booked for today instead');
+        issues.push('the date couldn\'t be read — check the saved visit date');
       } else {
         const farFuture = new Date(normalized + 'T00:00:00');
         if (!isNaN(farFuture.getTime()) && farFuture.getTime() > Date.now() + 730 * 86400000) {
@@ -886,6 +898,9 @@ const OCRFeature = {
     const address = document.getElementById('ocr-manual-address').value.trim();
     const postcodeInput = document.getElementById('ocr-manual-postcode')?.value.trim() || '';
     if (!name) { Toast.show('Name is required', 'error'); return; }
+    const dateField = document.getElementById('ocr-manual-date');
+    const visitDate = dateField ? this.bookingDay(dateField.value) : this.bookingDate || Utils.formatDateUK(new Date(), 'iso');
+    if (!visitDate) { Toast.show('Choose a valid visit date before saving.', 'error'); return; }
     try {
       const { postcode, postcodeNormalized } = this.resolvePostcode(postcodeInput, address);
       const fullAddress = [address, postcode].filter(Boolean).join(', ');
@@ -895,16 +910,13 @@ const OCRFeature = {
         customer = await DB.addCustomer({ firstName: Utils.firstNameFrom(name), lastName: String(name).trim().replace(Utils.HONORIFICS, '').split(/\s+/).slice(1).join(' ') || '', fullName: name, phone, postcodeNormalized, address: { line1: address, postcode, postcodeNormalized }, source: 'manual' });
       }
 
-      // Same rule as the scanned flow: saving a customer books the visit
-      // too, so it shows up in the diary and Today immediately. No date
-      // was captured from a manual card, so it defaults to today at 09:00 —
-      // tap the visit to reschedule if the real one is different.
-      const visitDate = Utils.formatDate(new Date(), 'iso');
+      // Manual fallback shows the selected planning day (or today) for
+      // explicit review. The existing 09:00 default is retained.
 
       // Never stack a second visit for the same customer on the same day.
       const existing = await this.findExistingVisit(customer.id, visitDate, phone, address);
       if (existing) {
-        Toast.show(`${existing.clientName || name} already has a visit today — opened it instead of saving a duplicate`, 'warning');
+        Toast.show(`${existing.clientName || name} already has a visit that day — opened it instead of saving a duplicate`, 'warning');
         App.navigate('appointments', { id: existing.id });
         return;
       }
@@ -916,7 +928,7 @@ const OCRFeature = {
         clientName: name,
         phone,
         address: fullAddress,
-        date: new Date(visitDate + 'T09:00').toISOString(),
+        date: this.resolveVisitIso(visitDate, '09:00').iso,
         durationSlots: 1,
         type,
         source: 'manual',

@@ -2286,8 +2286,8 @@ const AppointmentsFeature = {
             <input type="text" class="input" id="appt-address" autocomplete="street-address" placeholder="Full address" value="${Utils.escapeHtml(scannedAddress)}">
           </div>
 
-          <button type="button" class="btn btn-outline btn-block visit-scan-button" data-action="App.navigate" data-args='${JSON.stringify(["ocr"])}'>
-            <span class="material-symbols-rounded">document_scanner</span>
+          <button type="button" class="btn btn-outline btn-block visit-scan-button" data-action="AppointmentsFeature.scanVisitDetails">
+            <span class="material-symbols-rounded" aria-hidden="true">document_scanner</span>
             Scan customer details
           </button>
           <div class="hint mt-neg-4 mb-md" >Use this for a paper note, screenshot, business card or order document.</div>
@@ -4126,6 +4126,11 @@ const AppointmentsFeature = {
       e.preventDefault();
       tabs[next].focus();
     });
+  },
+
+  scanVisitDetails() {
+    const date = document.getElementById('appt-date')?.value || '';
+    App.navigate('ocr', /^\d{4}-\d{2}-\d{2}$/.test(date) ? { date } : {});
   },
 
   showAddModal() {
