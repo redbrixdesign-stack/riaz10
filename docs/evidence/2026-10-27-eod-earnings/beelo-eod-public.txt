@@ -1,0 +1,2 @@
+PASS chromium: EOD sales + survey + attended service; no-show/incomplete/cancelled/outside-day excluded; empty; read-only; offline correction/reload; read failure not shown as zero; no sends/provider calls
+PASS webkit: EOD sales + survey + attended service; no-show/incomplete/cancelled/outside-day excluded; empty; read-only; offline correction/reload; read failure not shown as zero; no sends/provider calls
