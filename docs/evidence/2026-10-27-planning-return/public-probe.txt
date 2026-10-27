@@ -1,0 +1,2 @@
+PASS chromium: planner→visit App/browser Back, same private order/day across midnight, restored position/focus, detail reload and offline Back; direct-link fallback, responsive widths, no booking writes or sends
+PASS webkit: planner→visit App/browser Back, same private order/day across midnight, restored position/focus, detail reload and offline Back; direct-link fallback, responsive widths, no booking writes or sends

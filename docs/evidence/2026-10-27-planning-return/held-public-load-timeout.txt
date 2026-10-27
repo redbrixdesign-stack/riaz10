@@ -1,0 +1,10 @@
+page.goto: Timeout 30000ms exceeded.
+Call log:
+[2m  - navigating to "https://beelo.beelestial.co.uk/", waiting until "load"[22m
+
+    at /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/browser/planning-return.e2e.cjs:9:200 {
+  log: [
+    '  - navigating to "https://beelo.beelestial.co.uk/", waiting until "load"'
+  ],
+  name: 'TimeoutError'
+}
