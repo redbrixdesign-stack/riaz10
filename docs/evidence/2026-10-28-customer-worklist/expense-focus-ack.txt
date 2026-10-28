@@ -1,0 +1,2 @@
+PASS chromium: all-date/customer/amount/UK-date search, paging, legacy visibility, receipt/cancel/edit/filter return, failed-read retry, offline search/reload and late editor isolation; no uploads
+PASS webkit: all-date/customer/amount/UK-date search, paging, legacy visibility, receipt/cancel/edit/filter return, failed-read retry, offline search/reload and late editor isolation; no uploads

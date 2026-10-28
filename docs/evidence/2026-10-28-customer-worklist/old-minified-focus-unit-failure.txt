@@ -1,0 +1,29 @@
+PASS modal focus .js: default first control, user/on-open focus ownership, stale replacement and detached guard
+PASS profile focus .js: normal restoration, active-dialog guard and navigation revision ownership
+node:assert:152
+  throw new AssertionError(obj);
+  ^
+
+AssertionError [ERR_ASSERTION]: Deferred initial focus must respect an already chosen control
+
+{
+  focus: [Function: focus]
+}
+
+    at Object.<anonymous> (/Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/modal-focus.test.js:7:69)
+    at Module._compile (node:internal/modules/cjs/loader:1871:14)
+    at Object..js (node:internal/modules/cjs/loader:2002:10)
+    at Module.load (node:internal/modules/cjs/loader:1594:32)
+    at Module._load (node:internal/modules/cjs/loader:1396:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: { focus: [Function: focus] },
+  expected: { focus: [Function: focus] },
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.18.0

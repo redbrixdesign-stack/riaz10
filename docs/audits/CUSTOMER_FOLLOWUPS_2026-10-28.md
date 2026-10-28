@@ -1,5 +1,42 @@
 # Customer-centred follow-ups —28October2026
 
+## Current status — both slices LIVE, cache176
+
+- Runtime e6d07dc3a40a1e0309ab5cb3cab74d4d97532f52: App47/Customer20/
+  Followups31/Talk34, cache176-focus-safe-worklist; DB49 unchanged.
+- Customer profile owns linked next actions, existing draft/sent/contact controls,
+  reminders and collapsed phone-contact history. Global Follow-ups is a compact
+  customer work list; personal/unlinked work and legacy routes remain available.
+  Counts still reflect canonical actions, not customer-row count. No automatic
+  sending, delivery inference, financial, scheduling or attendance-rule changes.
+- Final local release and exact hosted40616652175 passed all30 maintained browser
+  journeys; hosted root/server/dependency gates also passed. Hosted summary
+  identifies exact source e6d07dc; local runner summary has null sourceCommit,
+  with invocation/source checkpoint retained here. Earlier failed gates and
+  controlled negative reproduction results remain below, not represented as passes.
+- Production stage dpl_2xwq5GjkdnpgDaw1oDDTtfn9GfDg, target productionREADY,
+  beelomvp/beelo1, Other/static PWA, build13.340s:
+  https://beelo1-9vyqgyoxt-beelomvp.vercel.app was promoted unchanged to
+  https://beelo.beelestial.co.uk/ after gates passed. Cache175 was never promoted.
+- Public customer-worklist AND customer-followups journeys passed Chromium/WebKit:
+  customer isolation, canonical grouping, reminder/snooze/complete, explicit
+  sent/not-sent, mock external handoff, phone agreement/retraction, reply/back,
+  keyboard focus/trap, responsive widths and offline/reload. No real contact or
+  provider request. Public five-asset SHA256 parity matches tested/staged source.
+  Compact public work-list screenshot visually inspected. These synthetic browser
+  checks do not certify native iPhone, installed WhatsApp return or VoiceOver.
+- Production function error/fatal scan01:46:26–01:56:26UTC found no matching logs;
+  not comprehensive client/native monitoring. No drains/credentials/config changed.
+- Rollback: verified slice1/cache174, dpl_4EBQMfKv2NSv1QanoyYwCvdp8qaf /
+  https://beelo1-mhanza78z-beelomvp.vercel.app. Save open work before Update and
+  reload; do not clear app data. Original runtime dirty diff remains unchanged:
+  8b6f2a59c93c01d1e4bee30742536a538f010119e3acf6b99e9b2f63e8e295d1.
+- Evidence: docs/evidence/2026-10-28-customer-worklist/final-* and public screenshots;
+  slice1 evidence remains in docs/evidence/2026-10-28-customer-followups/.
+- Next: native phone acceptance, then separately assess Home attention duplication
+  and broader return-context/density backlog. This is not a claim all app audit
+  issues are fixed or any new feature is pilot-approved.
+
 ## Implemented slice1 (live; checkpoint below)
 
 Story: customer profile → existing FollowupsFeature.loadTasks/TaskService and
@@ -90,3 +127,92 @@ only after exact source gates and public verification.
 - Evidence docs/evidence/2026-10-28-customer-followups/: focused/public PNGs and
   logs, local/hosted summaries, separate phone probe, held locator screenshot.
 - Next: compact customer work list and visit-phone-history visibility in profile.
+
+## Implemented slice2 — staged release gate pending
+
+- Source aa8b94527699fb57fe4bfa3adc199c659d4aaf9d. Follow-ups now renders one compact
+  customer row within each due/later/snoozed section, using the same canonical
+  task associations/counts. It opens the customer's Next actions and history,
+  rather than duplicating review/send controls in both places. Personal,
+  unlinked, conflicting or deleted/unreadable-customer tasks stay individually
+  actionable; no work is hidden merely because grouping cannot resolve it.
+- Customer profile Back returns to Follow-ups when entered from this work list.
+  Logging a reply/contact attempt preserves this return context. Other direct
+  profile links keep the ordinary diary fallback; arbitrary return URLs are not
+  accepted. This is not a general planner/notes/edit return rewrite.
+- Communication record now includes collapsed adviser-recorded visit-phone
+  outcomes and retractions, matched by customer/provenance/channel. Original
+  records remain; dates can be missing and malformed entries are tolerated.
+  One review/correction control per visit, not per history row. These are not
+  imported call logs, delivery evidence or client-reliability scores.
+- Source/minified units and focused Chromium/WebKit pass: grouping/priority,
+  escaped names, unresolved-link fallback, phone provenance/retraction/malformed
+  history, preserved reply route; real work-list→profile→Back/keyboard flow,
+  phone no-answer/agreement/retraction with restored reminder, personal task
+  completion, offline navigation/reload, widths320/390/768 and unchanged booking/
+  send flags. Existing multi-customer communication-resolution journey updated
+  to use customer rows/profile controls; all original send-state guards retained.
+- Full30 local and exact hosted40612756452 running. Customer19/Followups31/
+  Talk34/cache175; DB49 unchanged. Not live at this checkpoint; live is slice1.
+- Staged productionREADY dpl_E6yp3q77hNFouJW7vDJgidbD8XKF /
+  https://beelo1-s8zljg2av-beelomvp.vercel.app, beelomvp/beelo1, Other/static,
+  build15.071s. Protected index/SW/customer/followups asset SHA256 matches source.
+
+## Slice2 held-gate investigation (no Money runtime change)
+
+- Local full30 passed ataa8b945. Hosted40612756452 failed expense-finder line25:
+  immediately after number-input fill, actual12.5 versus expected12.75, before
+  Save. Retained JSON shows original stored amount/filter and date-field focus
+  screenshot; the original run does not contain a complete focus-event trace.
+- Existing App.openModal schedules first-control focus on requestAnimationFrame;
+  Playwright number fill can overlap that focus hand-off. A separate controlled
+  probe deferring first-control focus until the number fill's microtask boundary
+  reproduces unchanged12.5/date focus/no Save in both Chromium/WebKit. An initial
+  immediate-focus injection did not reproduce it and is retained as such.
+- Maintained test now waits for the real initial date-field focus before filling
+  the amount, retaining its exact12.75 assertion, atomic write, receipt/date,
+  filter-return and offline checks. Failure diagnostics add editor value/focus/
+  modal depth. This is a test-only change; no Money, modal-focus or financial
+  calculation runtime changed. It is consistent with the hosted symptom, not
+  a claim that a production accounting bug was fixed. Native fast-input/focus
+  interactions are not certified by this test-harness adjustment.
+- Staged/runtimeaa8b945 remains held until the corrected focused test and fresh
+  exact hosted gate pass. No blind rerun or promotion of the failed gate.
+- Corrected expense-finder focused journey passed Chromium/WebKit, all original
+  Save/date/receipt/filter/offline assertions retained. Test-only follow-up
+  0bc65fc1dea23434438849089b4f7b6da186e9e6 differs fromaa8b945 only in that fixture;
+  fresh exact hosted40614186192 running. No runtime rebuild needed.
+- Additional scoped axe4.13/WebKit check found zero automated violations in
+  visible work-list #main, #customer-followups and expanded #customer-phone-history.
+  This is limited to these states, not full-app/VoiceOver/WCAG certification.
+
+## Focus-safe final candidate (supersedes cache175; not promoted yet)
+
+- Hosted40614186192 passed expense-finder but failed WebKit customer-worklist
+  waiting for the reply form to close. Capture shows an empty reply and focused
+  channel selector. Original full focus-event sequence was not captured; retain
+  this limitation rather than claiming an exact event trace.
+- Review found two unsafe deferred-focus paths: App's next-frame initial focus
+  could override an already-selected dialog control; profile's240ms restoration
+  could focus its background heading while a modal is active. The latter is
+  demonstrated directly against0bc65fc source; old minified App also fails the
+  new chosen-control unit assertion. A separate whole-modal microtask attempt
+  did not reproduce the blank reply and is retained as a negative result.
+- Fixed App.focusFirstControl to respect current in-dialog focus and content
+  ownership/detachment. Profile restoration now skips active regular/full-screen
+  dialogs and hidden documents. Default first-control focus, keyboard trapping,
+  stored values, money rules and send/approval guards remain unchanged.
+- New source/minified units cover default/user/onOpen focus, stale/replaced/
+  detached content, normal profile restoration, active modal and route revision.
+  Maintained browser journey now explicitly checks delayed dialog focus,
+  background-profile focus, default first focus and Tab/Shift+Tab trap, plus exact
+  typed reply value before Save. Future failure captures add reply/focus/modal/
+  route and synthetic communication diagnostics. Focused Chromium/WebKit pass.
+- Final sourcee6d07dc3a40a1e0309ab5cb3cab74d4d97532f52:
+  App47/Customer20/Followups31/Talk34/cache176, DB49 unchanged. Customer version
+  bumped again to avoid immutable staged-cache reuse. Full30 local and exact
+  hosted40616652175 running; cache175 candidates were never promoted.
+- Stage productionREADY dpl_2xwq5GjkdnpgDaw1oDDTtfn9GfDg /
+  https://beelo1-9vyqgyoxt-beelomvp.vercel.app, beelomvp/beelo1, Other/static,
+  build13.340s. Index/SW/App/customer/followups SHA256 matches source. Live remains
+  verified slice1/cache174 until this final release gate passes.

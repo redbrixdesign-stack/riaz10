@@ -1,0 +1,1 @@
+PROVED old0bc65fc profile restoration focuses background heading while a dialog is active; new modal-focus unit requires zero focus

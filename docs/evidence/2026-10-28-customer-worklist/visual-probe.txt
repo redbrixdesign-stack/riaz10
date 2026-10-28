@@ -1,0 +1,1 @@
+PASS webkit: compact canonical customer rows, unlinked task retained/completed, keyboard/profile/back/reply/offline/reload, phone no-answer/agreement/retraction history and restored reminder; original bookings/flags intact, no sends

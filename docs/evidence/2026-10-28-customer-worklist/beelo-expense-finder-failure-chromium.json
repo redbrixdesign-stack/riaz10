@@ -1,0 +1,302 @@
+{
+  "route": "money?view=expenses",
+  "filters": {
+    "q": "Cedar brackets",
+    "from": "2020-04-01",
+    "to": "2020-04-01",
+    "amount": "12.50",
+    "category": "",
+    "receipt": "",
+    "context": ""
+  },
+  "body": "arrow_back\nReceipts & expenses\n\nFind saved expenses from any date. Records stay on this device; this is not an accounting or filing service.\n\nDescription or customer\nFilter by date, amount or receipt\nFrom date\nTo date\nExact amount (£, optional) Category\nAll categories\nFuel\nSamples\nTools/Equipment\nPhone/Internet\nInsurance\nVehicle Costs\nMarketing\nTraining\nOther\n Receipt\nWith or without receipt\nReceipt attached\nNo receipt attached\n Customer link\nAll expenses\nGeneral business\nCustomer-linked\nFind records\nClear filters\n\n1 matching expense · showing 1 · newest first\n\nreceipt_long\n£12.50 · SYNTHETIC Cedar brackets\n2020-04-01 · Receipt attached\nSYNTHETIC Cedar <img onerror=alert(1)> · CUS-2026-0001\nchevron_right",
+  "modal": "Edit Expense\nclose\nExpense date\nThe date the expense happened, not the date you entered it.\nCustomer (optional)\nSYNTHETIC Cedar <img onerror=alert(1)> · CUS-2026-0001\nChoose a result to link. Searching alone does not change the link. Leave general costs unlinked.\nUse General business\nAmount (£)\nCategory\nFuel\nSamples\nTools/Equipment\nPhone/Internet\nInsurance\nVehicle Costs\nMarketing\nTraining\nOther\nDescription\nReceipt\nSave Changes \ndelete\nDelete Expense",
+  "expenses": [
+    {
+      "id": 1,
+      "amount": 12.5,
+      "date": "2020-04-01T10:00:00Z"
+    },
+    {
+      "id": 2,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 3,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 4,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 5,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 6,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 7,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 8,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 9,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 10,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 11,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 12,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 13,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 14,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 15,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 16,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 17,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 18,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 19,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 20,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 21,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 22,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 23,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 24,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 25,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 26,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 27,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 28,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 29,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 30,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 31,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 32,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 33,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 34,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 35,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 36,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 37,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 38,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 39,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 40,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 41,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 42,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 43,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 44,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 45,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 46,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 47,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 48,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 49,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 50,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 51,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 52,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 53,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 54,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 55,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 56,
+      "amount": 20,
+      "date": "2026-04-05T23:00:00Z"
+    },
+    {
+      "id": 57,
+      "amount": 8,
+      "date": ""
+    }
+  ],
+  "origin": true
+}

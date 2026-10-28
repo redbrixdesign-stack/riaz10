@@ -1,0 +1,2 @@
+PASS chromium: multiple durable hand-offs/reload, one-purpose confirmation, atomic failure retry, not-sent reminder retained, already-sent recovery, Home de-duplication and persisted flags; no external sends
+PASS webkit: multiple durable hand-offs/reload, one-purpose confirmation, atomic failure retry, not-sent reminder retained, already-sent recovery, Home de-duplication and persisted flags; no external sends

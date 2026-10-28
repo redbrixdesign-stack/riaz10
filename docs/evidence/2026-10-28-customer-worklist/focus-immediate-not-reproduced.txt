@@ -1,0 +1,12 @@
+AssertionError [ERR_ASSERTION]: Delayed initial focus during number-fill reproduces original unchanged amount
+
+'12.75' !== '12.5'
+
+    at /private/tmp/beelo-expense-focus-probe.cjs:26:103 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: '12.75',
+  expected: '12.5',
+  operator: 'strictEqual',
+  diff: 'simple'
+}

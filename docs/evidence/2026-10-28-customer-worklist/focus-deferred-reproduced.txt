@@ -1,0 +1,2 @@
+PROVED chromium: delayed first-control focus during number-input fill leaves12.5, date focused, storage unchanged; no Save
+PROVED webkit: delayed first-control focus during number-input fill leaves12.5, date focused, storage unchanged; no Save

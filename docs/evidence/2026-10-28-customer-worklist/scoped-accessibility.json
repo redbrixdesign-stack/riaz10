@@ -1,0 +1,14 @@
+[
+  {
+    "scope": "#main",
+    "violations": []
+  },
+  {
+    "scope": "#customer-followups",
+    "violations": []
+  },
+  {
+    "scope": "#customer-phone-history",
+    "violations": []
+  }
+]
