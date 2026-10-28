@@ -413,6 +413,7 @@ const CustomerFeature = {
     const panel = document.getElementById('customer-followups');
     setTimeout(() => {
       if (!panel?.isConnected || revision !== App._navigationRevision) return;
+      if (document.visibilityState === 'hidden' || document.getElementById('modal-overlay')?.classList?.contains('active') || document.getElementById('modal-full')?.classList?.contains('active')) return;
       const title = panel.querySelector('h2');
       title?.setAttribute('tabindex', '-1');
       title?.focus({preventScroll:true});

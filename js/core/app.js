@@ -1413,7 +1413,14 @@ const App = {
   },
 
   focusFirstControl(container) {
+    if (!container) return;
+    const content = container.firstElementChild;
     requestAnimationFrame(() => {
+      if (container.isConnected === false || container.firstElementChild !== content) return;
+      const active = document.activeElement;
+      // Respect an explicit user, autofill or onOpen focus inside this dialog.
+      // A delayed initial-focus frame must not redirect an in-progress fill.
+      if (active && active !== container && container.contains?.(active)) return;
       const target = container.querySelector('[autofocus], input:not([type="hidden"]), select, textarea') ||
         container.querySelector('button, a[href], [tabindex]:not([tabindex="-1"])');
       if (target && typeof target.focus === 'function') {
