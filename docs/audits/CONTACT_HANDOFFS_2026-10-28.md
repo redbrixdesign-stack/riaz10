@@ -42,7 +42,7 @@ they are not silently matched by name/number or claimed tracked by this release.
   No sending, delivery, response, consent or attendance is inferred.
 - Pending message decisions use existing profile Next actions, not an extra
   duplicate list. Calls have collapsed history with unresolved-outcome controls.
-  App48 / Contact5 / DB50 / Communications5 / Customer21 / Talk35 / cache177.
+  App48 / Contact5 / DB50 / Communications5 / Customer21 / Talk36 / cache178.
   DB50 is a script version, not a new database schema.
 
 ## Verification so far
@@ -64,6 +64,15 @@ they are not silently matched by name/number or claimed tracked by this release.
   dpl_2xwq5GjkdnpgDaw1oDDTtfn9GfDg / beelo1-9vyqgyoxt-beelomvp.vercel.app.
 
 ## Open risks and next acceptance
+
+- First stage a41f9ed/cache177 (dpl_HZoFZFzqEMMtuGNUwqPssZDfKDAi,
+  beelo1-7y5owmrzm-beelomvp.vercel.app, productionREADY, Other/static,
+  14.637s build) matched eight source assets but was NOT promoted. Review caught
+  generic Not sent copy falsely promising a reminder. Corrected label/toast for
+  messages without appointment purpose; appointment behaviour remains unchanged.
+  Interrupted the old local gate rather than mixing source versions; hosted
+  root/server/dependency job passed, browser result is historical only. Fresh
+  exact-source full gates are required. Public cache176 remained unchanged.
 
 - Native iPhone dial confirmation/cancel, installed WhatsApp/SMS return, keyboard,
   microphone permission and VoiceOver require hands-on acceptance. Browser tests

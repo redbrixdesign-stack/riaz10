@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'advisoros-';
-const CACHE_NAME = 'advisoros-v6-177-contact-handoffs';
+const CACHE_NAME = 'advisoros-v6-178-contact-handoffs';
 const STATIC_ASSETS = [
   'js/services/note-capture.min.js?v=8','js/services/visit-draft.min.js?v=2','js/services/visit-summaries.min.js?v=1',
   './','index.html','manifest.json?v=3','css/core.css?v=34','css/components.css?v=62',
@@ -11,7 +11,7 @@ const STATIC_ASSETS = [
   'js/services/ai.min.js?v=14','js/services/notification.min.js?v=12','js/services/message-scheduler.min.js?v=15','js/services/export.min.js?v=12','js/services/weather.min.js?v=3','js/services/tasks.min.js?v=7','js/services/job-field-service.min.js?v=2','js/services/capacity.min.js?v=1','js/services/communications.min.js?v=5',
   'js/features/companion/companion.min.js?v=33','js/features/onboarding/onboarding.min.js?v=7','js/features/today/today.min.js?v=20','js/features/today/home-screen-controller.min.js?v=13','js/features/appointments/appointments.min.js?v=68','js/features/customer/customer.min.js?v=21','js/features/route/route.min.js?v=18',
   'js/features/leads/leads.min.js?v=2','js/features/followups/followups.min.js?v=31','js/features/orders/orders.min.js?v=18',
-  'js/features/money/money.min.js?v=14','js/features/talk/talk.min.js?v=35','js/features/measure/measure.min.js?v=9',
+  'js/features/money/money.min.js?v=14','js/features/talk/talk.min.js?v=36','js/features/measure/measure.min.js?v=9',
   'js/features/ocr/ocr.min.js?v=24','js/features/control/control.min.js?v=15',
   // Cache existing secondary workflows without executing/parsing them in
   // the first-screen page. Settings/recovery must work on first offline use.
