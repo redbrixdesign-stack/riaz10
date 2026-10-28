@@ -1,0 +1,4 @@
+PASS chromium: profile phone no-answer retains task; explicit introduction/agreement clears purpose without send flags, cancellation or leaving customer
+PASS chromium: customer-isolated shared tasks, collapsed groups, real sent/not-sent/already-sent flow and mock external handoff, linked reminder/complete/snooze, offline/reload, empty/error,320/390/768; no external contact or autonomous sends
+PASS webkit: profile phone no-answer retains task; explicit introduction/agreement clears purpose without send flags, cancellation or leaving customer
+PASS webkit: customer-isolated shared tasks, collapsed groups, real sent/not-sent/already-sent flow and mock external handoff, linked reminder/complete/snooze, offline/reload, empty/error,320/390/768; no external contact or autonomous sends

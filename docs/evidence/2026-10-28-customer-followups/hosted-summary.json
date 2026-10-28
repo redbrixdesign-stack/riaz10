@@ -1,0 +1,179 @@
+{
+  "sourceCommit": "f4c005991aeda99cf4b75037602c093af45f4820",
+  "results": [
+    {
+      "check": "payment-link.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 30728
+    },
+    {
+      "check": "protected-backup.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 8565
+    },
+    {
+      "check": "context-encryption.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 10909
+    },
+    {
+      "check": "lazy-state.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 6193
+    },
+    {
+      "check": "social-share.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 9174
+    },
+    {
+      "check": "cold-offline.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 6060
+    },
+    {
+      "check": "script-load-deadline.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 93591
+    },
+    {
+      "check": "claude-usage.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 5468
+    },
+    {
+      "check": "test-session-boundary.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 12958
+    },
+    {
+      "check": "visit-reminder-expiry.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 1588
+    },
+    {
+      "check": "visit-reminder-lifecycle.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 2720
+    },
+    {
+      "check": "visit-form-layout.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 2826
+    },
+    {
+      "check": "modal-form-state.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 7122
+    },
+    {
+      "check": "visit-draft.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 28400
+    },
+    {
+      "check": "expense-date.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 12507
+    },
+    {
+      "check": "communication-resolution.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 17622
+    },
+    {
+      "check": "expense-finder.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 17629
+    },
+    {
+      "check": "working-memory-search.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 12156
+    },
+    {
+      "check": "compact-plan.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 15522
+    },
+    {
+      "check": "proposed-route.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 23315
+    },
+    {
+      "check": "communication-continuity.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 27039
+    },
+    {
+      "check": "home-outcome-timing.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 9255
+    },
+    {
+      "check": "eod-earnings.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 5854
+    },
+    {
+      "check": "planning-day.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 15336
+    },
+    {
+      "check": "scan-planning-day.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 18873
+    },
+    {
+      "check": "planning-return.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 15269
+    },
+    {
+      "check": "customer-followups.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 38795
+    },
+    {
+      "check": "expense-context.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 11922
+    },
+    {
+      "check": "sw-update.e2e.js",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 2997
+    }
+  ]
+}
