@@ -166,6 +166,8 @@ const CustomerFeature = {
           </div>
         </div>
 
+        ${typeof FollowupsFeature !== 'undefined' ? await FollowupsFeature.renderCustomerPanel(customerId) : '<p role="alert">Follow-ups are unavailable. Reopen this profile to retry.</p>'}
+
         <div class="card card-page" id="customer-communication-record">
           <div class="fs-13 fw-600 text-secondary mb-sm">Communication record</div>
           ${communicationLoadFailed ? '<p role="alert">Some communication history could not be loaded. Reopen this profile to retry; counts below may be incomplete.</p>' : ''}
@@ -381,6 +383,19 @@ const CustomerFeature = {
       return AppointmentsFeature.getOutcomeName(outcomeId, 'consultation');
     }
     return String(outcomeId || '').replace(/_/g, ' ');
+  },
+
+  activate(params = {}) {
+    if (params.section !== 'followups') return;
+    const revision = App._navigationRevision;
+    const panel = document.getElementById('customer-followups');
+    setTimeout(() => {
+      if (!panel?.isConnected || revision !== App._navigationRevision) return;
+      const title = panel.querySelector('h2');
+      title?.setAttribute('tabindex', '-1');
+      title?.focus({preventScroll:true});
+      panel.scrollIntoView({block:'start'});
+    }, 240);
   },
 
   renderPhotoThumb(p) {

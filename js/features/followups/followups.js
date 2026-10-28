@@ -306,7 +306,7 @@ const FollowupsFeature = {
 
   async reviewPreVisit(appointmentId) {
     const task = (await this.loadDerivedTasks()).find(t => t.appointment?.id === appointmentId && ['intro', 'intro_confirmation', 'visit_tomorrow'].includes(t.kind));
-    if (!task) { Toast.show('This pre-visit message is no longer due', 'info'); return App.navigate('followups'); }
+    if (!task) { Toast.show('This pre-visit message is no longer due', 'info'); return this.refreshTaskView(); }
     return TalkFeature.sendMessage(appointmentId, task.template);
   },
 
@@ -341,7 +341,7 @@ const FollowupsFeature = {
       const pending = this.pendingContactCorrection;
       await DB.retractVisitContact(pending.appointmentId, pending.targetId, pending.operationId);
       this.pendingContactCorrection = null; App.closeModal();
-      Toast.show('Correction saved; original history retained', 'success'); App.navigate('followups');
+      Toast.show('Correction saved; original history retained', 'success'); this.refreshTaskView();
     } catch (e) {
       const error = document.getElementById('phone-correction-error');
       if (error) error.textContent = e.message || 'Could not save correction';
@@ -358,7 +358,7 @@ const FollowupsFeature = {
     try {
       const pending = this.pendingContact;
       await DB.recordVisitContact(pending.id, document.getElementById('contact-outcome')?.value, pending.snapshot, pending.operationId);
-      this.pendingContact = null; App.closeModal(); Toast.show('Phone contact recorded — no message marked sent', 'success'); App.navigate('followups');
+      this.pendingContact = null; App.closeModal(); Toast.show('Phone contact recorded — no message marked sent', 'success'); this.refreshTaskView();
     } catch (e) {
       if (errorEl) errorEl.textContent = e.message || 'Could not record contact';
       else Toast.show(e.message || 'Could not record contact', 'error');
@@ -384,6 +384,58 @@ const FollowupsFeature = {
       if (index >= 0) tasks[index] = task; else tasks.unshift(task);
     }
     return tasks;
+  },
+
+  async loadCustomerTasks(customerId) {
+    const id = Number(customerId);
+    if (!Number.isInteger(id) || id <= 0) throw new Error('Customer is required');
+    const matched = [];
+    for (const task of await this.loadTasks()) {
+      // Match stable record links, never a name/phone or whichever profile was last open.
+      const links = [task.customer?.id, task.customerId, task.appointment?.customerId,
+        task.order?.customerId, task.quote?.customerId, task.job?.customerId,
+        task.invoice?.customerId, task.retentionRecord?.customerId].filter(value => value != null);
+      if (task.appointmentId && !task.appointment) {
+        const visit = await DB.getAppointment(Number(task.appointmentId));
+        if (visit?.customerId) links.push(visit.customerId);
+      }
+      if (task.orderId && !task.order && typeof DB.getOrder === 'function') {
+        const order = await DB.getOrder(Number(task.orderId));
+        if (order?.customerId) links.push(order.customerId);
+      }
+      if (links.length && links.every(value => Number(value) === id)) matched.push(task);
+    }
+    return matched;
+  },
+
+  async renderCustomerPanel(customerId) {
+    this.renderStylesOnce();
+    const args = Utils.escapeHtml(JSON.stringify([Number(customerId)]));
+    let tasks;
+    try { tasks = await this.loadCustomerTasks(customerId); }
+    catch (_) { return `<section class="card card-page" id="customer-followups"><h2 class="fs-15">Next actions</h2><p role="alert">Could not load this customer's follow-ups. Your reminders have not been cleared.</p><button class="btn btn-outline" data-action="App.navigate" data-args='${Utils.escapeHtml(JSON.stringify(['customer', {id:Number(customerId)}]))}'>Retry follow-ups</button></section>`; }
+    const due = tasks.filter(task => task.due).sort((a,b) =>
+      (a.kind === 'send_confirmation' ? 0 : a.priority === 'high' ? 1 : 2) -
+      (b.kind === 'send_confirmation' ? 0 : b.priority === 'high' ? 1 : 2));
+    const later = tasks.filter(task => !task.due && !task.snoozed);
+    const snoozed = tasks.filter(task => task.snoozed);
+    return `<section class="card card-page" id="customer-followups" aria-labelledby="customer-followups-title">
+      <div class="flex items-center justify-between gap-sm"><h2 class="fs-15" id="customer-followups-title">Next actions${due.length ? ` (${due.length} due)` : ''}</h2><button class="btn btn-outline btn-sm" data-action="FollowupsFeature.openNewTask" data-args='${args}'>Add reminder</button></div>
+      <p class="hint">These reminders also appear in Follow-ups. Opening WhatsApp is not proof of sending.</p>
+      ${due.length ? this.renderTaskCard(due[0]) : '<p>No action due now for this customer.</p>'}
+      ${due.length > 1 ? `<details class="fup-group"><summary>Other actions due (${due.length-1})</summary>${due.slice(1).map(task=>this.renderTaskCard(task)).join('')}</details>` : ''}
+      ${later.length ? `<details class="fup-group"><summary>Later (${later.length})</summary>${later.map(task=>this.renderTaskCard(task,true)).join('')}</details>` : ''}
+      ${snoozed.length ? `<details class="fup-group"><summary>Snoozed (${snoozed.length})</summary>${snoozed.map(task=>this.renderTaskCard(task,true)).join('')}</details>` : ''}
+    </section>`;
+  },
+
+  refreshTaskView() {
+    if (App.currentFeature?.id === 'customer') {
+      const params = new URLSearchParams((App.currentHash || '').split('?')[1]);
+      params.set('section', 'followups');
+      return App.navigate('customer', Object.fromEntries(params));
+    }
+    return App.navigate('followups');
   },
 
   async loadStructuredQuoteTasks(existing = []) {
@@ -615,6 +667,7 @@ const FollowupsFeature = {
   },
 
   renderTaskCard(task, muted = false) {
+    const inCustomerProfile = App.currentFeature?.id === 'customer';
     const customer = task.customer;
     const name = Utils.escapeHtml(
       (task.durable && !task.sourceSuggestion ? task.title : '') ||
@@ -670,8 +723,8 @@ const FollowupsFeature = {
           ${task.appointment ? `<button class="btn btn-sm btn-outline" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: task.appointment.id}])}'>Open visit</button>` : ''}
           ${task.kind === 'payment' && task.order?.appointmentId ? `<button class="btn btn-sm btn-outline" data-action="OrdersFeature.paymentMessage" data-args='${JSON.stringify([task.order.id])}'>Review payment message</button>` : ''}
           ${task.durable && task.sourceSuggestion ? `<button class="btn btn-sm btn-outline" aria-label="Complete ${name}" data-action="FollowupsFeature.completeDurableTask" data-args='${JSON.stringify([task.id])}'>Mark task done</button>` : ''}
-          <button class="btn btn-sm btn-outline" aria-label="Snooze ${name}" data-action="FollowupsFeature.openSnooze" data-args='${JSON.stringify([task.durable ? task.id : null, task.derivedKey])}'><span aria-hidden="true" class="material-symbols-rounded fs-16">snooze</span>Snooze</button>
-          ${task.customer ? `<button class="btn btn-ghost btn-sm" aria-label="Open customer profile" data-action="App.navigate" data-args='${JSON.stringify(["customer", {id: (task.customer.id)}])}'><span aria-hidden="true" class="material-symbols-rounded fs-18" >person</span></button>` : ''}
+          ${task.kind !== 'send_confirmation' ? `<button class="btn btn-sm btn-outline" aria-label="Snooze ${name}" data-action="FollowupsFeature.openSnooze" data-args='${JSON.stringify([task.durable ? task.id : null, task.derivedKey])}'><span aria-hidden="true" class="material-symbols-rounded fs-16">snooze</span>Snooze</button>` : '<span class="hint">Record whether it was sent first; an unsent reminder can then be snoozed.</span>'}
+          ${task.customer && !inCustomerProfile ? `<button class="btn btn-ghost btn-sm" aria-label="Open customer profile" data-action="App.navigate" data-args='${JSON.stringify(["customer", {id: (task.customer.id)}])}'><span aria-hidden="true" class="material-symbols-rounded fs-18" >person</span></button>` : ''}
         </div></details>
       </article>
     `;
@@ -753,7 +806,8 @@ const FollowupsFeature = {
       await DB.recordPreviouslySent(pending.appointmentId,template,pending.snapshot,pending.operationId);
       if (this.ownsAlreadySent(pending)) {
         this.pendingAlreadySent = null;App.closeModal();Toast.show('Recorded as sent by you','success');
-        if (['followups','today'].includes(App.currentFeature?.id)) App.navigate(App.currentHash || App.currentFeature.id);
+        if (App.currentFeature?.id === 'customer') this.refreshTaskView();
+        else if (['followups','today'].includes(App.currentFeature?.id)) App.navigate(App.currentHash || App.currentFeature.id);
       }
     } catch(error) {if(this.ownsAlreadySent(pending))this._alreadySentOwner.element.textContent=error.message;Toast.show('Not updated. Please retry.','error');}
     finally {this._savingAlreadySent=false;}
@@ -766,7 +820,13 @@ const FollowupsFeature = {
       owner.element === document.getElementById('already-sent-error');
   },
 
-  openNewTask() {
+  async openNewTask(customerId = null) {
+    const revision = App._navigationRevision;
+    const id = customerId == null ? null : Number(customerId);
+    try {
+      if (id !== null && (!Number.isInteger(id) || id <= 0 || !await DB.getCustomer(id))) return Toast.show('Customer not found', 'error');
+    } catch (_) { return Toast.show('Could not load customer. Please retry.', 'error'); }
+    if (revision !== App._navigationRevision) return;
     const tomorrow = new Date(Date.now() + 86400000);
     tomorrow.setMinutes(tomorrow.getMinutes() - tomorrow.getTimezoneOffset());
     if (typeof NoteCapture !== 'undefined') NoteCapture.setRecordings('task-notes', []);
@@ -780,22 +840,28 @@ const FollowupsFeature = {
         <div class="form-group"><label for="task-notes">Notes (optional)</label><textarea class="textarea" id="task-notes" maxlength="500"></textarea>${typeof NoteCapture !== 'undefined' ? NoteCapture.render('task-notes') : ''}</div>
         <button class="btn btn-primary btn-block" data-action="FollowupsFeature.saveNewTask">Save task</button>
       </div>`);
+    this._newTaskOwner = { customerId: id, revision: App._navigationRevision, field: document.getElementById('task-title') };
   },
 
   async saveNewTask() {
+    const owner = this._newTaskOwner;
+    if (!owner?.field || owner.revision !== App._navigationRevision || owner.field !== document.getElementById('task-title')) return;
     const button = document.querySelector('[data-action="FollowupsFeature.saveNewTask"]');
     if (button?.disabled) return;
     if (button) button.disabled = true;
     try {
+      if (owner.customerId !== null && !await DB.getCustomer(owner.customerId)) throw new Error('Customer no longer exists');
+      if (owner.revision !== App._navigationRevision || owner.field !== document.getElementById('task-title')) return;
       await TaskService.create({
         title: document.getElementById('task-title')?.value,
         dueAt: document.getElementById('task-due')?.value,
         priority: document.getElementById('task-priority')?.value,
         notes: document.getElementById('task-notes')?.value || '',
         audioNotes: typeof NoteCapture !== 'undefined' ? NoteCapture.getRecordings('task-notes') : [],
-        type: 'other'
+        type: 'other',
+        customerId: owner.customerId
       });
-      App.closeModal(); Toast.show('Task saved', 'success'); App.navigate('followups');
+      App.closeModal(); Toast.show('Task saved', 'success'); this.refreshTaskView();
     } catch (e) { Toast.show(e.message || 'Could not save task', 'error'); if (button) button.disabled = false; }
   },
 
@@ -803,7 +869,7 @@ const FollowupsFeature = {
     this.pendingMutations = this.pendingMutations || new Set();
     if (this.pendingMutations.has(`complete:${id}`)) return;
     this.pendingMutations.add(`complete:${id}`);
-    try { await TaskService.complete(id); Toast.show('Task completed', 'success'); App.navigate('followups'); }
+    try { await TaskService.complete(id); Toast.show('Task completed', 'success'); this.refreshTaskView(); }
     catch (e) { Toast.show(e.message || 'Could not complete task', 'error'); }
     finally { this.pendingMutations.delete(`complete:${id}`); }
   },
@@ -829,7 +895,7 @@ const FollowupsFeature = {
     this.pendingMutations.add(key);
     try {
       await TaskService.snooze(task, document.getElementById('task-snooze-until')?.value);
-      this.pendingSnoozeTask = null; App.closeModal(); Toast.show('Task snoozed', 'success'); App.navigate('followups');
+      this.pendingSnoozeTask = null; App.closeModal(); Toast.show('Task snoozed', 'success'); this.refreshTaskView();
     } catch (e) { Toast.show(e.message || 'Could not snooze task', 'error'); }
     finally { this.pendingMutations.delete(key); }
   },
