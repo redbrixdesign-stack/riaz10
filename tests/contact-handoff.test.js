@@ -1,0 +1,23 @@
+'use strict';
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const {indexedDB,IDBKeyRange}=require('fake-indexeddb');
+(async()=>{for(const suffix of ['.js','.min.js']){
+ const values=new Map(),listeners={},s={console,crypto:require('node:crypto').webcrypto,indexedDB,IDBKeyRange,TextEncoder,TextDecoder,Uint8Array,btoa,atob,setTimeout,clearTimeout,Date,Intl,URLSearchParams,localStorage:{getItem:k=>values.get(k)||null,setItem:(k,v)=>values.set(k,String(v)),removeItem:k=>values.delete(k)},safeJSONParse:v=>v?JSON.parse(v):null,App:{registerFeature(){},_navigationRevision:1,currentFeature:{id:'customer'},currentHash:'customer?id=1'},document:{visibilityState:'visible',addEventListener:(name,fn)=>listeners[name]=fn,getElementById:()=>null}};s.window=s;s.self=s;vm.createContext(s);s.Dexie=require('dexie');s.Dexie.dependencies.indexedDB=indexedDB;s.Dexie.dependencies.IDBKeyRange=IDBKeyRange;
+ for(const file of ['js/core/config.js','js/core/utils.js'])vm.runInContext(fs.readFileSync(file,'utf8'),s);
+ const code=fs.readFileSync('js/core/db'+suffix,'utf8').replace(/new Dexie\(['"]advisoros_v6['"]\)/,`new Dexie('synthetic-contact-${suffix}')`);
+ const {DB,initEncryption}=vm.runInContext(code+'\n({DB,initEncryption});',s);await initEncryption('SYNTHETIC contact unit');await DB.init();
+ const service=vm.runInContext(fs.readFileSync('js/services/communications'+suffix,'utf8')+'\nCommunicationService;',s);const contact=vm.runInContext(fs.readFileSync('js/core/contact'+suffix,'utf8')+'\nContactFeature;',s);
+ const a=await DB.addCustomer({firstName:'SYNTHETIC Cedar'}),b=await DB.addCustomer({firstName:'SYNTHETIC Birch'});
+ const call=await service.recordHandoff({customerId:a.id,type:'phone_handoff',channel:'phone'});assert.equal((await service.lifecycle(call)).lifecycleState,'call_opened');assert.equal((await service.pendingHandoffs()).length,0);
+ await assert.rejects(DB.resolveCommunicationSend(call.id,a.id,'sent'),/not available/);
+ await assert.rejects(service.recordCallOutcome(call.id,b.id,'answered'),/no longer/);
+ await assert.rejects(service.recordCallOutcome(call.id,a.id,'unknown'),/Choose/);
+ await service.recordCallOutcome(call.id,a.id,'answered',{notes:'SYNTHETIC private callback',audioNotes:[]});assert.equal((await DB.db.communications.get(call.id)).sentAt,null);assert.equal((await service.lifecycle(await DB.db.communications.get(call.id))).lifecycleState,'call_answered');await assert.rejects(service.recordCallOutcome(call.id,a.id,'cancelled'),/already/);
+ const event=(await DB.getCommunicationEvents(call.id)).find(e=>e.provenance==='advisor_call_outcome');assert.match(event.detail,/SYNTHETIC private callback/);assert(!event.sentAt&&!event.duration&&!event.endedAt);
+ const wa=await service.recordHandoff({customerId:a.id,type:'whatsapp_handoff',channel:'whatsapp'}),sms=await service.recordHandoff({customerId:a.id,type:'sms_handoff',channel:'sms'});assert.equal((await service.pendingHandoffs()).length,2);await DB.resolveCommunicationSend(sms.id,a.id,'sent');assert.equal((await DB.db.communications.get(wa.id)).status,undefined,'SMS confirmation cannot supersede WhatsApp');assert.equal((await service.pendingHandoffs()).length,1);
+ let reviews=[];contact.review=async id=>reviews.push(id);s.App.currentHash='customer?id='+a.id;contact.armReturn(call);s.document.visibilityState='hidden';listeners.visibilitychange();s.document.visibilityState='visible';listeners.visibilitychange();await Promise.resolve();assert.deepEqual(reviews,[call.id]);listeners.visibilitychange();assert.equal(reviews.length,1,'One return only');
+ contact.armReturn(wa);s.App.currentHash='customer?id='+b.id;contact.returnAction.left=true;await contact.onReturn();assert.equal(reviews.length,1,'Different customer is never interrupted');
+ s.App.currentHash='customer?id='+a.id;contact.armReturn(wa);contact.returnAction.expiresAt=Date.now()-1;contact.returnAction.left=true;await contact.onReturn();assert.equal(reviews.length,1,'Expired action stays quiet');
+ s.App.currentHash='customer?id='+a.id;contact.armReturn(wa);contact.returnAction.left=true;s.document.getElementById=()=>({classList:{contains:()=>true}});await contact.onReturn();assert.equal(reviews.length,1,'An active editor is never replaced');assert.equal(contact.returnAction,null);
+ DB.db.close();console.log('PASS contact handoff '+suffix+': channel-isolated messages, call/send boundaries, encrypted outcome detail, validation, duplicate guard and one-shot customer/modal-safe return');
+}})().catch(e=>{console.error(e);process.exitCode=1;});

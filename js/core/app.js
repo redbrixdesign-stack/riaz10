@@ -124,6 +124,7 @@ const App = {
 
     // Setup event listeners
     this.setupEvents();
+    if (typeof ContactFeature !== 'undefined') ContactFeature.init?.();
     if (typeof VisitDraft !== 'undefined') VisitDraft.init();
 
     // First-run check: send to onboarding if not completed

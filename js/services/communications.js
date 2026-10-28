@@ -46,6 +46,36 @@ const CommunicationService = {
     return DB.resolveCommunicationSend(communicationId, customerId, 'sent', reviewedSnapshot, confirmedTemplate);
   },
 
+  async recordCallOutcome(id, customerId, outcome, detail = {}) {
+    if (!['answered','no_answer','cancelled'].includes(outcome)) throw new Error('Choose a call outcome');
+    if (typeof DB.db.transaction !== 'function') throw new Error('Safe call saving is unavailable. Please reload and retry.');
+    // Encrypt potentially sensitive notes/audio BEFORE entering the atomic write.
+    const now = new Date().toISOString();
+    const event = await encryptCommunicationEvent({communicationId:id,customerId,state:'attempted',lifecycleState:'call_'+outcome,provenance:'advisor_call_outcome',occurredAt:now,createdAt:now,detail:JSON.stringify(detail)});
+    return DB._runWrite(['communications','communicationEvents','customers'],async()=>{
+      const row=await DB.db.communications.get(id);
+      if (!row || row.type!=='phone_handoff' || Number(row.customerId)!==customerId || !await DB.db.customers.get(customerId)) throw new Error('This customer call is no longer available');
+      if (row.status) throw new Error('This call outcome is already recorded. Reopen the profile.');
+      await DB.db.communicationEvents.add(event);
+      await DB.db.communications.update(id,{status:'call_'+outcome});
+    });
+  },
+
+  async deleteCallAudio(id, customerId) {
+    const call=await DB.db.communications.get(id);
+    if(!call || call.type!=='phone_handoff' || Number(call.customerId)!==customerId)throw new Error('Call not found');
+    const event=(await DB.getCommunicationEvents(id)).find(e=>e.provenance==='advisor_call_outcome');
+    if(!event)return;
+    const raw=await DB.db.communicationEvents.get(event.id);
+    const detail=JSON.parse(event.detail||'{}');
+    const encrypted=await encryptCommunicationEvent({detail:JSON.stringify({...detail,audioNotes:[]})});
+    return DB._runWrite(['communications','communicationEvents'],async()=>{
+      const current=await DB.db.communications.get(id),latest=await DB.db.communicationEvents.get(event.id);
+      if(!current || Number(current.customerId)!==customerId || !latest || JSON.stringify(latest.detail)!==JSON.stringify(raw.detail))throw new Error('Call changed. Reopen the profile and retry.');
+      await DB.db.communicationEvents.update(event.id,{detail:encrypted.detail});
+    });
+  },
+
   async lifecycle(communication) {
     const events = communication?.id && typeof DB.getCommunicationEvents === 'function'
       ? await DB.getCommunicationEvents(communication.id)
@@ -53,7 +83,8 @@ const CommunicationService = {
     const latest = events[events.length - 1];
     let state = latest?.lifecycleState || ({ queued: 'drafted', attempted: 'handed_off', sent: 'advisor_confirmed_sent', delivered: 'delivered', read: 'replied' }[latest?.state]);
     if (!state) state = communication?.type === 'note' ? 'note' : communication?.direction === 'inbound' ? 'replied' : (communication?.sentAt ? 'advisor_confirmed_sent' : 'handed_off');
-    if (['advisor_confirmed_sent', 'cancelled', 'superseded'].includes(communication?.status)) state = communication.status === 'superseded' ? 'cancelled' : communication.status;
+    if (communication?.type === 'phone_handoff') state = communication.status || 'call_opened';
+    else if (['advisor_confirmed_sent', 'cancelled', 'superseded'].includes(communication?.status)) state = communication.status === 'superseded' ? 'cancelled' : communication.status;
     return { ...communication, lifecycleState: state, events };
   },
 
@@ -68,7 +99,7 @@ const CommunicationService = {
   async pendingHandoffs({ includeInactive = false } = {}) {
     const rows = await this.decorate(await DB.db.communications.toArray());
     const groups = new Map();
-    for (const row of rows.filter(row => row.lifecycleState === 'handed_off' && row.direction !== 'inbound' && ['whatsapp_handoff', 'whatsapp_attempted'].includes(row.type)).sort((a,b) => Number(b.id) - Number(a.id))) {
+    for (const row of rows.filter(row => row.lifecycleState === 'handed_off' && row.direction !== 'inbound' && ['whatsapp_handoff', 'whatsapp_attempted','sms_handoff'].includes(row.type)).sort((a,b) => Number(b.id) - Number(a.id))) {
       if (!includeInactive && row.appointmentId) {
         const visit = await DB.getAppointment(Number(row.appointmentId));
         if (!visit || Number(visit.customerId) !== Number(row.customerId) || visit.status === 'cancelled') continue;
@@ -77,7 +108,7 @@ const CommunicationService = {
         if (row.template === 'post_fit_followup' && now - at >= 7*86400000) continue;
         if (row.template === 'service_or_issue_followup' && now - at >= 48*3600000) continue;
       }
-      const key = JSON.stringify([row.customerId, row.appointmentId || null, row.template || '', row.bookingSnapshot || null]);
+      const key = JSON.stringify([row.customerId, row.appointmentId || null, row.template || '', row.bookingSnapshot || null,row.channel || 'whatsapp']);
       if (!groups.has(key)) groups.set(key, row);
     }
     return [...groups.values()];
@@ -85,6 +116,10 @@ const CommunicationService = {
 
   purposeLabel(template) {
     return ({ pre_intro: 'Introduction', intro_day_before: 'Introduction and visit reminder', day_before: 'Visit reminder', evening_before: 'Visit reminder', post_fit_followup: 'Post-fitting thank-you', service_or_issue_followup: 'Service follow-up' })[template] || 'Outgoing message';
+  },
+
+  activityLabel(row) {
+    return ({call_opened:'Call action initiated — outcome not recorded',call_answered:'Call answered (adviser recorded)',call_no_answer:'Call: no answer / voicemail (adviser recorded)',call_cancelled:'Call cancelled / not made (adviser recorded)',cancelled:'Not sent',drafted:'Message drafted',advisor_confirmed_sent:'Message confirmed sent',delivered:'Message delivered',replied:'Customer reply',note:'Internal note'})[row.lifecycleState] || (row.lifecycleState==='handed_off' ? (row.channel==='sms'?'Text message handoff — sending unconfirmed':'WhatsApp handoff — sending unconfirmed') : 'Recorded activity');
   },
 
   async recordReply(customerId, content, channel = 'whatsapp') {

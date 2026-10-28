@@ -102,12 +102,13 @@ const CustomerFeature = {
         return {
         date: c.receivedAt || c.sentAt || c.createdAt,
         icon: c.direction === 'inbound' ? 'mark_chat_read' : 'chat',
-        title: labels[c.lifecycleState] || (c.sentAt ? 'Message sent' : 'Message activity'),
+        title: typeof CommunicationService !== 'undefined' && typeof CommunicationService.activityLabel === 'function' ? CommunicationService.activityLabel(c) : (labels[c.lifecycleState] || 'Recorded activity'),
         subtitle: c.direction === 'inbound' ? Utils.escapeHtml(Utils.truncate(c.content || '', 90)) : Utils.escapeHtml((c.template || c.type || '').replace(/_/g, ' ')),
         onclick: ''
       }})
     ].filter(item => item.date).sort((a, b) => new Date(b.date) - new Date(a.date));
 
+    const messageComms = comms.filter(row => row.type !== 'phone_handoff');
     const phone = customer.phone || '';
     const address = customer.address?.line1 || '';
     const name = customer.fullName || `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'Customer';
@@ -140,11 +141,11 @@ const CustomerFeature = {
 
           <div class="flex gap-sm mt-md" >
             ${phone ? `
-              <a class="btn btn-outline btn-sm flex-1 gap-6"  href="tel:${Utils.escapeHtml(Utils.toE164Phone(phone) || phone)}">
+              <button class="btn btn-outline btn-sm flex-1 gap-6" aria-label="Call" data-action="ContactFeature.start" data-args='${JSON.stringify([customer.id,"phone"])}'>
                 <span class="material-symbols-rounded fs-18" >call</span>
                 Call
-              </a>
-              <button class="btn btn-outline btn-sm flex-1 gap-6"  data-action="ContactFeature.open" data-args='${Utils.escapeHtml(JSON.stringify([{name: (name), phone: (phone)}]))}'>
+              </button>
+              <button class="btn btn-outline btn-sm flex-1 gap-6" aria-label="Message" data-action="ContactFeature.open" data-args='${Utils.escapeHtml(JSON.stringify([{name: (name), phone: (phone),customerId:customer.id}]))}'>
                 <span class="material-symbols-rounded fs-18" >chat</span>
                 Message
               </button>
@@ -174,7 +175,8 @@ const CustomerFeature = {
           <p class="fs-13">${comms.filter(c => c.direction !== 'inbound' && ['advisor_confirmed_sent', 'delivered', 'replied'].includes(c.lifecycleState)).length} confirmed sent · ${comms.filter(c => c.direction === 'inbound').length} replies recorded · ${comms.filter(c => c.direction !== 'inbound' && c.lifecycleState === 'handed_off').length} send confirmations outstanding</p>
           <p class="hint">Only activity recorded in Beelo. No reply recorded does not mean the customer is unresponsive or the visit is cancelled. WhatsApp replies are not imported automatically; use Log reply above.</p>
           <button class="btn btn-outline btn-sm" data-action="CustomerFeature.openContactAttempt" data-args='${JSON.stringify([customerId])}'>Log contact attempt</button>
-          ${comms.length ? `<details><summary>Read saved messages and replies (${comms.length})</summary>${[...comms].sort((a,b) => new Date(b.receivedAt || b.sentAt || b.createdAt || 0) - new Date(a.receivedAt || a.sentAt || a.createdAt || 0)).map(c => `<div class="py-8"><strong>${Utils.escapeHtml(c.direction === 'inbound' ? 'Customer reply' : ({advisor_confirmed_sent:'Confirmed sent',handed_off:'Opened — sending unconfirmed',cancelled:'Not sent',drafted:'Draft',note:'Internal note',delivered:'Delivered'})[c.lifecycleState] || 'Recorded activity')}</strong><div class="hint">${Utils.formatDate(c.receivedAt || c.sentAt || c.createdAt, 'short')} · ${Utils.escapeHtml(c.channel || c.type || 'Message')}</div><p class="fs-13" style="white-space:pre-wrap;overflow-wrap:anywhere">${Utils.escapeHtml(c.content || 'No message text captured')}</p></div>`).join('')}</details>` : '<p class="fs-13 text-tertiary">No messages or replies recorded yet.</p>'}
+          ${messageComms.length ? `<details><summary>Read saved messages and replies (${messageComms.length})</summary>${[...messageComms].sort((a,b) => new Date(b.receivedAt || b.sentAt || b.createdAt || 0) - new Date(a.receivedAt || a.sentAt || a.createdAt || 0)).map(c => `<div class="py-8"><strong>${Utils.escapeHtml(typeof CommunicationService !== 'undefined' && typeof CommunicationService.activityLabel === 'function' ? CommunicationService.activityLabel(c) : 'Recorded activity')}</strong><div class="hint">${Utils.formatDate(c.receivedAt || c.sentAt || c.createdAt, 'short')} · ${Utils.escapeHtml(c.channel || c.type || 'Message')}</div><p class="fs-13" style="white-space:pre-wrap;overflow-wrap:anywhere">${Utils.escapeHtml(c.content || 'No message text captured')}</p></div>`).join('')}</details>` : '<p class="fs-13 text-tertiary">No messages or replies recorded yet.</p>'}
+          ${typeof ContactFeature !== 'undefined' && typeof ContactFeature.renderActivity === 'function' ? await ContactFeature.renderActivity(comms) : ''}
           ${this.renderVisitPhoneHistory(appts, customerId)}
         </div>
 

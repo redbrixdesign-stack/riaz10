@@ -1762,7 +1762,7 @@ const DB = {
     if (typeof this.db.transaction !== 'function') throw new Error('Safe message confirmation is unavailable in this browser. Reload Beelo and try again.');
     return this._runWrite(['communications', 'communicationEvents', 'appointments'], async () => {
       const row = await this.db.communications.get(Number(id));
-      if (!row || Number(row.customerId) !== Number(customerId) || row.direction === 'inbound' || row.type === 'note') throw new Error('That outgoing message is not available');
+      if (!row || Number(row.customerId) !== Number(customerId) || row.direction === 'inbound' || ['note','phone_handoff'].includes(row.type)) throw new Error('That outgoing message is not available');
       const purpose = confirmedTemplate || row.template;
       if (purpose !== row.template && !(row.template === 'intro_day_before' && ['pre_intro','day_before'].includes(purpose))) throw new Error('That message purpose is not available');
       if (row.sentAt || row.status === 'advisor_confirmed_sent') {
@@ -1785,7 +1785,7 @@ const DB = {
       // Repeated openings of the same draft are not repeated obligations.
       // Preserve them as superseded history, never falsely mark them sent.
       const attempts = await this.db.communications.toArray();
-      for (const other of attempts) if (other.id !== row.id && other.customerId === row.customerId && other.appointmentId === row.appointmentId && other.template === row.template && ((other.bookingSnapshot || null) === (row.bookingSnapshot || null) || (!other.bookingSnapshot && decision === 'sent')) && !other.sentAt && !['advisor_confirmed_sent','cancelled','superseded','delivered','replied'].includes(other.status) && ['whatsapp_handoff', 'whatsapp_attempted'].includes(other.type)) {
+      for (const other of attempts) if (other.id !== row.id && (other.channel || 'whatsapp') === (row.channel || 'whatsapp') && other.customerId === row.customerId && other.appointmentId === row.appointmentId && other.template === row.template && ((other.bookingSnapshot || null) === (row.bookingSnapshot || null) || (!other.bookingSnapshot && decision === 'sent')) && !other.sentAt && !['advisor_confirmed_sent','cancelled','superseded','delivered','replied'].includes(other.status) && ['whatsapp_handoff', 'whatsapp_attempted','sms_handoff'].includes(other.type)) {
         await this.db.communications.update(other.id, { status: 'superseded', resolvedBy: row.id });
       }
       return { ...row, ...patch };
