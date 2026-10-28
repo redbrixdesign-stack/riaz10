@@ -386,26 +386,53 @@ const FollowupsFeature = {
     return tasks;
   },
 
+  async taskCustomerId(task) {
+    // Match stable record links, never names/phones or the last-open profile.
+    const links = [task.customer?.id, task.customerId, task.appointment?.customerId,
+        task.order?.customerId, task.quote?.customerId, task.job?.customerId,
+        task.invoice?.customerId, task.retentionRecord?.customerId].filter(value => value != null);
+    if (task.appointmentId && !task.appointment) {
+      const visit = await DB.getAppointment(Number(task.appointmentId));
+      if (visit?.customerId) links.push(visit.customerId);
+    }
+    if (task.orderId && !task.order && typeof DB.getOrder === 'function') {
+      const order = await DB.getOrder(Number(task.orderId));
+      if (order?.customerId) links.push(order.customerId);
+    }
+    const id = Number(links[0]);
+    return Number.isInteger(id) && id > 0 && links.every(value=>Number(value)===id) ? id : null;
+  },
+
   async loadCustomerTasks(customerId) {
     const id = Number(customerId);
     if (!Number.isInteger(id) || id <= 0) throw new Error('Customer is required');
     const matched = [];
-    for (const task of await this.loadTasks()) {
-      // Match stable record links, never a name/phone or whichever profile was last open.
-      const links = [task.customer?.id, task.customerId, task.appointment?.customerId,
-        task.order?.customerId, task.quote?.customerId, task.job?.customerId,
-        task.invoice?.customerId, task.retentionRecord?.customerId].filter(value => value != null);
-      if (task.appointmentId && !task.appointment) {
-        const visit = await DB.getAppointment(Number(task.appointmentId));
-        if (visit?.customerId) links.push(visit.customerId);
-      }
-      if (task.orderId && !task.order && typeof DB.getOrder === 'function') {
-        const order = await DB.getOrder(Number(task.orderId));
-        if (order?.customerId) links.push(order.customerId);
-      }
-      if (links.length && links.every(value => Number(value) === id)) matched.push(task);
-    }
+    for (const task of await this.loadTasks()) if (await this.taskCustomerId(task) === id) matched.push(task);
     return matched;
+  },
+
+  async renderCustomerWorkList(tasks, muted = false) {
+    const groups = new Map(), entries = [];
+    for (const task of tasks) {
+      let id = null;
+      try { id = await this.taskCustomerId(task); } catch (_) { /* preserve the individual action */ }
+      if (!id) { entries.push({task}); continue; }
+      if (!groups.has(id)) { const group={id,tasks:[]};groups.set(id,group);entries.push(group); }
+      groups.get(id).tasks.push(task);
+    }
+    const html = [];
+    for (const entry of entries) {
+      if (entry.task) { html.push(this.renderTaskCard(entry.task,muted)); continue; }
+      let customer;
+      try { customer = await DB.getCustomer(entry.id); } catch (_) {}
+      // Deleted/unreadable customer links must not hide the underlying work.
+      if (!customer) { html.push(entry.tasks.map(task=>this.renderTaskCard(task,muted)).join(''));continue; }
+      const name=customer.fullName || [customer.firstName,customer.lastName].filter(Boolean).join(' ') || 'Customer';
+      const first=[...entry.tasks].sort((a,b)=>(a.kind==='send_confirmation'?0:a.priority==='high'?1:2)-(b.kind==='send_confirmation'?0:b.priority==='high'?1:2))[0];
+      const args=Utils.escapeHtml(JSON.stringify(['customer',{id:entry.id,section:'followups',from:'followups'}]));
+      html.push(`<button class="btn btn-outline fup-work-row${muted?' fup-card--muted':''}" data-customer-tasks="${entry.id}" data-action="App.navigate" data-args='${args}' aria-label="Open ${Utils.escapeHtml(name)} actions"><span class="flex-1 min-w-0"><strong>${Utils.escapeHtml(name)}</strong><span class="fs-12 text-secondary">${entry.tasks.length} action${entry.tasks.length===1?'':'s'}${muted?'':' due'}</span><span class="fs-13">${Utils.escapeHtml(first.action || first.title || 'Review next action')}</span></span><span class="material-symbols-rounded" aria-hidden="true">chevron_right</span></button>`);
+    }
+    return html.join('');
   },
 
   async renderCustomerPanel(customerId) {
@@ -623,7 +650,7 @@ const FollowupsFeature = {
       <div class="fade-in">
         ${App.renderTopHeader({ title: 'Follow-ups', actions: `<button class="btn btn-outline btn-sm followups-header-action" title="Open leads" aria-label="Open leads" data-action="App.navigate" data-args='${JSON.stringify(["leads"])}'><span aria-hidden="true" class="material-symbols-rounded fs-18">inbox</span><span class="header-action-text">Leads</span></button><button class="btn btn-primary btn-sm followups-header-action" title="Create new task" aria-label="Create new task" data-action="FollowupsFeature.openNewTask"><span aria-hidden="true" class="material-symbols-rounded fs-18">add</span><span class="header-action-text">New task</span></button>` })}
         <div class="px-md pb-lg" >
-          <p class="fs-13 text-secondary mb-md">Choose the next action. Messages stay drafts until you review and send them.</p>
+          <p class="fs-13 text-secondary mb-md">Choose a customer to see their next actions and communication history in one place. Personal and unlinked tasks remain here. Nothing sends automatically.</p>
           <button class="btn btn-outline btn-sm mb-md" data-action="TalkFeature.openSavedDrafts">Resume saved messages</button>
           ${due.length === 0 && later.length === 0 && snoozed.length === 0 ? `
             <div class="empty-state empty-state-lg" >
@@ -635,20 +662,20 @@ const FollowupsFeature = {
 
           ${due.length ? `
             <div class="section-label" >Due now (${due.length})</div>
-            ${due.map(t => this.renderTaskCard(t)).join('')}
+            ${await this.renderCustomerWorkList(due)}
           ` : ''}
 
           ${!due.length && (later.length || snoozed.length) ? '<p class="fw-600 mb-md">Nothing needs attention now. Your later and snoozed tasks are below.</p>' : ''}
 
           ${later.length ? `
             <details class="fup-group"><summary>Not due yet (${later.length})</summary>
-            ${later.map(t => this.renderTaskCard(t, true)).join('')}
+            ${await this.renderCustomerWorkList(later,true)}
             </details>
           ` : ''}
 
           ${snoozed.length ? `
             <details class="fup-group"><summary>Snoozed (${snoozed.length})</summary>
-            ${snoozed.map(t => this.renderTaskCard(t, true)).join('')}
+            ${await this.renderCustomerWorkList(snoozed,true)}
             </details>
           ` : ''}
 
@@ -914,6 +941,8 @@ const FollowupsFeature = {
       }
       .fup-primary > .btn { width: 100%; white-space: normal; min-height: 44px; }
       .fup-name { overflow-wrap: anywhere; }
+      .fup-work-row { width:100%;min-height:76px;margin-bottom:8px;white-space:normal;text-align:left;gap:12px; }
+      .fup-work-row > span:first-child > * { display:block;overflow-wrap:anywhere; }
       .fup-options summary { cursor: pointer; padding: 12px 0 2px; font-size: 13px; color: var(--text-secondary); }
       .fup-options > div { flex-wrap: wrap; }
       .fup-group { margin: 16px 0; }

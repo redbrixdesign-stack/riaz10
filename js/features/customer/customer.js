@@ -17,10 +17,10 @@ const CustomerFeature = {
       return `<div class="empty-state"><span class="material-symbols-rounded">person_off</span><div>Customer not found</div></div>`;
     }
     this._lastId = id;
-    return this.renderProfile(id);
+    return this.renderProfile(id, params);
   },
 
-  async renderProfile(customerId) {
+  async renderProfile(customerId, params = {}) {
     let customer = null;
     try {
       customer = await DB.getCustomer(customerId);
@@ -117,7 +117,7 @@ const CustomerFeature = {
         ${App.renderTopHeader({ 
           title: 'Customer 360', 
           showBack: true, 
-          backHref: 'appointments' 
+          backHref: params.from === 'followups' ? 'followups' : 'appointments'
         })}
 
         <div class="card card-page-gap" >
@@ -175,6 +175,7 @@ const CustomerFeature = {
           <p class="hint">Only activity recorded in Beelo. No reply recorded does not mean the customer is unresponsive or the visit is cancelled. WhatsApp replies are not imported automatically; use Log reply above.</p>
           <button class="btn btn-outline btn-sm" data-action="CustomerFeature.openContactAttempt" data-args='${JSON.stringify([customerId])}'>Log contact attempt</button>
           ${comms.length ? `<details><summary>Read saved messages and replies (${comms.length})</summary>${[...comms].sort((a,b) => new Date(b.receivedAt || b.sentAt || b.createdAt || 0) - new Date(a.receivedAt || a.sentAt || a.createdAt || 0)).map(c => `<div class="py-8"><strong>${Utils.escapeHtml(c.direction === 'inbound' ? 'Customer reply' : ({advisor_confirmed_sent:'Confirmed sent',handed_off:'Opened — sending unconfirmed',cancelled:'Not sent',drafted:'Draft',note:'Internal note',delivered:'Delivered'})[c.lifecycleState] || 'Recorded activity')}</strong><div class="hint">${Utils.formatDate(c.receivedAt || c.sentAt || c.createdAt, 'short')} · ${Utils.escapeHtml(c.channel || c.type || 'Message')}</div><p class="fs-13" style="white-space:pre-wrap;overflow-wrap:anywhere">${Utils.escapeHtml(c.content || 'No message text captured')}</p></div>`).join('')}</details>` : '<p class="fs-13 text-tertiary">No messages or replies recorded yet.</p>'}
+          ${this.renderVisitPhoneHistory(appts, customerId)}
         </div>
 
         <div class="card card-page">
@@ -344,6 +345,27 @@ const CustomerFeature = {
     document.getElementById('customer-history-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   },
 
+  renderVisitPhoneHistory(visits, customerId) {
+    const labels={introduced:'Introduced myself',visit_agreed:'Visit date/time agreed',introduced_and_agreed:'Introduced myself and agreed the visit',no_answer:'No answer / voicemail only',retracted:'Phone record retracted'};
+    const rows=[];
+    for (const visit of visits) {
+      const records=(Array.isArray(visit.contactOutcomes)?visit.contactOutcomes:[]).filter(row=>row?.provenance==='advisor_recorded'&&row.channel==='phone'&&Number(row.customerId)===Number(customerId));
+      const retracted=new Set(records.filter(row=>row.outcome==='retracted'&&row.targetId).map(row=>row.targetId));
+      for (const row of records) rows.push({...row,visitId:visit.id,retracted:retracted.has(row.id)});
+    }
+    if (!rows.length) return '';
+    rows.sort((a,b)=>(Date.parse(b.recordedAt)||0)-(Date.parse(a.recordedAt)||0));
+    const dateLabel=value=>Number.isFinite(Date.parse(value))?Utils.formatDate(value,'short'):'Date not recorded';
+    const visitIds=[...new Set(rows.map(row=>row.visitId))];
+    return `<details id="customer-phone-history"><summary>Recorded visit phone contact (${rows.length})</summary><p class="hint">Adviser-recorded outcomes, not imported call logs or proof that a message was sent.</p>${rows.map(row=>`<div class="py-8"><strong>${Utils.escapeHtml(labels[row.outcome]||'Phone contact recorded')}${row.retracted?' · Retracted (history retained)':''}</strong><div class="hint">${Utils.escapeHtml(dateLabel(row.recordedAt))}</div></div>`).join('')}${visitIds.map(id=>`<button class="btn btn-outline btn-sm" data-action="FollowupsFeature.openContactOutcome" data-args='${Utils.escapeHtml(JSON.stringify([id]))}'>Review or correct phone history · ${Utils.escapeHtml(dateLabel(visits.find(visit=>visit.id===id)?.date))}</button>`).join('')}</details>`;
+  },
+
+  refreshProfile(customerId) {
+    const params=new URLSearchParams((App.currentHash||'').split('?')[1]);
+    if (App.currentFeature?.id==='customer' && Number(params.get('id'))===Number(customerId)) return App.navigate(App.currentHash);
+    return App.navigate('customer',{id:Number(customerId)});
+  },
+
   openContactAttempt(customerId) {
     App.openModal(`<div class="sheet-header"><h3>Log contact attempt</h3><button class="btn btn-ghost btn-sm" aria-label="Close" data-action="App.closeModal">Close</button></div><div class="sheet-body"><p class="hint">Record what happened, not a judgement about the customer. This does not mark a message sent, a reply received or a visit cancelled.</p><label for="customer-attempt-text">Contact attempt</label><textarea id="customer-attempt-text" class="textarea" rows="4" placeholder="For example: Called before departure; no answer. Left voicemail."></textarea><button class="btn btn-primary btn-block" data-action="CustomerFeature.saveContactAttempt" data-args='${JSON.stringify([Number(customerId)])}'>Save contact attempt</button></div>`);
   },
@@ -354,7 +376,7 @@ const CustomerFeature = {
     try {
       if (!Number.isInteger(Number(customerId)) || Number(customerId) <= 0 || !await DB.getCustomer(Number(customerId))) throw new Error('Customer not found');
       await DB.addCommunication({ customerId: Number(customerId), type: 'note', channel: 'manual', direction: 'internal', content: `Contact attempt: ${content}`, createdAt: new Date().toISOString() });
-      App.closeModal(); Toast.show('Contact attempt saved', 'success'); App.navigate('customer', { id: Number(customerId) });
+      App.closeModal(); Toast.show('Contact attempt saved', 'success'); this.refreshProfile(customerId);
     } catch (_) { Toast.show('Could not save the contact attempt', 'error'); }
   },
 
@@ -368,7 +390,7 @@ const CustomerFeature = {
     if (!text) return Toast.show('Add the customer reply first', 'warning');
     try {
       await CommunicationService.recordReply(Number(customerId), text, channel);
-      App.closeModal(); Toast.show('Customer reply added to history', 'success'); App.navigate('customer', { id: Number(customerId) });
+      App.closeModal(); Toast.show('Customer reply added to history', 'success'); this.refreshProfile(customerId);
     } catch (e) { Toast.show('Could not save the reply', 'error'); }
   },
 
