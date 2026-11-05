@@ -1330,7 +1330,7 @@ const TalkFeature = {
     App.closeModal();
     const opened = NotificationService.sendWhatsApp(phone, message);
     if (!opened && communication) { if (typeof ContactFeature !== 'undefined') ContactFeature.returnAction = null; await DB.updateCommunication(communication.id, { status: 'cancelled' }); }
-    if (App.currentFeature?.id === 'customer' && App._navigationRevision === revision && typeof FollowupsFeature !== 'undefined') {
+    if ((App.currentFeature?.id === 'customer'||(typeof VisitCommunication!=='undefined'&&VisitCommunication.active())) && App._navigationRevision === revision && typeof FollowupsFeature !== 'undefined') {
       FollowupsFeature.refreshTaskView();
       if (opened) Toast.show('Record whether it sent in this customer’s next actions.', 'info');
     } else if (opened) Toast.show('When you return, record whether it sent in Follow-ups.', 'info');
@@ -1473,7 +1473,7 @@ const TalkFeature = {
     this.pendingSentConfirmation = null; this.persistSentConfirmation();
     if (ownsModal) App.closeModal();
     Toast.show(message,'success');
-    if (ownsModal && App.currentFeature?.id === 'customer' && typeof FollowupsFeature !== 'undefined') FollowupsFeature.refreshTaskView();
+    if (ownsModal && (App.currentFeature?.id === 'customer'||(typeof VisitCommunication!=='undefined'&&VisitCommunication.active())) && typeof FollowupsFeature !== 'undefined') FollowupsFeature.refreshTaskView();
     else if (ownsModal && ['followups','today'].includes(App.currentFeature?.id)) App.navigate(App.currentHash || App.currentFeature.id);
   },
 

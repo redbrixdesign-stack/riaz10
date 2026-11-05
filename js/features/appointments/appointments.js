@@ -2067,8 +2067,6 @@ const AppointmentsFeature = {
         })}
 
         <!-- Customer Info -->
-        <button class="btn btn-outline card-page-gap" data-action="TalkFeature.openSavedDrafts" data-args='${JSON.stringify([appt.id])}'>Resume saved message</button>
-        <button class="btn btn-outline card-page-gap" data-action="FollowupsFeature.openContactOutcome" data-args='${JSON.stringify([appt.id])}'>Phone contact / history</button>
         ${appt.timeProposal?.status === 'pending' && !appt.outcome && appt.status !== 'cancelled' ? `<div class="card card-page-gap"><p>Pending time proposal: ${Utils.escapeHtml(appt.timeProposal.time)}. The booking is unchanged until agreement is recorded.</p><button class="btn btn-outline" data-action="AppointmentsFeature.openTimeProposal" data-args='${JSON.stringify([appt.id])}'>Review pending time proposal</button></div>` : ''}
         <div class="card card-page-gap" >
           <div class="flex items-center gap-md" >
@@ -2088,24 +2086,7 @@ const AppointmentsFeature = {
             </button>
           </div>
 
-          ${contactPhone ? `
-            <div class="flex gap-sm mt-md" >
-              <button class="btn btn-outline btn-sm flex-1 gap-6"  data-action="ContactFeature.open" data-args='${Utils.escapeHtml(JSON.stringify([{name: appt.clientName || 'Customer', phone: contactPhone}]))}'>
-                <span class="material-symbols-rounded fs-18" >chat</span>
-                Contact
-              </button>
-              ${(() => {
-                const match = (typeof TalkFeature !== 'undefined') ? TalkFeature.getTemplateForOutcome(appt.outcome) : null;
-                if (!match) return '';
-                return `
-                  <button class="btn btn-outline btn-sm flex-1 gap-6"  data-action="TalkFeature.sendMessage" data-args='${Utils.escapeHtml(JSON.stringify([(appt.id), match.template]))}'>
-                    <span class="material-symbols-rounded fs-18" >forward_to_inbox</span>
-                    ${Utils.escapeHtml(match.action)}
-                  </button>
-                `;
-              })()}
-            </div>
-          ` : ''}
+
         </div>
 
         <!-- Visit Details -->
@@ -2140,6 +2121,8 @@ const AppointmentsFeature = {
             ` : ''}
           </div>
         </div>
+
+        ${typeof VisitCommunication!=='undefined'?await VisitCommunication.render(appt,customer):'<section class="card card-page" role="alert">Visit communication is unavailable. Reload Beelo to retry.</section>'}
 
         ${this.renderOnSiteCard(appt)}
 
@@ -4198,6 +4181,7 @@ const AppointmentsFeature = {
   },
 
   activate(params = {}) {
+    if(params.id && typeof VisitCommunication!=='undefined')VisitCommunication.restore(params.id);
     if (params.action === 'tomorrow' || params.action === 'today-plan') {
       this.setupTomorrowDrag();
       this.restorePlanningPosition(params);

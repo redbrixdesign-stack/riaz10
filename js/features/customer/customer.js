@@ -366,6 +366,7 @@ const CustomerFeature = {
   },
 
   refreshProfile(customerId) {
+    if(typeof VisitCommunication!=='undefined' && VisitCommunication.active(customerId))return VisitCommunication.refresh();
     if(typeof CustomerWorkspace!=='undefined' && document.getElementById('customer-workspace'))this._workspaceRestore={customerId:Number(customerId),scroll:App._inlineOriginScroll??Math.max(document.getElementById('main')?.scrollTop||0,window.scrollY||0,document.scrollingElement?.scrollTop||0),open:[...document.querySelectorAll('#customer-workspace details[open][id]')].map(el=>el.id)};
     const params=new URLSearchParams((App.currentHash||'').split('?')[1]);
     if (App.currentFeature?.id==='customer' && Number(params.get('id'))===Number(customerId)) return App.navigate(App.currentHash);

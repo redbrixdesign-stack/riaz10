@@ -958,7 +958,7 @@ const App = {
     const objpath = m[1];
     const arglist = m[2].trim();
     const root = objpath.split('.')[0];
-    const KNOWN = ['App', 'AppointmentsFeature', 'SettingsFeature', 'MoneyFeature', 'TalkFeature', 'MeasureFeature', 'OnboardingFeature', 'RouteFeature', 'OrdersFeature', 'ContactFeature', 'HomeScreenController', 'CompanionFeature', 'ExportService', 'OCRFeature', 'ControlFeature', 'TodayFeature', 'Geo', 'CustomerFeature', 'FollowupsFeature', 'LeadsFeature', 'QuotesFeature', 'JobsFeature', 'InvoicesFeature', 'SuppliersFeature', 'CapacityFeature', 'ProfitabilityFeature', 'RetentionFeature', 'CommunicationsFeature', 'VoiceNotes', 'NoteCapture', 'VisitDraft'];
+    const KNOWN = ['App', 'AppointmentsFeature', 'SettingsFeature', 'MoneyFeature', 'TalkFeature', 'MeasureFeature', 'OnboardingFeature', 'RouteFeature', 'OrdersFeature', 'ContactFeature', 'HomeScreenController', 'CompanionFeature', 'ExportService', 'OCRFeature', 'ControlFeature', 'TodayFeature', 'Geo', 'CustomerFeature', 'FollowupsFeature', 'LeadsFeature', 'QuotesFeature', 'JobsFeature', 'InvoicesFeature', 'SuppliersFeature', 'CapacityFeature', 'ProfitabilityFeature', 'RetentionFeature', 'CommunicationsFeature', 'VoiceNotes', 'NoteCapture', 'VisitDraft', 'VisitCommunication'];
     if (!KNOWN.includes(root)) return '';
     // Convert the JS-ish argument list into a JSON array string:
     //   'appointments', {tab: 'upcoming'}  ->  ["appointments", {"tab": "upcoming"}]
@@ -1035,6 +1035,7 @@ const App = {
       RouteFeature,
       OrdersFeature,
       ContactFeature,
+      VisitCommunication: typeof VisitCommunication === 'undefined' ? null : VisitCommunication,
       HomeScreenController,
       CompanionFeature,
       ExportService,
@@ -1295,7 +1296,7 @@ const App = {
 
     if (!overlay || !sheet) return;
 
-    const host=this.currentFeature?.id==='customer' && !options.forceModal && !options.className && !overlay.classList.contains('active') ? document.getElementById('customer-action-host') : null;
+    const host=(this.currentFeature?.id==='customer'||(this.currentFeature?.id==='appointments'&&document.getElementById('visit-communication'))) && !options.forceModal && !options.className && !overlay.classList.contains('active') ? document.getElementById('customer-action-host') : null;
     if(host){
       if(this._inlineSurface!==sheet)this._inlineOriginScroll=Math.max(document.getElementById('main')?.scrollTop||0,window.scrollY||0,document.scrollingElement?.scrollTop||0);
       if(!options.replace && this._inlineSurface===sheet && sheet.innerHTML.trim())this.modalStack.push({content:this.snapshotModalContent(sheet),scrollTop:sheet.scrollTop});

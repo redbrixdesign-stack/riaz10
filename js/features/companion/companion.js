@@ -438,7 +438,7 @@ const CompanionFeature = {
                 <span class="material-symbols-rounded" aria-hidden="true">navigation</span>
                 <span>Navigate</span>
               </button>
-              <button class="comp-home-cta comp-home-cta--ghost" type="button"${phoneDisabled} data-action="ContactFeature.open" data-args='${Utils.escapeHtml(JSON.stringify([{name: nv.name, phone: nv.phone || ''}]))}'>
+              <button class="comp-home-cta comp-home-cta--ghost" type="button"${phoneDisabled} data-action="ContactFeature.open" data-args='${Utils.escapeHtml(JSON.stringify([{name: nv.name, phone: nv.phone || '', customerId:nv.customerId, appointmentId:nv.id}]))}'>
                 <span class="material-symbols-rounded" aria-hidden="true">call</span>
                 <span>Call</span>
               </button>
@@ -644,6 +644,7 @@ const CompanionFeature = {
       };
       nextVisit = {
         id: next.id,
+        customerId: next.customerId || null,
         name: next.clientName || 'Customer',
         time: promisedTime.text,
         hasArrivalWindow: promisedTime.isWindow,

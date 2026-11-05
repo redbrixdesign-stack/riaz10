@@ -444,20 +444,22 @@ const FollowupsFeature = {
     return html.join('');
   },
 
-  async renderCustomerPanel(customerId) {
+  async renderCustomerPanel(customerId, options = {}) {
     this.renderStylesOnce();
     const args = Utils.escapeHtml(JSON.stringify([Number(customerId)]));
     let tasks;
     try { tasks = await this.loadCustomerTasks(customerId); }
-    catch (_) { return `<section class="card card-page" id="customer-followups"><h2 class="fs-15">Next actions</h2><p role="alert">Could not load this customer's follow-ups. Your reminders have not been cleared.</p><button class="btn btn-outline" data-action="App.navigate" data-args='${Utils.escapeHtml(JSON.stringify(['customer', {id:Number(customerId)}]))}'>Retry follow-ups</button></section>`; }
+    catch (_) { return `<section class="card card-page" id="customer-followups"><h2 class="fs-15">Next actions</h2><p role="alert">Could not load this customer's follow-ups. Your reminders have not been cleared.</p><button class="btn btn-outline" data-action="App.navigate" data-args='${Utils.escapeHtml(JSON.stringify(options.appointmentId?['appointments',{id:Number(options.appointmentId)}]:['customer', {id:Number(customerId)}]))}'>Retry follow-ups</button></section>`; }
+    const visitId=Number(options.appointmentId)||null;
+    if(visitId)tasks=tasks.filter(t=>Number(t.appointment?.id||t.appointmentId)===visitId && t.kind!=='visit_today');
     const rank=t=>t.kind==='send_confirmation'?0:t.kind==='service'?1:t.priority==='high'?2:['intro','intro_confirmation','visit_tomorrow','visit_today'].includes(t.kind)?3:t.kind==='payment_review'?5:4;
     const due = tasks.filter(task => task.due).sort((a,b)=>rank(a)-rank(b));
     const later = tasks.filter(task => !task.due && !task.snoozed);
     const snoozed = tasks.filter(task => task.snoozed);
     return `<section class="card card-page" id="customer-followups" aria-labelledby="customer-followups-title">
-      <div class="flex items-center justify-between gap-sm"><h2 class="fs-15" id="customer-followups-title">Next actions${due.length ? ` (${due.length} due)` : ''}</h2><button class="btn btn-outline btn-sm" data-action="FollowupsFeature.openNewTask" data-args='${args}'>Add reminder</button></div>
-      <p class="hint">Actions for this customer. Opening WhatsApp is not proof of sending.</p>
-      ${due.length ? this.renderTaskCard(due[0]) : '<p>No action due now for this customer.</p>'}
+      <div class="flex items-center justify-between gap-sm"><h2 class="fs-15" id="customer-followups-title">Next actions${due.length ? ` (${due.length} due)` : ''}</h2>${visitId?'':`<button class="btn btn-outline btn-sm" data-action="FollowupsFeature.openNewTask" data-args='${args}'>Add reminder</button>`}</div>
+      <p class="hint">Actions for this ${visitId?'visit':'customer'}. Opening WhatsApp is not proof of sending.</p>
+      ${due.length ? this.renderTaskCard(due[0]) : `<p>No action due now for this ${visitId?'visit':'customer'}.</p>`}
       ${due.length > 1 ? `<details class="fup-group"><summary>Other actions due (${due.length-1})</summary>${due.slice(1).map(task=>this.renderTaskCard(task)).join('')}</details>` : ''}
       ${later.length ? `<details class="fup-group"><summary>Later (${later.length})</summary>${later.map(task=>this.renderTaskCard(task,true)).join('')}</details>` : ''}
       ${snoozed.length ? `<details class="fup-group"><summary>Snoozed (${snoozed.length})</summary>${snoozed.map(task=>this.renderTaskCard(task,true)).join('')}</details>` : ''}
@@ -465,6 +467,7 @@ const FollowupsFeature = {
   },
 
   refreshTaskView() {
+    if(typeof VisitCommunication!=='undefined' && VisitCommunication.active())return VisitCommunication.refresh();
     if (App.currentFeature?.id === 'customer') {
       const params = new URLSearchParams((App.currentHash || '').split('?')[1]);
       if(typeof CustomerFeature!=='undefined' && typeof document!=='undefined' && document.getElementById('customer-workspace'))return CustomerFeature.refreshProfile(Number(params.get('id')));
@@ -849,7 +852,7 @@ const FollowupsFeature = {
       await DB.recordPreviouslySent(pending.appointmentId,template,pending.snapshot,pending.operationId);
       if (this.ownsAlreadySent(pending)) {
         this.pendingAlreadySent = null;App.closeModal();Toast.show('Recorded as sent by you','success');
-        if (App.currentFeature?.id === 'customer') this.refreshTaskView();
+        if (App.currentFeature?.id === 'customer'||(typeof VisitCommunication!=='undefined'&&VisitCommunication.active())) this.refreshTaskView();
         else if (['followups','today'].includes(App.currentFeature?.id)) App.navigate(App.currentHash || App.currentFeature.id);
       }
     } catch(error) {if(this.ownsAlreadySent(pending))this._alreadySentOwner.element.textContent=error.message;Toast.show('Not updated. Please retry.','error');}

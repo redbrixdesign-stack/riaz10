@@ -4,7 +4,7 @@
    ============================================ */
 
 const ContactFeature = {
-  open({ name = 'Customer', phone = '', message = '', customerId = null } = {}) {
+  open({ name = 'Customer', phone = '', message = '', customerId = null, appointmentId = null } = {}) {
     const cleanedPhone = String(phone || '').trim();
     if (!cleanedPhone) {
       Toast.show('No phone number added yet', 'warning');
@@ -26,7 +26,7 @@ const ContactFeature = {
     const telUrl = e164Phone ? `tel:${e164Phone}` : `tel:${cleanedPhone.replace(/[^\d+]/g, '')}`;
 
     if (Number(customerId) > 0) {
-      App.openModal(`<div class="sheet-header"><h3>Contact ${Utils.escapeHtml(name)}</h3><button class="btn btn-ghost" data-action="App.closeModal">Close</button></div><div class="sheet-body"><label for="contact-message">Message (optional)</label><textarea class="textarea" id="contact-message">${Utils.escapeHtml(message)}</textarea><p class="hint">Beelo records the handoff, not delivery. You choose whether to send in the destination app. SMS prefill depends on your phone; copy the text first if needed.</p><button class="btn btn-outline btn-sm" data-action="ContactFeature.copyDraft">Copy message</button>${[['whatsapp','WhatsApp'],['sms','Text message'],['phone','Call']].map(([channel,label])=>`<button class="btn btn-outline btn-block mt-sm" data-action="ContactFeature.start" data-args='${JSON.stringify([Number(customerId),channel])}'>${label}</button>`).join('')}</div>`);
+      App.openModal(`<div class="sheet-header"><h3>Contact ${Utils.escapeHtml(name)}</h3><button class="btn btn-ghost" data-action="App.closeModal">Close</button></div><div class="sheet-body"><label for="contact-message">Message (optional)</label><textarea class="textarea" id="contact-message">${Utils.escapeHtml(message)}</textarea><p class="hint">Beelo records the handoff, not delivery. You choose whether to send in the destination app. SMS prefill depends on your phone; copy the text first if needed.</p><button class="btn btn-outline btn-sm" data-action="ContactFeature.copyDraft">Copy message</button>${[['whatsapp','WhatsApp'],['sms','Text message'],['phone','Call']].map(([channel,label])=>`<button class="btn btn-outline btn-block mt-sm" data-action="ContactFeature.start" data-args='${JSON.stringify([Number(customerId),channel,...(Number(appointmentId)>0?[Number(appointmentId)]:[])])}'>${label}</button>`).join('')}</div>`);
       return;
     }
     const content = `
@@ -87,7 +87,7 @@ const ContactFeature = {
     return this.review(pending.id);
   },
 
-  async start(customerId, channel) {
+  async start(customerId, channel, appointmentId = null) {
     if (this._starting || !['phone','whatsapp','sms'].includes(channel)) return;
     const revision = App._navigationRevision;
     const field = document.getElementById('contact-message');
@@ -95,12 +95,15 @@ const ContactFeature = {
     this._starting = true;
     try {
       const customer = await DB.getCustomer(Number(customerId));
-      const phone = Utils.toE164Phone(customer?.phone || '');
-      if (!customer || !phone) throw new Error('Add a valid customer phone number first');
+      if (!customer) throw new Error('Customer is no longer available');
+      let visit=null;
+      if(appointmentId!==null){visit=await DB.getAppointment(Number(appointmentId));if(!visit||Number(visit.customerId)!==Number(customer.id))throw new Error('Visit does not belong to this customer');}
+      const phone = Utils.toE164Phone(customer.phone || visit?.phone || '');
+      if (!phone) throw new Error('Add a valid customer phone number first');
       const preference = await CommunicationService.preference(customer.id, channel);
       if (!CommunicationService.canContact(preference)) throw new Error('This channel is blocked by the customer’s contact preference');
       if (App._navigationRevision !== revision || (field && field !== document.getElementById('contact-message'))) return;
-      const row = await CommunicationService.recordHandoff({customerId:customer.id, type:channel+'_handoff', channel, direction:'outbound', content:text});
+      const row = await CommunicationService.recordHandoff({customerId:customer.id, ...(visit?{appointmentId:visit.id}:{}), type:channel+'_handoff', channel, direction:'outbound', content:text});
       if (App._navigationRevision !== revision || (field && field !== document.getElementById('contact-message'))) {
         await DB.updateCommunication(row.id,{status:'cancelled'}); return;
       }
@@ -109,7 +112,7 @@ const ContactFeature = {
       if (channel === 'phone') this.launch('tel:'+phone);
       else if (channel === 'sms') this.launch('sms:'+phone+(text?'?body='+encodeURIComponent(text):''));
       else NotificationService.sendWhatsApp(phone,text);
-      if (App.currentFeature?.id === 'customer') CustomerFeature.refreshProfile(customer.id);
+      if (App.currentFeature?.id === 'customer'||(typeof VisitCommunication!=='undefined'&&VisitCommunication.active(customer.id))) CustomerFeature.refreshProfile(customer.id);
     } catch (error) { Toast.show(error.message || 'Could not record contact. Nothing was opened.', 'error'); }
     finally { this._starting = false; }
   },

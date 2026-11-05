@@ -3970,6 +3970,13 @@ body:has(.comp-page) {
 #planning-map-retry[hidden] { display: none; }
 .planning-map-marker span { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: var(--accent-contrast); font-weight: 700; border: 2px solid var(--accent-contrast); }
 .cw-section-nav { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
+.visit-communication { overflow-wrap:anywhere; }
+.visit-comm-status { display:grid; gap:4px; margin:12px 0; font-size:12px; color:var(--text-secondary); }
+.visit-comm-actions { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+.visit-comm-actions .btn { flex:1; min-width:0; white-space:normal; }
+.visit-communication #customer-followups { margin:12px 0; padding:12px; }
+.visit-communication .fup-name { display:none; }
+.visit-comm-event { border-top:1px solid var(--border); padding:10px 0; }
 .cw-section-nav .btn { min-width:0; white-space:normal; padding:9px 4px; }
 .cw-money-overview { padding:12px; border:1px solid var(--border); border-radius:12px; background:var(--surface); }
 .cw-money-overview h2 { font-size:14px; margin-bottom:10px; }
