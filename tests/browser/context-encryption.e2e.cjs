@@ -41,7 +41,7 @@ const expectEncryption=process.env.BEELO_EXPECT_CONTEXT_ENCRYPTION==='1';
    return {customer:customer.id,visit:visit.id,measurement:measurement.id,photo:photo.id};
   },expectEncryption);
   await p.evaluate(id=>App.navigate('customer',{id}),ids.customer);
-  await p.getByText('SYNTHETIC bedroom',{exact:false}).first().waitFor();
+  await p.locator('#customer-products > summary').click();await p.getByText('SYNTHETIC bedroom',{exact:false}).first().waitFor();
   assert.equal(await p.evaluate(async()=> (await Search.searchByPostcode('M14'))[0].fullName),'SYNTHETIC Context');
   await p.evaluate(id=>App.navigate('appointments',{id}),ids.visit);
   await p.getByText('SYNTHETIC blue roller left',{exact:false}).first().waitFor();
@@ -60,7 +60,7 @@ const expectEncryption=process.env.BEELO_EXPECT_CONTEXT_ENCRYPTION==='1';
   }
   await c.setOffline(true);
   if(engine===chromium) await p.reload({waitUntil:'domcontentloaded'});
-  else { await p.evaluate(id=>App.navigate('customer',{id}),ids.customer);await p.getByText('SYNTHETIC bedroom',{exact:false}).first().waitFor();await p.evaluate(()=>App.navigate('appointments',{action:'tomorrow'})); }
+  else { await p.evaluate(id=>App.navigate('customer',{id}),ids.customer);await p.locator('#customer-products > summary').click();await p.getByText('SYNTHETIC bedroom',{exact:false}).first().waitFor();await p.evaluate(()=>App.navigate('appointments',{action:'tomorrow'})); }
   await expandPlanContext();await p.getByText('SYNTHETIC side gate 1234',{exact:false}).first().waitFor();
   await p.waitForTimeout(500);
   await p.screenshot({path:artifactPath(`beelo-context-readers-${engine.name()}.png`),animations:'disabled'});
