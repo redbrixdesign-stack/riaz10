@@ -79,3 +79,18 @@ passed until those screens/actions have been observed.
   Asked user to open Home → Upcoming → SYNTHETIC Test Visit, accept the app's
   update/reload if shown, and unlock privately if needed. Final native section
   verification remains pending; do not substitute the browser screenshots.
+
+## Subsequent native save/reopen proof (23:43 UTC)
+
+Direct native Safari navigation to #appointments?id=1 reopened the first saved
+record. Visually confirmed SYNTHETIC Test Visit, CUS-2026-0001, Friday6November,
+fitting, planned09:00–10:00 (1hr), arrival09:00–12:00, and SYNTHETIC Test Address.
+This supersedes the earlier diary-marker-only save checkpoint. It proves native
+save/reopen of the synthetic record, but bypasses the unreliable Home tap path.
+
+That installed screen still displayed the old Resume saved message and Phone
+contact/history buttons. Native Safari's refresh control was invoked; Beelo now
+shows its legitimate Unlock screen. User asked to unlock privately. No passphrase
+was read, entered, reset or requested in chat. The deployed Visit-section visual
+check remains pending that unlock/update; public Chromium/WebKit passes stand
+separately. No native pass for the new section is claimed.
