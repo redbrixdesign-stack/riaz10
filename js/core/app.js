@@ -709,6 +709,7 @@ const App = {
     for (const [key, value] of Object.entries(params)) {
       if (value !== undefined && value !== null) cleanParams[key] = value;
     }
+    if(featureId==='appointments' && cleanParams.customerId && !cleanParams.action && typeof CustomerWorkspace!=='undefined')return this.navigate('customer',{...cleanParams,id:cleanParams.customerId,customerId:undefined,from:cleanParams.from||'appointments'});
     const hasParams = Object.keys(cleanParams).length > 0;
     const targetHash = hasParams ? `${featureId}?${new URLSearchParams(cleanParams).toString()}` : featureId;
 
@@ -1282,6 +1283,15 @@ const App = {
 
     if (!overlay || !sheet) return;
 
+    const host=this.currentFeature?.id==='customer' && !options.forceModal && !options.className && !overlay.classList.contains('active') ? document.getElementById('customer-action-host') : null;
+    if(host){
+      if(this._inlineSurface!==sheet)this._inlineOriginScroll=document.getElementById('main')?.scrollTop||0;
+      if(!options.replace && this._inlineSurface===sheet && sheet.innerHTML.trim())this.modalStack.push({content:this.snapshotModalContent(sheet),scrollTop:sheet.scrollTop});
+      this._inlineSurface=sheet;host.hidden=false;host.appendChild(sheet);sheet.innerHTML=content;sheet.scrollTop=0;
+      sheet.setAttribute('role','region');sheet.removeAttribute('aria-modal');this._associateLabels(sheet);this._nameDialog(sheet,options);
+      this._lastFocused=document.activeElement;this._untrapFocus();if(options.onOpen)options.onOpen();this.focusFirstControl(sheet);host.scrollIntoView({block:'nearest'});return;
+    }
+
     if (!options.replace && overlay.classList.contains('active') && sheet.innerHTML.trim()) {
       this.modalStack.push({
         content: this.snapshotModalContent(sheet),
@@ -1344,6 +1354,13 @@ const App = {
     const overlay = document.getElementById('modal-overlay');
     const sheet = document.getElementById('bottom-sheet');
     const shouldCloseAll = options === true || options.all;
+
+    if(this._inlineSurface===sheet){
+      if(!shouldCloseAll && this.modalStack.length){const previous=this.modalStack.pop();sheet.innerHTML=previous.content;this._associateLabels(sheet);this._nameDialog(sheet);this.focusFirstControl(sheet);return;}
+      const host=sheet.parentElement;this.modalStack=[];this._inlineSurface=null;sheet.innerHTML='';sheet.removeAttribute('role');sheet.removeAttribute('aria-labelledby');sheet.removeAttribute('aria-label');overlay?.appendChild(sheet);if(host?.id==='customer-action-host')host.hidden=true;
+      const main=document.getElementById('main');if(main&&Number.isFinite(this._inlineOriginScroll))main.scrollTop=this._inlineOriginScroll;this._inlineOriginScroll=null;
+      this._lastFocused?.focus?.({preventScroll:true});this._lastFocused=null;return;
+    }
 
     if (!shouldCloseAll && this.modalStack.length && sheet && overlay?.classList.contains('active')) {
       const previous = this.modalStack.pop();

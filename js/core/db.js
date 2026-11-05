@@ -1127,7 +1127,8 @@ const DB = {
     return JSON.stringify([visit.customerId || null, visit.date || '', visit.type || '', visit.arrivalStart || '', visit.arrivalEnd || '', visit.scheduleChangedAt || '']);
   },
 
-  async recordVisitContact(id, outcome, snapshot, operationId) {
+  async recordVisitContact(id, outcome, snapshot, operationId, channel = 'phone') {
+    if (!['phone','whatsapp','sms','email'].includes(channel) || (channel!=='phone' && outcome!=='visit_agreed')) throw new Error('Choose a supported contact outcome');
     if (!['introduced', 'visit_agreed', 'introduced_and_agreed', 'no_answer'].includes(outcome)) throw new Error('Choose what happened');
     if (!operationId || typeof operationId !== 'string') throw new Error('Contact operation is required');
     return this._runWrite(['appointments'], async () => {
@@ -1139,7 +1140,7 @@ const DB = {
       if (visit.status !== 'confirmed' || visit.outcome || new Date(visit.date) <= new Date() || isNaN(new Date(visit.date))) throw new Error('This visit is no longer awaiting pre-visit contact');
       await this.db.appointments.update(id, { contactOutcomes: [...history, {
         id: operationId, outcome, bookingSnapshot: snapshot, customerId: visit.customerId || null,
-        recordedAt: new Date().toISOString(), channel: 'phone', provenance: 'advisor_recorded'
+        recordedAt: new Date().toISOString(), channel, provenance: 'advisor_recorded'
       }] });
     });
   },
@@ -1151,7 +1152,7 @@ const DB = {
       if (!visit) throw new Error('Visit not found');
       const history = Array.isArray(visit.contactOutcomes) ? visit.contactOutcomes : [];
       if (history.some(e => e.id === operationId)) return;
-      const target = history.find(e => e.id === targetId && e.channel === 'phone' && e.provenance === 'advisor_recorded' && ['introduced', 'visit_agreed', 'introduced_and_agreed', 'no_answer'].includes(e.outcome));
+      const target = history.find(e => e.id === targetId && ['phone','whatsapp','sms','email'].includes(e.channel) && e.provenance === 'advisor_recorded' && ['introduced', 'visit_agreed', 'introduced_and_agreed', 'no_answer'].includes(e.outcome));
       if (!target) throw new Error('That phone outcome is not available to correct');
       if (history.some(e => e.outcome === 'retracted' && e.targetId === targetId && e.provenance === 'advisor_recorded')) return;
       // Corrections remain possible after a visit ends. They alter evidence,
@@ -1159,7 +1160,7 @@ const DB = {
       await this.db.appointments.update(id, { contactOutcomes: [...history, {
         id: operationId, outcome: 'retracted', targetId,
         customerId: target.customerId || null, recordedAt: new Date().toISOString(),
-        channel: 'phone', provenance: 'advisor_recorded'
+        channel: target.channel, provenance: 'advisor_recorded'
       }] });
     });
   },

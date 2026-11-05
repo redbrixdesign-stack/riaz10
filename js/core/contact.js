@@ -83,7 +83,7 @@ const ContactFeature = {
     if (!pending || document.visibilityState === 'hidden' || Date.now()>pending.expiresAt || App.currentHash!==pending.route) return;
     const params = new URLSearchParams((App.currentHash || '').split('?')[1]);
     if (App.currentFeature?.id === 'customer' && Number(params.get('id')) !== pending.customerId) return;
-    if (document.getElementById('modal-overlay')?.classList.contains('active') || document.getElementById('modal-full')?.classList.contains('active')) return;
+    if (App._inlineSurface?.isConnected || document.getElementById('modal-overlay')?.classList.contains('active') || document.getElementById('modal-full')?.classList.contains('active')) return;
     return this.review(pending.id);
   },
 

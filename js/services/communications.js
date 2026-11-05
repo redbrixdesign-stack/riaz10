@@ -96,6 +96,23 @@ const CommunicationService = {
     return ['advisor_confirmed_sent', 'delivered', 'replied'].includes(communication?.lifecycleState);
   },
 
+  introductionEvidence(customerId, visits = [], messages = []) {
+    const own = visits.filter(v => Number(v.customerId) === Number(customerId));
+    const explicit = own.some(v => v.introSent || (typeof TaskService !== 'undefined' && TaskService.contactEvidence(v).introduced)) || messages.some(m => Number(m.customerId) === Number(customerId) && m.direction !== 'inbound' && ['pre_intro','intro_day_before'].includes(m.confirmedTemplate || m.template) && this.isConfirmed(m));
+    const knownRelationship = own.some(v => v.status !== 'cancelled' && v.outcome && !['cancelled','customer_no_show','advisor_unavailable'].includes(v.outcome) && new Date(v.date) < new Date());
+    return { explicit, knownRelationship, introduced: explicit || knownRelationship };
+  },
+
+  visitEvidence(visit) {
+    const contact = typeof TaskService !== 'undefined' ? TaskService.contactEvidence(visit) : {};
+    return { introduced:!!(visit.introSent || contact.introduced), reminderSent:!!visit.dayBeforeSent, agreed:!!contact.agreed, inactive:visit.status==='cancelled'||!!visit.outcome||visit.status==='completed' };
+  },
+
+  collectionResponsibility(order) {
+    if (order.source==='survey_referral' || order.paymentManagedExternally || ['company','external'].includes(order.paymentResponsibility)) return 'external';
+    return order.paymentResponsibility==='advisor' ? 'advisor' : 'unknown';
+  },
+
   async pendingHandoffs({ includeInactive = false } = {}) {
     const rows = await this.decorate(await DB.db.communications.toArray());
     const groups = new Map();
@@ -122,13 +139,35 @@ const CommunicationService = {
     return ({call_opened:'Call action initiated — outcome not recorded',call_answered:'Call answered (adviser recorded)',call_no_answer:'Call: no answer / voicemail (adviser recorded)',call_cancelled:'Call cancelled / not made (adviser recorded)',cancelled:'Not sent',drafted:'Message drafted',advisor_confirmed_sent:'Message confirmed sent',delivered:'Message delivered',replied:'Customer reply',note:'Internal note'})[row.lifecycleState] || (row.lifecycleState==='handed_off' ? (row.channel==='sms'?'Text message handoff — sending unconfirmed':'WhatsApp handoff — sending unconfirmed') : 'Recorded activity');
   },
 
-  async recordReply(customerId, content, channel = 'whatsapp') {
+  async recordReply(customerId, content, channel = 'whatsapp', agreement = null) {
     const text = String(content || '').trim();
-    if (!Number.isInteger(Number(customerId)) || !text) throw new Error('Customer and reply are required');
+    if (!Number.isInteger(Number(customerId)) || Number(customerId)<=0 || !text || !['whatsapp','sms','email','phone'].includes(channel)) throw new Error('Customer, channel and reply are required');
+    if (agreement) {
+      if (!DB.db.transaction) throw new Error('Safe agreement saving is unavailable. Reload and retry.');
+      return DB._runWrite(['communications','communicationEvents','appointments','customers'],async()=>{
+        const visit=await DB.db.appointments.get(Number(agreement.appointmentId));
+        if (!visit || Number(visit.customerId)!==Number(customerId) || !await DB.db.customers.get(Number(customerId))) throw new Error('This visit does not belong to this customer');
+        const prior=(await DB.db.communications.toArray()).find(row=>row.operationId===agreement.operationId);
+        if(prior){if(prior.customerId!==Number(customerId)||prior.content!==text||prior.appointmentId!==visit.id)throw new Error('This reply operation changed. Reopen the form.');return prior;}
+        await DB.recordVisitContact(visit.id,'visit_agreed',agreement.snapshot,agreement.operationId,channel);
+        const row=await DB.addCommunication({customerId:Number(customerId),appointmentId:visit.id,type:channel+'_reply',channel,direction:'inbound',content:text,receivedAt:new Date().toISOString(),status:'replied',operationId:agreement.operationId});
+        await this.recordState(row.id,Number(customerId),'replied','advisor_recorded_reply');return row;
+      });
+    }
     const receivedAt = new Date().toISOString();
     const communication = await DB.addCommunication({ customerId: Number(customerId), type: `${channel}_reply`, channel, direction: 'inbound', content: text, receivedAt, status: 'replied' });
     await this.recordState(communication.id, Number(customerId), 'replied', 'advisor_recorded_reply');
     return communication;
+  },
+
+  async reviewEligibility(visit) {
+    try {
+      if (!visit || visit.outcome!=='completed' || visit.status==='cancelled') return {eligible:false,reason:'Fitting not completed'};
+      if (typeof DB.getJobs!=='function' || typeof DB.getJobIssues!=='function') return {eligible:true};
+      const jobs=(await DB.getJobs({customerId:visit.customerId})).filter(j=>j.id===visit.jobId || (visit.orderId && j.orderId===visit.orderId));
+      for(const job of jobs) if ((await DB.getJobIssues(job.id)).some(issue=>!['resolved','cancelled'].includes(issue.status))) return {eligible:false,reason:'A linked issue remains unresolved'};
+      return {eligible:true};
+    } catch (_) {return {eligible:false,reason:'Could not check linked issues'};}
   },
 
   async timeline(communicationId) {

@@ -128,6 +128,11 @@ const TalkFeature = {
   },
 
   async introductionAlreadyRecorded(appt, visits = null, messages = null) {
+    if (appt?.customerId && typeof CommunicationService !== 'undefined' && typeof CommunicationService.introductionEvidence === 'function') {
+      const ownVisits=visits || await DB.getAppointmentsByCustomer(appt.customerId);
+      const ownMessages=messages || await CommunicationService.decorate(await DB.db.communications.where('customerId').equals(appt.customerId).toArray());
+      return CommunicationService.introductionEvidence(appt.customerId,ownVisits,ownMessages).introduced;
+    }
     const introduced = visit => !!visit && (!!visit.introSent || (typeof TaskService !== 'undefined' && !!TaskService.contactEvidence(visit).introduced));
     if (introduced(appt)) return true;
     if (!appt?.customerId) return false;
@@ -613,6 +618,10 @@ const TalkFeature = {
       return;
     }
 
+    if(templateKey==='post_fit_followup' && typeof CommunicationService!=='undefined' && typeof CommunicationService.reviewEligibility==='function'){
+      const eligibility=await CommunicationService.reviewEligibility(appt);if(!eligibility.eligible)return Toast.show(eligibility.reason+' — review aftercare first','warning');
+    }
+
     try {
       customer = appt?.customerId ? await DB.getCustomer(appt.customerId) : null;
     } catch (e) {}
@@ -734,6 +743,7 @@ const TalkFeature = {
   // and whether this is a duplicate nudge — compose with continuity, not in
   // a vacuum.
   async openPreviewSheet(message, pending, hint = null) {
+    const openingRevision=App._navigationRevision;
     const { phone, templateKey } = pending;
     let currentBooking = null;
     try { currentBooking = pending.appointmentId ? await this.draftBookingSnapshot(pending.appointmentId) : null; }
@@ -851,6 +861,7 @@ const TalkFeature = {
         </button>
       </div>`;
     this._reviewBookingCandidate = currentBooking;
+    if(App._navigationRevision!==openingRevision || (typeof document!=='undefined' && document.getElementById('customer-workspace') && Number(pending.customerId)!==Number(CustomerFeature._lastId)))return;
     App.openModal(content);
   },
 
@@ -1260,6 +1271,9 @@ const TalkFeature = {
       Toast.show('No message ready', 'error');
       return;
     }
+    if(pending.templateKey==='post_fit_followup' && typeof CommunicationService!=='undefined' && typeof CommunicationService.reviewEligibility==='function'){
+      const eligibility=await CommunicationService.reviewEligibility(await DB.getAppointment(pending.appointmentId));if(!eligibility.eligible)return Toast.show(eligibility.reason+' — the review message was not opened','warning');
+    }
     const preview = document.getElementById('talk-message-preview');
     const message = preview?.value.trim();
     if (!message) {
@@ -1354,6 +1368,7 @@ const TalkFeature = {
     const visit = row.appointmentId ? await DB.getAppointment(Number(row.appointmentId)) : null;
     const customer = row.customerId ? await DB.getCustomer(Number(row.customerId)) : null;
     if (App._navigationRevision !== revision) return;
+    if(typeof document!=='undefined' && document.getElementById('customer-workspace') && Number(row.customerId)!==Number(CustomerFeature._lastId))return;
     this.pendingSentConfirmation = { communicationId: row.id, customerId: row.customerId, appointmentId: row.appointmentId, templateKey: row.template, reviewedSnapshot: visit ? DB.visitContactSnapshot(visit) : null };
     const name = customer?.fullName || [customer?.firstName,customer?.lastName].filter(Boolean).join(' ') || visit?.clientName || 'Customer';
     App.openModal(`<div class="sheet-header"><h3>Did you send this message?</h3><button class="btn btn-ghost btn-sm" aria-label="Close confirmation" data-action="App.closeModal">Later</button></div><div class="sheet-body"><p><strong>${Utils.escapeHtml(name)}</strong> · ${Utils.escapeHtml(CommunicationService.purposeLabel(row.template))}</p>${visit ? `<p>${Utils.escapeHtml(Utils.formatDate(visit.date,'long'))} · ${Utils.escapeHtml(this.apptTimeText(visit))}</p>` : ''}<p class="text-secondary">Opening ${row.channel === 'sms' ? 'Messages' : 'WhatsApp'} is not proof of sending. Confirm only what you actually sent. This does not mean the customer agreed or read it.</p>${row.bookingSnapshot && visit && row.bookingSnapshot !== DB.visitContactSnapshot(visit) ? '<p class="text-warning">The booking changed since this draft. This records the old message only; the current visit reminder will remain.</p>' : ''}<p class="fs-13">${Utils.escapeHtml(row.content || 'Message text not captured')}</p>${row.template === 'intro_day_before' ? '<label for="sent-message-purpose">Which part did you send?</label><select class="select" id="sent-message-purpose"><option value="">Choose what you sent</option><option value="pre_intro">Introduction only</option><option value="intro_day_before">Introduction and visit reminder</option><option value="day_before">Visit reminder only</option></select>' : ''}<p id="send-confirmation-error" role="alert"></p><button class="btn btn-primary btn-block" data-action="TalkFeature.confirmHandoffSent">Yes, I sent it</button><button class="btn btn-outline btn-block mt-sm" data-action="TalkFeature.leaveHandoffUnconfirmed">${row.appointmentId && row.template ? 'Not sent — keep reminder' : 'Not sent'}</button></div>`);

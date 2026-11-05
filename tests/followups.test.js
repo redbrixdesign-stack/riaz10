@@ -94,11 +94,13 @@ const talkSource = fs.readFileSync(path.join(__dirname, '..', 'js/features/talk/
   assert(!tasks.some(t => t.kind === 'intro'), 'Intro task drops once introSent is set');
   FAR_APPTS[0].introSent = false;
 
-  // A confirmed message in the customer timeline is authoritative even if
-  // an imported/legacy appointment never had introSent updated.
+  // A generic sent message is not evidence of the introduction purpose.
   COMMUNICATIONS.push({ id: 1, customerId: 9, direction: 'outbound', sentAt: new Date().toISOString() });
   tasks = await Followups.loadTasks();
-  assert(!tasks.some(t => t.kind === 'intro'), 'Intro task drops when customer communication history shows a sent message');
+  assert(tasks.some(t => t.kind === 'intro'), 'Generic confirmed contact does not silently fulfil introduction');
+  COMMUNICATIONS[0].template='pre_intro';
+  tasks=await Followups.loadTasks();
+  assert(!tasks.some(t => t.kind === 'intro'), 'Explicit sent introduction covers a legacy appointment missing its intro flag');
   COMMUNICATIONS.length = 0;
 
   // Existing customer with a prior completed visit: not first-time.

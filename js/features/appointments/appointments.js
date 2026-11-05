@@ -3883,7 +3883,7 @@ const AppointmentsFeature = {
         } catch (error) {
           console.error('Fitting prompt failed after order save:', error);
           Toast.show('Order saved. Schedule the fitting from Orders when ready.', 'warning');
-          App.navigate('appointments', { id });
+          this.returnToVisit(id);
         }
         return;
       }
@@ -3899,7 +3899,7 @@ const AppointmentsFeature = {
         } catch (error) {
           console.error('Fitting prompt failed after order save:', error);
           Toast.show('Order saved. Schedule the fitting from Orders when ready.', 'warning');
-          App.navigate('appointments', { id });
+          this.returnToVisit(id);
         }
         return;
       }
@@ -3909,7 +3909,7 @@ const AppointmentsFeature = {
         return;
       }
 
-      App.navigate('appointments', {id});
+      this.returnToVisit(id);
     } catch (e) {
       console.error('Save outcome error:', e);
       const message = e.code === 'payment_order' ? e.message : 'Failed to save outcome';
@@ -4003,9 +4003,11 @@ const AppointmentsFeature = {
     App.openModal(`<div class="sheet-handle"></div><div class="sheet-header"><h3>Worth sharing?</h3><button class="btn btn-ghost btn-sm" data-action="AppointmentsFeature.skipSocialPost" data-args='${JSON.stringify([appt.id])}' aria-label="Close"><span class="material-symbols-rounded">close</span></button></div><div class="sheet-body"><div class="center-box"><span class="material-symbols-rounded fs-48 text-brand">photo_camera</span><div class="fw-700 mt-sm">That fitting could inspire your next customer.</div><div class="fs-13 text-secondary mt-sm lh-145">If the customer is happy for you to share the finished room, Beelo can turn a photo or short video into three editable post ideas.</div></div><button class="btn btn-primary btn-block mt-md" data-action="App.navigate" data-args='${JSON.stringify(['social', { appointmentId: appt.id }])}'><span class="material-symbols-rounded">auto_awesome</span>Create a post</button><button class="btn btn-outline btn-block mt-sm" data-action="AppointmentsFeature.skipSocialPost" data-args='${JSON.stringify([appt.id])}'>Not now</button></div>`);
   },
 
+  async returnToVisit(id) { const visit=await DB.getAppointment(id);if(App.currentFeature?.id==='customer' && document.getElementById('customer-workspace') && Number(visit?.customerId)===Number(CustomerFeature._lastId))return CustomerFeature.refreshProfile(visit.customerId);return App.navigate('appointments',{id}); },
+
   skipSocialPost(appointmentId) {
     App.closeModal();
-    App.navigate('appointments', { id: appointmentId });
+    this.returnToVisit(appointmentId);
   },
   offerServiceCallBooking(appt) {
     const content = `<div class="sheet-handle"></div>

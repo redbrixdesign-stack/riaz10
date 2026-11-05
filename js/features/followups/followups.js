@@ -28,17 +28,17 @@ const FollowupsFeature = {
     if (appt.status !== 'confirmed' || appt.outcome || isNaN(visitAt) || visitAt <= now) return null;
     const contact = typeof TaskService !== 'undefined' ? TaskService.contactEvidence(appt) : {};
     introduced = introduced || contact.introduced;
-    const confirmed = appt.dayBeforeSent || contact.agreed;
+    const reminderCovered = !!appt.dayBeforeSent || !!contact.agreed;
     const p = Utils.ukParts(now), v = Utils.ukParts(visitAt);
     const tomorrow = new Date(Date.UTC(p.year, p.month - 1, p.day + 1));
     const isTomorrow = v.year === tomorrow.getUTCFullYear() && v.month === tomorrow.getUTCMonth() + 1 && v.day === tomorrow.getUTCDate();
     const reminderWindow = visitAt - now <= 86400000 || isTomorrow;
     if (!introduced && !appt.introSent) {
-      return reminderWindow && !confirmed
+      return reminderWindow && !reminderCovered
         ? { kind: 'intro_confirmation', template: 'intro_day_before', action: 'Introduce yourself and confirm this visit' }
         : { kind: 'intro', template: 'pre_intro', action: 'Introduce yourself before this visit' };
     }
-    if (reminderWindow && !confirmed) return { kind: 'visit_tomorrow', template: 'day_before', action: 'Confirm the upcoming visit' };
+    if (reminderWindow && !reminderCovered) return { kind: 'visit_tomorrow', template: 'day_before', action: 'Review the visit reminder' };
     return null;
   },
 
@@ -117,14 +117,16 @@ const FollowupsFeature = {
     // appointment flag. If the advisor has already contacted the customer,
     // never surface a second "first contact" task after a reload/import.
     const contactedCustomerIds = new Set();
+    let communicationRows=[];
     try {
       let communications = await DB.db.communications.toArray();
       if (typeof CommunicationService !== 'undefined') communications = await CommunicationService.decorate(communications);
+      communicationRows=communications;
       for (const row of communications) {
         const confirmed = typeof CommunicationService !== 'undefined'
           ? CommunicationService.isConfirmed(row)
           : !!row.sentAt;
-        if (confirmed && row.direction !== 'inbound' && row.customerId) contactedCustomerIds.add(Number(row.customerId));
+        if (confirmed && row.direction !== 'inbound' && row.customerId && ['pre_intro','intro_day_before'].includes(row.confirmedTemplate || row.template)) contactedCustomerIds.add(Number(row.customerId));
       }
     } catch (e) { /* retain the appointment-flag fallback */ }
 
@@ -184,6 +186,8 @@ const FollowupsFeature = {
     // 2. Payment reminders: live orders with a balance to collect.
     const paymentDays = this.paymentReminderDays();
     for (const order of orders) {
+      const responsibility = typeof CommunicationService !== 'undefined' && typeof CommunicationService.collectionResponsibility==='function' ? CommunicationService.collectionResponsibility(order) : (order.source==='survey_referral'?'external':'advisor');
+      if (responsibility==='external') continue;
       const balanceDue = order.balanceDue || 0;
       if (balanceDue <= 0) continue;
       const stage = order.stage || 'ordered';
@@ -191,13 +195,13 @@ const FollowupsFeature = {
       const created = order.createdAt ? new Date(order.createdAt) : new Date();
       const daysSince = Utils.daysBetween(now, created);
       tasks.push({
-        kind: 'payment',
+        kind: responsibility==='unknown'?'payment_review':'payment',
         due: daysSince >= paymentDays,
         daysLabel: daysSince <= 0 ? 'today' : `${daysSince}d`,
         order,
         customer: order.customerId ? customerMap.get(order.customerId) : null,
-        action: `Collect ${Utils.formatCurrency(balanceDue)} (deposit ${Utils.formatCurrency(order.depositPaid || 0)} of ${Utils.formatCurrency(order.depositRequired || 0)})`,
-        priority: 'high',
+        action: responsibility==='unknown'?'Review who collects this order balance':`Collect ${Utils.formatCurrency(balanceDue)} (deposit ${Utils.formatCurrency(order.depositPaid || 0)} of ${Utils.formatCurrency(order.depositRequired || 0)})`,
+        priority: responsibility==='unknown'?'normal':'high',
         inDays: paymentDays - daysSince
       });
     }
@@ -224,7 +228,7 @@ const FollowupsFeature = {
 
     // One current communication purpose per visit. The visit itself and a
     // no-show are not evidence that the adviser previously met the customer.
-    const isFirstVisit = (id, current) => !contactedCustomerIds.has(Number(id)) && !allAppts.some(a =>
+    const isFirstVisit = (id, current) => typeof CommunicationService !== 'undefined' && typeof CommunicationService.introductionEvidence==='function' ? !CommunicationService.introductionEvidence(id,allAppts,communicationRows).introduced : !contactedCustomerIds.has(Number(id)) && !allAppts.some(a =>
       id && String(a.customerId) === String(id) && a.id !== current?.id &&
       a.status !== 'cancelled' && a.outcome &&
       !['cancelled', 'customer_no_show', 'advisor_unavailable'].includes(a.outcome) && new Date(a.date) < now);
@@ -275,6 +279,11 @@ const FollowupsFeature = {
       if (appt.status === 'cancelled') continue;
       const archivedTypes = new Set((appt.communicationArchive || []).map(item => item.type));
       if (appt.type === 'fitting' && appt.outcome === 'completed' && !appt.postFitSent && !archivedTypes.has('post_fit_followup')) {
+        const eligibility=typeof CommunicationService!=='undefined' && typeof CommunicationService.reviewEligibility==='function' ? await CommunicationService.reviewEligibility(appt) : {eligible:true};
+        if (!eligibility.eligible) {
+          if(!appt.serviceSent) tasks.push({kind:'service',due:true,daysLabel:Utils.formatDate(appt.date,'short'),appointment:appt,customer:customerMap.get(appt.customerId),template:'service_or_issue_followup',action:eligibility.reason+' — review aftercare, not a review request',priority:'high'});
+          continue;
+        }
         tasks.push({
           kind: 'post_fit',
           due: true,
@@ -329,9 +338,9 @@ const FollowupsFeature = {
   async openContactCorrection(appointmentId, targetId) {
     const visit = await DB.getAppointment(appointmentId);
     const target = visit?.contactOutcomes?.find(e => e.id === targetId);
-    if (!target) return Toast.show('Phone record not found', 'error');
+    if (!target) return Toast.show('Contact record not found', 'error');
     this.pendingContactCorrection = { appointmentId, targetId, operationId: TaskService.operationId('retract-phone', appointmentId) };
-    App.openModal(`<div class="sheet-header"><h3>Correct phone record?</h3><button class="btn btn-ghost" aria-label="Cancel phone correction" data-action="App.closeModal">Cancel</button></div><div class="sheet-body phone-contact-correction"><p>${Utils.escapeHtml(visit.clientName || 'Customer')} · ${Utils.escapeHtml(target.outcome.replace(/_/g, ' '))} · ${Utils.formatDate(target.recordedAt, 'short')}</p><p>This retracts this adviser-recorded outcome, not the real call. The original stays in history. Any still-needed reminder can return; sent messages and other contact records are unchanged.</p><p>If a different outcome is correct, record it separately afterwards.</p><p id="phone-correction-error" role="alert"></p><button class="btn btn-primary btn-block" data-action="FollowupsFeature.confirmContactCorrection">Retract incorrect record</button></div>`);
+    App.openModal(`<div class="sheet-header"><h3>Correct contact record?</h3><button class="btn btn-ghost" aria-label="Cancel contact correction" data-action="App.closeModal">Cancel</button></div><div class="sheet-body phone-contact-correction"><p>${Utils.escapeHtml(visit.clientName || 'Customer')} · ${Utils.escapeHtml(target.outcome.replace(/_/g, ' '))} · ${Utils.formatDate(target.recordedAt, 'short')}</p><p>This retracts this adviser-recorded outcome, not the real call or message. The original stays in history. Any still-needed reminder can return; sent messages and other contact records are unchanged.</p><p>If a different outcome is correct, record it separately afterwards.</p><p id="phone-correction-error" role="alert"></p><button class="btn btn-primary btn-block" data-action="FollowupsFeature.confirmContactCorrection">Retract incorrect record</button></div>`);
   },
 
   async confirmContactCorrection() {
@@ -441,14 +450,13 @@ const FollowupsFeature = {
     let tasks;
     try { tasks = await this.loadCustomerTasks(customerId); }
     catch (_) { return `<section class="card card-page" id="customer-followups"><h2 class="fs-15">Next actions</h2><p role="alert">Could not load this customer's follow-ups. Your reminders have not been cleared.</p><button class="btn btn-outline" data-action="App.navigate" data-args='${Utils.escapeHtml(JSON.stringify(['customer', {id:Number(customerId)}]))}'>Retry follow-ups</button></section>`; }
-    const due = tasks.filter(task => task.due).sort((a,b) =>
-      (a.kind === 'send_confirmation' ? 0 : a.priority === 'high' ? 1 : 2) -
-      (b.kind === 'send_confirmation' ? 0 : b.priority === 'high' ? 1 : 2));
+    const rank=t=>t.kind==='send_confirmation'?0:t.kind==='service'?1:t.priority==='high'?2:['intro','intro_confirmation','visit_tomorrow','visit_today'].includes(t.kind)?3:t.kind==='payment_review'?5:4;
+    const due = tasks.filter(task => task.due).sort((a,b)=>rank(a)-rank(b));
     const later = tasks.filter(task => !task.due && !task.snoozed);
     const snoozed = tasks.filter(task => task.snoozed);
     return `<section class="card card-page" id="customer-followups" aria-labelledby="customer-followups-title">
       <div class="flex items-center justify-between gap-sm"><h2 class="fs-15" id="customer-followups-title">Next actions${due.length ? ` (${due.length} due)` : ''}</h2><button class="btn btn-outline btn-sm" data-action="FollowupsFeature.openNewTask" data-args='${args}'>Add reminder</button></div>
-      <p class="hint">These reminders also appear in Follow-ups. Opening WhatsApp is not proof of sending.</p>
+      <p class="hint">Actions for this customer. Opening WhatsApp is not proof of sending.</p>
       ${due.length ? this.renderTaskCard(due[0]) : '<p>No action due now for this customer.</p>'}
       ${due.length > 1 ? `<details class="fup-group"><summary>Other actions due (${due.length-1})</summary>${due.slice(1).map(task=>this.renderTaskCard(task)).join('')}</details>` : ''}
       ${later.length ? `<details class="fup-group"><summary>Later (${later.length})</summary>${later.map(task=>this.renderTaskCard(task,true)).join('')}</details>` : ''}
@@ -459,6 +467,7 @@ const FollowupsFeature = {
   refreshTaskView() {
     if (App.currentFeature?.id === 'customer') {
       const params = new URLSearchParams((App.currentHash || '').split('?')[1]);
+      if(typeof CustomerFeature!=='undefined' && typeof document!=='undefined' && document.getElementById('customer-workspace'))return CustomerFeature.refreshProfile(Number(params.get('id')));
       params.set('section', 'followups');
       return App.navigate('customer', Object.fromEntries(params));
     }
@@ -554,6 +563,11 @@ const FollowupsFeature = {
     const now = new Date();
     const tasks = [];
     for (const invoice of invoices) {
+      let responsibility='advisor';
+      if(typeof CommunicationService!=='undefined' && typeof CommunicationService.collectionResponsibility==='function'){
+        let owner=invoice;if(invoice.orderId){try{owner=await DB.db.orders.get(invoice.orderId)||invoice;}catch(_){owner={};}}
+        responsibility=CommunicationService.collectionResponsibility(owner);if(responsibility==='external')continue;
+      }
       if (!['issued', 'overdue'].includes(invoice.status) || !invoice.dueDate) continue;
       if (invoice.orderId && representedOrders.has(invoice.orderId)) continue;
       const daysOverdue = Utils.daysBetween(now, new Date(invoice.dueDate));
@@ -564,9 +578,9 @@ const FollowupsFeature = {
       }
       if (balanceDue <= 0) continue;
       tasks.push({
-        kind: 'invoice_overdue', derivedKey: `invoice:overdue:${invoice.id}`, invoice,
+        kind: responsibility==='unknown'?'invoice_review':'invoice_overdue', derivedKey: `invoice:overdue:${invoice.id}`, invoice,
         customer: customers.get(invoice.customerId) || null, due: true, inDays: 0,
-        daysLabel: `${daysOverdue}d overdue`, action: `Collect ${Utils.formatCurrency(balanceDue)} for ${invoice.invoiceNumber || 'invoice'}`,
+        daysLabel: `${daysOverdue}d overdue`, action: responsibility==='unknown'?'Review invoice collection responsibility':`Collect ${Utils.formatCurrency(balanceDue)} for ${invoice.invoiceNumber || 'invoice'}`,
         priority: 'high'
       });
     }
@@ -758,6 +772,7 @@ const FollowupsFeature = {
   },
 
   renderPrimaryAction(task) {
+    if(task.kind==='payment_review') return `<button class="btn btn-primary btn-block" data-action="FollowupsFeature.openPaymentResponsibility" data-args='${JSON.stringify([task.order.id])}'>Review collection responsibility</button>`;
     if (task.kind === 'send_confirmation') return `<button class="btn btn-primary btn-block" data-action="TalkFeature.openSentConfirmation" data-args='${JSON.stringify([task.communicationId])}'>Record whether sent</button>`;
     if (task.retentionRecord) {
       return `<button class="btn btn-sm btn-primary flex-1" data-action="App.navigate" data-args='${JSON.stringify(["retention", {customerId: task.retentionRecord.customerId}])}'><span aria-hidden="true" class="material-symbols-rounded fs-16">handshake</span>Open aftercare</button>`;
@@ -790,6 +805,7 @@ const FollowupsFeature = {
       `;
     }
     if (task.kind === 'visit_today') {
+      if(typeof document!=='undefined' && document.getElementById('customer-workspace'))return `<button class="btn btn-primary btn-block" data-action="CustomerFeature.openWorkspaceOutcome" data-args='${JSON.stringify([task.appointment.id])}'>Log outcome</button>`;
       return `
         <button class="btn btn-sm btn-primary flex-1"  data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: (task.appointment.id)}])}'>
           <span aria-hidden="true" class="material-symbols-rounded fs-16" >fact_check</span>Log outcome

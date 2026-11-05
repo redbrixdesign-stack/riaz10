@@ -9,7 +9,7 @@ const TaskService = {
     const apptId = task.appointment?.id || task.appointmentId;
     const orderId = task.order?.id || task.orderId;
     if (task.kind === 'quote' && apptId) return `quote:appointment:${apptId}:${task.template || task.appointment?.outcome || 'follow-up'}`;
-    if (task.kind === 'payment' && orderId) return `payment:order:${orderId}`;
+    if (['payment','payment_review'].includes(task.kind) && orderId) return `payment:order:${orderId}`;
     if (task.kind === 'visit_today' && apptId) return `visit-outcome:appointment:${apptId}`;
     if (task.kind === 'visit_tomorrow' && apptId) return `message:day-before:appointment:${apptId}`;
     if (task.kind === 'intro_confirmation' && apptId) return `message:intro-day-before:appointment:${apptId}`;
@@ -34,9 +34,10 @@ const TaskService = {
 
   contactEvidence(visit) {
     const records = Array.isArray(visit.contactOutcomes) ? visit.contactOutcomes : [];
-    const retracted = new Set(records.filter(e => e.outcome === 'retracted' && e.provenance === 'advisor_recorded' && e.channel === 'phone').map(e => e.targetId));
-    const history = records.filter(e => !retracted.has(e.id) && e.provenance === 'advisor_recorded' && e.channel === 'phone' && String(e.customerId || '') === String(visit.customerId || ''));
-    const introduced = history.some(e => ['introduced', 'introduced_and_agreed'].includes(e.outcome));
+    const channels=['phone','whatsapp','sms','email'];
+    const retracted = new Set(records.filter(e => e && e.outcome === 'retracted' && e.provenance === 'advisor_recorded' && channels.includes(e.channel)).map(e => e.targetId));
+    const history = records.filter(e => e && !retracted.has(e.id) && e.provenance === 'advisor_recorded' && channels.includes(e.channel) && String(e.customerId || '') === String(visit.customerId || ''));
+    const introduced = history.some(e => e.channel==='phone' && ['introduced', 'introduced_and_agreed'].includes(e.outcome));
     const snapshot = typeof DB.visitContactSnapshot === 'function' ? DB.visitContactSnapshot(visit) : null;
     const agreed = !!snapshot && history.some(e => e.bookingSnapshot === snapshot && ['visit_agreed', 'introduced_and_agreed'].includes(e.outcome));
     return { introduced, agreed };
@@ -80,11 +81,23 @@ const TaskService = {
             let orders = [];
             if (key.startsWith('quote:appointment:') && DB.db?.orders) orders = await DB.db.orders.toArray();
             reason = this.appointmentResolution(key, appt, orders);
+            if(!reason && key.startsWith('message:intro:') && typeof CommunicationService!=='undefined' && DB.getAppointmentsByCustomer && DB.db?.communications){
+              const visits=await DB.getAppointmentsByCustomer(appt.customerId),messages=await CommunicationService.decorate(await DB.db.communications.where('customerId').equals(appt.customerId).toArray());
+              if(CommunicationService.introductionEvidence(appt.customerId,visits,messages).introduced)reason='customer_introduction_recorded';
+            }
+            if(!reason && key.startsWith('message:post-fit:') && typeof CommunicationService!=='undefined' && typeof CommunicationService.reviewEligibility==='function'){
+              const eligibility=await CommunicationService.reviewEligibility(appt);if(eligibility.reason==='A linked issue remains unresolved')reason='review_request_ineligible_open_issue';
+            }
             if (!reason && key.startsWith('visit-outcome:appointment:')) {
               const notBefore = Utils.visitOutcomeDueAt(appt);
               if (notBefore) task = { ...task, appointment: appt, visitOutcomeNotBefore: notBefore.toISOString() };
             }
           }
+        }
+        if(!reason && task.orderId && key.startsWith('payment:') && DB.db?.orders?.get){const order=await DB.db.orders.get(task.orderId);if(order){if(Number(order.balanceDue)<=0)reason='order_balance_settled';else if(typeof CommunicationService!=='undefined'&&typeof CommunicationService.collectionResponsibility==='function'&&CommunicationService.collectionResponsibility(order)==='external')reason='collection_managed_externally';}}
+        if(!reason && /^invoice:overdue:\d+$/.test(key) && DB.getInvoice && typeof CommunicationService!=='undefined'){
+          const pack=await DB.getInvoice(Number(key.split(':').pop())),invoice=pack?.invoice;
+          if(invoice){const owner=invoice.orderId?await DB.db.orders.get(invoice.orderId)||invoice:invoice;if(CommunicationService.collectionResponsibility(owner)==='external')reason='collection_managed_externally';}
         }
         if (reason && typeof DB.resolveTask === 'function') {
           await DB.resolveTask(task.id, reason, `task:resolved:${task.id}:${reason}`);
@@ -137,6 +150,9 @@ const TaskService = {
   appointmentResolution(key, appt, orders = []) {
     const cancelled = appt.status === 'cancelled' || appt.outcome === 'cancelled';
     const preVisit = /^(message:(intro|day-before|intro-day-before):appointment:|visit-outcome:appointment:)/.test(key);
+    const archive=Array.isArray(appt.communicationArchive)?appt.communicationArchive:[];
+    if(key.startsWith('message:post-fit:')&&(appt.postFitSent||archive.some(e=>e.type==='post_fit_followup')))return appt.postFitSent?'message_confirmed_sent':'postfit_message_window_expired';
+    if(key.startsWith('message:service:')&&(appt.serviceSent||archive.some(e=>e.type==='service_acknowledgement')))return appt.serviceSent?'acknowledgement_recorded':'acknowledgement_window_expired_not_issue_resolution';
     if (preVisit) {
       if (cancelled) return 'visit_cancelled';
       if (appt.outcome || appt.status === 'completed') return 'visit_concluded';

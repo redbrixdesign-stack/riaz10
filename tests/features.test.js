@@ -5,6 +5,9 @@
 
 const path = require('path');
 const fs = require('fs');
+// This fixture tests reminders after scheduled finish, independent of run time.
+const RealDate=Date,fixedNow=RealDate.parse('2030-11-04T18:00:00Z');
+global.Date=class extends RealDate{constructor(...args){super(...(args.length?args:[fixedNow]));}static now(){return fixedNow;}};
 
 function loadAll(entries) {
   const code = entries.map(e => e.startsWith('::raw::') ? e.slice(7) : fs.readFileSync(path.join(__dirname, '..', e), 'utf8')).join('\n;\n');

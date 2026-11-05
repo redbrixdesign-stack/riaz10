@@ -543,7 +543,7 @@ const MoneyFeature = {
       if (document.getElementById('edit-expense-date') !== dateField) return;
       App.closeModal();
       Toast.show('Expense updated', 'success');
-      App.navigate('money',dateField._expenseFinderOrigin ? {view:'expenses'} : {});
+      if(App.currentFeature?.id==='customer'&&document.getElementById('customer-workspace'))CustomerFeature.refreshProfile(CustomerFeature._lastId);else App.navigate('money',dateField._expenseFinderOrigin ? {view:'expenses'} : {});
     } catch (e) {
       console.error('Save expense error:', e);
       Toast.show(e.message?.includes('customer') ? e.message : 'Failed to save changes', 'error');
@@ -837,7 +837,7 @@ const MoneyFeature = {
       this.expensePhotoData = null;
       App.closeModal();
       Toast.show('Expense logged', 'success');
-      App.navigate('money');
+      if(App.currentFeature?.id==='customer'&&document.getElementById('customer-workspace'))CustomerFeature.refreshProfile(CustomerFeature._lastId);else App.navigate('money');
     } catch (e) {
       Toast.show(e.message?.includes('customer') ? e.message : 'Failed to save expense', 'error');
     } finally { this._savingExpense = false; }

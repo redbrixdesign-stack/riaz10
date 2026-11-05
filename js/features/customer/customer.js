@@ -36,6 +36,7 @@ const CustomerFeature = {
     let orders = [];
     let comms = [];
     let communicationLoadFailed = false;
+    const readErrors=[];
     let photos = [];
     let voiceNotes = [];
     let structuredQuotes = [];
@@ -45,8 +46,8 @@ const CustomerFeature = {
     let retention = [];
     let whatsappPreference = null;
     let linkedExpenses = null;
-    try { appts = await DB.getAppointmentsByCustomer(customerId); } catch (e) {}
-    try { orders = await DB.db.orders.where('customerId').equals(customerId).toArray(); } catch (e) {}
+    try { appts = await DB.getAppointmentsByCustomer(customerId); } catch (e) {readErrors.push('visits');}
+    try { orders = await DB.db.orders.where('customerId').equals(customerId).toArray(); } catch (e) {readErrors.push('orders');}
     try { comms = await DB.db.communications.where('customerId').equals(customerId).toArray(); } catch (e) { communicationLoadFailed = true; }
     try { if (typeof CommunicationService !== 'undefined') comms = await CommunicationService.decorate(comms); } catch (e) { communicationLoadFailed = true; }
     try { photos = await DB.getPhotosForCustomer(customerId); } catch (e) {}
@@ -112,6 +113,8 @@ const CustomerFeature = {
     const phone = customer.phone || '';
     const address = customer.address?.line1 || '';
     const name = customer.fullName || `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'Customer';
+
+    if(typeof CustomerWorkspace!=='undefined')return CustomerWorkspace.render({readErrors,customerId,customer,appts,orders,comms,communicationLoadFailed,photos,voiceNotes,structuredQuotes,jobs,invoices,payments,retention,linkedExpenses,measurements,params});
 
     return `
       <div class="fade-in">
@@ -363,6 +366,7 @@ const CustomerFeature = {
   },
 
   refreshProfile(customerId) {
+    if(typeof CustomerWorkspace!=='undefined' && document.getElementById('customer-workspace'))this._workspaceRestore={customerId:Number(customerId),scroll:App._inlineOriginScroll??document.getElementById('main')?.scrollTop??0,open:[...document.querySelectorAll('#customer-workspace details[open][id]')].map(el=>el.id)};
     const params=new URLSearchParams((App.currentHash||'').split('?')[1]);
     if (App.currentFeature?.id==='customer' && Number(params.get('id'))===Number(customerId)) return App.navigate(App.currentHash);
     return App.navigate('customer',{id:Number(customerId)});
@@ -410,12 +414,13 @@ const CustomerFeature = {
   },
 
   activate(params = {}) {
+    if(this._workspaceRestore && Number(params.id)===this._workspaceRestore.customerId){const restore=this._workspaceRestore;this._workspaceRestore=null;restore.open.forEach(id=>{const el=document.getElementById(id);if(el)el.open=true;});const revision=App._navigationRevision;setTimeout(()=>{if(revision!==App._navigationRevision||App._inlineSurface?.isConnected)return;const main=document.getElementById('main');if(main)main.scrollTop=restore.scroll;},240);return;}
     if (params.section !== 'followups') return;
     const revision = App._navigationRevision;
     const panel = document.getElementById('customer-followups');
     setTimeout(() => {
       if (!panel?.isConnected || revision !== App._navigationRevision) return;
-      if (document.visibilityState === 'hidden' || document.getElementById('modal-overlay')?.classList?.contains('active') || document.getElementById('modal-full')?.classList?.contains('active')) return;
+      if (document.visibilityState === 'hidden' || App._inlineSurface?.isConnected || document.getElementById('modal-overlay')?.classList?.contains('active') || document.getElementById('modal-full')?.classList?.contains('active')) return;
       const title = panel.querySelector('h2');
       title?.setAttribute('tabindex', '-1');
       title?.focus({preventScroll:true});
