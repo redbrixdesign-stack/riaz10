@@ -1,0 +1,27 @@
+{
+  "url": "https://beelo.beelestial.co.uk",
+  "source": "65c10d68e355aed8d52602ebbf096b91a92d673a",
+  "deploymentId": "dpl_FmCtc6KDKG77dSFiNqkCGH4KFu3b",
+  "files": [
+    {
+      "file": "css/components.css",
+      "sha256": "0487353a7e405af9adb4ba6600a0cc52be21c01e6f3c7cde178d163c80e4aff3",
+      "match": true
+    },
+    {
+      "file": "index.html",
+      "sha256": "4b81c6abca568e6c94be34122ff1f79abf2eee75738e6c7e05d5dc0ae9ecceba",
+      "match": true
+    },
+    {
+      "file": "js/features/customer/workspace.min.js",
+      "sha256": "e66d0fe76eec0ff0d56e3cbe904f783584667524f29b551cdf121d17fe11d201",
+      "match": true
+    },
+    {
+      "file": "sw.js",
+      "sha256": "a51c7a9ae635003dfe68f5875b87814d3562e87edd31a1f94873b5d332da4b6a",
+      "match": true
+    }
+  ]
+}
