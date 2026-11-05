@@ -770,7 +770,7 @@ const App = {
         // resolves so the screen never sits blank (flickering white) on
         // first paint.
         main.innerHTML = App.renderSkeleton(feature.name || featureId);
-        content.then(html => {
+        const rendering = content.then(html => {
           // Guard against stale resolves: if the user navigated away while
           // the render was in flight, don't paint a screen they no longer
           // asked for (it would overwrite the new screen and leave the
@@ -798,7 +798,8 @@ const App = {
           </div>`;
           App.finalizeNavigation(main, targetHash);
         });
-        return; // activate called in promise
+        // Visit contact return waits for its inline action host to exist.
+        return featureId === 'appointments' ? rendering : undefined; // activate called in promise
       }
     } catch (err) {
       console.error('Render error:', err);

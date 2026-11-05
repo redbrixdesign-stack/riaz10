@@ -37,9 +37,11 @@ initiated action and adviser-reported outcome, not native call-end/duration.
   and no horizontal overflow at320/390/768px. External contact was mocked; foreign
   requests blocked; no POSTs or page errors observed.
 - The test caught an initially unregistered Visit button action; registered it in
-  the existing safe action dispatcher before passing. An early WebKit call-return
-  fixture ran before the refreshed call record rendered; aligned its wait with
-  the existing handoff test. These earlier attempts are not counted as passes.
+  the existing safe action dispatcher before passing. Immediate WebKit call-return testing exposed an asynchronous render race: the
+  outcome form could open as a modal before the Visit action host existed. Visit
+  navigation now exposes its render completion, and contact return awaits that
+  refresh. The maintained test deliberately returns immediately; a unit check
+  also holds/releases refresh completion. These earlier attempts are not counted as passes.
 - All33 maintained release journeys: running. No current release claim yet.
 - Native Simulator: pending; see IPHONE_SIMULATOR_PROFILE_CHECK_2026-11-05.md.
 - Production remains cache180 until the staged candidate passes release checks.

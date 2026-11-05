@@ -80,6 +80,9 @@ const ContactFeature = {
   async onReturn() {
     const pending = this.returnAction;
     this.returnAction = null;
+    // The handoff may return while the same-page history refresh is finishing.
+    // Wait before opening its outcome editor so navigation cannot erase it.
+    if (this._handoffRefresh) { try { await this._handoffRefresh; } catch (_) {} }
     if (!pending || document.visibilityState === 'hidden' || Date.now()>pending.expiresAt || App.currentHash!==pending.route) return;
     const params = new URLSearchParams((App.currentHash || '').split('?')[1]);
     if (App.currentFeature?.id === 'customer' && Number(params.get('id')) !== pending.customerId) return;
@@ -112,7 +115,10 @@ const ContactFeature = {
       if (channel === 'phone') this.launch('tel:'+phone);
       else if (channel === 'sms') this.launch('sms:'+phone+(text?'?body='+encodeURIComponent(text):''));
       else NotificationService.sendWhatsApp(phone,text);
-      if (App.currentFeature?.id === 'customer'||(typeof VisitCommunication!=='undefined'&&VisitCommunication.active(customer.id))) CustomerFeature.refreshProfile(customer.id);
+      if (App.currentFeature?.id === 'customer'||(typeof VisitCommunication!=='undefined'&&VisitCommunication.active(customer.id))) {
+        const refresh=this._handoffRefresh=Promise.resolve(CustomerFeature.refreshProfile(customer.id));
+        try { await refresh; } finally { if(this._handoffRefresh===refresh)this._handoffRefresh=null; }
+      }
     } catch (error) { Toast.show(error.message || 'Could not record contact. Nothing was opened.', 'error'); }
     finally { this._starting = false; }
   },
