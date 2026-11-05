@@ -1,0 +1,3 @@
+Database initialized
+PASS purpose rules .js: combined/known/partial-purpose, sent != agreed, reply atomic rollback/idempotence, wrong customer/two visits/window changes/retraction, durable intro/payment/invoice reconciliation, acknowledgement != issue resolution, collection responsibility and issue-aware review
+PASS purpose rules .min.js: combined/known/partial-purpose, sent != agreed, reply atomic rollback/idempotence, wrong customer/two visits/window changes/retraction, durable intro/payment/invoice reconciliation, acknowledgement != issue resolution, collection responsibility and issue-aware review

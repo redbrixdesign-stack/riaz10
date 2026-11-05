@@ -1,0 +1,12 @@
+locator.waitFor: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for locator('#customer-phone-history').getByText('Introduced myself and agreed the visit', { exact: true }) to be visible[22m
+[2m    63 × locator resolved to hidden <strong>Introduced myself and agreed the visit</strong>[22m
+
+    at /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/browser/customer-worklist.e2e.cjs:17:379 {
+  log: [
+    "  - waiting for locator('#customer-phone-history').getByText('Introduced myself and agreed the visit', { exact: true }) to be visible",
+    '    63 × locator resolved to hidden <strong>Introduced myself and agreed the visit</strong>'
+  ],
+  name: 'TimeoutError'
+}

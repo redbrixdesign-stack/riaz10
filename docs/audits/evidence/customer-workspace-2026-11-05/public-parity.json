@@ -1,0 +1,77 @@
+{
+  "url": "https://beelo.beelestial.co.uk",
+  "source": "2a8b9ad206a0b220159715ef6c1a45685ae14639",
+  "deploymentId": "dpl_6yk1WHUdLKaN9nit4pGTMQ2eUnKU",
+  "files": [
+    {
+      "file": "css/components.css",
+      "sha256": "9c2f46b991309047baaded6e815f2e705fe4ead4a29cb466cb98c28777d9823f",
+      "match": true
+    },
+    {
+      "file": "index.html",
+      "sha256": "324c2e37108db9b811b67ff56840410ccb72de931756f3eaab36a08e35bfb372",
+      "match": true
+    },
+    {
+      "file": "js/core/app.min.js",
+      "sha256": "7b857799f83c4bc03edb0fe97b100f81d6d6315a0270eb9e1a0cc4700c5aaad9",
+      "match": true
+    },
+    {
+      "file": "js/core/contact.min.js",
+      "sha256": "ceee6623bcd6d98add2e2a89fdf57de5d5db4af8c89dec786681e44576fccf56",
+      "match": true
+    },
+    {
+      "file": "js/core/db.min.js",
+      "sha256": "f1d814efdbe97bfba6942bb7cb0303d1fb8e6fbc25afe7c251535e2373564e9f",
+      "match": true
+    },
+    {
+      "file": "js/features/appointments/appointments.min.js",
+      "sha256": "6651044166650dbba4e676d7a68e0ec644c8a5088bb5355bf62e23fdb664f513",
+      "match": true
+    },
+    {
+      "file": "js/features/customer/customer.min.js",
+      "sha256": "278b4cb522bfd456adfa1df73ce6767efb45787e20377cc255cb91f47eb6c378",
+      "match": true
+    },
+    {
+      "file": "js/features/customer/workspace.min.js",
+      "sha256": "b8d393c762db34d7af16b1817239dd28ffa78445083261336183ea3fe6753d2d",
+      "match": true
+    },
+    {
+      "file": "js/features/followups/followups.min.js",
+      "sha256": "c497383402649a247e1d2fcceb6f7df8f3bae3f5c62f9de010f89262618d14c9",
+      "match": true
+    },
+    {
+      "file": "js/features/money/money.min.js",
+      "sha256": "c685abafaf995f484701d2cf9be7220f416e85bf3e9e4439677b71687038712d",
+      "match": true
+    },
+    {
+      "file": "js/features/talk/talk.min.js",
+      "sha256": "2bd21bfc28d4ea3a6358f0aa5f94a474953af0d487932788cf5e423e1f3c5ef3",
+      "match": true
+    },
+    {
+      "file": "js/services/communications.min.js",
+      "sha256": "9e9c4f465d167f7c048e8bdd38ad006ea7c76933c7ad545f060caf4e39388662",
+      "match": true
+    },
+    {
+      "file": "js/services/tasks.min.js",
+      "sha256": "5247007b99962ae2c3640f479eb5ad26f41937ef9c2060c794c1b75f5fb97e9f",
+      "match": true
+    },
+    {
+      "file": "sw.js",
+      "sha256": "e0bb8c109bd4503a28f070ff9aad22501610260a5bfcdb658447c76195c24b1d",
+      "match": true
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+PASS chromium: real unlock, protected mixed records in customer/visit/plan/gallery/postcode search, readable export, offline reload, online reload/reconnect; no uploads
+PASS webkit: real unlock, protected mixed records in customer/visit/plan/gallery/postcode search, readable export, offline in-app navigation (offline reload not certified: WebKit internal navigation error), online reload/reconnect; no uploads
+PASS chromium: real customer search/link/profile/reassign/cancel/unlink/reload, exact expense evidence, invalid-link/write/read errors, stale search and general-business retention; no provider or sends
+PASS webkit: real customer search/link/profile/reassign/cancel/unlink/reload, exact expense evidence, invalid-link/write/read errors, stale search and general-business retention; no provider or sends
+PASS chromium: initial prep/parking/social footer and contact expectations; guarded mock AI; recorded intro suppresses repeated identity; short journey updates; offline drafts and customer contact attempt/reply history survive reload; escaped full text and factual counts; no WhatsApp send or automatic cancellation
+PASS webkit: initial prep/parking/social footer and contact expectations; guarded mock AI; recorded intro suppresses repeated identity; short journey updates; offline drafts and customer contact attempt/reply history survive reload; escaped full text and factual counts; no WhatsApp send or automatic cancellation
+AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert(originScroll>0)
+
+    at /Users/muhammadasifriaz/.codex/worktrees/phone-contact-save/riaz10/tests/browser/customer-workspace.e2e.cjs:14:257 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}

@@ -1,0 +1,6 @@
+PASS chromium: customer-first inline actions, encrypted/offline note recovery, reply != agreement, selected-window agreement/retraction, distinct earnings/payment responsibility, linked expense return and call outcome; no external contact
+PASS webkit: customer-first inline actions, encrypted/offline note recovery, reply != agreement, selected-window agreement/retraction, distinct earnings/payment responsibility, linked expense return and call outcome; no external contact
+PASS chromium: customer-isolated shared tasks, collapsed groups, real sent/not-sent/already-sent flow and mock external handoff, linked reminder/complete/snooze, offline/reload, empty/error,320/390/768; no external contact or autonomous sends
+PASS webkit: customer-isolated shared tasks, collapsed groups, real sent/not-sent/already-sent flow and mock external handoff, linked reminder/complete/snooze, offline/reload, empty/error,320/390/768; no external contact or autonomous sends
+PASS chromium: call/SMS/WhatsApp handoffs, one-return panel, Later/customer/editor isolation, encrypted note/audio, atomic retry, explicit send decisions, offline/reload; no real external calls/messages
+PASS webkit: call/SMS/WhatsApp handoffs, one-return panel, Later/customer/editor isolation, encrypted note/audio, atomic retry, explicit send decisions, offline/reload; no real external calls/messages
