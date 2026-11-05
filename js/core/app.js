@@ -843,6 +843,18 @@ const App = {
       window.location.hash = targetHash;
     }
 
+    // Refreshing this same customer is an edit return, not a new journey.
+    // Restore whichever scroller the responsive shell actually uses, before
+    // accepting another tap; delayed resets must not move the next editor.
+    const customerReturn=this._workspaceNavigationScroll;
+    this._workspaceNavigationScroll=null;
+    if(customerReturn?.revision===this._navigationRevision){
+      this.resetNavigationScroll(main);
+      main.scrollTop=customerReturn.scroll;
+      window.scrollTo({top:customerReturn.scroll,behavior:'instant'});
+      return;
+    }
+
     // Reset both the app scroller and the document viewport. Repeat after the
     // next paint and after iOS finishes closing its keyboard; a single
     // synchronous #main.scrollTop assignment does not reliably clear Safari's
@@ -1285,7 +1297,7 @@ const App = {
 
     const host=this.currentFeature?.id==='customer' && !options.forceModal && !options.className && !overlay.classList.contains('active') ? document.getElementById('customer-action-host') : null;
     if(host){
-      if(this._inlineSurface!==sheet)this._inlineOriginScroll=document.getElementById('main')?.scrollTop||0;
+      if(this._inlineSurface!==sheet)this._inlineOriginScroll=Math.max(document.getElementById('main')?.scrollTop||0,window.scrollY||0,document.scrollingElement?.scrollTop||0);
       if(!options.replace && this._inlineSurface===sheet && sheet.innerHTML.trim())this.modalStack.push({content:this.snapshotModalContent(sheet),scrollTop:sheet.scrollTop});
       this._inlineSurface=sheet;host.hidden=false;host.appendChild(sheet);sheet.innerHTML=content;sheet.scrollTop=0;
       sheet.setAttribute('role','region');sheet.removeAttribute('aria-modal');this._associateLabels(sheet);this._nameDialog(sheet,options);
@@ -1358,7 +1370,7 @@ const App = {
     if(this._inlineSurface===sheet){
       if(!shouldCloseAll && this.modalStack.length){const previous=this.modalStack.pop();sheet.innerHTML=previous.content;this._associateLabels(sheet);this._nameDialog(sheet);this.focusFirstControl(sheet);return;}
       const host=sheet.parentElement;this.modalStack=[];this._inlineSurface=null;sheet.innerHTML='';sheet.removeAttribute('role');sheet.removeAttribute('aria-labelledby');sheet.removeAttribute('aria-label');overlay?.appendChild(sheet);if(host?.id==='customer-action-host')host.hidden=true;
-      const main=document.getElementById('main');if(main&&Number.isFinite(this._inlineOriginScroll))main.scrollTop=this._inlineOriginScroll;this._inlineOriginScroll=null;
+      const main=document.getElementById('main');if(Number.isFinite(this._inlineOriginScroll)){if(main)main.scrollTop=this._inlineOriginScroll;window.scrollTo({top:this._inlineOriginScroll,behavior:'instant'});}this._inlineOriginScroll=null;
       this._lastFocused?.focus?.({preventScroll:true});this._lastFocused=null;return;
     }
 

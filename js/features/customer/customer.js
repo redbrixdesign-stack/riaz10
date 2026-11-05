@@ -366,7 +366,7 @@ const CustomerFeature = {
   },
 
   refreshProfile(customerId) {
-    if(typeof CustomerWorkspace!=='undefined' && document.getElementById('customer-workspace'))this._workspaceRestore={customerId:Number(customerId),scroll:App._inlineOriginScroll??document.getElementById('main')?.scrollTop??0,open:[...document.querySelectorAll('#customer-workspace details[open][id]')].map(el=>el.id)};
+    if(typeof CustomerWorkspace!=='undefined' && document.getElementById('customer-workspace'))this._workspaceRestore={customerId:Number(customerId),scroll:App._inlineOriginScroll??Math.max(document.getElementById('main')?.scrollTop||0,window.scrollY||0,document.scrollingElement?.scrollTop||0),open:[...document.querySelectorAll('#customer-workspace details[open][id]')].map(el=>el.id)};
     const params=new URLSearchParams((App.currentHash||'').split('?')[1]);
     if (App.currentFeature?.id==='customer' && Number(params.get('id'))===Number(customerId)) return App.navigate(App.currentHash);
     return App.navigate('customer',{id:Number(customerId)});
@@ -414,7 +414,7 @@ const CustomerFeature = {
   },
 
   activate(params = {}) {
-    if(this._workspaceRestore && Number(params.id)===this._workspaceRestore.customerId){const restore=this._workspaceRestore;this._workspaceRestore=null;restore.open.forEach(id=>{const el=document.getElementById(id);if(el)el.open=true;});const revision=App._navigationRevision;setTimeout(()=>{if(revision!==App._navigationRevision||App._inlineSurface?.isConnected)return;const main=document.getElementById('main');if(main)main.scrollTop=restore.scroll;},240);return;}
+    if(this._workspaceRestore && Number(params.id)===this._workspaceRestore.customerId){const restore=this._workspaceRestore;this._workspaceRestore=null;restore.open.forEach(id=>{const el=document.getElementById(id);if(el)el.open=true;});App._workspaceNavigationScroll={revision:App._navigationRevision,scroll:restore.scroll};return;}
     if (params.section !== 'followups') return;
     const revision = App._navigationRevision;
     const panel = document.getElementById('customer-followups');
