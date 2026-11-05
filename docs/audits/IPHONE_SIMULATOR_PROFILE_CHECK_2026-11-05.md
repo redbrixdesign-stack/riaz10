@@ -36,7 +36,7 @@ test device. Supported Apple command (matching Xcode):
 Apple selected iOS27.2 build24B114, arm64, 8.32GB. Download and installation completed. The separate iPhone 17 Pro test device is SYNTHETIC Beelo Visit Check, UUID76D66EC7-8D12-48CF-9551-799627EE36F5. Normal Device Hub startup opened Beelo onboarding.
 Disk availability was749GiB before download.
 
-Qualification: the freshly downloaded runtime also returns -67054 on signature verification. That result alone does not prove the original image was damaged. No verification bypass was used. Native coordinate taps now return noWindowsAvailable although read-only screenshots and host AX controls work. User setup assistance requested; native acceptance remains pending.
+Qualification: the freshly downloaded runtime also returns -67054 on signature verification. That result alone does not prove the original image was damaged. No verification bypass was used. Native coordinate taps now return noWindowsAvailable although read-only screenshots and host AX controls work. User completed setup and Home was visually observed. Native taps then opened New Visit, but automated text entry lost most characters; no synthetic visit save has yet been verified. Requested that the user save the named synthetic test visit. Native Visit acceptance remains pending.
 
 Next: open production Beelo; complete local unlock/setup privately if needed;
 create synthetic appointment; follow actual Upcoming → Visit → Customer taps;
@@ -56,3 +56,26 @@ passed until those screens/actions have been observed.
   rather than seeding all context directly into a customer in a browser fixture.
 - Check the actual heading/section controls of the installed phone build.
   User clarified the actual target is the Visit screen opened from Upcoming. Implemented candidate adds its communication section directly there; do not assume caching explains the report.
+
+## Latest native checkpoint
+
+- User completed setup. The separate device opened production Home.
+- After further input attempts, waiting for focus between click and typing allowed
+  correct synthetic entry: SYNTHETIC Test Visit, reserved07700900951,
+  SYNTHETIC Test Address, Friday6November2026, fitting, one-hour duration,
+  09:00–12:00 arrival window, notes “SYNTHETIC: side gate access. Test record only.”
+- Save was attempted. The native screen subsequently showed Visits diary with a
+  booking marker on6November; the saved detail has not yet been inspected, so no
+  complete native save/reopen or new-section pass is claimed.
+- Input intermittently fails with noWindowsAvailable even while AX/screenshot
+  reads work. Device Hub also showed a blank/spinning host display, but simctl
+  reported the test device Booted and a direct screenshot still showed Beelo's
+  intact New Visit form. That is evidence of a host display/input problem, not an
+  established Beelo crash. No device restart/erase or signature bypass used.
+- Keyboard Capture was temporarily tried and restored to its original off state;
+  temporary View menu dismissed. Native data preserved. No calls, messages,
+  navigation/address lookup, media permission or AI provider actions invoked.
+- cache181 is now live and its public Visit journey passed in Chromium/WebKit.
+  Asked user to open Home → Upcoming → SYNTHETIC Test Visit, accept the app's
+  update/reload if shown, and unlock privately if needed. Final native section
+  verification remains pending; do not substitute the browser screenshots.

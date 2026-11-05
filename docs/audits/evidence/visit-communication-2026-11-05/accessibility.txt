@@ -1,0 +1,18 @@
+START chromium
+READY
+SEEDED
+VISIT
+REPLY
+REPLY
+CALL
+AXE chromium: zero violations in Visit communication section
+PASS chromium: Home to Visit, scoped actions, explicit intro/reminder/agreement, inline reply and tracked call, owner rejection, reload and responsive layout; external contact mocked
+START webkit
+READY
+SEEDED
+VISIT
+REPLY
+REPLY
+CALL
+AXE webkit: zero violations in Visit communication section
+PASS webkit: Home to Visit, scoped actions, explicit intro/reminder/agreement, inline reply and tracked call, owner rejection, reload and responsive layout; external contact mocked

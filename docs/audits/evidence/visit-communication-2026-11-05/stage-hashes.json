@@ -1,0 +1,61 @@
+{
+  "stage": "https://beelo1-1dclbmeee-beelomvp.vercel.app",
+  "sourceCommit": "d1d666102634ebba11658c164d31d29f469b7db7",
+  "files": [
+    {
+      "file": "index.html",
+      "source": "7e85e68384c778a84454c819682452a01bb5b31739c56b37438e9079a026b192",
+      "stage": "7e85e68384c778a84454c819682452a01bb5b31739c56b37438e9079a026b192"
+    },
+    {
+      "file": "sw.js",
+      "source": "09e935fa1a7c26bef02e75e5c0d9a1594bfbce4a4c98004f6115edeb3fb5e7d3",
+      "stage": "09e935fa1a7c26bef02e75e5c0d9a1594bfbce4a4c98004f6115edeb3fb5e7d3"
+    },
+    {
+      "file": "css/components.css",
+      "source": "727ac6407e20ef8a6108a1a1e6fe4683d9a615ed23589a6fed644a18621520b0",
+      "stage": "727ac6407e20ef8a6108a1a1e6fe4683d9a615ed23589a6fed644a18621520b0"
+    },
+    {
+      "file": "js/core/app.min.js",
+      "source": "a81e82a0682ceaf7f3597fe98afaf5316d671270c880b3679dc23c552c9fb69f",
+      "stage": "a81e82a0682ceaf7f3597fe98afaf5316d671270c880b3679dc23c552c9fb69f"
+    },
+    {
+      "file": "js/core/contact.min.js",
+      "source": "346002b0f5c280f773554ffca4ed6f4ab81fb9097248b6b1238e3ceb37cf8097",
+      "stage": "346002b0f5c280f773554ffca4ed6f4ab81fb9097248b6b1238e3ceb37cf8097"
+    },
+    {
+      "file": "js/features/appointments/appointments.min.js",
+      "source": "9657de2f7dc3ea351ed3b661fa231454a91e3ee3b52f7995870cfcb026184bb2",
+      "stage": "9657de2f7dc3ea351ed3b661fa231454a91e3ee3b52f7995870cfcb026184bb2"
+    },
+    {
+      "file": "js/features/appointments/visit-communication.min.js",
+      "source": "edb403caa72fe35f96325778bb4481878d9e293f32a8803015ecd77b2309c159",
+      "stage": "edb403caa72fe35f96325778bb4481878d9e293f32a8803015ecd77b2309c159"
+    },
+    {
+      "file": "js/features/customer/customer.min.js",
+      "source": "65925c2f52c447ca1801862f92abc81e78128393af58efc9050e010840d3fa5d",
+      "stage": "65925c2f52c447ca1801862f92abc81e78128393af58efc9050e010840d3fa5d"
+    },
+    {
+      "file": "js/features/followups/followups.min.js",
+      "source": "fbe2f5afa08c9032b3ff2be66c871fc4ec8d507a975827751e92723d5750ec89",
+      "stage": "fbe2f5afa08c9032b3ff2be66c871fc4ec8d507a975827751e92723d5750ec89"
+    },
+    {
+      "file": "js/features/talk/talk.min.js",
+      "source": "b6bc427cd438d1b433c03417c2463e7871c8e7d852d59edd58186a1f885cdaff",
+      "stage": "b6bc427cd438d1b433c03417c2463e7871c8e7d852d59edd58186a1f885cdaff"
+    },
+    {
+      "file": "js/features/companion/companion.min.js",
+      "source": "a1ff6f7133b1cef8187c415eda5533776db4a4e67c71cfdd4da5fb8955e3f74f",
+      "stage": "a1ff6f7133b1cef8187c415eda5533776db4a4e67c71cfdd4da5fb8955e3f74f"
+    }
+  ]
+}
