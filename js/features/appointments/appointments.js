@@ -2072,7 +2072,7 @@ const AppointmentsFeature = {
         ${appt.timeProposal?.status === 'pending' && !appt.outcome && appt.status !== 'cancelled' ? `<div class="card card-page-gap"><p>Pending time proposal: ${Utils.escapeHtml(appt.timeProposal.time)}. The booking is unchanged until agreement is recorded.</p><button class="btn btn-outline" data-action="AppointmentsFeature.openTimeProposal" data-args='${JSON.stringify([appt.id])}'>Review pending time proposal</button></div>` : ''}
         <div class="card card-page-gap" >
           <div class="flex items-center gap-md" >
-            <div style="display:flex;align-items:center;gap:16px;flex:1;min-width:0;${customer ? 'cursor:pointer;' : ''}" ${customer ? `role="button" tabindex="0" aria-label="View customer profile" data-action="App.navigate" data-args='${JSON.stringify(["customer", {id: (customer.id)}])}' data-key="Enter, space"` : ''}>
+            <div style="display:flex;align-items:center;gap:16px;flex:1;min-width:0;${customer ? 'cursor:pointer;' : ''}" ${customer ? `role="button" tabindex="0" aria-label="View customer profile" data-action="App.navigate" data-args='${JSON.stringify(["customer", {id: (customer.id), visitId: appt.id}])}' data-key="Enter, space"` : ''}>
               <div class="avatar-56 shrink-0" >
                 ${appt.clientName ? Utils.escapeHtml(appt.clientName.charAt(0).toUpperCase()) : '?'}
               </div>

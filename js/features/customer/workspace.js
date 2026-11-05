@@ -1,5 +1,10 @@
 /* Customer-first working surface. Existing records/services remain authoritative. */
 const CustomerWorkspace = {
+  selectVisit(visits,visitId){
+    const explicit=visits.find(v=>v.id===Number(visitId));if(explicit)return explicit;
+    const today=Utils.getToday().getTime();
+    return visits.filter(v=>v.status==='confirmed'&&!v.outcome&&new Date(v.date).getTime()>=today).sort((a,b)=>new Date(a.date)-new Date(b.date))[0]||[...visits].sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
+  },
   action(method,args=[],label='',classes='btn btn-outline btn-sm') { return `<button type="button" class="${classes}" data-action="${method}" data-args='${Utils.escapeHtml(JSON.stringify(args))}'>${label}</button>`; },
   money(appts) {
     let recorded=0,expected=0;
@@ -14,7 +19,7 @@ const CustomerWorkspace = {
     const name=c.fullName||[c.firstName,c.lastName].filter(Boolean).join(' ')||'Customer';
     const future=appts.filter(v=>v.status==='confirmed'&&!v.outcome&&new Date(v.date)>now).sort((a,b)=>new Date(a.date)-new Date(b.date));
     let trips=null;try{const ids=new Set(appts.map(v=>v.id));trips=(await DB.db.trips.toArray()).filter(t=>ids.has(t.appointmentId));}catch(_){}
-    const selected=appts.find(v=>v.id===Number(params.visitId))||future[0]||[...appts].reverse()[0];
+    const selected=this.selectVisit(appts,params.visitId);
     const evidence=selected?CommunicationService.visitEvidence(selected):null,earned=this.money(appts),money=Utils.formatCurrency;
     const rows=[];
     for(const visit of appts){
