@@ -1,6 +1,6 @@
 # Native iPhone profile check — 5 November 2026
 
-Status: **in progress; customer workspace not yet verified in Simulator**.
+Status: **updated Visit layout and expandable history visually verified in native iPhone Simulator on6November2026; full native communication-action journey remains outside this checkpoint**.
 
 The user reports the profile still appears unchanged and requests a real iPhone
 Simulator check of Upcoming visit → Customer. Desktop Chromium/WebKit acceptance
@@ -94,3 +94,37 @@ shows its legitimate Unlock screen. User asked to unlock privately. No passphras
 was read, entered, reset or requested in chat. The deployed Visit-section visual
 check remains pending that unlock/update; public Chromium/WebKit passes stand
 separately. No native pass for the new section is claimed.
+
+## 6 November2026 — updated native Visit visual checkpoint passed
+
+After the user reported saving/updating/unlocking, Device Hub initially showed the
+Customer workspace's money/product area. No claimed financial values were seeded:
+recorded earnings/linked expenses £0, no linked trips, commission received not
+tracked separately. The app's offline notice was visible.
+
+Opened the already verified synthetic record through native Safari's supported
+open-URL route #appointments?id=1. Visually confirmed SYNTHETIC Test Visit,
+CUS-2026-0001,6November fitting, planned09:00–10:00 (1hr),09:00–12:00 arrival window,
+and SYNTHETIC Test Address. The new **Communication & follow-ups** section is now
+present immediately after Visit Details; the old loose top buttons are absent.
+Introduction/reminder/window status and Call / Message / Log reply are visible.
+
+Native Safari Find on Page was used to reach the lower section because ordinary
+scroll automation remained unreliable; the Find UI was closed afterwards. The
+canonical Next actions panel shows one due combined introduction and confirmation
+for6November09:00–12:00, with Review introduction & confirmation, Already sent,
+and More options. Opened Customer messages & contact history successfully: zero
+records, honest empty state, Saved message drafts and Phone contact history
+buttons together, and explicit adviser-controlled send/recording explanation.
+
+Evidence: ../audits/evidence/native-visit-2026-11-06/visit-communication.png and
+visit-history.png (actual native simulator captures, not desktop WebKit).
+
+Scope: native layout, saved-record reopen and history-disclosure interaction are
+verified. The app displayed its offline notice while the record was readable;
+this checkpoint does not independently establish offline save/reconnect or
+full native send/call/reply workflows. Home → Upcoming was user-assisted; agent
+inspection used the direct verified Visit URL. No real call/message, provider
+request, agreement/status mutation, credential entry, reset or deletion occurred.
+Existing Chromium/WebKit functional release evidence remains separate. No runtime
+changes or deployment were needed for this follow-up.

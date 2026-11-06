@@ -45,7 +45,7 @@ initiated action and adviser-reported outcome, not native call-end/duration.
   also holds/releases refresh completion. These earlier attempts are not counted as passes.
 - Scoped axe checks in both engines: zero violations in the Visit communication section; not a whole-app or native accessibility certification.
 - All33 maintained local release journeys and all33 hosted journeys passed on final runtime source d1d666102634ebba11658c164d31d29f469b7db7. GitHub run42129382097 completed successfully, including unit/social/performance-gate tests, root/server dependency audits and server-package tests. Intermediate run42128831525 was cancelled by the final push and is not the release gate. Temporary GitHub commit_refs push failures resolved through a normal non-forced retry.
-- Native Simulator: final Visit inspection pending; see IPHONE_SIMULATOR_PROFILE_CHECK_2026-11-05.md.
+- Native Simulator visual follow-up passed6November: updated Visit section, retained synthetic details, combined next action and expandable empty history verified. Full native communication-action workflow not claimed; see IPHONE_SIMULATOR_PROFILE_CHECK_2026-11-05.md.
 - Deployed production: dpl_8NmvhCAaH1G8ZMFjAGx7qrUZ9g1g, https://beelo1-1dclbmeee-beelomvp.vercel.app, READY, Other/static, build7.922s. All11 changed runtime-file SHA256 values match final source. Promoted that exact production build without rebuilding. All11 public runtime-file hashes match stage and source. Live Home → Visit communication and existing Customer workspace/linked-finance journeys passed in Chromium and WebKit, with real contact mocked and foreign requests blocked.
 
 ## Preservation and remaining risks
@@ -68,6 +68,4 @@ changed or newly certified in this task. Previous production rollback remains
 cache180, source65c10d68e355aed8d52602ebbf096b91a92d673a,
 dpl_FmCtc6KDKG77dSFiNqkCGH4KFu3b.
 
-Next: finish the native Upcoming → Visit visual check when Device Hub accepts
-input/user-assisted navigation; retain its result separately from browser passes.
-Visit notes versus customer notes/context remains a separate follow-up priority.
+Native updated-layout visual check completed6November, using direct Visit navigation and a real disclosure tap; retain this narrower result separately from browser functional passes. Remaining priorities: reliable native full-action walkthrough and Visit-note versus Customer-note context continuity.
