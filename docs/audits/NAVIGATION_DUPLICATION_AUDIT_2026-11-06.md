@@ -37,7 +37,7 @@ past-visit presence check instead of the canonical introduction-evidence rules.
 
 Reproduction: same-day confirmed synthetic fitting; record an intro_day_before handoff, explicit sent confirmation and customer agreement through real services. Canonical due tasks are empty, but Home and evening both claim one message unsent. Evidence: evidence/navigation-2026-11-06/message-counter-before.json. Next: align summary/query logic with shared tasks, retaining adviser-controlled drafting and no autonomous sends. Candidate removes the parallel counters and outcome-template suggestions from Home/evening/post-visit summaries; the Messages query now reads due template/send-status tasks from the same canonical service. Unknown handoff stays unknown; read failure is explicit. No template, deadline, booking-write or sending rule changed. Focused browser regression passes Chromium/WebKit in London and Kiritimati; 34/34 local and hosted journey checks passed (run42172498605, commit cce588b76c4c83bea6c4e2300a9d631699799c33). Cache183-message-summaries is live at dpl_93xXWsHJZ6Np3QKM4a4MDhxH8ZVK. Three runtime hashes match source/stage/public; the public message-summary journey passed both engines in London/Kiritimati.
 
-## 3. Visits “Follow-ups” tab is a different sales pipeline — P2, source finding
+## 3. Visits “Follow-ups” tab is a different sales pipeline — P2, reproduced; candidate corrected
 
 AppointmentsFeature tab pipeline is labelled Follow-ups but uses DB.getPipeline
 for quoted/thinking/partner/compare_quotes/expensive/no-show/unavailable outcomes.
@@ -49,7 +49,7 @@ Next: inspect/reproduce its actual customer journey and choose a plain, accurate
 label/context. Preserve existing records and functionality; no silent deletion
 of the pipeline or unsupported predictive claim.
 
-## 4. Repeated icon names in Tools accessible labels — P3, reproduced in both browser accessibility trees
+## 4. Repeated icon names in Tools accessible labels — P3, reproduced; candidate corrected
 
 Existing decorative material-symbol spans in Tools mostly lack aria-hidden. The
 new Follow-ups tile has a clean accessible name. Audit the remaining tiles before
@@ -78,10 +78,16 @@ Standard saveReschedule writes a new date/window but only resets dayBeforeSent i
 
 Navigation, communication-summary duplication and reschedule reminder continuity and capacity clock consistency are separate release slices. Remaining source findings are a prioritised investigation queue, not claims that every app screen or production configuration has been exhaustively audited. Existing release journeys provide wider regression coverage.
 
-## 7. Capacity warning outside UK device timezone — P2, reproduced; correction candidate implemented
+## 7. Capacity warning outside UK device timezone — P2, completed and live
 
-During the actual Move regression, a 10:00 UK appointment triggers “outside your configured working hours” in a Kiritimati device context. The test explicitly reviews/accepts Save anyway and verifies the saved UK time. This is not a pass for capacity-warning accuracy. Browser evidence also shows suggested slots on the previous UTC date with 00:00 UK labels. Candidate cache185 uses a shared Utils.ukDateTimeISO conversion for capacity envelopes/suggestions and the existing Move/proposal API, removing duplicate conversion code. Source/minified tests pass in London, UTC, New York and Kiritimati across GMT/BST/DST/boundaries, overlaps/leave/exclusion and UK-vs-UTC day boundaries; missing/ambiguous times are rejected. Browser Move passes both engines without warning bypass, with 09:00 UK suggestions on the selected day. Full release gates pending; not live yet.
+During the actual Move regression, a 10:00 UK appointment triggers “outside your configured working hours” in a Kiritimati device context. The test explicitly reviews/accepts Save anyway and verifies the saved UK time. This is not a pass for capacity-warning accuracy. Browser evidence also shows suggested slots on the previous UTC date with 00:00 UK labels. Live cache185 uses a shared Utils.ukDateTimeISO conversion for capacity envelopes/suggestions and the existing Move/proposal API, removing duplicate conversion code. Source/minified tests pass in London, UTC, New York and Kiritimati across GMT/BST/DST/boundaries, overlaps/leave/exclusion and UK-vs-UTC day boundaries; missing/ambiguous times are rejected. Browser Move passes both engines without warning bypass, with 09:00 UK suggestions on the selected day. Build/unit/social/performance gates and 34/34 local + hosted journeys passed (run42176300133, runtime 2fbc0ad51d9575b28929a7283ec634a8d07f24bc). Live deployment dpl_FWZ3CaPqZ8mp3EtQxLQLrfqTCM94; all five runtime files match source/stage/public. Public Move/suggestion regression passed both engines in London/Kiritimati.
 
 ## Verified navigation/a11y diagnostic
 
 Tools has exactly one Follow-ups tile and four bottom destinations. Existing tiles expose icon tokens in accessible names (e.g. receipt_long Log Expense); new Follow-ups tile does not. Plan tomorrow Back correctly returns Home in both engines despite the suspicious default route string. Evidence: tools-accessibility-before.json.
+
+## 8. Final secondary-navigation cleanup — candidate cache186, not live yet
+
+Browser reproduction confirmed the Visits tab opens a separate Send Reminder/raw telephone pop-up, displays elapsed-time-only sales probabilities, and uses clickable DIV cards with no role/tabindex. Candidate labels the retained list “To revisit”, describes its records accurately, shows neutral recency groups and retains quote amounts. Cards are keyboard-operable buttons that open the existing Visit workspace; the redundant contact modal is removed. Internal legacy grouping thresholds are retained, not shown as sales forecasts. All customer/visit/history/message/financial capabilities remain accessible. Tools decorative icons are hidden from accessible names.
+
+Focused navigation-review journey passes Chromium/WebKit: exact Tools button names, keyboard overview/back, empty and populated list, all amounts/notes and unlinked record retained, no unsupported percentages, 320/390/768 widths and minimum targets, keyboard Visit communication, no external contact. Settled list/Visit screenshots visually inspected after fade-in. Full release gates pending.

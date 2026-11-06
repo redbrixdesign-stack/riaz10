@@ -17,7 +17,7 @@ const ControlFeature = {
       return Toast.show('Choose or take a photo', 'warning');
     }
     this.pendingQuickCapture = { file, fields: {} };
-    App.openModal(`<div class="sheet-handle"></div><div class="sheet-header"><h3>Quick add</h3></div><div class="sheet-body"><div class="center-box"><span class="material-symbols-rounded fs-48 text-brand">document_scanner</span><div class="fw-600 mt-sm">Reading and finding the right place…</div><div class="hint mt-sm">Nothing is saved until you review it.</div></div></div>`);
+    App.openModal(`<div class="sheet-handle"></div><div class="sheet-header"><h3>Quick add</h3></div><div class="sheet-body"><div class="center-box"><span aria-hidden="true" class="material-symbols-rounded fs-48 text-brand">document_scanner</span><div class="fw-600 mt-sm">Reading and finding the right place…</div><div class="hint mt-sm">Nothing is saved until you review it.</div></div></div>`);
     try {
       if (typeof AIService !== 'undefined' && AIService.isEnabled() && typeof AIService.extractQuickCapture === 'function') {
         const result = await AIService.extractQuickCapture(file);
@@ -38,10 +38,10 @@ const ControlFeature = {
 
   openQuickCaptureChoice() {
     if (!this.pendingQuickCapture?.file) return;
-    App.openModal(`<div class="sheet-handle"></div><div class="sheet-header"><h3>What are you adding?</h3><button class="btn btn-ghost btn-sm" data-action="ControlFeature.cancelQuickCapture" aria-label="Close"><span class="material-symbols-rounded">close</span></button></div><div class="sheet-body">
+    App.openModal(`<div class="sheet-handle"></div><div class="sheet-header"><h3>What are you adding?</h3><button class="btn btn-ghost btn-sm" data-action="ControlFeature.cancelQuickCapture" aria-label="Close"><span aria-hidden="true" class="material-symbols-rounded">close</span></button></div><div class="sheet-body">
       <div class="hint mb-md">Beelo could not identify the document confidently. Choose where it belongs.</div>
-      <button class="btn btn-primary btn-block" data-action="ControlFeature.routeQuickCapture" data-args='${JSON.stringify(["visit"])}'><span class="material-symbols-rounded">event</span>Customer / visit</button>
-      <button class="btn btn-outline btn-block mt-sm" data-action="ControlFeature.routeQuickCapture" data-args='${JSON.stringify(["expense"])}'><span class="material-symbols-rounded">receipt_long</span>Expense receipt</button>
+      <button class="btn btn-primary btn-block" data-action="ControlFeature.routeQuickCapture" data-args='${JSON.stringify(["visit"])}'><span aria-hidden="true" class="material-symbols-rounded">event</span>Customer / visit</button>
+      <button class="btn btn-outline btn-block mt-sm" data-action="ControlFeature.routeQuickCapture" data-args='${JSON.stringify(["expense"])}'><span aria-hidden="true" class="material-symbols-rounded">receipt_long</span>Expense receipt</button>
     </div>`);
   },
 
@@ -92,19 +92,19 @@ const ControlFeature = {
         <div class="p-md" >
           ${card('Today', `
             <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {action: "add"}])}'>
-              <span class="material-symbols-rounded">add</span>
+              <span aria-hidden="true" class="material-symbols-rounded">add</span>
               <span>Add Visit</span>
             </button>
             <button class="control-tile" type="button" data-action="MoneyFeature.openMileageModal">
-              <span class="material-symbols-rounded">route</span>
+              <span aria-hidden="true" class="material-symbols-rounded">route</span>
               <span>Log Mileage</span>
             </button>
             <button class="control-tile" type="button" data-action="MoneyFeature.openExpenseModal">
-              <span class="material-symbols-rounded">receipt_long</span>
+              <span aria-hidden="true" class="material-symbols-rounded">receipt_long</span>
               <span>Log Expense</span>
             </button>
             <button class="control-tile" type="button" data-action="TodayFeature.openEODModal">
-              <span class="material-symbols-rounded">fact_check</span>
+              <span aria-hidden="true" class="material-symbols-rounded">fact_check</span>
               <span>End of Day</span>
             </button>
           `)}
@@ -115,69 +115,69 @@ const ControlFeature = {
               <span>Follow-ups</span>
             </button>
             <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["jobs"])}'>
-              <span class="material-symbols-rounded">construction</span>
+              <span aria-hidden="true" class="material-symbols-rounded">construction</span>
               <span>Jobs</span>
             </button>
             <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["leads"])}'>
-              <span class="material-symbols-rounded">person_add</span>
+              <span aria-hidden="true" class="material-symbols-rounded">person_add</span>
               <span>Lead Inbox</span>
             </button>
             <button class="control-tile" type="button" data-action="AppointmentsFeature.openCustomerSearch" data-args='${JSON.stringify([true])}'>
-              <span class="material-symbols-rounded">person_search</span>
+              <span aria-hidden="true" class="material-symbols-rounded">person_search</span>
               <span>Find Customer</span>
             </button>
           `)}
 
           ${card('Business', `
             <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["suppliers"])}'>
-              <span class="material-symbols-rounded">local_shipping</span>
+              <span aria-hidden="true" class="material-symbols-rounded">local_shipping</span>
               <span>Suppliers</span>
             </button>
             <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["capacity"])}'>
-              <span class="material-symbols-rounded">event_busy</span>
+              <span aria-hidden="true" class="material-symbols-rounded">event_busy</span>
               <span>Availability</span>
             </button>
             <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["profitability"])}'>
-              <span class="material-symbols-rounded">monitoring</span>
+              <span aria-hidden="true" class="material-symbols-rounded">monitoring</span>
               <span>Profitability</span>
             </button>
             <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["invoices"])}'>
-              <span class="material-symbols-rounded">receipt_long</span>
+              <span aria-hidden="true" class="material-symbols-rounded">receipt_long</span>
               <span>Invoices</span>
             </button>
           `)}
 
           ${card('Field tools', `
             <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["route"])}'>
-              <span class="material-symbols-rounded">map</span>
+              <span aria-hidden="true" class="material-symbols-rounded">map</span>
               <span>Route Planner</span>
             </button>
             <button class="control-tile" type="button" data-action="ControlFeature.openMeasurePicker">
-              <span class="material-symbols-rounded">straighten</span>
+              <span aria-hidden="true" class="material-symbols-rounded">straighten</span>
               <span>Measure</span>
             </button>
             <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["ocr"])}'>
-              <span class="material-symbols-rounded">document_scanner</span>
+              <span aria-hidden="true" class="material-symbols-rounded">document_scanner</span>
               <span>Scan Document</span>
             </button>
           `)}
 
           ${card('Data & Settings', `
             <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["communications"])}'>
-              <span class="material-symbols-rounded">hub</span>
+              <span aria-hidden="true" class="material-symbols-rounded">hub</span>
               <span>Integrations</span>
             </button>
             <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["settings"])}'>
-              <span class="material-symbols-rounded">settings</span>
+              <span aria-hidden="true" class="material-symbols-rounded">settings</span>
               <span>Settings</span>
             </button>
             <button class="control-tile" type="button" data-action="ExportService.exportBackup">
-              <span class="material-symbols-rounded">backup</span>
+              <span aria-hidden="true" class="material-symbols-rounded">backup</span>
               <span>Export Backup</span>
             </button>
             ${demoSeeded ? `
             <button class="control-tile" type="button" data-action="ControlFeature.confirmClearPitchDemo">
-              <span class="material-symbols-rounded text-danger">delete_sweep</span>
+              <span aria-hidden="true" class="material-symbols-rounded text-danger">delete_sweep</span>
               <span>Remove Demo Data</span>
             </button>
             ` : ''}
@@ -215,12 +215,12 @@ const ControlFeature = {
     }
 
     const content = `<div class="sheet-handle"></div>
-      <div class="sheet-header"><h3>Measure for which visit?</h3><button class="btn btn-ghost btn-sm" data-action="App.closeModal"><span class="material-symbols-rounded">close</span></button></div>
+      <div class="sheet-header"><h3>Measure for which visit?</h3><button class="btn btn-ghost btn-sm" data-action="App.closeModal"><span aria-hidden="true" class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body">
         <div class="flex flex-col gap-sm" >
           ${visits.map(visit => `
             <button class="list-item bordered-8 text-left"  data-close="1" data-action="App.navigate" data-args='${JSON.stringify(["measure", {appointmentId: (visit.id)}])}'>
-              <span class="material-symbols-rounded text-brand mr-12" >straighten</span>
+              <span aria-hidden="true" class="material-symbols-rounded text-brand mr-12" >straighten</span>
               <span class="flex-1 min-w-0" >
                 <span class="block fw-600 ellipsis" >${Utils.escapeHtml(visit.clientName || 'Unknown')}</span>
                 <span class="block fs-12 text-tertiary" >${Utils.formatDate(visit.date, 'datetime')}</span>
@@ -244,13 +244,13 @@ const ControlFeature = {
 
   async confirmClearPitchDemo() {
     const content = `<div class="sheet-handle"></div>
-      <div class="sheet-header"><h3>Remove Demo Data?</h3><button class="btn btn-ghost btn-sm" data-action="App.closeModal"><span class="material-symbols-rounded">close</span></button></div>
+      <div class="sheet-header"><h3>Remove Demo Data?</h3><button class="btn btn-ghost btn-sm" data-action="App.closeModal"><span aria-hidden="true" class="material-symbols-rounded">close</span></button></div>
       <div class="sheet-body">
         <div class="fs-14 text-secondary mb-md" >
           This removes the sample customers and visits used for demoing the app (Ayesha Khan, James Wilson, and others), along with their visits, orders, and messages. Your own customers and visits are not affected.
         </div>
         <button class="btn btn-danger btn-block" data-action="ControlFeature.clearPitchDemo">
-          <span class="material-symbols-rounded">delete_sweep</span>Remove Demo Data
+          <span aria-hidden="true" class="material-symbols-rounded">delete_sweep</span>Remove Demo Data
         </button>
         <button class="btn btn-outline btn-block mt-sm"  data-action="App.closeModal">Cancel</button>
       </div>`;

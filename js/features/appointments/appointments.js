@@ -475,7 +475,7 @@ const AppointmentsFeature = {
           <div class="tabs" id="appt-tabs" role="tablist" aria-label="Visits">
             <button class="tab active" data-tab="diary" role="tab" aria-selected="true" aria-controls="appt-diary" data-action="AppointmentsFeature.switchTab" data-args='${JSON.stringify(["diary"])}'>Diary</button>
             <button class="tab" data-tab="upcoming" role="tab" aria-selected="false" aria-controls="appt-upcoming" data-action="AppointmentsFeature.switchTab" data-args='${JSON.stringify(["upcoming"])}'>Upcoming</button>
-            <button class="tab" data-tab="pipeline" role="tab" aria-selected="false" aria-controls="appt-pipeline" data-action="AppointmentsFeature.switchTab" data-args='${JSON.stringify(["pipeline"])}'>Follow-ups (${pipeline.length})</button>
+            <button class="tab" data-tab="pipeline" role="tab" aria-selected="false" aria-controls="appt-pipeline" data-action="AppointmentsFeature.switchTab" data-args='${JSON.stringify(["pipeline"])}'>To revisit (${pipeline.length})</button>
             <button class="tab" data-tab="area" role="tab" aria-selected="false" aria-controls="appt-area" data-action="AppointmentsFeature.switchTab" data-args='${JSON.stringify(["area"])}'>Area</button>
             <button class="tab" data-tab="past" role="tab" aria-selected="false" aria-controls="appt-past" data-action="AppointmentsFeature.switchTab" data-args='${JSON.stringify(["past"])}'>Past</button>
           </div>
@@ -1386,134 +1386,61 @@ const AppointmentsFeature = {
   },
 
   renderPipeline(pipeline) {
-    // Categorize by temperature
+    // Preserve the existing time-based grouping; these are not forecasts.
     const now = new Date();
-    const hot = [];
-    const warm = [];
-    const cool = [];
+    const recent = [];
+    const earlier = [];
+    const older = [];
 
     for (const appt of pipeline) {
       const daysSince = Utils.daysBetween(now, new Date(appt.date));
-      const probability = this.getProbability(appt.outcome, daysSince);
+      const score = this.getRecencyScore(daysSince);
 
-      if (probability >= 0.6) hot.push({...appt, probability});
-      else if (probability >= 0.3) warm.push({...appt, probability});
-      else cool.push({...appt, probability});
+      if (score >= 0.6) recent.push(appt);
+      else if (score >= 0.3) earlier.push(appt);
+      else older.push(appt);
     }
 
     return `
-      ${hot.length > 0 ? `
+      ${pipeline.length ? '<p class="hint mb-md">Quotes awaiting a decision and missed visits. Open a visit for its messages and records.</p>' : ''}
+      ${recent.length > 0 ? `
         <div class="mb-md" >
-          <div class="fs-12 fw-600 text-danger text-uppercase ls-05 mb-sm" >Hot — Close This Week</div>
-          ${hot.map(a => this.renderPipelineCard(a)).join('')}
+          <div class="fs-12 fw-600 text-tertiary text-uppercase ls-05 mb-sm" >Recent visits</div>
+          ${recent.map(a => this.renderPipelineCard(a)).join('')}
         </div>
       ` : ''}
 
-      ${warm.length > 0 ? `
+      ${earlier.length > 0 ? `
         <div class="mb-md" >
-          <div class="fs-12 fw-600 text-warning text-uppercase ls-05 mb-sm" >Warm — Follow Up</div>
-          ${warm.map(a => this.renderPipelineCard(a)).join('')}
+          <div class="fs-12 fw-600 text-tertiary text-uppercase ls-05 mb-sm" >Earlier visits</div>
+          ${earlier.map(a => this.renderPipelineCard(a)).join('')}
         </div>
       ` : ''}
 
-      ${cool.length > 0 ? `
+      ${older.length > 0 ? `
         <div class="mb-md" >
-          <div class="fs-12 fw-600 text-tertiary text-uppercase ls-05 mb-sm" >Cool — At Risk</div>
-          ${cool.map(a => this.renderPipelineCard(a)).join('')}
+          <div class="fs-12 fw-600 text-tertiary text-uppercase ls-05 mb-sm" >Older visits</div>
+          ${older.map(a => this.renderPipelineCard(a)).join('')}
         </div>
       ` : ''}
 
       ${pipeline.length === 0 ? `
         <div class="empty-state empty-state-lg">
-          <span class="material-symbols-rounded">trending_up</span>
-          <div>No follow-ups waiting</div>
-          <div class="fs-13" >Complete visits to build your follow-up list</div>
+          <span aria-hidden="true" class="material-symbols-rounded">trending_up</span>
+          <div>Nothing to revisit here</div>
+          <div class="fs-13" >Quotes awaiting a decision and missed visits will appear here.</div>
         </div>
       ` : ''}
     `;
   },
 
   async openFollowUpDetail(id) {
-    let appt = null;
-    let customer = null;
-    try {
-      appt = await DB.getAppointment(id);
-      customer = appt?.customerId ? await DB.getCustomer(appt.customerId) : null;
-    } catch (e) {
-      Toast.show('Could not load visit', 'error');
-      return;
-    }
-    if (!appt) { Toast.show('Visit not found', 'error'); return; }
-
-    const daysSince = Utils.daysBetween(new Date(), new Date(appt.date));
-    const phone = customer?.phone || appt.phone || '';
-    const match = TalkFeature.getTemplateForOutcome(appt.outcome);
-    const outcomeMeta = {
-      quoted: { label: 'Quote given', badgeClass: 'badge-primary' },
-      thinking: { label: 'Needs to think', badgeClass: 'badge-primary' },
-      partner: { label: 'Partner approval needed', badgeClass: 'badge-primary' },
-      compare_quotes: { label: 'Comparing quotes', badgeClass: 'badge-primary' },
-      expensive: { label: 'Price objection', badgeClass: 'badge-warning' },
-      customer_no_show: { label: 'Missed visit', badgeClass: 'badge-danger' },
-      advisor_unavailable: { label: "Couldn't attend", badgeClass: 'badge-danger' }
-    };
-    const meta = outcomeMeta[appt.outcome] || { label: appt.outcome || 'Follow-up', badgeClass: 'badge-primary' };
-
-    const content = `
-      <div class="sheet-handle"></div>
-      <div class="sheet-header">
-        <div>
-          <h3>${Utils.escapeHtml(appt.clientName || 'Customer')}</h3>
-          <div class="fs-13 text-tertiary" >${Utils.escapeHtml(appt.address || 'No address set')}</div>
-        </div>
-        <button class="btn btn-ghost btn-sm" data-action="App.closeModal">
-          <span class="material-symbols-rounded">close</span>
-        </button>
-      </div>
-      <div class="sheet-body">
-        <div class="card mt-12" >
-          <div class="flex justify-between items-center" >
-            <span class="badge ${meta.badgeClass}">${Utils.escapeHtml(meta.label)}</span>
-            <span class="fs-13 text-tertiary" >${daysSince} day${daysSince === 1 ? '' : 's'} ago</span>
-          </div>
-          ${match && match.learned ? `
-            <div class="fs-11 text-success mt-6" >
-              <span class="material-symbols-rounded fs-12 vtext-bottom" >insights</span>
-              Learned from ${match.sampleSize} past deals - typically closed in ${match.medianDaysToConversion}d
-            </div>
-          ` : ''}
-          ${appt.value > 0 ? `
-            <div class="mt-10 top-divider-10 flex justify-between" >
-              <span class="text-secondary" >Quote total</span>
-              <strong>${Utils.formatCurrency(appt.value)}</strong>
-            </div>
-          ` : ''}
-          ${appt.notes ? `
-            <div class="mt-10 top-divider-10 fs-13 text-secondary" >
-              ${Utils.escapeHtml(appt.notes)}
-            </div>
-          ` : ''}
-        </div>
-
-        <div class="flex flex-col gap-sm mt-md" >
-          ${match ? `
-            <button class="btn btn-primary btn-block" data-close="1" data-action="TalkFeature.sendMessage" data-args='${JSON.stringify([(appt.id), match.template])}'>
-              <span class="material-symbols-rounded">send</span>
-              Send Reminder
-            </button>
-          ` : ''}
-          ${phone ? `
-            <a class="btn btn-outline btn-block" href="tel:${Utils.escapeHtml(Utils.toE164Phone(phone) || phone)}">
-              <span class="material-symbols-rounded">call</span>
-              Call Customer
-            </a>
-          ` : `
-            <div class="fs-12 text-tertiary text-center" >No phone number on file</div>
-          `}
-        </div>
-      </div>
-    `;
-    App.openModal(content);
+    // Keep older callers working, with one Visit workspace for all actions.
+    let appt;
+    try { appt = await DB.getAppointment(id); }
+    catch (e) { return Toast.show('Could not load visit', 'error'); }
+    if (!appt) return Toast.show('Visit not found', 'error');
+    App.navigate('appointments', { id: appt.id });
   },
 
   openCustomerSearch(customerOnly = false) {
@@ -1617,39 +1544,39 @@ const AppointmentsFeature = {
 
   renderPipelineCard(appt) {
     const daysSince = Utils.daysBetween(new Date(), new Date(appt.date));
+    const outcomeLabel = { quoted: 'Quote given', thinking: 'Needs to think', partner: 'Partner approval', compare_quotes: 'Comparing quotes', expensive: 'Price objection', customer_no_show: 'Customer no-show', advisor_unavailable: 'Could not attend' }[appt.outcome] || appt.outcome || 'Outcome not recorded';
 
     return `
-      <div class="card card-interactive visit-card" data-action="AppointmentsFeature.openFollowUpDetail" data-args='${JSON.stringify([(appt.id)])}'>
+      <button type="button" class="card card-interactive visit-card w-full text-left" aria-label="Open visit for ${Utils.escapeHtml(appt.clientName || 'Unknown')} on ${Utils.formatDate(appt.date, 'short')}" data-action="AppointmentsFeature.openFollowUpDetail" data-args='${JSON.stringify([(appt.id)])}'>
         <div class="visit-card-row">
           <div class="visit-main">
             <div class="visit-title">${Utils.escapeHtml(appt.clientName || 'Unknown')}</div>
             <div class="visit-meta">
-              ${Utils.escapeHtml(appt.outcome === 'quoted' ? 'Quote given' : appt.outcome === 'thinking' ? 'Needs to think' : appt.outcome === 'partner' ? 'Partner approval' : appt.outcome === 'expensive' ? 'Price objection' : appt.outcome)} · ${daysSince} days ago
+              ${Utils.escapeHtml(outcomeLabel)} · ${daysSince} day${daysSince === 1 ? '' : 's'} ago
             </div>
             ${appt.value > 0 ? `
               <div class="visit-value">
-                ${Utils.formatCurrency(appt.value)} · ${Math.round((appt.probability || 0) * 100)}% probability
+                ${Utils.formatCurrency(appt.value)}
               </div>
             ` : ''}
           </div>
-          <span class="material-symbols-rounded text-tertiary shrink-0" >chevron_right</span>
+          <span aria-hidden="true" class="material-symbols-rounded text-tertiary shrink-0" >chevron_right</span>
         </div>
-      </div>
+      </button>
     `;
   },
 
-  getProbability(outcome, daysSince) {
-    // Decay thresholds are config-driven (CONFIG.probabilityDecay, keyed by
-    // "days since quote") so the ramp-down can be tuned in one place instead
-    // of being hardcoded here.
+  getRecencyScore(daysSince) {
+    // Retain configured legacy thresholds for time-based grouping only.
+    // This score is not displayed or interpreted as a sales probability.
     const decay = CONFIG.probabilityDecay || { 0: 0.8, 3: 0.6, 7: 0.4, 14: 0.2, 21: 0.05 };
     const thresholds = Object.keys(decay).map(Number).sort((a, b) => a - b);
-    let probability = decay[0] ?? 0.8;
+    let score = decay[0] ?? 0.8;
     for (const threshold of thresholds) {
-      probability = decay[threshold];
+      score = decay[threshold];
       if (daysSince <= threshold) break;
     }
-    return probability;
+    return score;
   },
 
   renderOutcomeButtons(appt) {

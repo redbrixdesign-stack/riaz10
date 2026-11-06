@@ -1,0 +1,52 @@
+[
+  {
+    "engine": "chromium",
+    "list": "HOT — CLOSE THIS WEEK\nSYNTHETIC Review List\nQuote given · 1 days ago\n£500.00 · 60% probability\nchevron_right\nCOOL — AT RISK\nSYNTHETIC Review List\nQuote given · 22 days ago\n£500.00 · 5% probability\nchevron_right\nSYNTHETIC Review List\nQuote given · 10 days ago\n£500.00 · 20% probability\nchevron_right",
+    "semantics": [
+      {
+        "tag": "DIV",
+        "role": null,
+        "tabindex": null
+      },
+      {
+        "tag": "DIV",
+        "role": null,
+        "tabindex": null
+      },
+      {
+        "tag": "DIV",
+        "role": null,
+        "tabindex": null
+      }
+    ],
+    "modal": "SYNTHETIC Review List\nNo address set\nclose\nQuote given\n1 day ago\nQuote total\n£500.00\nsend\nSend Reminder\ncall\nCall Customer",
+    "phoneLinks": [
+      "tel:+447700900961"
+    ]
+  },
+  {
+    "engine": "webkit",
+    "list": "HOT — CLOSE THIS WEEK\nSYNTHETIC Review List\nQuote given · 1 days ago\n£500.00 · 60% probability\nchevron_right\nCOOL — AT RISK\nSYNTHETIC Review List\nQuote given · 22 days ago\n£500.00 · 5% probability\nchevron_right\nSYNTHETIC Review List\nQuote given · 10 days ago\n£500.00 · 20% probability\nchevron_right",
+    "semantics": [
+      {
+        "tag": "DIV",
+        "role": null,
+        "tabindex": null
+      },
+      {
+        "tag": "DIV",
+        "role": null,
+        "tabindex": null
+      },
+      {
+        "tag": "DIV",
+        "role": null,
+        "tabindex": null
+      }
+    ],
+    "modal": "SYNTHETIC Review List\nNo address set\nclose\nQuote given\n1 day ago\nQuote total\n£500.00\nsend\nSend Reminder\ncall\nCall Customer",
+    "phoneLinks": [
+      "tel:+447700900961"
+    ]
+  }
+]
