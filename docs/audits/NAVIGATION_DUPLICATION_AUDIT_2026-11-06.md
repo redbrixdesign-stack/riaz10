@@ -1,93 +1,93 @@
-# Navigation and communication duplication audit — 6 November2026
+# Navigation, communication and scheduling audit — 6 November 2026
 
-This is a bounded, evidence-led cleanup queue. Existing customer/visit actions,
-records and adviser approvals remain authoritative. Source findings are not
-labelled as reproduced until a scenario/test confirms them. No accounting,
-booking, earnings, data deletion or provider changes are included.
+Status: all five scoped releases completed and live at https://beelo.beelestial.co.uk/.
 
-## 1. Follow-ups primary navigation duplication — P2, completed and live
+Focused source/UI audit with synthetic data, followed by the maintained full
+regression suite. Findings were reproduced before correction. Each release was
+validated and published before the next runtime change began. The landing site,
+provider settings, financial formulas and original user working tree were not
+changed. No pilot approval or commercial-release status is inferred.
 
-User request: customer actions now live in Visit/Customer workspace, so remove the
-extra bottom-bar destination and keep the all-customer/personal-task overview in
-Tools. FollowupsFeature now registers route:false; ControlFeature adds one tile
-under Customer. Overview retains derived tasks/history and gains Back to Tools.
-Primary navigation becomes Home / Orders / Money / Tools. No new task engine.
+## Verified corrections
 
-Evidence: js/features/followups/followups.js registration/renderAsync;
-js/features/control/control.js Customer category; App.registerFeature honors
-route:false. Shell/SW versions updated; nav-sensitive tests updated to assert
-four destinations. Extended customer-worklist journey exercises real Tools entry,
-keyboard activation, overview Back, customer actions and back, manual tasks,
-offline/reload and touch-target sizes. 33/33 local browser journeys and hosted run42170669286 passed at runtime commit e0876c8f579cbca4ecb6e4381ffea78461e43cec. Cache182-followups-tools is live at deployment dpl_7i9uT9zvPqipj5bwZyv4r9gPeP4y. All four changed runtime files match source/stage/public; the public Tools/customer worklist journey passed Chromium and WebKit. Native iPhone navigation is not independently verified for this release.
+| Severity | Finding and reproduction | Result |
+| --- | --- | --- |
+| P2 | Follow-ups duplicated the primary navigation despite Visit/customer actions. | Bottom bar is Home / Orders / Money / Tools. One Follow-ups tile in Tools → Customer retains the all-customer/personal-task overview and Back to Tools. Visit/customer actions remain available. |
+| P2 | Record an introduction/reminder as sent and a customer agreement; canonical tasks are empty, but Home/evening still claim a message unsent. | Home, evening, post-visit and Messages queries use shared task state. Unknown handoff is awaiting sent status; a failed task read does not become an all-clear. Obsolete parallel counters/template suggestions removed. |
+| P2 | Send the original reminder, then use standard Move to change the date. Old reminder flag survives and suppresses the new reminder. | Changed date/window/type invalidates only the old reminder flag. Introduction, communication history, encrypted notes and earnings remain. Move displays/saves UK diary time across device time zones. |
+| P2 | On a Kiritimati device, 10:00 UK produces an outside-hours warning and suggested slots on the wrong day. | Capacity envelopes and suggestions use the shared UK-time conversion, also used by Move/proposals. Overlap/leave/exclusion checks remain. Missing/ambiguous DST times are rejected. |
+| P2/P3 | Visits’ separate Follow-ups tab shows age-derived sales probabilities, opens a duplicate contact modal, and uses non-keyboard DIV cards. Tools labels include icon words. | Retained list is “To revisit”, with neutral recency groups, clear outcomes and unchanged quote amounts. Keyboard-operable cards open the existing Visit workspace. Redundant modal and unsupported displayed probabilities removed. Tools decorative icons are hidden from accessible names. Legacy grouping configuration retained. |
 
-An initial Tools tile with a separate hint caused a crowded flex layout; simplified
-it to one label. Decorative icon is hidden from its accessible name. The test
-also caught an incorrect #control route in the newly added Back button; corrected
-to control before release. Old five-tab test assertions were updated, not removed.
+## Releases and evidence
 
-## 2. Home/evening message counts use a parallel legacy model — P2, completed and live
+All releases passed build, full unit, social and performance-gate checks. Browser
+acceptance counts below are maintained synthetic journeys, with Chromium/WebKit
+checks; they are not counts of real users or pilot participants.
 
-CompanionFeature.buildHomeData independently adds “Messages unsent” for today's
-confirmed visits when advisoros_auto_morning_of_ID is absent. It does not consult
-purpose-specific send evidence. The same screen also uses FollowupsFeature.loadTasks
-for canonical due actions; the legacy alert links to an overview whose tasks do
-not include that separate morning-of count. answerEveningReview has another
-intro/day-before/morning-of loop, with device-local date comparisons and a
-past-visit presence check instead of the canonical introduction-evidence rules.
+| Cache | Runtime commit | Local / hosted journeys | Hosted run | Exact production build |
+| --- | --- | --- | --- | --- |
+| 182-followups-tools | e0876c8f579cbca4ecb6e4381ffea78461e43cec | 33 / 33 | [42170669286](https://github.com/redbrixdesign-stack/riaz10/actions/runs/42170669286) | [de6mvfvyq](https://beelo1-de6mvfvyq-beelomvp.vercel.app) |
+| 183-message-summaries | cce588b76c4c83bea6c4e2300a9d631699799c33 | 34 / 34 | [42172498605](https://github.com/redbrixdesign-stack/riaz10/actions/runs/42172498605) | [1ccarllo5](https://beelo1-1ccarllo5-beelomvp.vercel.app) |
+| 184-reschedule-reminder | dea0700d6b13c2e2398cafa8f7c4a06045a68bbb | 34 / 34 | [42174670415](https://github.com/redbrixdesign-stack/riaz10/actions/runs/42174670415) | [akllcarbt](https://beelo1-akllcarbt-beelomvp.vercel.app) |
+| 185-capacity-uk-time | 2fbc0ad51d9575b28929a7283ec634a8d07f24bc | 34 / 34 | [42176300133](https://github.com/redbrixdesign-stack/riaz10/actions/runs/42176300133) | [n5tvgo3pr](https://beelo1-n5tvgo3pr-beelomvp.vercel.app) |
+| 186-secondary-navigation | 1513bc9d831525c63e6cb2e15c79f9e4d6dbed89 | 35 / 35 | [42178027612](https://github.com/redbrixdesign-stack/riaz10/actions/runs/42178027612) | [5jgmj16cc](https://beelo1-5jgmj16cc-beelomvp.vercel.app) |
 
-Reproduction: same-day confirmed synthetic fitting; record an intro_day_before handoff, explicit sent confirmation and customer agreement through real services. Canonical due tasks are empty, but Home and evening both claim one message unsent. Evidence: evidence/navigation-2026-11-06/message-counter-before.json. Next: align summary/query logic with shared tasks, retaining adviser-controlled drafting and no autonomous sends. Candidate removes the parallel counters and outcome-template suggestions from Home/evening/post-visit summaries; the Messages query now reads due template/send-status tasks from the same canonical service. Unknown handoff stays unknown; read failure is explicit. No template, deadline, booking-write or sending rule changed. Focused browser regression passes Chromium/WebKit in London and Kiritimati; 34/34 local and hosted journey checks passed (run42172498605, commit cce588b76c4c83bea6c4e2300a9d631699799c33). Cache183-message-summaries is live at dpl_93xXWsHJZ6Np3QKM4a4MDhxH8ZVK. Three runtime hashes match source/stage/public; the public message-summary journey passed both engines in London/Kiritimati.
+Final runtime `1513bc9d831525c63e6cb2e15c79f9e4d6dbed89` is live as
+`dpl_7vA4DGusUQWFtbGcrTewRpzBK6bL` (cache186-secondary-navigation).
+All nine runtime files changed across this audit match source/stage/public hashes.
+Public navigation-review, message-summaries and visit-communication journeys pass
+Chromium/WebKit; communication checks include London/Kiritimati. External contact
+was mocked/blocked. No error/fatal function logs were returned for the queried
+22:07:58–22:17:58 UTC window; this is a limited function-log check, not proof of
+all client behaviour.
 
-## 3. Visits “Follow-ups” tab is a different sales pipeline — P2, reproduced; candidate corrected
+- `tests/browser/customer-worklist.e2e.cjs`: real Tools entry, keyboard/back,
+  customer actions, manual tasks, offline reads/reload and four primary tabs.
+- `tests/browser/message-summaries.e2e.cjs`: new/combined introduction, handoff,
+  explicit sent/agreed, offline reads and subsequent reload, real Move, cancelled/
+  completed records, multiple visits, failed task reads and UK-time suggestions.
+  Browser checks run in London and Kiritimati.
+- `tests/reminder-reset.test.js`: source/minified database behaviour, unchanged
+  edits, date/window/type changes, encryption/history/introduction/earnings retained.
+- `tests/capacity-timezone.test.js`: source/minified checks in London, UTC,
+  New York and Kiritimati; GMT/BST, DST boundaries, working-hour limits, overlap,
+  self-exclusion, leave, UK-vs-UTC day boundary and no booking writes.
+- `tests/browser/navigation-review.e2e.cjs`: exact accessible Tools labels,
+  keyboard overview/back, empty/populated To revisit, preserved amounts/notes,
+  linked and unlinked Visit records, 320/390/768 widths and minimum touch targets.
+- Evidence, hashes, before states and settled screenshots:
+  [evidence/navigation-2026-11-06/](evidence/navigation-2026-11-06/).
+  No real calls, messages or transcription/provider requests were made.
 
-AppointmentsFeature tab pipeline is labelled Follow-ups but uses DB.getPipeline
-for quoted/thinking/partner/compare_quotes/expensive/no-show/unavailable outcomes.
-Its Hot/Warm/Cool bands use CONFIG.probabilityDecay rather than customer response
-or the canonical communication task state. This label duplicates the all-customer
-communication overview and may imply measured sales probabilities.
+## Investigations and limits
 
-Next: inspect/reproduce its actual customer journey and choose a plain, accurate
-label/context. Preserve existing records and functionality; no silent deletion
-of the pipeline or unsupported predictive claim.
+- Suspected shared-header Back-route defect did not reproduce: Plan tomorrow →
+  Back returned Home in both engines. No runtime change was made for that lead.
+- Initial local Python-server trials had intermittent missing-script startup
+  failures; their cause remains unproven. Final Node-server release suites and
+  public journeys passed. Capture failed-resource details if this recurs.
+- Early harness attempts are not passes: offline reload was attempted with
+  service workers blocked, then separated into offline reads and online reload;
+  obsolete constant date mocks were replaced by real UK helpers. The earlier
+  Move test explicitly accepted the false capacity warning; the final test
+  requires it to be absent. Dark transition screenshots were retaken settled.
+- This pass adds no new native iPhone end-to-end confirmation. Earlier native
+  Visit-layout evidence remains separate. Next: verify the installed PWA's
+  update, four-tab bar, Tools entry and Visit communication on an actual iPhone.
+- Wider security, financial ownership, background location and native integration
+  reviews remain separate work; this is not an exhaustive app certification.
 
-## 4. Repeated icon names in Tools accessible labels — P3, reproduced; candidate corrected
+## Preservation and decisions
 
-Existing decorative material-symbol spans in Tools mostly lack aria-hidden. The
-new Follow-ups tile has a clean accessible name. Audit the remaining tiles before
-changing them; retain visible labels, keyboard operation and minimum touch areas.
+Runtime work is isolated on `codex/followups-tools-20261106`. Original b833
+tracked non-document diff SHA256 stayed:
+`8b6f2a59c93c01d1e4bee30742536a538f010119e3acf6b99e9b2f63e8e295d1`.
+No original runtime changes were discarded or copied into these releases.
 
-## 5. Shared header default includes a hash in a route name — P3, not reproduced in the planning journey
+Records and capabilities were retained; duplicate presentation/rules were removed.
+No CRM/accounting/tax/MTD product expansion, provider change or external customer
+communication was included. No new product-scope approval is inferred.
 
-App.renderTopHeader defaults backHref to #today, while App.navigate expects today.
-Explicit current secondary-screen back routes generally omit the hash. Actual Plan tomorrow → Back returned to #today correctly in both engines. No user-visible defect reproduced; no change justified by that check.
-
-## Preservation
-
-Runtime work is isolated on codex/followups-tools-20261106. Original b833 non-doc
-diff SHA256 remains8b6f2a59c93c01d1e4bee30742536a538f010119e3acf6b99e9b2f63e8e295d1.
-No unrelated original runtime work is included in this release.
-
-## Release notes
-
-Rollback: cache181 deployment https://beelo1-1dclbmeee-beelomvp.vercel.app. Isolated Python-server trials had transient missing-script startup failures (root cause unproven); final Node-server release gates and public journeys passed. These failed trials are not claimed as passes.
-
-## 6. Reschedule legacy reminder flag — P2, completed and live
-
-Standard saveReschedule writes a new date/window but only resets dayBeforeSent in the agreed-proposal branch. A snapshot-bound reply becomes stale correctly; a prior true legacy reminder flag may still suppress the new reminder. Reproduced through actual standard Move in Chromium/WebKit: prior reminder stayed true, agreement became stale, and no new reminder was due. Cache183's summary fixture explicitly reset dayBeforeSent; it did not prove Move correctness. Cache184 invalidates only the previous reminder on date/window/type changes, keeps introduction/history/earnings, and uses UK time for Move display and save. Source/minified regression passes; real Move journey now passes both engines in London/Kiritimati. Build/unit/social/performance gates and 34/34 local + hosted browser journeys passed (run42174670415, runtime dea0700d6b13c2e2398cafa8f7c4a06045a68bbb). Live deployment dpl_24k7g9v59N3oQ1GUYEqqxNbHmtKN; four runtime files match source/stage/public. Public Move/summary journey passes both engines in London/Kiritimati.
-
-## Scope of this audit pass
-
-Navigation, communication-summary duplication and reschedule reminder continuity and capacity clock consistency are separate release slices. Remaining source findings are a prioritised investigation queue, not claims that every app screen or production configuration has been exhaustively audited. Existing release journeys provide wider regression coverage.
-
-## 7. Capacity warning outside UK device timezone — P2, completed and live
-
-During the actual Move regression, a 10:00 UK appointment triggers “outside your configured working hours” in a Kiritimati device context. The test explicitly reviews/accepts Save anyway and verifies the saved UK time. This is not a pass for capacity-warning accuracy. Browser evidence also shows suggested slots on the previous UTC date with 00:00 UK labels. Live cache185 uses a shared Utils.ukDateTimeISO conversion for capacity envelopes/suggestions and the existing Move/proposal API, removing duplicate conversion code. Source/minified tests pass in London, UTC, New York and Kiritimati across GMT/BST/DST/boundaries, overlaps/leave/exclusion and UK-vs-UTC day boundaries; missing/ambiguous times are rejected. Browser Move passes both engines without warning bypass, with 09:00 UK suggestions on the selected day. Build/unit/social/performance gates and 34/34 local + hosted journeys passed (run42176300133, runtime 2fbc0ad51d9575b28929a7283ec634a8d07f24bc). Live deployment dpl_FWZ3CaPqZ8mp3EtQxLQLrfqTCM94; all five runtime files match source/stage/public. Public Move/suggestion regression passed both engines in London/Kiritimati.
-
-## Verified navigation/a11y diagnostic
-
-Tools has exactly one Follow-ups tile and four bottom destinations. Existing tiles expose icon tokens in accessible names (e.g. receipt_long Log Expense); new Follow-ups tile does not. Plan tomorrow Back correctly returns Home in both engines despite the suspicious default route string. Evidence: tools-accessibility-before.json.
-
-## 8. Final secondary-navigation cleanup — candidate cache186, not live yet
-
-Browser reproduction confirmed the Visits tab opens a separate Send Reminder/raw telephone pop-up, displays elapsed-time-only sales probabilities, and uses clickable DIV cards with no role/tabindex. Candidate labels the retained list “To revisit”, describes its records accurately, shows neutral recency groups and retains quote amounts. Cards are keyboard-operable buttons that open the existing Visit workspace; the redundant contact modal is removed. Internal legacy grouping thresholds are retained, not shown as sales forecasts. All customer/visit/history/message/financial capabilities remain accessible. Tools decorative icons are hidden from accessible names.
-
-Focused navigation-review journey passes Chromium/WebKit: exact Tools button names, keyboard overview/back, empty and populated list, all amounts/notes and unlinked record retained, no unsupported percentages, 320/390/768 widths and minimum targets, keyboard Visit communication, no external contact. Settled list/Visit screenshots visually inspected after fade-in. Full release gates pending.
+Rollback for the final release: promote the exact cache185 production build
+[n5tvgo3pr](https://beelo1-n5tvgo3pr-beelomvp.vercel.app). Keep the maintained
+35-journey gate for subsequent runtime changes.

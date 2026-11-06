@@ -1,0 +1,60 @@
+{
+  "stage": "https://beelo1-5jgmj16cc-beelomvp.vercel.app",
+  "sourceCommit": "1513bc9d831525c63e6cb2e15c79f9e4d6dbed89",
+  "files": [
+    {
+      "file": "index.html",
+      "source": "cd178b26f1455fb5d64682e8396c115ff9225359a0a1ea074c55a50813fd5389",
+      "stage": "cd178b26f1455fb5d64682e8396c115ff9225359a0a1ea074c55a50813fd5389",
+      "public": "cd178b26f1455fb5d64682e8396c115ff9225359a0a1ea074c55a50813fd5389"
+    },
+    {
+      "file": "sw.js",
+      "source": "9f486551a6032fd91bdfbe7c1ba2aa5eb43dcbc8d5ec79c4fd0107774290241a",
+      "stage": "9f486551a6032fd91bdfbe7c1ba2aa5eb43dcbc8d5ec79c4fd0107774290241a",
+      "public": "9f486551a6032fd91bdfbe7c1ba2aa5eb43dcbc8d5ec79c4fd0107774290241a"
+    },
+    {
+      "file": "js/features/control/control.min.js",
+      "source": "0033d6de28fb4e8a5d674cfc4c2168df27505bbecd4a0b89b7f72962fe7ae815",
+      "stage": "0033d6de28fb4e8a5d674cfc4c2168df27505bbecd4a0b89b7f72962fe7ae815",
+      "public": "0033d6de28fb4e8a5d674cfc4c2168df27505bbecd4a0b89b7f72962fe7ae815"
+    },
+    {
+      "file": "js/features/followups/followups.min.js",
+      "source": "6f249fe09b350f6acc0e23f64ae63eec42dae1ce75861b4785077e89113cc193",
+      "stage": "6f249fe09b350f6acc0e23f64ae63eec42dae1ce75861b4785077e89113cc193",
+      "public": "6f249fe09b350f6acc0e23f64ae63eec42dae1ce75861b4785077e89113cc193"
+    },
+    {
+      "file": "js/features/companion/companion.min.js",
+      "source": "f60f1b5dca942a406f0e89a0bf5c532799121cb1817c5edb3a1d7ddef0266f10",
+      "stage": "f60f1b5dca942a406f0e89a0bf5c532799121cb1817c5edb3a1d7ddef0266f10",
+      "public": "f60f1b5dca942a406f0e89a0bf5c532799121cb1817c5edb3a1d7ddef0266f10"
+    },
+    {
+      "file": "js/core/db.min.js",
+      "source": "a5c30a6036df2459a7bc72b4957fc01666498da92c20d92b5beded02643a1197",
+      "stage": "a5c30a6036df2459a7bc72b4957fc01666498da92c20d92b5beded02643a1197",
+      "public": "a5c30a6036df2459a7bc72b4957fc01666498da92c20d92b5beded02643a1197"
+    },
+    {
+      "file": "js/core/utils.min.js",
+      "source": "9938ad7704353675b2c4051750a6842a956631836447ce0d91e5556f86ecc611",
+      "stage": "9938ad7704353675b2c4051750a6842a956631836447ce0d91e5556f86ecc611",
+      "public": "9938ad7704353675b2c4051750a6842a956631836447ce0d91e5556f86ecc611"
+    },
+    {
+      "file": "js/services/capacity.min.js",
+      "source": "0bea08544fbe588ee7e6bb17ce78c4dad4abd5d7099a1ba4f1af0e13a56cb1e0",
+      "stage": "0bea08544fbe588ee7e6bb17ce78c4dad4abd5d7099a1ba4f1af0e13a56cb1e0",
+      "public": "0bea08544fbe588ee7e6bb17ce78c4dad4abd5d7099a1ba4f1af0e13a56cb1e0"
+    },
+    {
+      "file": "js/features/appointments/appointments.min.js",
+      "source": "985ec76dd0ac471a11a22a6c38857052b02f5d299c577b226a7df6bd4c1563ec",
+      "stage": "985ec76dd0ac471a11a22a6c38857052b02f5d299c577b226a7df6bd4c1563ec",
+      "public": "985ec76dd0ac471a11a22a6c38857052b02f5d299c577b226a7df6bd4c1563ec"
+    }
+  ]
+}

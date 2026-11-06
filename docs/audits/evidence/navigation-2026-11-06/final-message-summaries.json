@@ -1,0 +1,2542 @@
+[
+  {
+    "engine": "chromium",
+    "timezoneId": "Europe/London",
+    "label": "new fitting",
+    "tasks": [
+      {
+        "kind": "intro_confirmation",
+        "action": "Introduce yourself and confirm this visit",
+        "template": "intro_day_before"
+      }
+    ],
+    "home": [
+      {
+        "icon": "campaign",
+        "label": "Follow-ups due",
+        "value": "1 task due — SYNTHETIC first",
+        "action": "App.navigate('followups')",
+        "actionLabel": "Open Follow-ups"
+      }
+    ],
+    "evening": {
+      "text": "End of day: 1 thing to review — 1 task.",
+      "facts": [
+        {
+          "label": "Follow-ups due",
+          "value": "1 task"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "No completed visits today yet.",
+      "facts": [
+        {
+          "label": "Still to do today",
+          "value": "1 visit without outcome"
+        },
+        {
+          "label": "Follow-ups due",
+          "value": "1 task to review"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 6 Nov 10:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Visits",
+          "onclick": "App.navigate('appointments', {tab: 'upcoming'})"
+        },
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        },
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "1 message action to review — SYNTHETIC Summary first. Opening a message does not confirm it was sent.",
+      "facts": [
+        {
+          "label": "SYNTHETIC Summary · 6 Nov",
+          "value": "Introduce yourself and confirm this visit"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "chromium",
+    "timezoneId": "Europe/London",
+    "label": "handoff only",
+    "tasks": [
+      {
+        "kind": "send_confirmation",
+        "action": "Introduction and visit reminder — send status not recorded",
+        "template": "intro_day_before"
+      }
+    ],
+    "home": [
+      {
+        "icon": "campaign",
+        "label": "Follow-ups due",
+        "value": "1 task due · includes messages awaiting your sent status — SYNTHETIC first",
+        "action": "App.navigate('followups')",
+        "actionLabel": "Open Follow-ups"
+      }
+    ],
+    "evening": {
+      "text": "End of day: 1 thing to review — 1 task · includes messages awaiting your sent status.",
+      "facts": [
+        {
+          "label": "Follow-ups due",
+          "value": "1 task · includes messages awaiting your sent status"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "No completed visits today yet.",
+      "facts": [
+        {
+          "label": "Still to do today",
+          "value": "1 visit without outcome"
+        },
+        {
+          "label": "Follow-ups due",
+          "value": "1 task to review"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 6 Nov 10:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Visits",
+          "onclick": "App.navigate('appointments', {tab: 'upcoming'})"
+        },
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        },
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "1 message action to review — SYNTHETIC Summary first. Opening a message does not confirm it was sent.",
+      "facts": [
+        {
+          "label": "SYNTHETIC Summary · 6 Nov",
+          "value": "Introduction and visit reminder — send status not recorded"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "chromium",
+    "timezoneId": "Europe/London",
+    "label": "explicit sent and agreed",
+    "tasks": [],
+    "home": [],
+    "evening": {
+      "text": "Nothing missed — all caught up for today.",
+      "facts": [],
+      "actions": [],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "No completed visits today yet.",
+      "facts": [
+        {
+          "label": "Still to do today",
+          "value": "1 visit without outcome"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 6 Nov 10:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Visits",
+          "onclick": "App.navigate('appointments', {tab: 'upcoming'})"
+        },
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "No message actions due right now. This does not confirm delivery or a customer reply.",
+      "facts": [],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "chromium",
+    "timezoneId": "Europe/London",
+    "label": "offline reads retain sent evidence",
+    "tasks": [],
+    "home": [],
+    "evening": {
+      "text": "Nothing missed — all caught up for today.",
+      "facts": [],
+      "actions": [],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "No completed visits today yet.",
+      "facts": [
+        {
+          "label": "Still to do today",
+          "value": "1 visit without outcome"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 6 Nov 10:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Visits",
+          "onclick": "App.navigate('appointments', {tab: 'upcoming'})"
+        },
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "No message actions due right now. This does not confirm delivery or a customer reply.",
+      "facts": [],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "chromium",
+    "timezoneId": "Europe/London",
+    "label": "reload retains sent evidence",
+    "tasks": [],
+    "home": [],
+    "evening": {
+      "text": "Nothing missed — all caught up for today.",
+      "facts": [],
+      "actions": [],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "No completed visits today yet.",
+      "facts": [
+        {
+          "label": "Still to do today",
+          "value": "1 visit without outcome"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 6 Nov 10:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Visits",
+          "onclick": "App.navigate('appointments', {tab: 'upcoming'})"
+        },
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "No message actions due right now. This does not confirm delivery or a customer reply.",
+      "facts": [],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "chromium",
+    "timezoneId": "Europe/London",
+    "label": "standard Move form resets old reminder",
+    "tasks": [
+      {
+        "kind": "visit_tomorrow",
+        "action": "Review the visit reminder",
+        "template": "day_before"
+      }
+    ],
+    "home": [
+      {
+        "icon": "campaign",
+        "label": "Follow-ups due",
+        "value": "1 task due — SYNTHETIC first",
+        "action": "App.navigate('followups')",
+        "actionLabel": "Open Follow-ups"
+      }
+    ],
+    "evening": {
+      "text": "End of day: 1 thing to review — 1 task.",
+      "facts": [
+        {
+          "label": "Follow-ups due",
+          "value": "1 task"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "No completed visits today yet.",
+      "facts": [
+        {
+          "label": "Follow-ups due",
+          "value": "1 task to review"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 7 Nov 10:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        },
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "1 message action to review — SYNTHETIC Summary first. Opening a message does not confirm it was sent.",
+      "facts": [
+        {
+          "label": "SYNTHETIC Summary · 7 Nov",
+          "value": "Review the visit reminder"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "chromium",
+    "timezoneId": "Europe/London",
+    "label": "cancelled",
+    "tasks": [],
+    "home": [],
+    "evening": {
+      "text": "Nothing missed — all caught up for today.",
+      "facts": [],
+      "actions": [],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "No completed visits today yet.",
+      "facts": [],
+      "actions": [],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "No message actions due right now. This does not confirm delivery or a customer reply.",
+      "facts": [],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "chromium",
+    "timezoneId": "Europe/London",
+    "label": "completed aftercare recorded",
+    "tasks": [],
+    "home": [],
+    "evening": {
+      "text": "Nothing missed — all caught up for today.",
+      "facts": [],
+      "actions": [],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "Last was SYNTHETIC Summary — day done.",
+      "facts": [
+        {
+          "label": "Last visit",
+          "value": "SYNTHETIC Summary · 06:00"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 6 Nov 06:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "No message actions due right now. This does not confirm delivery or a customer reply.",
+      "facts": [],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "chromium",
+    "timezoneId": "Europe/London",
+    "label": "two later visits known customer",
+    "tasks": [],
+    "home": [],
+    "evening": {
+      "text": "Nothing missed — all caught up for today.",
+      "facts": [],
+      "actions": [],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "Last was SYNTHETIC Summary — day done.",
+      "facts": [
+        {
+          "label": "Last visit",
+          "value": "SYNTHETIC Summary · 06:00"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 6 Nov 06:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "No message actions due right now. This does not confirm delivery or a customer reply.",
+      "facts": [],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "chromium",
+    "timezoneId": "Pacific/Kiritimati",
+    "label": "new fitting",
+    "tasks": [
+      {
+        "kind": "intro_confirmation",
+        "action": "Introduce yourself and confirm this visit",
+        "template": "intro_day_before"
+      }
+    ],
+    "home": [
+      {
+        "icon": "campaign",
+        "label": "Follow-ups due",
+        "value": "1 task due — SYNTHETIC first",
+        "action": "App.navigate('followups')",
+        "actionLabel": "Open Follow-ups"
+      }
+    ],
+    "evening": {
+      "text": "End of day: 1 thing to review — 1 task.",
+      "facts": [
+        {
+          "label": "Follow-ups due",
+          "value": "1 task"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "No completed visits today yet.",
+      "facts": [
+        {
+          "label": "Still to do today",
+          "value": "1 visit without outcome"
+        },
+        {
+          "label": "Follow-ups due",
+          "value": "1 task to review"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 6 Nov 10:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Visits",
+          "onclick": "App.navigate('appointments', {tab: 'upcoming'})"
+        },
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        },
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "1 message action to review — SYNTHETIC Summary first. Opening a message does not confirm it was sent.",
+      "facts": [
+        {
+          "label": "SYNTHETIC Summary · 6 Nov",
+          "value": "Introduce yourself and confirm this visit"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "chromium",
+    "timezoneId": "Pacific/Kiritimati",
+    "label": "handoff only",
+    "tasks": [
+      {
+        "kind": "send_confirmation",
+        "action": "Introduction and visit reminder — send status not recorded",
+        "template": "intro_day_before"
+      }
+    ],
+    "home": [
+      {
+        "icon": "campaign",
+        "label": "Follow-ups due",
+        "value": "1 task due · includes messages awaiting your sent status — SYNTHETIC first",
+        "action": "App.navigate('followups')",
+        "actionLabel": "Open Follow-ups"
+      }
+    ],
+    "evening": {
+      "text": "End of day: 1 thing to review — 1 task · includes messages awaiting your sent status.",
+      "facts": [
+        {
+          "label": "Follow-ups due",
+          "value": "1 task · includes messages awaiting your sent status"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "No completed visits today yet.",
+      "facts": [
+        {
+          "label": "Still to do today",
+          "value": "1 visit without outcome"
+        },
+        {
+          "label": "Follow-ups due",
+          "value": "1 task to review"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 6 Nov 10:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Visits",
+          "onclick": "App.navigate('appointments', {tab: 'upcoming'})"
+        },
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        },
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "1 message action to review — SYNTHETIC Summary first. Opening a message does not confirm it was sent.",
+      "facts": [
+        {
+          "label": "SYNTHETIC Summary · 6 Nov",
+          "value": "Introduction and visit reminder — send status not recorded"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "chromium",
+    "timezoneId": "Pacific/Kiritimati",
+    "label": "explicit sent and agreed",
+    "tasks": [],
+    "home": [],
+    "evening": {
+      "text": "Nothing missed — all caught up for today.",
+      "facts": [],
+      "actions": [],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "No completed visits today yet.",
+      "facts": [
+        {
+          "label": "Still to do today",
+          "value": "1 visit without outcome"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 6 Nov 10:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Visits",
+          "onclick": "App.navigate('appointments', {tab: 'upcoming'})"
+        },
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "No message actions due right now. This does not confirm delivery or a customer reply.",
+      "facts": [],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "chromium",
+    "timezoneId": "Pacific/Kiritimati",
+    "label": "offline reads retain sent evidence",
+    "tasks": [],
+    "home": [],
+    "evening": {
+      "text": "Nothing missed — all caught up for today.",
+      "facts": [],
+      "actions": [],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "No completed visits today yet.",
+      "facts": [
+        {
+          "label": "Still to do today",
+          "value": "1 visit without outcome"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 6 Nov 10:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Visits",
+          "onclick": "App.navigate('appointments', {tab: 'upcoming'})"
+        },
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "No message actions due right now. This does not confirm delivery or a customer reply.",
+      "facts": [],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "chromium",
+    "timezoneId": "Pacific/Kiritimati",
+    "label": "reload retains sent evidence",
+    "tasks": [],
+    "home": [],
+    "evening": {
+      "text": "Nothing missed — all caught up for today.",
+      "facts": [],
+      "actions": [],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "No completed visits today yet.",
+      "facts": [
+        {
+          "label": "Still to do today",
+          "value": "1 visit without outcome"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 6 Nov 10:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Visits",
+          "onclick": "App.navigate('appointments', {tab: 'upcoming'})"
+        },
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "No message actions due right now. This does not confirm delivery or a customer reply.",
+      "facts": [],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "chromium",
+    "timezoneId": "Pacific/Kiritimati",
+    "label": "standard Move form resets old reminder",
+    "tasks": [
+      {
+        "kind": "visit_tomorrow",
+        "action": "Review the visit reminder",
+        "template": "day_before"
+      }
+    ],
+    "home": [
+      {
+        "icon": "campaign",
+        "label": "Follow-ups due",
+        "value": "1 task due — SYNTHETIC first",
+        "action": "App.navigate('followups')",
+        "actionLabel": "Open Follow-ups"
+      }
+    ],
+    "evening": {
+      "text": "End of day: 1 thing to review — 1 task.",
+      "facts": [
+        {
+          "label": "Follow-ups due",
+          "value": "1 task"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "No completed visits today yet.",
+      "facts": [
+        {
+          "label": "Follow-ups due",
+          "value": "1 task to review"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 7 Nov 10:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        },
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "1 message action to review — SYNTHETIC Summary first. Opening a message does not confirm it was sent.",
+      "facts": [
+        {
+          "label": "SYNTHETIC Summary · 7 Nov",
+          "value": "Review the visit reminder"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "chromium",
+    "timezoneId": "Pacific/Kiritimati",
+    "label": "cancelled",
+    "tasks": [],
+    "home": [],
+    "evening": {
+      "text": "Nothing missed — all caught up for today.",
+      "facts": [],
+      "actions": [],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "No completed visits today yet.",
+      "facts": [],
+      "actions": [],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "No message actions due right now. This does not confirm delivery or a customer reply.",
+      "facts": [],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "chromium",
+    "timezoneId": "Pacific/Kiritimati",
+    "label": "completed aftercare recorded",
+    "tasks": [],
+    "home": [],
+    "evening": {
+      "text": "Nothing missed — all caught up for today.",
+      "facts": [],
+      "actions": [],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "Last was SYNTHETIC Summary — day done.",
+      "facts": [
+        {
+          "label": "Last visit",
+          "value": "SYNTHETIC Summary · 06:00"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 6 Nov 06:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "No message actions due right now. This does not confirm delivery or a customer reply.",
+      "facts": [],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "chromium",
+    "timezoneId": "Pacific/Kiritimati",
+    "label": "two later visits known customer",
+    "tasks": [],
+    "home": [],
+    "evening": {
+      "text": "Nothing missed — all caught up for today.",
+      "facts": [],
+      "actions": [],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "Last was SYNTHETIC Summary — day done.",
+      "facts": [
+        {
+          "label": "Last visit",
+          "value": "SYNTHETIC Summary · 06:00"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 6 Nov 06:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "No message actions due right now. This does not confirm delivery or a customer reply.",
+      "facts": [],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "webkit",
+    "timezoneId": "Europe/London",
+    "label": "new fitting",
+    "tasks": [
+      {
+        "kind": "intro_confirmation",
+        "action": "Introduce yourself and confirm this visit",
+        "template": "intro_day_before"
+      }
+    ],
+    "home": [
+      {
+        "icon": "campaign",
+        "label": "Follow-ups due",
+        "value": "1 task due — SYNTHETIC first",
+        "action": "App.navigate('followups')",
+        "actionLabel": "Open Follow-ups"
+      }
+    ],
+    "evening": {
+      "text": "End of day: 1 thing to review — 1 task.",
+      "facts": [
+        {
+          "label": "Follow-ups due",
+          "value": "1 task"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "No completed visits today yet.",
+      "facts": [
+        {
+          "label": "Still to do today",
+          "value": "1 visit without outcome"
+        },
+        {
+          "label": "Follow-ups due",
+          "value": "1 task to review"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 6 Nov 10:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Visits",
+          "onclick": "App.navigate('appointments', {tab: 'upcoming'})"
+        },
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        },
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "1 message action to review — SYNTHETIC Summary first. Opening a message does not confirm it was sent.",
+      "facts": [
+        {
+          "label": "SYNTHETIC Summary · 6 Nov",
+          "value": "Introduce yourself and confirm this visit"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "webkit",
+    "timezoneId": "Europe/London",
+    "label": "handoff only",
+    "tasks": [
+      {
+        "kind": "send_confirmation",
+        "action": "Introduction and visit reminder — send status not recorded",
+        "template": "intro_day_before"
+      }
+    ],
+    "home": [
+      {
+        "icon": "campaign",
+        "label": "Follow-ups due",
+        "value": "1 task due · includes messages awaiting your sent status — SYNTHETIC first",
+        "action": "App.navigate('followups')",
+        "actionLabel": "Open Follow-ups"
+      }
+    ],
+    "evening": {
+      "text": "End of day: 1 thing to review — 1 task · includes messages awaiting your sent status.",
+      "facts": [
+        {
+          "label": "Follow-ups due",
+          "value": "1 task · includes messages awaiting your sent status"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "No completed visits today yet.",
+      "facts": [
+        {
+          "label": "Still to do today",
+          "value": "1 visit without outcome"
+        },
+        {
+          "label": "Follow-ups due",
+          "value": "1 task to review"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 6 Nov 10:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Visits",
+          "onclick": "App.navigate('appointments', {tab: 'upcoming'})"
+        },
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        },
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "1 message action to review — SYNTHETIC Summary first. Opening a message does not confirm it was sent.",
+      "facts": [
+        {
+          "label": "SYNTHETIC Summary · 6 Nov",
+          "value": "Introduction and visit reminder — send status not recorded"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "webkit",
+    "timezoneId": "Europe/London",
+    "label": "explicit sent and agreed",
+    "tasks": [],
+    "home": [],
+    "evening": {
+      "text": "Nothing missed — all caught up for today.",
+      "facts": [],
+      "actions": [],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "No completed visits today yet.",
+      "facts": [
+        {
+          "label": "Still to do today",
+          "value": "1 visit without outcome"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 6 Nov 10:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Visits",
+          "onclick": "App.navigate('appointments', {tab: 'upcoming'})"
+        },
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "No message actions due right now. This does not confirm delivery or a customer reply.",
+      "facts": [],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "webkit",
+    "timezoneId": "Europe/London",
+    "label": "offline reads retain sent evidence",
+    "tasks": [],
+    "home": [],
+    "evening": {
+      "text": "Nothing missed — all caught up for today.",
+      "facts": [],
+      "actions": [],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "No completed visits today yet.",
+      "facts": [
+        {
+          "label": "Still to do today",
+          "value": "1 visit without outcome"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 6 Nov 10:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Visits",
+          "onclick": "App.navigate('appointments', {tab: 'upcoming'})"
+        },
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "No message actions due right now. This does not confirm delivery or a customer reply.",
+      "facts": [],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "webkit",
+    "timezoneId": "Europe/London",
+    "label": "reload retains sent evidence",
+    "tasks": [],
+    "home": [],
+    "evening": {
+      "text": "Nothing missed — all caught up for today.",
+      "facts": [],
+      "actions": [],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "No completed visits today yet.",
+      "facts": [
+        {
+          "label": "Still to do today",
+          "value": "1 visit without outcome"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 6 Nov 10:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Visits",
+          "onclick": "App.navigate('appointments', {tab: 'upcoming'})"
+        },
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "No message actions due right now. This does not confirm delivery or a customer reply.",
+      "facts": [],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "webkit",
+    "timezoneId": "Europe/London",
+    "label": "standard Move form resets old reminder",
+    "tasks": [
+      {
+        "kind": "visit_tomorrow",
+        "action": "Review the visit reminder",
+        "template": "day_before"
+      }
+    ],
+    "home": [
+      {
+        "icon": "campaign",
+        "label": "Follow-ups due",
+        "value": "1 task due — SYNTHETIC first",
+        "action": "App.navigate('followups')",
+        "actionLabel": "Open Follow-ups"
+      }
+    ],
+    "evening": {
+      "text": "End of day: 1 thing to review — 1 task.",
+      "facts": [
+        {
+          "label": "Follow-ups due",
+          "value": "1 task"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "No completed visits today yet.",
+      "facts": [
+        {
+          "label": "Follow-ups due",
+          "value": "1 task to review"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 7 Nov 10:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        },
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "1 message action to review — SYNTHETIC Summary first. Opening a message does not confirm it was sent.",
+      "facts": [
+        {
+          "label": "SYNTHETIC Summary · 7 Nov",
+          "value": "Review the visit reminder"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "webkit",
+    "timezoneId": "Europe/London",
+    "label": "cancelled",
+    "tasks": [],
+    "home": [],
+    "evening": {
+      "text": "Nothing missed — all caught up for today.",
+      "facts": [],
+      "actions": [],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "No completed visits today yet.",
+      "facts": [],
+      "actions": [],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "No message actions due right now. This does not confirm delivery or a customer reply.",
+      "facts": [],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "webkit",
+    "timezoneId": "Europe/London",
+    "label": "completed aftercare recorded",
+    "tasks": [],
+    "home": [],
+    "evening": {
+      "text": "Nothing missed — all caught up for today.",
+      "facts": [],
+      "actions": [],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "Last was SYNTHETIC Summary — day done.",
+      "facts": [
+        {
+          "label": "Last visit",
+          "value": "SYNTHETIC Summary · 06:00"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 6 Nov 06:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "No message actions due right now. This does not confirm delivery or a customer reply.",
+      "facts": [],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "webkit",
+    "timezoneId": "Europe/London",
+    "label": "two later visits known customer",
+    "tasks": [],
+    "home": [],
+    "evening": {
+      "text": "Nothing missed — all caught up for today.",
+      "facts": [],
+      "actions": [],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "Last was SYNTHETIC Summary — day done.",
+      "facts": [
+        {
+          "label": "Last visit",
+          "value": "SYNTHETIC Summary · 06:00"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 6 Nov 06:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "No message actions due right now. This does not confirm delivery or a customer reply.",
+      "facts": [],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "webkit",
+    "timezoneId": "Pacific/Kiritimati",
+    "label": "new fitting",
+    "tasks": [
+      {
+        "kind": "intro_confirmation",
+        "action": "Introduce yourself and confirm this visit",
+        "template": "intro_day_before"
+      }
+    ],
+    "home": [
+      {
+        "icon": "campaign",
+        "label": "Follow-ups due",
+        "value": "1 task due — SYNTHETIC first",
+        "action": "App.navigate('followups')",
+        "actionLabel": "Open Follow-ups"
+      }
+    ],
+    "evening": {
+      "text": "End of day: 1 thing to review — 1 task.",
+      "facts": [
+        {
+          "label": "Follow-ups due",
+          "value": "1 task"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "No completed visits today yet.",
+      "facts": [
+        {
+          "label": "Still to do today",
+          "value": "1 visit without outcome"
+        },
+        {
+          "label": "Follow-ups due",
+          "value": "1 task to review"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 6 Nov 10:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Visits",
+          "onclick": "App.navigate('appointments', {tab: 'upcoming'})"
+        },
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        },
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "1 message action to review — SYNTHETIC Summary first. Opening a message does not confirm it was sent.",
+      "facts": [
+        {
+          "label": "SYNTHETIC Summary · 6 Nov",
+          "value": "Introduce yourself and confirm this visit"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "webkit",
+    "timezoneId": "Pacific/Kiritimati",
+    "label": "handoff only",
+    "tasks": [
+      {
+        "kind": "send_confirmation",
+        "action": "Introduction and visit reminder — send status not recorded",
+        "template": "intro_day_before"
+      }
+    ],
+    "home": [
+      {
+        "icon": "campaign",
+        "label": "Follow-ups due",
+        "value": "1 task due · includes messages awaiting your sent status — SYNTHETIC first",
+        "action": "App.navigate('followups')",
+        "actionLabel": "Open Follow-ups"
+      }
+    ],
+    "evening": {
+      "text": "End of day: 1 thing to review — 1 task · includes messages awaiting your sent status.",
+      "facts": [
+        {
+          "label": "Follow-ups due",
+          "value": "1 task · includes messages awaiting your sent status"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "No completed visits today yet.",
+      "facts": [
+        {
+          "label": "Still to do today",
+          "value": "1 visit without outcome"
+        },
+        {
+          "label": "Follow-ups due",
+          "value": "1 task to review"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 6 Nov 10:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Visits",
+          "onclick": "App.navigate('appointments', {tab: 'upcoming'})"
+        },
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        },
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "1 message action to review — SYNTHETIC Summary first. Opening a message does not confirm it was sent.",
+      "facts": [
+        {
+          "label": "SYNTHETIC Summary · 6 Nov",
+          "value": "Introduction and visit reminder — send status not recorded"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "webkit",
+    "timezoneId": "Pacific/Kiritimati",
+    "label": "explicit sent and agreed",
+    "tasks": [],
+    "home": [],
+    "evening": {
+      "text": "Nothing missed — all caught up for today.",
+      "facts": [],
+      "actions": [],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "No completed visits today yet.",
+      "facts": [
+        {
+          "label": "Still to do today",
+          "value": "1 visit without outcome"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 6 Nov 10:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Visits",
+          "onclick": "App.navigate('appointments', {tab: 'upcoming'})"
+        },
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "No message actions due right now. This does not confirm delivery or a customer reply.",
+      "facts": [],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "webkit",
+    "timezoneId": "Pacific/Kiritimati",
+    "label": "offline reads retain sent evidence",
+    "tasks": [],
+    "home": [],
+    "evening": {
+      "text": "Nothing missed — all caught up for today.",
+      "facts": [],
+      "actions": [],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "No completed visits today yet.",
+      "facts": [
+        {
+          "label": "Still to do today",
+          "value": "1 visit without outcome"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 6 Nov 10:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Visits",
+          "onclick": "App.navigate('appointments', {tab: 'upcoming'})"
+        },
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "No message actions due right now. This does not confirm delivery or a customer reply.",
+      "facts": [],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "webkit",
+    "timezoneId": "Pacific/Kiritimati",
+    "label": "reload retains sent evidence",
+    "tasks": [],
+    "home": [],
+    "evening": {
+      "text": "Nothing missed — all caught up for today.",
+      "facts": [],
+      "actions": [],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "No completed visits today yet.",
+      "facts": [
+        {
+          "label": "Still to do today",
+          "value": "1 visit without outcome"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 6 Nov 10:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Visits",
+          "onclick": "App.navigate('appointments', {tab: 'upcoming'})"
+        },
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "No message actions due right now. This does not confirm delivery or a customer reply.",
+      "facts": [],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "webkit",
+    "timezoneId": "Pacific/Kiritimati",
+    "label": "standard Move form resets old reminder",
+    "tasks": [
+      {
+        "kind": "visit_tomorrow",
+        "action": "Review the visit reminder",
+        "template": "day_before"
+      }
+    ],
+    "home": [
+      {
+        "icon": "campaign",
+        "label": "Follow-ups due",
+        "value": "1 task due — SYNTHETIC first",
+        "action": "App.navigate('followups')",
+        "actionLabel": "Open Follow-ups"
+      }
+    ],
+    "evening": {
+      "text": "End of day: 1 thing to review — 1 task.",
+      "facts": [
+        {
+          "label": "Follow-ups due",
+          "value": "1 task"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "No completed visits today yet.",
+      "facts": [
+        {
+          "label": "Follow-ups due",
+          "value": "1 task to review"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 7 Nov 10:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        },
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "1 message action to review — SYNTHETIC Summary first. Opening a message does not confirm it was sent.",
+      "facts": [
+        {
+          "label": "SYNTHETIC Summary · 7 Nov",
+          "value": "Review the visit reminder"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "webkit",
+    "timezoneId": "Pacific/Kiritimati",
+    "label": "cancelled",
+    "tasks": [],
+    "home": [],
+    "evening": {
+      "text": "Nothing missed — all caught up for today.",
+      "facts": [],
+      "actions": [],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "No completed visits today yet.",
+      "facts": [],
+      "actions": [],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "No message actions due right now. This does not confirm delivery or a customer reply.",
+      "facts": [],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "webkit",
+    "timezoneId": "Pacific/Kiritimati",
+    "label": "completed aftercare recorded",
+    "tasks": [],
+    "home": [],
+    "evening": {
+      "text": "Nothing missed — all caught up for today.",
+      "facts": [],
+      "actions": [],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "Last was SYNTHETIC Summary — day done.",
+      "facts": [
+        {
+          "label": "Last visit",
+          "value": "SYNTHETIC Summary · 06:00"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 6 Nov 06:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "No message actions due right now. This does not confirm delivery or a customer reply.",
+      "facts": [],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  },
+  {
+    "engine": "webkit",
+    "timezoneId": "Pacific/Kiritimati",
+    "label": "two later visits known customer",
+    "tasks": [],
+    "home": [],
+    "evening": {
+      "text": "Nothing missed — all caught up for today.",
+      "facts": [],
+      "actions": [],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "week"
+      ]
+    },
+    "after": {
+      "text": "Last was SYNTHETIC Summary — day done.",
+      "facts": [
+        {
+          "label": "Last visit",
+          "value": "SYNTHETIC Summary · 06:00"
+        },
+        {
+          "label": "Next up",
+          "value": "SYNTHETIC Summary · 6 Nov 06:00"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Navigate",
+          "onclick": "AppointmentsFeature.navigateToVisit('', 1)"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "messages",
+        "next visit"
+      ]
+    },
+    "messages": {
+      "text": "No message actions due right now. This does not confirm delivery or a customer reply.",
+      "facts": [],
+      "actions": [
+        {
+          "label": "Open Follow-ups",
+          "onclick": "App.navigate('followups')"
+        }
+      ],
+      "suggestions": [
+        "next visit",
+        "follow-ups",
+        "today"
+      ]
+    }
+  }
+]
