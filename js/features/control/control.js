@@ -110,6 +110,10 @@ const ControlFeature = {
           `)}
 
           ${card('Customer', `
+            <button class="control-tile" type="button" title="All customers and personal tasks" data-action="App.navigate" data-args='${JSON.stringify(["followups"])}'>
+              <span class="material-symbols-rounded" aria-hidden="true">campaign</span>
+              <span>Follow-ups</span>
+            </button>
             <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["jobs"])}'>
               <span class="material-symbols-rounded">construction</span>
               <span>Jobs</span>

@@ -61,7 +61,7 @@ const ok = (label, cond, extra) => {
   const msRemote = remoteRequests.filter(u => /material/i.test(u));
   ok('no Google Fonts requests for the ICON font reach the page', msRemote.length === 0, { iconRequests: msRemote.length });
   ok('zero Google Fonts requests reach the page at all (all fonts self-hosted)', remoteRequests.length === 0, { remote: remoteRequests });
-  ok('nav labels are the 5 static names', JSON.stringify(s1.navLabels) === JSON.stringify(['Home', 'Follow-ups', 'Orders', 'Money', 'Tools']), s1.navLabels);
+  ok('nav labels are the 4 static names', JSON.stringify(s1.navLabels) === JSON.stringify(['Home', 'Orders', 'Money', 'Tools']), s1.navLabels);
   ok('nav icons render as glyphs (≤40px)', s1.navIconWidths.every(w => w <= 40), s1.navIconWidths);
   ok('zero raw ligature text anywhere on Home (all icon spans ≤48px)', s1.wideIcons === 0, { wideIcons: s1.wideIcons });
 
@@ -87,7 +87,7 @@ const ok = (label, cond, extra) => {
   }));
   console.log('\n=== 2. True offline (service-worker precache) ===');
   ok('offline: icon font still renders as glyphs', s2.navIconWidths.every(w => w <= 40) && s2.wideIcons === 0 && s2.etaWidth !== null && s2.ctaWidth !== null && s2.ctaWidth <= 48, s2);
-  ok('offline: nav labels intact', JSON.stringify(s2.navLabels) === JSON.stringify(['Home', 'Follow-ups', 'Orders', 'Money', 'Tools']), s2.navLabels);
+  ok('offline: nav labels intact', JSON.stringify(s2.navLabels) === JSON.stringify(['Home', 'Orders', 'Money', 'Tools']), s2.navLabels);
   await ctx2.setOffline(false);
 
   /* ---- 3. Home clearance at full scroll (390 and 320) ---- */

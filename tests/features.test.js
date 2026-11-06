@@ -195,7 +195,7 @@ const assert = (cond, msg) => { if (!cond) { console.error('FAIL:', msg); proces
   const Customer = global.App.features.get('customer');
   assert(!!Followups, 'FollowupsFeature registered');
   assert(!!Orders && !!Customer, 'Orders + Customer features registered');
-  assert(Followups.route !== false && Orders.route !== false, 'Both are bottom-nav tabs');
+  assert(Followups.route === false && Orders.route !== false, 'Follow-ups is secondary; Orders remains in bottom navigation');
 
   const tasks = await Followups.loadTasks();
   const kinds = tasks.map(t => t.kind).sort();

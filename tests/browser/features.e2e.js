@@ -7,7 +7,7 @@
    headless Chrome over the DevTools Protocol, seeds a realistic sales
    scenario into 'advisoros_v6' (seed-features.html), then asserts:
      1. the app boots clean (no error/exception console lines)
-     2. bottom nav order: Home, Follow-ups, Orders, Money, Tools
+     2. bottom nav order: Home, Orders, Money, Tools
      3. Follow-ups inbox: all four task kinds due, badge count = 4
      4. Orders kanban: five columns, order card with balance, auto-paid
      5. Customer 360: profile renders quotes, order, measurement, name
@@ -163,7 +163,7 @@ async function evaluate(ws, expression) {
     ok('boot: no resource 404s (favicon exempt)', bad404.length === 0, http404s.slice(0, 5));
 
     const navOrder = await evaluate(ws, `Array.from(document.querySelectorAll('#bottom-nav .nav-item')).map(b => b.dataset.feature)`);
-    ok('nav order Home, Follow-ups, Orders, Money, Tools', JSON.stringify(navOrder) === JSON.stringify(['today', 'followups', 'orders', 'money', 'control']), navOrder);
+    ok('nav order Home, Orders, Money, Tools', JSON.stringify(navOrder) === JSON.stringify(['today', 'orders', 'money', 'control']), navOrder);
 
     console.log('STEP3 Follow-ups inbox…');
     await navigateTo('followups');

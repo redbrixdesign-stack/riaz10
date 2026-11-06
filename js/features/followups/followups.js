@@ -16,6 +16,7 @@ const FollowupsFeature = {
   id: 'followups',
   name: 'Follow-ups',
   icon: 'campaign',
+  route: false, // Secondary all-customer overview; customer actions remain in their workspace.
 
   // How many days after an order is created before its deposit reminder
   // becomes "due". Orders keep no due-date field, so this is the trigger.
@@ -665,7 +666,7 @@ const FollowupsFeature = {
 
     return `
       <div class="fade-in">
-        ${App.renderTopHeader({ title: 'Follow-ups', actions: `<button class="btn btn-outline btn-sm followups-header-action" title="Open leads" aria-label="Open leads" data-action="App.navigate" data-args='${JSON.stringify(["leads"])}'><span aria-hidden="true" class="material-symbols-rounded fs-18">inbox</span><span class="header-action-text">Leads</span></button><button class="btn btn-primary btn-sm followups-header-action" title="Create new task" aria-label="Create new task" data-action="FollowupsFeature.openNewTask"><span aria-hidden="true" class="material-symbols-rounded fs-18">add</span><span class="header-action-text">New task</span></button>` })}
+        ${App.renderTopHeader({ title: 'Follow-ups', showBack: true, backHref: 'control', actions: `<button class="btn btn-outline btn-sm followups-header-action" title="Open leads" aria-label="Open leads" data-action="App.navigate" data-args='${JSON.stringify(["leads"])}'><span aria-hidden="true" class="material-symbols-rounded fs-18">inbox</span><span class="header-action-text">Leads</span></button><button class="btn btn-primary btn-sm followups-header-action" title="Create new task" aria-label="Create new task" data-action="FollowupsFeature.openNewTask"><span aria-hidden="true" class="material-symbols-rounded fs-18">add</span><span class="header-action-text">New task</span></button>` })}
         <div class="px-md pb-lg" >
           <p class="fs-13 text-secondary mb-md">Choose a customer to see their next actions and communication history in one place. Personal and unlinked tasks remain here. Nothing sends automatically.</p>
           <button class="btn btn-outline btn-sm mb-md" data-action="TalkFeature.openSavedDrafts">Resume saved messages</button>

@@ -13,7 +13,7 @@ const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42
   await p.goto(base);await p.locator('#enc-passphrase-new').fill('SYNTHETIC-lazy-device');await p.locator('#enc-passphrase-confirm').fill('SYNTHETIC-lazy-device');await p.getByRole('button',{name:'Set Passphrase',exact:true}).click();await p.waitForFunction(()=>App.currentHash==='today');
   await p.evaluate(()=>navigator.serviceWorker.ready);await p.waitForFunction(()=>!!navigator.serviceWorker.controller);await p.waitForTimeout(700);
   const id=await p.evaluate(async()=>{AIService.isEnabled=()=>false;const c=await DB.addCustomer({firstName:'SYNTHETIC',lastName:'Social'});return (await DB.addAppointment({customerId:c.id,type:'fitting',clientName:'SYNTHETIC Social',date:'2020-01-01T10:00:00Z'})).id;});
-  assert.equal(await p.locator('.nav-item').count(),5);
+  assert.equal(await p.locator('.nav-item').count(),4);
   await p.evaluate(id=>App.navigate('social',{appointmentId:id}),id);await p.locator('#social-consent').waitFor();
   assert(await p.evaluate(()=>App.currentFeature===SocialFeature&&App.features.get('social')===SocialFeature));assert.equal(await p.evaluate(()=>SocialFeature.appointmentId),id);
   await p.locator('#social-media-input').setInputFiles({name:'SYNTHETIC-finished.png',mimeType:'image/png',buffer:png});
@@ -22,11 +22,11 @@ const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42
   await p.evaluate(()=>SocialFeature.generate());await p.locator('#social-draft-warm').waitFor();
   const draft=await p.locator('#social-draft-warm').inputValue();assert.match(draft,/SYNTHETIC blue roller/);
   assert.equal(await p.evaluate(async id=>(await DB.getAppointment(id)).socialDrafts.warm,id),draft);
-  await p.reload();await p.locator('#social-draft-warm').waitFor();assert.equal(await p.locator('#social-draft-warm').inputValue(),draft);assert.equal(await p.locator('.nav-item').count(),5);
+  await p.reload();await p.locator('#social-draft-warm').waitFor();assert.equal(await p.locator('#social-draft-warm').inputValue(),draft);assert.equal(await p.locator('.nav-item').count(),4);
   for(const route of ['quotes','jobs','invoices','suppliers','capacity','profitability','retention','settings']){
    await p.evaluate(route=>App.navigate(route),route);await p.waitForFunction(route=>App.currentHash===route,route);
    assert(await p.evaluate(route=>{const real={quotes:()=>QuotesFeature,jobs:()=>JobsFeature,invoices:()=>InvoicesFeature,suppliers:()=>SuppliersFeature,capacity:()=>CapacityFeature,profitability:()=>ProfitabilityFeature,retention:()=>RetentionFeature,settings:()=>SettingsFeature}[route]();return App.currentFeature===real&&App.features.get(route)===real;},route));
-   assert.equal(await p.locator('.nav-item').count(),5);assert(!/Failed to load|Something went wrong/.test(await p.locator('#main').innerText()));
+   assert.equal(await p.locator('.nav-item').count(),4);assert(!/Failed to load|Something went wrong/.test(await p.locator('#main').innerText()));
   }
   // Force a stale same-route render to resolve after the newer fitting.
   await p.evaluate(async id=>{const get=DB.getAppointment.bind(DB);window.lazyGet=get;window.releaseOld=null;DB.getAppointment=visit=>visit===999999?new Promise(resolve=>window.releaseOld=()=>resolve({id:999999,type:'fitting'})):get(visit);App.navigate('social',{appointmentId:999999});App.navigate('social',{appointmentId:id});},id);
