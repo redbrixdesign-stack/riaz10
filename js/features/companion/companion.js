@@ -721,27 +721,6 @@ const CompanionFeature = {
       });
     }
 
-    // Morning-of messages are not part of the derived Follow-ups inbox.
-    // Intro and day-before reminders are already counted above, so counting
-    // them here too would make Home report the same work twice.
-    let messagesDue = 0;
-    const upcomingAll = await DB.getUpcomingAppointments(7);
-    for (const a of upcomingAll) {
-      if (a.status !== 'confirmed' || !a.phone && !a.customerId) continue;
-      if (new Date(a.date).toDateString() === Utils.getToday().toDateString()) {
-        if (!localStorage.getItem(`advisoros_auto_morning_of_${a.id}`)) messagesDue++;
-      }
-    }
-    if (messagesDue > 0) {
-      attention.push({
-        icon: 'mark_email_unread',
-        label: 'Messages unsent',
-        value: `${messagesDue} visit${messagesDue === 1 ? '' : 's'} need a message`,
-        action: "App.navigate('followups')",
-        actionLabel: 'Open Follow-ups'
-      });
-    }
-
     // Unpaid orders
     const unpaidOrders = orders.filter(o => (o.balanceDue || 0) > 0);
     if (unpaidOrders.length > 0) {
@@ -837,9 +816,6 @@ const CompanionFeature = {
     
     if (homeData.nextVisit) {
       chips.push(['Next visit', 'near_me', `${homeData.nextVisit.name} · ${homeData.nextVisit.time}`, 'next visit']);
-    }
-    if (homeData.attention.some(a => a.label === 'Messages unsent')) {
-      chips.push(['Messages', 'mark_email_unread', 'Messages unsent', 'messages']);
     }
     if (homeData.attention.some(a => a.label === 'Payments outstanding')) {
       chips.push(['Unpaid', 'payments', 'Payments outstanding', 'orders']);
@@ -1618,71 +1594,29 @@ const CompanionFeature = {
   },
 
   async answerMessages() {
-    let upcoming = [];
-    let allAppts = [];
-    try { upcoming = await DB.getUpcomingAppointments(60); } catch (e) {}
-    try { allAppts = await DB.getAllAppointments(); } catch (e) {}
-
-    const now = new Date();
-    const pastFirstVisit = new Set();
+    let tasks;
     try {
-      for (const a of allAppts) {
-        if (!a.customerId || a.status === 'cancelled') continue;
-        if (new Date(a.date) >= now) continue;
-        pastFirstVisit.add(a.customerId);
-      }
-    } catch (e) {}
-    // UK-day matching (iso keys) — the day a message is owed follows the UK
-    // calendar like every other deadline in the app, not the device's.
-    const dayKey = d => Utils.formatDate(d, 'iso');
-    const sameDay = a => dayKey(a.date) === dayKey(now);
-    const tomorrow = Utils.getTomorrow();
-    const sameDayOn = (dateStr, ref) => dayKey(dateStr) === dayKey(ref);
-    const autoFlag = (stage, id) => {
-      try { return localStorage.getItem(`advisoros_auto_${stage}_${id}`) === '1'; } catch (e) { return false; }
-    };
-
-    const owed = upcoming
-      .filter(a => a.status === 'confirmed' && (a.phone || a.customerId))
-      .map(a => {
-        let stage = null;
-        if (sameDayOn(a.date, tomorrow) && !apptSent(a, 'dayBefore')) {
-          stage = { label: 'Day-before — not sent', send: 'evening_before' };
-        } else if (sameDay(a) && !apptSent(a, 'morning')) {
-          stage = { label: 'Morning-of — not sent', send: 'morning_of' };
-        } else if (!a.introSent && (!a.customerId || !pastFirstVisit.has(a.customerId))) {
-          stage = { label: 'Intro — not sent', send: 'pre_intro' };
-        }
-        return stage ? { appt: a, stage } : null;
-      })
-      .filter(Boolean)
-      .sort((x, y) => new Date(x.appt.date) - new Date(y.appt.date));
-
-    function apptSent(a, name) {
-      if (name === 'dayBefore') return !!(a.dayBeforeSent || autoFlag('evening_before', a.id));
-      if (name === 'morning') return autoFlag('morning_of', a.id);
-      return false;
-    }
-
-    if (!owed.length) {
+      tasks = (await FollowupsFeature.loadTasks()).filter(t => t.due &&
+        (t.template || t.kind === 'send_confirmation'));
+    } catch (e) {
       return {
-        text: 'Nothing owed right now — every upcoming visit has its messages sent or covered.',
+        text: 'I could not check your message actions. Open the customer or try again.',
         facts: [],
         actions: [{ label: 'Open Follow-ups', onclick: "App.navigate('followups')" }],
         suggestions: ['today', 'next visit', 'help']
       };
     }
-
-    const facts = owed.slice(0, 6).map(({ appt, stage }) => ({
-      label: `${appt.clientName || 'Customer'} · ${Utils.formatDateUK(appt.date, 'short')}`,
-      value: stage.label
-    }));
-    const first = owed[0];
-
+    const nameOf = t => (t.customer && (t.customer.fullName || t.customer.firstName)) ||
+      (t.appointment && t.appointment.clientName) || 'Customer';
     return {
-      text: `${owed.length} visit${owed.length === 1 ? '' : 's'} owe a message${first ? ` — ${first.appt.clientName || 'Customer'} on ${Utils.formatDateUK(first.appt.date, 'short')} first` : ''}.`,
-      facts,
-      actions: [{ label: 'Send in Follow-ups', onclick: "App.navigate('followups')" }],
+      text: tasks.length
+        ? `${tasks.length} message action${tasks.length === 1 ? '' : 's'} to review — ${nameOf(tasks[0])} first. Opening a message does not confirm it was sent.`
+        : 'No message actions due right now. This does not confirm delivery or a customer reply.',
+      facts: tasks.slice(0, 6).map(t => ({
+        label: `${nameOf(t)}${t.appointment?.date ? ' · ' + Utils.formatDateUK(t.appointment.date, 'short') : ''}`,
+        value: String(t.action || 'Review message')
+      })),
+      actions: [{ label: 'Open Follow-ups', onclick: "App.navigate('followups')" }],
       suggestions: ['next visit', 'follow-ups', 'today']
     };
   },
@@ -1693,10 +1627,8 @@ const CompanionFeature = {
   async answerAfterVisit() {
     const today = Utils.getToday();
     let todayAppts = [];
-    let allAppts = [];
     try {
       todayAppts = (await DB.getAppointmentsForDate(today.toISOString())).filter(a => a.status !== 'cancelled');
-      allAppts = await DB.getAllAppointments();
     } catch (e) {}
 
     // Find the most recent completed/outcome-logged visit today
@@ -1709,21 +1641,9 @@ const CompanionFeature = {
       .filter(a => !a.outcome && a.status !== 'completed')
       .sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    // Upcoming visits needing messages (intro, day-before, morning-of)
-    const messagesDue = [];
-    const pastFirstVisit = new Set();
-    for (const a of allAppts) {
-      if (!a.customerId || a.status === 'cancelled') continue;
-      if (new Date(a.date) >= new Date()) continue;
-      pastFirstVisit.add(a.customerId);
-    }
-    const upcoming = await DB.getUpcomingAppointments(7);
-    for (const a of upcoming) {
-      if (a.status !== 'confirmed' || !a.phone && !a.customerId) continue;
-      if (a.introSent || (a.customerId && pastFirstVisit.has(a.customerId))) continue;
-      if (new Date(a.date).toDateString() === today.toDateString()) continue; // today handled separately
-      messagesDue.push({ appt: a, reason: 'Intro not sent', template: 'pre_intro' });
-    }
+    let dueFollowUps = [], followUpsUnavailable = false;
+    try { dueFollowUps = (await FollowupsFeature.loadTasks()).filter(t => t.due); }
+    catch (e) { followUpsUnavailable = true; }
 
     const facts = [];
     const actions = [];
@@ -1735,13 +1655,7 @@ const CompanionFeature = {
       if (!last.outcome) {
         actions.push({ label: 'Log outcome', onclick: `App.navigate('appointments', {id: ${last.id}})` });
       }
-      // Suggest follow-up based on outcome
-      if (last.outcome) {
-        const match = TalkFeature.getTemplateForOutcome(last.outcome);
-        if (match && match.minDays === 0) {
-          actions.push({ label: `Send ${match.action}`, onclick: `TalkFeature.sendMessage(${last.id}, '${match.template}')` });
-        }
-      }
+
     }
 
     if (pendingToday.length) {
@@ -1749,12 +1663,15 @@ const CompanionFeature = {
       actions.push({ label: 'Open Visits', onclick: "App.navigate('appointments', {tab: 'upcoming'})" });
     }
 
-    if (messagesDue.length) {
-      facts.push({ label: 'Messages due', value: `${messagesDue.length} upcoming visit${messagesDue.length === 1 ? '' : 's'} need intro/day-before` });
-      actions.push({ label: 'Send in Follow-ups', onclick: "App.navigate('followups')" });
+    if (followUpsUnavailable) {
+      facts.push({ label: 'Follow-ups unavailable', value: 'Could not check current actions — try again' });
+    } else if (dueFollowUps.length) {
+      facts.push({ label: 'Follow-ups due', value: `${dueFollowUps.length} task${dueFollowUps.length === 1 ? '' : 's'} to review` });
+      actions.push({ label: 'Open Follow-ups', onclick: "App.navigate('followups')" });
     }
 
     // Next visit today or tomorrow
+    const upcoming = await DB.getUpcomingAppointments(7);
     const next = pendingToday[0] || upcoming.find(a => a.status !== 'cancelled');
     if (next) {
       const eta = await this.etaFor(next);
@@ -1776,14 +1693,12 @@ const CompanionFeature = {
 
   /* ---------- Evening review handler ---------- */
   // Situation 7: "What have I missed?" — end of day wrap-up.
-  // Shows: unsent messages, unlogged outcomes, unpaid orders, due follow-ups.
+  // Shows: unlogged outcomes, unpaid orders and one canonical due-task summary.
   async answerEveningReview() {
     const today = Utils.getToday();
     let todayAppts = [];
-    let allAppts = [];
     try {
       todayAppts = (await DB.getAppointmentsForDate(today.toISOString())).filter(a => a.status !== 'cancelled');
-      allAppts = await DB.getAllAppointments();
     } catch (e) {}
 
     const facts = [];
@@ -1796,38 +1711,7 @@ const CompanionFeature = {
       actions.push({ label: 'Log outcomes', onclick: "App.navigate('appointments', {tab: 'upcoming'})" });
     }
 
-    // 2. Upcoming visits needing messages (intro, day-before, morning-of)
-    const pastFirstVisit = new Set();
-    for (const a of allAppts) {
-      if (!a.customerId || a.status === 'cancelled') continue;
-      if (new Date(a.date) >= new Date()) continue;
-      pastFirstVisit.add(a.customerId);
-    }
-    const upcoming = await DB.getUpcomingAppointments(7);
-    const messagesDue = [];
-    for (const a of upcoming) {
-      if (a.status !== 'confirmed' || !a.phone && !a.customerId) continue;
-      if (new Date(a.date).toDateString() === today.toDateString()) {
-        // Today - check morning-of
-        if (!localStorage.getItem(`advisoros_auto_morning_of_${a.id}`)) {
-          messagesDue.push({ appt: a, reason: 'Morning-of not sent', template: 'morning_of' });
-        }
-      } else if (new Date(a.date).toDateString() === new Date(today.getTime() + 86400000).toDateString()) {
-        // Tomorrow - check day-before
-        if (!a.dayBeforeSent && !localStorage.getItem(`advisoros_auto_evening_before_${a.id}`)) {
-          messagesDue.push({ appt: a, reason: 'Day-before not sent', template: 'evening_before' });
-        }
-      } else if (!a.introSent && (!a.customerId || !pastFirstVisit.has(a.customerId))) {
-        // Future - check intro
-        messagesDue.push({ appt: a, reason: 'Intro not sent', template: 'pre_intro' });
-      }
-    }
-    if (messagesDue.length) {
-      facts.push({ label: 'Messages unsent', value: `${messagesDue.length} visit${messagesDue.length === 1 ? '' : 's'} need a message` });
-      actions.push({ label: 'Send in Follow-ups', onclick: "App.navigate('followups')" });
-    }
-
-    // 3. Unpaid orders
+    // 2. Unpaid orders
     let unpaidOrders = [];
     try {
       const orders = await DB.db.orders.toArray();
@@ -1839,33 +1723,17 @@ const CompanionFeature = {
       actions.push({ label: 'Open Orders', onclick: "App.navigate('orders')" });
     }
 
-    // 4. Due follow-ups
+    // 3. Due follow-ups, including communication send-status actions.
     let dueFollowUps = [];
     try {
       dueFollowUps = (await FollowupsFeature.loadTasks()).filter(t => t.due);
-    } catch (e) {}
+    } catch (e) {
+      facts.push({ label: 'Follow-ups unavailable', value: 'Could not check current actions — try again' });
+    }
     if (dueFollowUps.length) {
-      facts.push({ label: 'Follow-ups due', value: `${dueFollowUps.length} task${dueFollowUps.length === 1 ? '' : 's'}` });
+      facts.push({ label: 'Follow-ups due', value: `${dueFollowUps.length} task${dueFollowUps.length === 1 ? '' : 's'}${dueFollowUps.some(t => t.kind === 'send_confirmation') ? ' · includes messages awaiting your sent status' : ''}` });
       if (!actions.some(a => a.label === 'Open Follow-ups')) {
         actions.push({ label: 'Open Follow-ups', onclick: "App.navigate('followups')" });
-      }
-    }
-
-    // 5. Completed visits today - any follow-up needed?
-    const doneToday = todayAppts.filter(a => a.outcome || a.status === 'completed');
-    if (doneToday.length) {
-      const needsFollowUp = doneToday.filter(a => {
-        const match = TalkFeature.getTemplateForOutcome(a.outcome);
-        return match && match.minDays === 0;
-      });
-      if (needsFollowUp.length) {
-        facts.push({ label: 'Immediate follow-ups', value: `${needsFollowUp.length} visit${needsFollowUp.length === 1 ? '' : 's'} need a message now` });
-        for (const nf of needsFollowUp.slice(0, 2)) {
-          const match = TalkFeature.getTemplateForOutcome(nf.outcome);
-          if (match) {
-            actions.push({ label: `Send ${match.action}`, onclick: `TalkFeature.sendMessage(${nf.id}, '${match.template}')` });
-          }
-        }
       }
     }
 

@@ -1,0 +1,30 @@
+{
+  "stage": "https://beelo1-de6mvfvyq-beelomvp.vercel.app",
+  "sourceCommit": "e0876c8f579cbca4ecb6e4381ffea78461e43cec",
+  "files": [
+    {
+      "file": "index.html",
+      "source": "efe30a921f986a4e495cdfcbe2affd54aa33a2b0249a51b49d781243234e2a7c",
+      "stage": "efe30a921f986a4e495cdfcbe2affd54aa33a2b0249a51b49d781243234e2a7c",
+      "public": "efe30a921f986a4e495cdfcbe2affd54aa33a2b0249a51b49d781243234e2a7c"
+    },
+    {
+      "file": "sw.js",
+      "source": "d42367c0d2ac16a7d82b06f8d68692aa369f98b00d832dbeff2259754f0648f8",
+      "stage": "d42367c0d2ac16a7d82b06f8d68692aa369f98b00d832dbeff2259754f0648f8",
+      "public": "d42367c0d2ac16a7d82b06f8d68692aa369f98b00d832dbeff2259754f0648f8"
+    },
+    {
+      "file": "js/features/control/control.min.js",
+      "source": "31f2cd09400caadb2b56fb32382faa1b37409f9b79f50b4edce05f1fdb1124d3",
+      "stage": "31f2cd09400caadb2b56fb32382faa1b37409f9b79f50b4edce05f1fdb1124d3",
+      "public": "31f2cd09400caadb2b56fb32382faa1b37409f9b79f50b4edce05f1fdb1124d3"
+    },
+    {
+      "file": "js/features/followups/followups.min.js",
+      "source": "6f249fe09b350f6acc0e23f64ae63eec42dae1ce75861b4785077e89113cc193",
+      "stage": "6f249fe09b350f6acc0e23f64ae63eec42dae1ce75861b4785077e89113cc193",
+      "public": "6f249fe09b350f6acc0e23f64ae63eec42dae1ce75861b4785077e89113cc193"
+    }
+  ]
+}

@@ -284,12 +284,16 @@ assert(norm('random gibberish 123') === 'default', 'unknown routes to default');
   // unified Follow-ups inbox, while the Messages rule can still explain it.
   const chipsWarm = await Companion.buildWelcomeChips();
   assert(chipsWarm.some(c => c[3] === 'next visit') && chipsWarm.some(c => c[3] === 'follow-ups'), 'Welcome chips are live: next visit + intro follow-up', chipsWarm);
+  const priorMessageLoader = FollowupsFeature.loadTasks;
+  FollowupsFeature.loadTasks = async () => APPOINTMENTS.filter(a => a.id === 3 && !a.introSent).map(a => ({kind:'intro',due:true,appointment:a,template:'pre_intro',action:'Introduce yourself before this visit'}));
   const msgs = await Companion.answerMessages();
-  assert(msgs.text.includes('owe a message'), 'Messages rule names the owed booking', msgs.text);
-  assert(msgs.facts.some(f => f.label.includes('Amelia Green') && f.value === 'Intro — not sent'), 'Messages rule reports intro-not-sent with the date', msgs.facts);
+  assert(msgs.text.includes('message action'), 'Messages rule names the owed booking', msgs.text);
+  assert(msgs.facts.some(f => f.label.includes('Amelia Green') && f.value === 'Introduce yourself before this visit'), 'Messages rule reports intro-not-sent with the date', msgs.facts);
   APPOINTMENTS[2].introSent = true;
   const msgs2 = await Companion.answerMessages();
   assert(!msgs2.facts.some(f => f.label.includes('Amelia Green')), 'Messages rule clears a customer once the intro is sent', msgs2.facts);
+
+  FollowupsFeature.loadTasks = priorMessageLoader;
 
   // Person lookup.
   const person = await Companion.answerPerson('what about sarah?');

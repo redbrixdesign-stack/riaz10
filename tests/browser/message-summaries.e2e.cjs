@@ -1,0 +1,39 @@
+'use strict';
+// Synthetic local records only: never open an external contact or provider.
+const {chromium,webkit}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs');
+const {artifactPath}=require('./release-artifacts.cjs');
+const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8055';
+(async()=>{const evidence=[];for(const engine of [chromium,webkit])for(const timezoneId of ['Europe/London','Pacific/Kiritimati']){
+ const browser=await engine.launch();try{
+ const context=await browser.newContext({viewport:{width:390,height:844},timezoneId,serviceWorkers:'block'}),errors=[],posts=[];
+ await context.route('**/*',r=>new URL(r.request().url()).origin===new URL(base).origin?r.continue():r.abort());
+ await context.addInitScript(()=>{localStorage.setItem('advisoros_config',JSON.stringify({onboardingComplete:true,unlockTimeoutMinutes:60,ai:{enabled:false}}));localStorage.setItem('advisoros_visit_reminders_enabled','false');localStorage.setItem('advisoros_consent',JSON.stringify({v:2}));});
+ const p=await context.newPage();p.on('pageerror',e=>errors.push(e.message));p.on('request',r=>{if(r.method()==='POST')posts.push(r.url());});
+ await p.clock.setFixedTime(new Date('2030-11-06T08:00:00Z'));await p.goto(base,{waitUntil:'domcontentloaded'});await p.locator('#enc-passphrase-new').fill('SYNTHETIC summary check');await p.locator('#enc-passphrase-confirm').fill('SYNTHETIC summary check');await p.getByRole('button',{name:'Set Passphrase',exact:true}).click();await p.waitForFunction(()=>App.currentHash==='today');
+ const ids=await p.evaluate(async()=>{const customer=await DB.addCustomer({firstName:'SYNTHETIC Summary',phone:'07700900961'});const visit=await DB.addAppointment({customerId:customer.id,clientName:customer.firstName,phone:customer.phone,type:'fitting',date:'2030-11-06T10:00:00Z',arrivalStart:'09:00',arrivalEnd:'12:00',status:'confirmed'});return {customer:customer.id,visit:visit.id};});
+ async function verify(label){const result=await p.evaluate(async()=>{const tasks=(await FollowupsFeature.loadTasks()).filter(t=>t.due);return {tasks:tasks.map(t=>({kind:t.kind,action:t.action,template:t.template})),home:(await CompanionFeature.buildHomeData()).attention,evening:await CompanionFeature.answerEveningReview(),after:await CompanionFeature.answerAfterVisit(),messages:await CompanionFeature.answerMessages()};});
+ const count=result.tasks.length,messageTasks=result.tasks.filter(t=>t.template||t.kind==='send_confirmation');
+ for(const [name,rows]of [['home',result.home],['evening',result.evening.facts],['after',result.after.facts]]){assert(!rows.some(t=>['Messages unsent','Messages due','Immediate follow-ups'].includes(t.label)),label+': no parallel '+name+' counter');const summary=rows.filter(t=>['Follow-ups due','Tasks overdue'].includes(t.label));assert.equal(summary.reduce((n,t)=>n+parseInt(t.value,10),0),count,label+': canonical '+name+' total');}
+ assert.equal(result.messages.facts.length,Math.min(messageTasks.length,6),label+': query matches due message tasks');assert.deepEqual(result.messages.facts.map(t=>t.value),messageTasks.slice(0,6).map(t=>t.action));
+ assert(!result.messages.text.includes('every upcoming visit has its messages sent'),label+': no inferred delivery');
+ evidence.push({engine:engine.name(),timezoneId,label,...result});return result;
+ }
+ let result=await verify('new fitting');assert(result.tasks.some(t=>t.kind==='intro_confirmation'));
+ const handoff=await p.evaluate(async ids=>CommunicationService.recordHandoff({customerId:ids.customer,appointmentId:ids.visit,template:'intro_day_before',content:'SYNTHETIC introduction and reminder'}),ids);
+ result=await verify('handoff only');assert(result.tasks.some(t=>t.kind==='send_confirmation'));assert(!result.tasks.some(t=>t.kind==='intro_confirmation'));assert(result.messages.facts.some(t=>/send status not recorded/.test(t.value)));assert(result.evening.facts.some(t=>/awaiting your sent status/.test(t.value)));
+ await p.evaluate(async({ids,handoff})=>{const visit=await DB.getAppointment(ids.visit);await DB.resolveCommunicationSend(handoff.id,ids.customer,'sent',DB.visitContactSnapshot(visit),'intro_day_before');await CommunicationService.recordReply(ids.customer,'SYNTHETIC agreed window','phone',{appointmentId:visit.id,snapshot:DB.visitContactSnapshot(visit),operationId:'synthetic-summary-agreement'});},{ids,handoff});
+ result=await verify('explicit sent and agreed');assert.equal(result.tasks.length,0);assert.equal(result.messages.facts.length,0);
+ await context.setOffline(true);await verify('offline reads retain sent evidence');await context.setOffline(false);await p.reload({waitUntil:'domcontentloaded'});await p.waitForFunction(()=>App.currentHash==='today');await verify('reload retains sent evidence');
+ await p.evaluate(async ids=>DB.updateAppointment(ids.visit,{date:'2030-11-07T10:00:00Z',dayBeforeSent:false}),ids);result=await verify('rescheduled fixture with reminder reset');assert(result.tasks.some(t=>t.kind==='visit_tomorrow'));assert(!result.tasks.some(t=>t.kind==='intro'));
+ await p.evaluate(async ids=>DB.updateAppointment(ids.visit,{status:'cancelled'}),ids);result=await verify('cancelled');assert.equal(result.tasks.length,0);
+ // Completed aftercare already recorded must not be proposed again by summaries.
+ await p.evaluate(async ids=>DB.updateAppointment(ids.visit,{date:'2030-11-06T06:00:00Z',status:'completed',outcome:'completed',postFitSent:true}),ids);result=await verify('completed aftercare recorded');assert.equal(result.tasks.length,0);
+ await p.evaluate(async ids=>{await DB.addAppointment({customerId:ids.customer,clientName:'SYNTHETIC Summary',phone:'07700900961',type:'fitting',date:'2030-11-08T10:00:00Z',status:'confirmed'});await DB.addAppointment({customerId:ids.customer,clientName:'SYNTHETIC Summary',phone:'07700900961',type:'fitting',date:'2030-11-09T10:00:00Z',status:'confirmed'});},ids);result=await verify('two later visits known customer');assert(!result.tasks.some(t=>t.kind==='intro'));
+ // Failed task reads must not turn into an all-clear statement.
+ const failed=await p.evaluate(async()=>{const load=FollowupsFeature.loadTasks;FollowupsFeature.loadTasks=async()=>{throw Error('SYNTHETIC read failure');};try{return {messages:await CompanionFeature.answerMessages(),evening:await CompanionFeature.answerEveningReview(),after:await CompanionFeature.answerAfterVisit(),homeRejected:await CompanionFeature.buildHomeData().then(()=>false,()=>true)};}finally{FollowupsFeature.loadTasks=load;}});
+ assert.match(failed.messages.text,/could not check/i);assert(failed.evening.facts.some(t=>t.label==='Follow-ups unavailable'));assert(failed.after.facts.some(t=>t.label==='Follow-ups unavailable'));assert(failed.homeRejected);
+ assert.deepEqual(errors,[]);assert.deepEqual(posts,[]);await p.evaluate(()=>App.navigate('today'));await p.getByText('ASK BEELO',{exact:true}).first().waitFor();await p.screenshot({path:artifactPath('message-summaries-'+engine.name()+'-'+timezoneId.replace('/','-')+'.png')});
+ console.log('PASS '+engine.name()+' '+timezoneId+': canonical Home/evening/after/messages; new, handoff, explicit sent/agreed, offline reads/reload, reschedule, cancellation, completed, two known visits and read failure; no external contact');
+ }finally{await browser.close();}}
+ fs.writeFileSync(artifactPath('message-summaries.json'),JSON.stringify(evidence,null,2));
+})().catch(e=>{console.error(e);process.exitCode=1;});

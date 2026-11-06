@@ -1,0 +1,108 @@
+[
+  {
+    "engine": "chromium",
+    "visit": {
+      "customerId": 1,
+      "clientName": "SYNTHETIC Message Audit",
+      "phone": "07700900961",
+      "type": "fitting",
+      "date": "2030-11-06T10:00:00Z",
+      "arrivalStart": "09:00",
+      "arrivalEnd": "12:00",
+      "status": "confirmed",
+      "outcome": null,
+      "value": 0,
+      "commission": 0,
+      "createdAt": "2030-11-06T08:00:00.000Z",
+      "id": 1,
+      "introSent": true,
+      "dayBeforeSent": true,
+      "contactOutcomes": [
+        {
+          "id": "synthetic-audit-agreement",
+          "outcome": "visit_agreed",
+          "bookingSnapshot": "[1,\"2030-11-06T10:00:00Z\",\"fitting\",\"09:00\",\"12:00\",\"\"]",
+          "customerId": 1,
+          "recordedAt": "2030-11-06T08:00:00.000Z",
+          "channel": "phone",
+          "provenance": "advisor_recorded"
+        }
+      ]
+    },
+    "evidence": {
+      "introduced": true,
+      "reminderSent": true,
+      "agreed": true,
+      "inactive": false
+    },
+    "tasks": [],
+    "home": [
+      {
+        "icon": "mark_email_unread",
+        "label": "Messages unsent",
+        "value": "1 visit need a message",
+        "action": "App.navigate('followups')",
+        "actionLabel": "Open Follow-ups"
+      }
+    ],
+    "evening": [
+      {
+        "label": "Messages unsent",
+        "value": "1 visit need a message"
+      }
+    ]
+  },
+  {
+    "engine": "webkit",
+    "visit": {
+      "customerId": 1,
+      "clientName": "SYNTHETIC Message Audit",
+      "phone": "07700900961",
+      "type": "fitting",
+      "date": "2030-11-06T10:00:00Z",
+      "arrivalStart": "09:00",
+      "arrivalEnd": "12:00",
+      "status": "confirmed",
+      "outcome": null,
+      "value": 0,
+      "commission": 0,
+      "createdAt": "2030-11-06T08:00:00.000Z",
+      "id": 1,
+      "introSent": true,
+      "dayBeforeSent": true,
+      "contactOutcomes": [
+        {
+          "id": "synthetic-audit-agreement",
+          "outcome": "visit_agreed",
+          "bookingSnapshot": "[1,\"2030-11-06T10:00:00Z\",\"fitting\",\"09:00\",\"12:00\",\"\"]",
+          "customerId": 1,
+          "recordedAt": "2030-11-06T08:00:00.000Z",
+          "channel": "phone",
+          "provenance": "advisor_recorded"
+        }
+      ]
+    },
+    "evidence": {
+      "introduced": true,
+      "reminderSent": true,
+      "agreed": true,
+      "inactive": false
+    },
+    "tasks": [],
+    "home": [
+      {
+        "icon": "mark_email_unread",
+        "label": "Messages unsent",
+        "value": "1 visit need a message",
+        "action": "App.navigate('followups')",
+        "actionLabel": "Open Follow-ups"
+      }
+    ],
+    "evening": [
+      {
+        "label": "Messages unsent",
+        "value": "1 visit need a message"
+      }
+    ]
+  }
+]

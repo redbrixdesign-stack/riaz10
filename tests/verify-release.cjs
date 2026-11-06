@@ -15,6 +15,7 @@ checks.splice(checks.indexOf('expense-context.e2e.cjs'),0,'compact-plan.e2e.cjs'
 checks.splice(checks.indexOf('expense-context.e2e.cjs'),0,'proposed-route.e2e.cjs');
 checks.splice(checks.indexOf('expense-context.e2e.cjs'),0,'communication-continuity.e2e.cjs');
 checks.splice(checks.indexOf('expense-context.e2e.cjs'),0,'home-outcome-timing.e2e.cjs');
+checks.splice(checks.indexOf('expense-context.e2e.cjs'),0,'message-summaries.e2e.cjs');
 checks.splice(checks.indexOf('expense-context.e2e.cjs'),0,'eod-earnings.e2e.cjs');
 checks.splice(checks.indexOf('expense-context.e2e.cjs'),0,'planning-day.e2e.cjs');
 checks.splice(checks.indexOf('expense-context.e2e.cjs'),0,'scan-planning-day.e2e.cjs');
