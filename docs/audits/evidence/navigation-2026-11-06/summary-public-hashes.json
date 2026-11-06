@@ -1,0 +1,24 @@
+{
+  "stage": "https://beelo1-1ccarllo5-beelomvp.vercel.app",
+  "sourceCommit": "cce588b76c4c83bea6c4e2300a9d631699799c33",
+  "files": [
+    {
+      "file": "index.html",
+      "source": "c04fea258afe46e9850b785c6ab9e9a624f4395aed10f9615a620389b4e05618",
+      "stage": "c04fea258afe46e9850b785c6ab9e9a624f4395aed10f9615a620389b4e05618",
+      "public": "c04fea258afe46e9850b785c6ab9e9a624f4395aed10f9615a620389b4e05618"
+    },
+    {
+      "file": "sw.js",
+      "source": "698d773aa0f9b0467d8af09b7b48986b63936e5e3fd8e776146c826a4b33d711",
+      "stage": "698d773aa0f9b0467d8af09b7b48986b63936e5e3fd8e776146c826a4b33d711",
+      "public": "698d773aa0f9b0467d8af09b7b48986b63936e5e3fd8e776146c826a4b33d711"
+    },
+    {
+      "file": "js/features/companion/companion.min.js",
+      "source": "f60f1b5dca942a406f0e89a0bf5c532799121cb1817c5edb3a1d7ddef0266f10",
+      "stage": "f60f1b5dca942a406f0e89a0bf5c532799121cb1817c5edb3a1d7ddef0266f10",
+      "public": "f60f1b5dca942a406f0e89a0bf5c532799121cb1817c5edb3a1d7ddef0266f10"
+    }
+  ]
+}

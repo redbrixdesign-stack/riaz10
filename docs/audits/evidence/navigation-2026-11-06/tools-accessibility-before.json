@@ -1,0 +1,18 @@
+[
+  {
+    "engine": "chromium",
+    "tools": "- main:\n  - heading \"Tools\" [level=1]\n  - text: Today\n  - button \"add Add Visit\"\n  - button \"route Log Mileage\"\n  - button \"receipt_long Log Expense\"\n  - button \"fact_check End of Day\"\n  - text: Customer\n  - button \"Follow-ups\"\n  - button \"construction Jobs\"\n  - button \"person_add Lead Inbox\"\n  - button \"person_search Find Customer\"\n  - text: Business\n  - button \"local_shipping Suppliers\"\n  - button \"event_busy Availability\"\n  - button \"monitoring Profitability\"\n  - button \"receipt_long Invoices\"\n  - text: Field tools\n  - button \"map Route Planner\"\n  - button \"straighten Measure\"\n  - button \"document_scanner Scan Document\"\n  - text: Data & Settings\n  - button \"hub Integrations\"\n  - button \"settings Settings\"\n  - button \"backup Export Backup\"",
+    "before": "http://127.0.0.1:8055/#appointments?action=tomorrow",
+    "after": "http://127.0.0.1:8055/#today",
+    "route": "today",
+    "body": "there.\nTHIS WEEK\nchevron_left\nchevron_right\nMON\n4\n—\nTUE\n5\n—\nWED\n6\n—\nTHU\n7\n—\nFRI\n8\n—\nSAT\n9\n—\nSUN\n10\n—\n£600.00 to target\nMon 4 – Sun 10 · tap a day for the diary\nadd\nScan to add\nVisit details or an expense receipt\ndocument_scanner\nevent_note\nToday’s plan\nevent_note\nPlan tomorrow\nevent\nAdd visit manually\nreceipt_long\nAdd expense manually\nUpcoming\nNo visits\nNo upcoming visits booked. A good day for follow-ups.\nASK BEELO\n▸ What's my day look like?\n▸ What's next?\n▸ Who should I chase?\n▸ How am I doing this week?\n▸ Who haven't I messaged?\narrow_upward"
+  },
+  {
+    "engine": "webkit",
+    "tools": "- main:\n  - heading \"Tools\" [level=1]\n  - text: Today\n  - button \"add Add Visit\"\n  - button \"route Log Mileage\"\n  - button \"receipt_long Log Expense\"\n  - button \"fact_check End of Day\"\n  - text: Customer\n  - button \"Follow-ups\"\n  - button \"construction Jobs\"\n  - button \"person_add Lead Inbox\"\n  - button \"person_search Find Customer\"\n  - text: Business\n  - button \"local_shipping Suppliers\"\n  - button \"event_busy Availability\"\n  - button \"monitoring Profitability\"\n  - button \"receipt_long Invoices\"\n  - text: Field tools\n  - button \"map Route Planner\"\n  - button \"straighten Measure\"\n  - button \"document_scanner Scan Document\"\n  - text: Data & Settings\n  - button \"hub Integrations\"\n  - button \"settings Settings\"\n  - button \"backup Export Backup\"",
+    "before": "http://127.0.0.1:8055/#appointments?action=tomorrow",
+    "after": "http://127.0.0.1:8055/#today",
+    "route": "today",
+    "body": "there.\nTHIS WEEK\nchevron_left\nchevron_right\nMON\n4\n—\nTUE\n5\n—\nWED\n6\n—\nTHU\n7\n—\nFRI\n8\n—\nSAT\n9\n—\nSUN\n10\n—\n£600.00 to target\nMon 4 – Sun 10 · tap a day for the diary\nadd\nScan to add\nVisit details or an expense receipt\ndocument_scanner\nevent_note\nToday’s plan\nevent_note\nPlan tomorrow\nevent\nAdd visit manually\nreceipt_long\nAdd expense manually\nUpcoming\nNo visits\nNo upcoming visits booked. A good day for follow-ups.\nASK BEELO\n▸ What's my day look like?\n▸ What's next?\n▸ Who should I chase?\n▸ How am I doing this week?\n▸ Who haven't I messaged?\narrow_upward"
+  }
+]

@@ -1,0 +1,146 @@
+[
+  {
+    "engine": "chromium",
+    "before": {
+      "customerId": 1,
+      "clientName": "SYNTHETIC Move Audit",
+      "phone": "07700900961",
+      "type": "fitting",
+      "date": "2030-11-06T10:00:00Z",
+      "arrivalStart": "09:00",
+      "arrivalEnd": "12:00",
+      "status": "confirmed",
+      "outcome": null,
+      "value": 0,
+      "commission": 0,
+      "createdAt": "2030-11-06T08:00:00.000Z",
+      "id": 1,
+      "introSent": true,
+      "dayBeforeSent": true,
+      "contactOutcomes": [
+        {
+          "id": "synthetic-move-agreement",
+          "outcome": "visit_agreed",
+          "bookingSnapshot": "[1,\"2030-11-06T10:00:00Z\",\"fitting\",\"09:00\",\"12:00\",\"\"]",
+          "customerId": 1,
+          "recordedAt": "2030-11-06T08:00:00.000Z",
+          "channel": "phone",
+          "provenance": "advisor_recorded"
+        }
+      ]
+    },
+    "visit": {
+      "customerId": 1,
+      "clientName": "SYNTHETIC Move Audit",
+      "phone": "07700900961",
+      "type": "fitting",
+      "date": "2030-11-07T10:00:00.000Z",
+      "arrivalStart": "09:00",
+      "arrivalEnd": "12:00",
+      "status": "confirmed",
+      "outcome": null,
+      "value": 0,
+      "commission": 0,
+      "createdAt": "2030-11-06T08:00:00.000Z",
+      "id": 1,
+      "introSent": true,
+      "dayBeforeSent": true,
+      "contactOutcomes": [
+        {
+          "id": "synthetic-move-agreement",
+          "outcome": "visit_agreed",
+          "bookingSnapshot": "[1,\"2030-11-06T10:00:00Z\",\"fitting\",\"09:00\",\"12:00\",\"\"]",
+          "customerId": 1,
+          "recordedAt": "2030-11-06T08:00:00.000Z",
+          "channel": "phone",
+          "provenance": "advisor_recorded"
+        }
+      ],
+      "durationSlots": 1,
+      "audioNotes": [],
+      "notes": "Moved from 6 Nov 10:00",
+      "scheduleChangedAt": "2030-11-06T08:00:00.000Z"
+    },
+    "evidence": {
+      "introduced": true,
+      "reminderSent": true,
+      "agreed": false,
+      "inactive": false
+    },
+    "tasks": [],
+    "home": [],
+    "evening": []
+  },
+  {
+    "engine": "webkit",
+    "before": {
+      "customerId": 1,
+      "clientName": "SYNTHETIC Move Audit",
+      "phone": "07700900961",
+      "type": "fitting",
+      "date": "2030-11-06T10:00:00Z",
+      "arrivalStart": "09:00",
+      "arrivalEnd": "12:00",
+      "status": "confirmed",
+      "outcome": null,
+      "value": 0,
+      "commission": 0,
+      "createdAt": "2030-11-06T08:00:00.000Z",
+      "id": 1,
+      "introSent": true,
+      "dayBeforeSent": true,
+      "contactOutcomes": [
+        {
+          "id": "synthetic-move-agreement",
+          "outcome": "visit_agreed",
+          "bookingSnapshot": "[1,\"2030-11-06T10:00:00Z\",\"fitting\",\"09:00\",\"12:00\",\"\"]",
+          "customerId": 1,
+          "recordedAt": "2030-11-06T08:00:00.000Z",
+          "channel": "phone",
+          "provenance": "advisor_recorded"
+        }
+      ]
+    },
+    "visit": {
+      "customerId": 1,
+      "clientName": "SYNTHETIC Move Audit",
+      "phone": "07700900961",
+      "type": "fitting",
+      "date": "2030-11-07T10:00:00.000Z",
+      "arrivalStart": "09:00",
+      "arrivalEnd": "12:00",
+      "status": "confirmed",
+      "outcome": null,
+      "value": 0,
+      "commission": 0,
+      "createdAt": "2030-11-06T08:00:00.000Z",
+      "id": 1,
+      "introSent": true,
+      "dayBeforeSent": true,
+      "contactOutcomes": [
+        {
+          "id": "synthetic-move-agreement",
+          "outcome": "visit_agreed",
+          "bookingSnapshot": "[1,\"2030-11-06T10:00:00Z\",\"fitting\",\"09:00\",\"12:00\",\"\"]",
+          "customerId": 1,
+          "recordedAt": "2030-11-06T08:00:00.000Z",
+          "channel": "phone",
+          "provenance": "advisor_recorded"
+        }
+      ],
+      "durationSlots": 1,
+      "audioNotes": [],
+      "notes": "Moved from 6 Nov 10:00",
+      "scheduleChangedAt": "2030-11-06T08:00:00.000Z"
+    },
+    "evidence": {
+      "introduced": true,
+      "reminderSent": true,
+      "agreed": false,
+      "inactive": false
+    },
+    "tasks": [],
+    "home": [],
+    "evening": []
+  }
+]

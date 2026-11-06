@@ -1110,10 +1110,18 @@ const DB = {
   // Update an appointment row, encrypting PII fields so updates never write
   // plaintext into the encrypted columns (mirrors updateCustomer).
   async updateAppointment(id, fields) {
-    const affectsSchedule = ['date', 'status', 'outcome'].some(key => Object.prototype.hasOwnProperty.call(fields, key));
+    const bookingKeys = ['date', 'type', 'arrivalStart', 'arrivalEnd'];
+    const affectsSchedule = [...bookingKeys, 'status', 'outcome'].some(key => Object.prototype.hasOwnProperty.call(fields, key));
     const previous = affectsSchedule ? await this.db.appointments.get(id) : null;
     const changedTime = previous && fields.date && fields.date !== previous.date;
-    const updatedFields = changedTime ? { ...fields, scheduleChangedAt: new Date().toISOString() } : fields;
+    const changedBooking = previous && bookingKeys.some(key =>
+      Object.prototype.hasOwnProperty.call(fields, key) && (fields[key] || '') !== (previous[key] || ''));
+    // A reminder covers the booking that was reviewed, not a later date/window.
+    // Keep customer introduction and communication history intact.
+    const updatedFields = { ...fields,
+      ...(changedTime ? { scheduleChangedAt: new Date().toISOString() } : {}),
+      ...(changedBooking ? { dayBeforeSent: false } : {})
+    };
     const encrypted = await encryptAppointment(updatedFields);
     await this.db.appointments.update(id, encrypted);
     if (typeof NotificationService !== 'undefined') NotificationService.queueVisitReminderRefresh();

@@ -3077,7 +3077,7 @@ const AppointmentsFeature = {
       return;
     }
     const date = Utils.formatDate(appt.date, 'iso');
-    const time = this.getTimeKey(appt.date);
+    const time = Utils.formatTime(appt.date);
     const windowPreset = this.getArrivalWindowPreset(appt);
     if (typeof NoteCapture !== 'undefined') NoteCapture.setRecordings('move-note', appt.audioNotes || []);
     const content = `
@@ -3129,7 +3129,7 @@ const AppointmentsFeature = {
     const windowData = this.readArrivalWindow() || {};
     return {
       date: document.getElementById('move-date')?.value || Utils.formatDate(appt.date, 'iso'),
-      time: document.getElementById('move-time')?.value || this.getTimeKey(appt.date),
+      time: document.getElementById('move-time')?.value || Utils.formatTime(appt.date),
       durationSlots: Math.max(1, parseInt(document.getElementById('move-duration')?.value, 10) || appt.durationSlots || 1),
       type: document.getElementById('move-type')?.value || appt.type,
       reason: document.getElementById('move-note')?.value.trim() || '',
@@ -3185,14 +3185,16 @@ const AppointmentsFeature = {
       return;
     }
 
-    const existingToday = await DB.getAppointmentsForDate(agreement ? data.proposalInstant : new Date(data.date + 'T00:00:00').toISOString());
+    const newDate = agreement ? data.proposalInstant : this.proposalInstant(data.date, data.time);
+    if (!newDate) return Toast.show('Choose a valid, unambiguous UK date and time.', 'warning');
+    const existingToday = await DB.getAppointmentsForDate(newDate);
     if (this.hasScheduleConflict(data, existingToday, id)) {
       Toast.show('That time clashes with another visit.', 'warning');
       return;
     }
 
     if (!forceTravel) {
-      const candidateDate = agreement ? data.proposalInstant : new Date(data.date + 'T' + data.time).toISOString();
+      const candidateDate = newDate;
       const capacityWarnings = typeof CapacityService !== 'undefined'
         ? await CapacityService.analyse({ date: candidateDate, durationSlots: data.durationSlots }, existingToday, id)
         : [];
@@ -3207,7 +3209,6 @@ const AppointmentsFeature = {
       }
     }
 
-    const newDate = agreement ? data.proposalInstant : new Date(data.date + 'T' + data.time).toISOString();
     const previous = `${Utils.formatDate(appt.date, 'short')} ${Utils.formatTime(appt.date)}`;
     const existingNotes = appt.notes || '';
     const moveNote = `Moved from ${previous}${data.reason ? `: ${data.reason}` : ''}`;

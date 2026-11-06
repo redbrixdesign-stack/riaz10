@@ -25,7 +25,7 @@ it to one label. Decorative icon is hidden from its accessible name. The test
 also caught an incorrect #control route in the newly added Back button; corrected
 to control before release. Old five-tab test assertions were updated, not removed.
 
-## 2. Home/evening message counts use a parallel legacy model — P2, reproduced; correction candidate implemented
+## 2. Home/evening message counts use a parallel legacy model — P2, completed and live
 
 CompanionFeature.buildHomeData independently adds “Messages unsent” for today's
 confirmed visits when advisoros_auto_morning_of_ID is absent. It does not consult
@@ -35,7 +35,7 @@ not include that separate morning-of count. answerEveningReview has another
 intro/day-before/morning-of loop, with device-local date comparisons and a
 past-visit presence check instead of the canonical introduction-evidence rules.
 
-Reproduction: same-day confirmed synthetic fitting; record an intro_day_before handoff, explicit sent confirmation and customer agreement through real services. Canonical due tasks are empty, but Home and evening both claim one message unsent. Evidence: evidence/navigation-2026-11-06/message-counter-before.json. Next: align summary/query logic with shared tasks, retaining adviser-controlled drafting and no autonomous sends. Candidate removes the parallel counters and outcome-template suggestions from Home/evening/post-visit summaries; the Messages query now reads due template/send-status tasks from the same canonical service. Unknown handoff stays unknown; read failure is explicit. No template, deadline, booking-write or sending rule changed. Focused browser regression passes Chromium/WebKit in London and Kiritimati; full gates pending.
+Reproduction: same-day confirmed synthetic fitting; record an intro_day_before handoff, explicit sent confirmation and customer agreement through real services. Canonical due tasks are empty, but Home and evening both claim one message unsent. Evidence: evidence/navigation-2026-11-06/message-counter-before.json. Next: align summary/query logic with shared tasks, retaining adviser-controlled drafting and no autonomous sends. Candidate removes the parallel counters and outcome-template suggestions from Home/evening/post-visit summaries; the Messages query now reads due template/send-status tasks from the same canonical service. Unknown handoff stays unknown; read failure is explicit. No template, deadline, booking-write or sending rule changed. Focused browser regression passes Chromium/WebKit in London and Kiritimati; 34/34 local and hosted journey checks passed (run42172498605, commit cce588b76c4c83bea6c4e2300a9d631699799c33). Cache183-message-summaries is live at dpl_93xXWsHJZ6Np3QKM4a4MDhxH8ZVK. Three runtime hashes match source/stage/public; the public message-summary journey passed both engines in London/Kiritimati.
 
 ## 3. Visits “Follow-ups” tab is a different sales pipeline — P2, source finding
 
@@ -49,17 +49,16 @@ Next: inspect/reproduce its actual customer journey and choose a plain, accurate
 label/context. Preserve existing records and functionality; no silent deletion
 of the pipeline or unsupported predictive claim.
 
-## 4. Repeated icon names in Tools accessible labels — P3, source finding
+## 4. Repeated icon names in Tools accessible labels — P3, reproduced in both browser accessibility trees
 
 Existing decorative material-symbol spans in Tools mostly lack aria-hidden. The
 new Follow-ups tile has a clean accessible name. Audit the remaining tiles before
 changing them; retain visible labels, keyboard operation and minimum touch areas.
 
-## 5. Shared header default includes a hash in a route name — P3, source finding
+## 5. Shared header default includes a hash in a route name — P3, not reproduced in the planning journey
 
 App.renderTopHeader defaults backHref to #today, while App.navigate expects today.
-Explicit current secondary-screen back routes generally omit the hash. Inspect
-actual default callers and reproduce before a separate narrowly tested correction.
+Explicit current secondary-screen back routes generally omit the hash. Actual Plan tomorrow → Back returned to #today correctly in both engines. No user-visible defect reproduced; no change justified by that check.
 
 ## Preservation
 
@@ -71,10 +70,18 @@ No unrelated original runtime work is included in this release.
 
 Rollback: cache181 deployment https://beelo1-1dclbmeee-beelomvp.vercel.app. Isolated Python-server trials had transient missing-script startup failures (root cause unproven); final Node-server release gates and public journeys passed. These failed trials are not claimed as passes.
 
-## 6. Reschedule legacy reminder flag — P2, source finding
+## 6. Reschedule legacy reminder flag — P2, reproduced; correction candidate implemented
 
-Standard saveReschedule writes a new date/window but only resets dayBeforeSent in the agreed-proposal branch. A snapshot-bound reply becomes stale correctly; a prior true legacy reminder flag may still suppress the new reminder. Reproduce via the actual standard Move UI before correction. The summary regression's rescheduled fixture explicitly resets dayBeforeSent; it is not evidence that the Move UI resets it.
+Standard saveReschedule writes a new date/window but only resets dayBeforeSent in the agreed-proposal branch. A snapshot-bound reply becomes stale correctly; a prior true legacy reminder flag may still suppress the new reminder. Reproduced through actual standard Move in Chromium/WebKit: prior reminder stayed true, agreement became stale, and no new reminder was due. Cache183's summary fixture explicitly reset dayBeforeSent; it did not prove Move correctness. The next candidate invalidates only the previous reminder on date/window/type changes, keeps introduction/history/earnings, and uses UK time for Move display and save. Source/minified regression passes; real Move journey now passes both engines in London/Kiritimati. Full release gates pending.
 
 ## Scope of this audit pass
 
-Navigation and communication-summary duplication are the two release slices. Remaining source findings are a prioritised investigation queue, not claims that every app screen or production configuration has been exhaustively audited. Existing release journeys provide wider regression coverage.
+Navigation, communication-summary duplication and reschedule reminder continuity are separate release slices. Remaining source findings are a prioritised investigation queue, not claims that every app screen or production configuration has been exhaustively audited. Existing release journeys provide wider regression coverage.
+
+## 7. Capacity warning outside UK device timezone — P2, reproduced in Kiritimati
+
+During the actual Move regression, a 10:00 UK appointment triggers “outside your configured working hours” in a Kiritimati device context. The test explicitly reviews/accepts Save anyway and verifies the saved UK time. This is not a pass for capacity-warning accuracy. Keep the warning mechanism; inspect its device-local time comparisons in a separate correction.
+
+## Verified navigation/a11y diagnostic
+
+Tools has exactly one Follow-ups tile and four bottom destinations. Existing tiles expose icon tokens in accessible names (e.g. receipt_long Log Expense); new Follow-ups tile does not. Plan tomorrow Back correctly returns Home in both engines despite the suspicious default route string. Evidence: tools-accessibility-before.json.
