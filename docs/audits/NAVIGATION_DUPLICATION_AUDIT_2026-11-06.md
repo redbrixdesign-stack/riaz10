@@ -70,17 +70,17 @@ No unrelated original runtime work is included in this release.
 
 Rollback: cache181 deployment https://beelo1-1dclbmeee-beelomvp.vercel.app. Isolated Python-server trials had transient missing-script startup failures (root cause unproven); final Node-server release gates and public journeys passed. These failed trials are not claimed as passes.
 
-## 6. Reschedule legacy reminder flag — P2, reproduced; correction candidate implemented
+## 6. Reschedule legacy reminder flag — P2, completed and live
 
-Standard saveReschedule writes a new date/window but only resets dayBeforeSent in the agreed-proposal branch. A snapshot-bound reply becomes stale correctly; a prior true legacy reminder flag may still suppress the new reminder. Reproduced through actual standard Move in Chromium/WebKit: prior reminder stayed true, agreement became stale, and no new reminder was due. Cache183's summary fixture explicitly reset dayBeforeSent; it did not prove Move correctness. The next candidate invalidates only the previous reminder on date/window/type changes, keeps introduction/history/earnings, and uses UK time for Move display and save. Source/minified regression passes; real Move journey now passes both engines in London/Kiritimati. Full release gates pending.
+Standard saveReschedule writes a new date/window but only resets dayBeforeSent in the agreed-proposal branch. A snapshot-bound reply becomes stale correctly; a prior true legacy reminder flag may still suppress the new reminder. Reproduced through actual standard Move in Chromium/WebKit: prior reminder stayed true, agreement became stale, and no new reminder was due. Cache183's summary fixture explicitly reset dayBeforeSent; it did not prove Move correctness. Cache184 invalidates only the previous reminder on date/window/type changes, keeps introduction/history/earnings, and uses UK time for Move display and save. Source/minified regression passes; real Move journey now passes both engines in London/Kiritimati. Build/unit/social/performance gates and 34/34 local + hosted browser journeys passed (run42174670415, runtime dea0700d6b13c2e2398cafa8f7c4a06045a68bbb). Live deployment dpl_24k7g9v59N3oQ1GUYEqqxNbHmtKN; four runtime files match source/stage/public. Public Move/summary journey passes both engines in London/Kiritimati.
 
 ## Scope of this audit pass
 
-Navigation, communication-summary duplication and reschedule reminder continuity are separate release slices. Remaining source findings are a prioritised investigation queue, not claims that every app screen or production configuration has been exhaustively audited. Existing release journeys provide wider regression coverage.
+Navigation, communication-summary duplication and reschedule reminder continuity and capacity clock consistency are separate release slices. Remaining source findings are a prioritised investigation queue, not claims that every app screen or production configuration has been exhaustively audited. Existing release journeys provide wider regression coverage.
 
-## 7. Capacity warning outside UK device timezone — P2, reproduced in Kiritimati
+## 7. Capacity warning outside UK device timezone — P2, reproduced; correction candidate implemented
 
-During the actual Move regression, a 10:00 UK appointment triggers “outside your configured working hours” in a Kiritimati device context. The test explicitly reviews/accepts Save anyway and verifies the saved UK time. This is not a pass for capacity-warning accuracy. Keep the warning mechanism; inspect its device-local time comparisons in a separate correction.
+During the actual Move regression, a 10:00 UK appointment triggers “outside your configured working hours” in a Kiritimati device context. The test explicitly reviews/accepts Save anyway and verifies the saved UK time. This is not a pass for capacity-warning accuracy. Browser evidence also shows suggested slots on the previous UTC date with 00:00 UK labels. Candidate cache185 uses a shared Utils.ukDateTimeISO conversion for capacity envelopes/suggestions and the existing Move/proposal API, removing duplicate conversion code. Source/minified tests pass in London, UTC, New York and Kiritimati across GMT/BST/DST/boundaries, overlaps/leave/exclusion and UK-vs-UTC day boundaries; missing/ambiguous times are rejected. Browser Move passes both engines without warning bypass, with 09:00 UK suggestions on the selected day. Full release gates pending; not live yet.
 
 ## Verified navigation/a11y diagnostic
 

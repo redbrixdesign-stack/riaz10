@@ -1,0 +1,108 @@
+[
+  {
+    "engine": "chromium",
+    "candidate": {
+      "date": "2030-06-07T09:00:00Z",
+      "durationSlots": 2
+    },
+    "warnings": [
+      {
+        "code": "closed_hours",
+        "message": "This visit falls outside your configured working hours."
+      }
+    ],
+    "suggestions": [
+      {
+        "date": "2030-06-06T23:00:00.000Z",
+        "label": "00:00"
+      },
+      {
+        "date": "2030-06-06T23:15:00.000Z",
+        "label": "00:15"
+      },
+      {
+        "date": "2030-06-06T23:30:00.000Z",
+        "label": "00:30"
+      }
+    ],
+    "blocks": [
+      {
+        "id": "morning",
+        "name": "09:00-12:00",
+        "start": "09:00",
+        "end": "12:00"
+      },
+      {
+        "id": "midday",
+        "name": "12:00-15:00",
+        "start": "12:00",
+        "end": "15:00"
+      },
+      {
+        "id": "afternoon",
+        "name": "15:00-18:00",
+        "start": "15:00",
+        "end": "18:00"
+      },
+      {
+        "id": "evening",
+        "name": "18:00-21:00",
+        "start": "18:00",
+        "end": "21:00"
+      }
+    ]
+  },
+  {
+    "engine": "webkit",
+    "candidate": {
+      "date": "2030-06-07T09:00:00Z",
+      "durationSlots": 2
+    },
+    "warnings": [
+      {
+        "code": "closed_hours",
+        "message": "This visit falls outside your configured working hours."
+      }
+    ],
+    "suggestions": [
+      {
+        "date": "2030-06-06T23:00:00.000Z",
+        "label": "00:00"
+      },
+      {
+        "date": "2030-06-06T23:15:00.000Z",
+        "label": "00:15"
+      },
+      {
+        "date": "2030-06-06T23:30:00.000Z",
+        "label": "00:30"
+      }
+    ],
+    "blocks": [
+      {
+        "id": "morning",
+        "name": "09:00-12:00",
+        "start": "09:00",
+        "end": "12:00"
+      },
+      {
+        "id": "midday",
+        "name": "12:00-15:00",
+        "start": "12:00",
+        "end": "15:00"
+      },
+      {
+        "id": "afternoon",
+        "name": "15:00-18:00",
+        "start": "15:00",
+        "end": "18:00"
+      },
+      {
+        "id": "evening",
+        "name": "18:00-21:00",
+        "start": "18:00",
+        "end": "21:00"
+      }
+    ]
+  }
+]

@@ -63,6 +63,16 @@ const Utils = {
     };
   },
 
+  // Convert an unambiguous UK diary date/time to a real instant, independent
+  // of the device timezone. A missing/repeated DST hour needs adviser review.
+  ukDateTimeISO(date, time) {
+    const utc = Date.parse(`${date}T${time}:00Z`);
+    if (!Number.isFinite(utc)) return null;
+    const matches = [utc, utc - 3600000].map(ms => new Date(ms))
+      .filter(d => this.formatDate(d, 'iso') === date && this.formatTime(d) === time);
+    return matches.length === 1 ? matches[0].toISOString() : null;
+  },
+
   // "Now", but read as UK wall-clock fields. The returned Date is the real
   // instant of UK wall clock (exact midnight anchoring via
   // ukMidnightInstant), so .getTime() comparisons are safe.

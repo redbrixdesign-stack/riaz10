@@ -57,6 +57,7 @@ const context = {
 const dateUtils = vm.runInNewContext(fs.readFileSync(path.join(__dirname, '..', 'js/core/utils.js'), 'utf8') + '\nUtils;', {Intl, Date});
 context.Utils.formatDate = dateUtils.formatDate.bind(dateUtils);
 context.Utils.formatTime = dateUtils.formatTime.bind(dateUtils);
+context.Utils.ukDateTimeISO = dateUtils.ukDateTimeISO.bind(dateUtils);
 vm.createContext(context);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js/features/appointments/appointments.js'), 'utf8'), context);
 const feature = context.AppointmentsFeature;

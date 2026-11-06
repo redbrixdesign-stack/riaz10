@@ -333,12 +333,7 @@ const AppointmentsFeature = {
   },
 
   proposalInstant(date, time) {
-    // London is UTC or UTC+1. Reject missing/ambiguous DST wall-clock times.
-    const utc = Date.parse(`${date}T${time}:00Z`);
-    if (!Number.isFinite(utc)) return null;
-    const matches = [utc, utc - 3600000].map(ms => new Date(ms))
-      .filter(d => Utils.formatDate(d, 'iso') === date && Utils.formatTime(d) === time);
-    return matches.length === 1 ? matches[0].toISOString() : null;
+    return Utils.ukDateTimeISO(date, time);
   },
 
   async copyTimeProposal() {

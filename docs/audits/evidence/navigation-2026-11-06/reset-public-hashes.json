@@ -1,0 +1,30 @@
+{
+  "stage": "https://beelo1-akllcarbt-beelomvp.vercel.app",
+  "sourceCommit": "dea0700d6b13c2e2398cafa8f7c4a06045a68bbb",
+  "files": [
+    {
+      "file": "index.html",
+      "source": "6ff012a926d8741ddb28d44bd75c31590c0cbfc20a78eac19fe70cb839d5f818",
+      "stage": "6ff012a926d8741ddb28d44bd75c31590c0cbfc20a78eac19fe70cb839d5f818",
+      "public": "6ff012a926d8741ddb28d44bd75c31590c0cbfc20a78eac19fe70cb839d5f818"
+    },
+    {
+      "file": "sw.js",
+      "source": "4f67ae21dadb886ab18c291361fbbf962c0ba7469727529302ee747903c1c0c4",
+      "stage": "4f67ae21dadb886ab18c291361fbbf962c0ba7469727529302ee747903c1c0c4",
+      "public": "4f67ae21dadb886ab18c291361fbbf962c0ba7469727529302ee747903c1c0c4"
+    },
+    {
+      "file": "js/core/db.min.js",
+      "source": "a5c30a6036df2459a7bc72b4957fc01666498da92c20d92b5beded02643a1197",
+      "stage": "a5c30a6036df2459a7bc72b4957fc01666498da92c20d92b5beded02643a1197",
+      "public": "a5c30a6036df2459a7bc72b4957fc01666498da92c20d92b5beded02643a1197"
+    },
+    {
+      "file": "js/features/appointments/appointments.min.js",
+      "source": "3495cb64ad436e447af4b4178476561646aeafba44afba197e6d7d162eed3a14",
+      "stage": "3495cb64ad436e447af4b4178476561646aeafba44afba197e6d7d162eed3a14",
+      "public": "3495cb64ad436e447af4b4178476561646aeafba44afba197e6d7d162eed3a14"
+    }
+  ]
+}

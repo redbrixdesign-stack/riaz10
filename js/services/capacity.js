@@ -15,8 +15,8 @@ const CapacityService = {
     if (!blocks.length) return null;
     const day = Utils.formatDate(date, 'iso');
     return {
-      start: new Date(`${day}T${blocks[0].start}`),
-      end: new Date(`${day}T${blocks[blocks.length - 1].end}`)
+      start: new Date(Utils.ukDateTimeISO(day, blocks[0].start) || NaN),
+      end: new Date(Utils.ukDateTimeISO(day, blocks[blocks.length - 1].end) || NaN)
     };
   },
 
@@ -25,7 +25,9 @@ const CapacityService = {
     const active = appointments.filter(a => a.status !== 'cancelled' && String(a.id) !== String(excludeId));
     const warnings = [];
     const envelope = this.workingEnvelope(proposed.start);
-    if (envelope && (proposed.start < envelope.start || proposed.end > envelope.end)) {
+    if (envelope && (!Number.isFinite(envelope.start.getTime()) || !Number.isFinite(envelope.end.getTime()))) {
+      warnings.push({ code: 'closed_hours', message: 'Check your configured working hours before agreeing this slot.' });
+    } else if (envelope && (proposed.start < envelope.start || proposed.end > envelope.end)) {
       warnings.push({ code: 'closed_hours', message: 'This visit falls outside your configured working hours.' });
     }
     if (active.some(a => this.overlaps(proposed, this.interval(a)))) {
@@ -46,13 +48,15 @@ const CapacityService = {
   },
 
   async suggest(candidate, appointments = [], excludeId = null) {
-    const day = String(candidate.date).slice(0, 10);
+    const day = /^\d{4}-\d{2}-\d{2}$/.test(String(candidate.date)) ? String(candidate.date) : Utils.formatDate(candidate.date, 'iso');
     const durationSlots = Math.max(1, Number(candidate.durationSlots) || 1);
     const blocks = CONFIG.workingWeek?.blocks || [];
     const suggestions = [];
     for (const block of blocks) {
-      let cursor = new Date(`${day}T${block.start}`);
-      const end = new Date(`${day}T${block.end}`);
+      const startISO = Utils.ukDateTimeISO(day, block.start), endISO = Utils.ukDateTimeISO(day, block.end);
+      if (!startISO || !endISO) continue;
+      let cursor = new Date(startISO);
+      const end = new Date(endISO);
       while (cursor.getTime() + durationSlots * this.slotMinutes() * 60000 <= end.getTime()) {
         const warnings = await this.analyse({ date: cursor.toISOString(), durationSlots }, appointments, excludeId);
         if (!warnings.some(w => ['overlap', 'closed_hours', 'leave', 'unavailable'].includes(w.code))) {
