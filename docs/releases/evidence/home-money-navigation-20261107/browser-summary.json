@@ -1,0 +1,47 @@
+{
+  "sourceCommit": null,
+  "results": [
+    {
+      "check": "home-money-navigation.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 13691
+    },
+    {
+      "check": "home-workspace.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 14226
+    },
+    {
+      "check": "navigation-review.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 5918
+    },
+    {
+      "check": "customer-worklist.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 18822
+    },
+    {
+      "check": "customer-workspace.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 25988
+    },
+    {
+      "check": "cold-offline.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 6702
+    },
+    {
+      "check": "sw-update.e2e.js",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 1994
+    }
+  ]
+}

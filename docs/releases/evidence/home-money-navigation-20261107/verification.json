@@ -1,0 +1,11 @@
+{
+  "runtimeCommit": "40d6baa",
+  "cache": 196,
+  "deployment": "dpl_AzvNkpyzC8eYTLnRh2CpNc9JUcqD",
+  "unitSuite": "npm test: exit 0",
+  "affectedBrowserJourneys": 7,
+  "publicJourney": "Chromium and WebKit passed, including summary-failure fallback",
+  "runtimeHashes": "6 local/staged/public assets match",
+  "data": "synthetic only; records unchanged; no contact/provider requests",
+  "physicalDeviceAcceptance": false
+}

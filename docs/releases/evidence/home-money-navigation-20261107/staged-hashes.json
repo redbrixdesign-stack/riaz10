@@ -1,0 +1,35 @@
+{
+  "origin": "https://beelo1-ro6ktt6ay-beelomvp.vercel.app",
+  "rows": [
+    {
+      "file": "index.html",
+      "local": "24531525a9a25aae6cabc5b7a74a6d31607ff778a5b11247d159978ac25aaed1",
+      "deployed": "24531525a9a25aae6cabc5b7a74a6d31607ff778a5b11247d159978ac25aaed1"
+    },
+    {
+      "file": "sw.js",
+      "local": "27682073272a9ddd2cb90c087e9d33b5b6049e3357ef2aee6f33a43274f552fb",
+      "deployed": "27682073272a9ddd2cb90c087e9d33b5b6049e3357ef2aee6f33a43274f552fb"
+    },
+    {
+      "file": "js/features/money/money.min.js",
+      "local": "000da3231f1b68d932eae92d059f8e3452434784c1afaf4d53d1c8a2ce169bb1",
+      "deployed": "000da3231f1b68d932eae92d059f8e3452434784c1afaf4d53d1c8a2ce169bb1"
+    },
+    {
+      "file": "js/features/orders/orders.min.js",
+      "local": "8a2dc44906044c632e34bda2355cf9cdc92a1db1d2a94912921b6efc437a26be",
+      "deployed": "8a2dc44906044c632e34bda2355cf9cdc92a1db1d2a94912921b6efc437a26be"
+    },
+    {
+      "file": "js/features/control/control.min.js",
+      "local": "43c578c2b4df4b31abd8358c69e29c3087cab2d62172e63e8165228d2c67c41f",
+      "deployed": "43c578c2b4df4b31abd8358c69e29c3087cab2d62172e63e8165228d2c67c41f"
+    },
+    {
+      "file": "js/features/today/home-workspace.min.js",
+      "local": "461d9a9cd6b2a6907af2ad8d77aca69bf1c9c3b04cdd128f396f67b102656398",
+      "deployed": "461d9a9cd6b2a6907af2ad8d77aca69bf1c9c3b04cdd128f396f67b102656398"
+    }
+  ]
+}

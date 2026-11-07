@@ -16,4 +16,12 @@ New synthetic Chromium/WebKit journey covers the actual Home money-summary butto
 
 Existing navigation assertions were updated to the approved two-item navigation. Full unit suite and affected browser workflows run before release. One new harness lookup was corrected to target the existing expense action's rendered control (currently a clickable tile, rather than a native button). Improving that existing tile's keyboard semantics remains separate work; no accessibility certification is claimed.
 
-Final test/deployment receipts will be appended after promotion. Continuous background tracking and financial-estimate limitations remain as documented in the preceding foundation release.
+## Live release evidence
+
+Runtime `40d6baa`, cache196, exact deployment `dpl_AzvNkpyzC8eYTLnRh2CpNc9JUcqD` (`beelo1-ro6ktt6ay-beelomvp.vercel.app`) was staged, authenticated asset-verified and promoted without rebuilding. Six local/staged/public changed assets match. Public navigation flows passed in Chromium/WebKit, including an injected Home-summary failure with a working Open money details fallback. Screenshots were reviewed; no real contact or provider requests were made by the new journey.
+
+Full unit suite passed. Seven affected browser journeys passed: home-money navigation, Home workspace, navigation review, customer worklist, customer workspace, cold offline startup and service-worker update. Existing calculation/records behavior is retained. No physical-iPhone acceptance or full accessibility certification is claimed. Continuous background tracking and financial-estimate limitations remain as documented in the preceding foundation release.
+
+[Verification](evidence/home-money-navigation-20261107/verification.json) · [Browser checks](evidence/home-money-navigation-20261107/browser-summary.json) · [Public journey](evidence/home-money-navigation-20261107/public-journey.log) · [Staged hashes](evidence/home-money-navigation-20261107/staged-hashes.json) · [Public hashes](evidence/home-money-navigation-20261107/public-hashes.json) · [Home](evidence/home-money-navigation-20261107/home-money-entry-chromium.png) · [Tools](evidence/home-money-navigation-20261107/home-money-tools-chromium.png)
+
+Original tracked non-documentation working-tree diff remains SHA-256 `8b6f2a59c93c01d1e4bee30742536a538f010119e3acf6b99e9b2f63e8e295d1`. Runtime changes remain isolated on `codex/adviser-workflow-20261107`; no existing user work was overwritten.
