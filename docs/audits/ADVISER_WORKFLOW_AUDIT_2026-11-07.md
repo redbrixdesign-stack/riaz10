@@ -27,3 +27,7 @@ Full regression suite, existing planning-day/draft/date-boundary and planner-ret
 A separate Tomorrow-tab timeout occurred once under automated startup load; diagnostic handler tracing subsequently passed both engines. No independent production defect or root cause has been established for that timeout, so no tab fix is claimed. Keep watching it in the remaining journey.
 
 This is a running audit, not a certification that the whole app has been checked.
+
+### AW-001 deployed and live-verified
+
+Runtime `651496f`, cache 189. Exact production deployment `dpl_2pY71bZwRdNg13igtPCfwdFqAZYt` (`beelo1-d9fp67ik8-beelomvp.vercel.app`) was staged, authenticated asset-verified and promoted without rebuild to https://beelo.beelestial.co.uk/. Public changed assets match tested hashes. Public-origin Chromium/WebKit Tomorrow/future-plan/Add-date acceptance passed, with no external contact or provider calls. Evidence saved alongside the reproduction screenshots.

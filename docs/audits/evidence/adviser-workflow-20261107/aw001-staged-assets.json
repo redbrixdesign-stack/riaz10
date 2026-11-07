@@ -1,0 +1,55 @@
+{
+  "deployment": "https://beelo1-d9fp67ik8-beelomvp.vercel.app",
+  "results": [
+    {
+      "file": "sw.js",
+      "sha256": "5d46e9d6c9bf5749f22d0641e58f4348abb6444412b4f91cedb8d8b4ea6ceb16",
+      "matched": true
+    },
+    {
+      "file": "index.html",
+      "sha256": "cee027966a0e99bbba47f1ade7abd3d819395b17a7602557b60aa76d9ab5967c",
+      "matched": true
+    },
+    {
+      "file": "css/components.css",
+      "sha256": "568e76810af4b1387be96ddc86bd148d2ee9780dace1e86611d00b9f97eedbcd",
+      "matched": true
+    },
+    {
+      "file": "js/core/app.min.js",
+      "sha256": "fc9d28f97bfe9531ba07358892e085ad78f46c9cde7ff1e8454aa0f21226ca0f",
+      "matched": true
+    },
+    {
+      "file": "js/features/today/home-workspace.min.js",
+      "sha256": "db6cc22535a5170bfd2926cf6eacf65f9efcfd86b64c3bdb01972b77446b48c0",
+      "matched": true
+    },
+    {
+      "file": "js/core/db.min.js",
+      "sha256": "1cc5d62967f2390d2c475ad24c22adb309ce520756986695be43a2eada89869c",
+      "matched": true
+    },
+    {
+      "file": "js/features/customer/workspace.min.js",
+      "sha256": "52384b3b16ae9fe8ba6f33186a9c48060ada41a8a594d91be52e656564b2b27e",
+      "matched": true
+    },
+    {
+      "file": "js/features/companion/companion.min.js",
+      "sha256": "fb5a06d00014b91f37c0d387701afb5192dab134055d5c2abfa059a466a128fb",
+      "matched": true
+    },
+    {
+      "endpoint": "/api/claude",
+      "getStatus": 405,
+      "providerCalled": false
+    },
+    {
+      "endpoint": "/api/transcribe",
+      "getStatus": 405,
+      "providerCalled": false
+    }
+  ]
+}
