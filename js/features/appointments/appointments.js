@@ -4,6 +4,12 @@
    ============================================ */
 
 const AppointmentsFeature = {
+  orderPaymentIsExternal(order) {
+    if (!order) return false;
+    if (typeof CommunicationService !== 'undefined' && typeof CommunicationService.collectionResponsibility === 'function') return CommunicationService.collectionResponsibility(order) === 'external';
+    return order.source === 'survey_referral' || order.paymentManagedExternally === true || ['company','external'].includes(order.paymentResponsibility);
+  },
+
   id: 'appointments',
   name: 'Visits',
   icon: 'calendar_month',
@@ -1365,13 +1371,14 @@ const AppointmentsFeature = {
   // dependency at render time).
   renderLinkedOrderCard(order) {
     const stageNames = { ordered: 'Ordered', delivered: 'Delivered', fitted: 'Fitted', paid: 'Paid' };
-    const paid = (order.balanceDue || 0) <= 0;
+    const externalPayment = this.orderPaymentIsExternal(order);
+    const paid = !externalPayment && (order.balanceDue || 0) <= 0;
     const stageName = stageNames[order.stage] || 'Ordered';
     return `
       <div class="card card-page" >
         <div class="flex items-center justify-between mb-sm" >
           <div class="fs-13 fw-600 text-secondary" >Order</div>
-          ${paid ? `<span class="badge badge-success fs-10" >Paid</span>` : `<span class="badge badge-warning fs-10" >Owes ${Utils.formatCurrency(order.balanceDue || 0)}</span>`}
+          ${externalPayment ? `<span class="badge fs-10">Payment managed externally</span>` : paid ? `<span class="badge badge-success fs-10" >Paid</span>` : `<span class="badge badge-warning fs-10" >Owes ${Utils.formatCurrency(order.balanceDue || 0)}</span>`}
         </div>
         <button class="area-customer-row" data-action="App.navigate" data-args='${JSON.stringify(["orders", {id: (order.id)}])}'>
           <span class="material-symbols-rounded">receipt_long</span>
@@ -3510,7 +3517,7 @@ const AppointmentsFeature = {
     const depositPrefill = (saleOutcome && linkedOrder && !(linkedOrder.depositPaid > 0))
       ? (linkedOrder.depositRequired || 0)
       : '';
-    const fittingBalance = (fittingOrder && fittingOrder.source !== 'survey_referral' && Number(fittingOrder.balanceDue) > 0)
+    const fittingBalance = (fittingOrder && !this.orderPaymentIsExternal(fittingOrder) && Number(fittingOrder.balanceDue) > 0)
       ? (fittingOrder.balanceDue || 0)
       : null;
     // Stashed for updateOutcomeCommission's live preview - same data the old
@@ -3622,7 +3629,7 @@ const AppointmentsFeature = {
           </div>
         ` : ''}
 
-        ${appt.type === 'fitting' && outcomeId === 'completed' && fittingBalance === null ? `<div class="hint mb-md">${Utils.escapeHtml(paymentContextError || (fittingOrder?.source === 'survey_referral' ? 'Payment is managed externally for this referred order. No customer payment is recorded here.' : fittingOrder ? 'There is no outstanding balance on this linked order.' : 'No order is linked to this fitting. You can save the visit outcome; record any payment against the correct order in Orders.'))}</div>` : ''}
+        ${appt.type === 'fitting' && outcomeId === 'completed' && fittingBalance === null ? `<div class="hint mb-md">${Utils.escapeHtml(paymentContextError || (this.orderPaymentIsExternal(fittingOrder) ? 'Payment is managed externally for this order. No customer payment is recorded here.' : fittingOrder ? 'There is no outstanding balance on this linked order.' : 'No order is linked to this fitting. You can save the visit outcome; record any payment against the correct order in Orders.'))}</div>` : ''}
 
         <div id="outcome-payment-error" role="alert" class="text-danger fs-13 mb-md" hidden></div>
         <button id="outcome-save" class="btn btn-primary btn-block" data-action="AppointmentsFeature.saveOutcome" data-args='${JSON.stringify([(id), outcomeId])}'>

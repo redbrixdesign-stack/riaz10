@@ -31,6 +31,13 @@ const dir=process.env.BEELO_ARTIFACT_DIR||'/private/tmp/beelo-foundation-browser
  findings.probes=await p.evaluate(async ids=>{const dispatch=[];for(const key of ['next visit','follow-ups','log expense','my day','after visit','evening review'])dispatch.push({key,actual:(await CompanionFeature.runCommand(key,key)).text});const summary=await CompanionFeature.buildHomeData(),brief=await CompanionFeature.customerBriefFor(await DB.getAppointment(ids.visit)),tasks=await FollowupsFeature.loadCustomerTasks(ids.referral),visitPanel=await FollowupsFeature.renderCustomerPanel(ids.referral,{appointmentId:ids.survey}),customerPanel=await FollowupsFeature.renderCustomerPanel(ids.referral),snapshot=await CompanionFeature.buildSnapshot(),money=await CompanionFeature.answerMoney(),orders=await CompanionFeature.answerOrders();return {dispatch,attention:summary.attention,brief,referralTaskKinds:tasks.map(t=>t.kind),visitOffersFittingDate:visitPanel.includes('Review fitting date'),customerOffersFittingDate:customerPanel.includes('Review fitting date'),snapshot,money,orders,externalResponsibility:CommunicationService.collectionResponsibility(await DB.db.orders.get(ids.external)),businessConfirmedKm:(await DB.db.trips.toArray()).filter(t=>t.confirmed&&t.purpose==='business').reduce((sum,t)=>sum+t.distanceKm,0),allRecordedKm:(await DB.db.trips.toArray()).reduce((sum,t)=>sum+t.distanceKm,0)};},ids);
  await go('appointments',{id:ids.visit});await capture('visit');await go('customer',{id:ids.current,visitId:ids.visit});await capture('customer');
  await go('appointments',{id:ids.survey});findings.surveyVisitFittingActions=await p.getByRole('button',{name:'Review fitting date',exact:true}).count();await capture('survey-visit');await go('customer',{id:ids.referral,visitId:ids.survey});await capture('survey-customer');
+ await go('appointments',{id:ids.future});
+ await p.locator(`[data-action="AppointmentsFeature.captureOutcome"][data-args='[${ids.future},"completed"]']`).click();
+ await p.locator('#outcome-save').waitFor();
+ assert.equal(await p.locator('#outcome-payment').count(),0,'Company fitting must not prompt the adviser to collect its balance');
+ assert.match(await p.locator('#modal-overlay').innerText(),/Payment is managed externally/);
+ await p.screenshot({path:path.join(dir,engine.name()+'-company-fitting-boundary.png'),animations:'disabled'});
+ await p.evaluate(()=>App.closeModal());
  for(const [name,id,params]of [['plan','appointments',{action:'tomorrow'}],['tools','control',{}],['money','money',{}],['orders','orders',{}],['followups','followups',{}],...(false?[['jobs','jobs',{}],['quotes','quotes',{}],['invoices','invoices',{}],['suppliers','suppliers',{}],['availability','capacity',{}],['profitability','profitability',{}],['aftercare','retention',{}],['integrations','communications',{}],['settings','settings',{}],['leads','leads',{}]]:[])]){await go(id,params);if(id==='money')findings.taxDetails={open:await p.locator('#tax-section').evaluate(e=>e.open),attribute:await p.locator('#tax-section').getAttribute('open')};await capture(name);}
  assert.equal(findings.askWhatNext.command,'next visit');
  assert.notEqual(findings.askWhatNext.answer.text,findings.askWhatNext.defaultAnswer.text);
@@ -41,6 +48,7 @@ const dir=process.env.BEELO_ARTIFACT_DIR||'/private/tmp/beelo-foundation-browser
  assert(!findings.probes.attention.some(a=>a.label==='Payments outstanding'),'Company balance is not adviser collection work');
  assert(!findings.probes.orders.actions.some(a=>a.label==='Record Payment'));
  assert.equal(findings.probes.money.facts.find(f=>f.label==='Mileage claim').value.startsWith('6.2 mi'),true,'Only confirmed business travel');
+ assert(!findings.routes.find(r=>r.name==='survey-visit').text.includes('\nPaid\n'),'Visit cannot infer company payment from zero balance');
  assert.equal(findings.probes.visitOffersFittingDate,true);assert.equal(findings.surveyVisitFittingActions,1);
  assert.match(findings.probes.brief.text,/driveway unavailable/);assert.match(findings.probes.brief.text,/differs from customer note/);
  assert.equal(findings.taxDetails.open,false);
