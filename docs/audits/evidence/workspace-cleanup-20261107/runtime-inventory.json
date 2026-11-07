@@ -1,0 +1,6 @@
+{
+  "runtimeMinifiedFiles": 58,
+  "referencedAssetPaths": 58,
+  "notReferencedByLiteralPath": [],
+  "note": "A literal-path inventory is a candidate screen, not proof of dead code; dynamic loading and vendored fallbacks require review."
+}

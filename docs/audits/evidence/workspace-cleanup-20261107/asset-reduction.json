@@ -15,8 +15,9 @@
     "sw.js"
   ],
   "beforeBytes": 526323,
-  "afterBytes": 468387,
-  "reductionBytes": 57936,
-  "percent": 11.01,
-  "scope": "Uncompressed bytes of affected runtime assets only; not a network or performance benchmark."
+  "afterBytes": 468514,
+  "reductionBytes": 57809,
+  "percent": 10.98,
+  "scope": "Uncompressed bytes of affected runtime assets only; not a network or performance benchmark.",
+  "runtimeCommit": "cd2008b798990c103e1047affddbf66f5079b056"
 }

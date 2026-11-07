@@ -51,4 +51,4 @@ Sources inspected: eager shell and service-worker inventory, lazy feature routes
 - [Fresh screen sweep harness](evidence/workspace-cleanup-20261107/screen-audit.cjs), browser observations and selected screenshots are saved alongside this report.
 - Cleanup-specific browser journey: `tests/browser/workspace-cleanup.e2e.cjs`, included in the maintained release suite. It covers shared future diary, optional-tools disclosure, collapsed tax detail, quiet fitting completion, retained manual social entry and compact customer money, plus persistence/navigation with synthetic records.
 - Final tests, exact production deployment, artifact checks and remaining limitations are recorded in [the release record](../releases/WORKSPACE_CLEANUP_2026-11-07.md).
-- Original non-documentation diff fingerprint: `8b6f2a59c93c01d1e4bee30742536a538f010119e3acf6b99e9b2f63e8e295d1` before and after work.
+- Original tracked non-documentation diff fingerprint: `8b6f2a59c93c01d1e4bee30742536a538f010119e3acf6b99e9b2f63e8e295d1` before and after work.

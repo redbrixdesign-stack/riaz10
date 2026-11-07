@@ -1,0 +1,656 @@
+{
+  "runtimeCommit": "cd2008b798990c103e1047affddbf66f5079b056",
+  "passedJourneys": 45,
+  "method": "Bounded runs stop on failure. Navigation race fixed, stale navigation expectation corrected, affected checks rerun, remaining suite resumed. This is not a single uninterrupted green run.",
+  "latestResults": [
+    {
+      "check": "workspace-cleanup.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 16709,
+      "run": "targeted-final-runtime"
+    },
+    {
+      "check": "customer-document-import.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 44341,
+      "run": "initial"
+    },
+    {
+      "check": "home-money-navigation.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 12415,
+      "run": "initial"
+    },
+    {
+      "check": "adviser-foundation.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 6572,
+      "run": "initial"
+    },
+    {
+      "check": "automatic-customer-time.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 12613,
+      "run": "initial"
+    },
+    {
+      "check": "adviser-order-navigation.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 5129,
+      "run": "initial"
+    },
+    {
+      "check": "adviser-deferred-fitting.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 6960,
+      "run": "initial"
+    },
+    {
+      "check": "adviser-active-visit.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 2583,
+      "run": "initial"
+    },
+    {
+      "check": "adviser-home-plan.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 4766,
+      "run": "initial"
+    },
+    {
+      "check": "home-workspace.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 13526,
+      "run": "targeted-final-runtime"
+    },
+    {
+      "check": "payment-link.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 29642,
+      "run": "targeted-final-runtime"
+    },
+    {
+      "check": "protected-backup.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 8404,
+      "run": "after-navigation-fix"
+    },
+    {
+      "check": "context-encryption.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 10064,
+      "run": "after-navigation-fix"
+    },
+    {
+      "check": "lazy-state.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 6255,
+      "run": "after-navigation-test-correction"
+    },
+    {
+      "check": "social-share.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 8083,
+      "run": "after-navigation-test-correction"
+    },
+    {
+      "check": "cold-offline.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 6300,
+      "run": "after-navigation-test-correction"
+    },
+    {
+      "check": "script-load-deadline.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 94280,
+      "run": "after-navigation-test-correction"
+    },
+    {
+      "check": "claude-usage.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 4658,
+      "run": "after-navigation-test-correction"
+    },
+    {
+      "check": "test-session-boundary.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 13019,
+      "run": "after-navigation-test-correction"
+    },
+    {
+      "check": "visit-reminder-expiry.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 1561,
+      "run": "after-navigation-test-correction"
+    },
+    {
+      "check": "visit-reminder-lifecycle.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 2682,
+      "run": "after-navigation-test-correction"
+    },
+    {
+      "check": "visit-form-layout.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 2512,
+      "run": "after-navigation-test-correction"
+    },
+    {
+      "check": "modal-form-state.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 3352,
+      "run": "after-navigation-test-correction"
+    },
+    {
+      "check": "visit-draft.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 37424,
+      "run": "after-navigation-test-correction"
+    },
+    {
+      "check": "expense-date.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 14668,
+      "run": "after-navigation-test-correction"
+    },
+    {
+      "check": "communication-resolution.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 7758,
+      "run": "after-navigation-test-correction"
+    },
+    {
+      "check": "expense-finder.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 16084,
+      "run": "after-navigation-test-correction"
+    },
+    {
+      "check": "working-memory-search.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 13785,
+      "run": "after-navigation-test-correction"
+    },
+    {
+      "check": "compact-plan.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 17299,
+      "run": "after-navigation-test-correction"
+    },
+    {
+      "check": "proposed-route.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 22052,
+      "run": "after-navigation-test-correction"
+    },
+    {
+      "check": "communication-continuity.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 14521,
+      "run": "after-navigation-test-correction"
+    },
+    {
+      "check": "home-outcome-timing.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 9404,
+      "run": "after-navigation-test-correction"
+    },
+    {
+      "check": "message-summaries.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 8024,
+      "run": "after-navigation-test-correction"
+    },
+    {
+      "check": "eod-earnings.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 5479,
+      "run": "after-navigation-test-correction"
+    },
+    {
+      "check": "planning-day.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 21044,
+      "run": "after-navigation-test-correction"
+    },
+    {
+      "check": "scan-planning-day.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 19856,
+      "run": "after-navigation-test-correction"
+    },
+    {
+      "check": "planning-return.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 15431,
+      "run": "after-navigation-test-correction"
+    },
+    {
+      "check": "customer-followups.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 13244,
+      "run": "after-navigation-test-correction"
+    },
+    {
+      "check": "customer-worklist.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 18926,
+      "run": "after-navigation-test-correction"
+    },
+    {
+      "check": "navigation-review.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 6504,
+      "run": "targeted-final-runtime"
+    },
+    {
+      "check": "contact-handoff.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 25980,
+      "run": "after-navigation-test-correction"
+    },
+    {
+      "check": "customer-workspace.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 26260,
+      "run": "targeted-final-runtime"
+    },
+    {
+      "check": "visit-communication.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 19088,
+      "run": "after-navigation-test-correction"
+    },
+    {
+      "check": "expense-context.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 11912,
+      "run": "after-navigation-test-correction"
+    },
+    {
+      "check": "sw-update.e2e.js",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 2066,
+      "run": "after-navigation-test-correction"
+    }
+  ],
+  "executionHistory": [
+    {
+      "run": "initial",
+      "results": [
+        {
+          "check": "workspace-cleanup.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 14760
+        },
+        {
+          "check": "customer-document-import.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 44341
+        },
+        {
+          "check": "home-money-navigation.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 12415
+        },
+        {
+          "check": "adviser-foundation.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 6572
+        },
+        {
+          "check": "automatic-customer-time.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 12613
+        },
+        {
+          "check": "adviser-order-navigation.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 5129
+        },
+        {
+          "check": "adviser-deferred-fitting.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 6960
+        },
+        {
+          "check": "adviser-active-visit.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 2583
+        },
+        {
+          "check": "adviser-home-plan.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 4766
+        },
+        {
+          "check": "home-workspace.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 13601
+        },
+        {
+          "check": "payment-link.e2e.cjs",
+          "status": "failed",
+          "code": 1,
+          "durationMs": 40568
+        }
+      ]
+    },
+    {
+      "run": "after-navigation-fix",
+      "results": [
+        {
+          "check": "payment-link.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 26730
+        },
+        {
+          "check": "protected-backup.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 8404
+        },
+        {
+          "check": "context-encryption.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 10064
+        },
+        {
+          "check": "lazy-state.e2e.cjs",
+          "status": "failed",
+          "code": 1,
+          "durationMs": 1696
+        }
+      ]
+    },
+    {
+      "run": "after-navigation-test-correction",
+      "results": [
+        {
+          "check": "lazy-state.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 6255
+        },
+        {
+          "check": "social-share.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 8083
+        },
+        {
+          "check": "cold-offline.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 6300
+        },
+        {
+          "check": "script-load-deadline.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 94280
+        },
+        {
+          "check": "claude-usage.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 4658
+        },
+        {
+          "check": "test-session-boundary.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 13019
+        },
+        {
+          "check": "visit-reminder-expiry.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 1561
+        },
+        {
+          "check": "visit-reminder-lifecycle.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 2682
+        },
+        {
+          "check": "visit-form-layout.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 2512
+        },
+        {
+          "check": "modal-form-state.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 3352
+        },
+        {
+          "check": "visit-draft.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 37424
+        },
+        {
+          "check": "expense-date.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 14668
+        },
+        {
+          "check": "communication-resolution.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 7758
+        },
+        {
+          "check": "expense-finder.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 16084
+        },
+        {
+          "check": "working-memory-search.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 13785
+        },
+        {
+          "check": "compact-plan.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 17299
+        },
+        {
+          "check": "proposed-route.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 22052
+        },
+        {
+          "check": "communication-continuity.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 14521
+        },
+        {
+          "check": "home-outcome-timing.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 9404
+        },
+        {
+          "check": "message-summaries.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 8024
+        },
+        {
+          "check": "eod-earnings.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 5479
+        },
+        {
+          "check": "planning-day.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 21044
+        },
+        {
+          "check": "scan-planning-day.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 19856
+        },
+        {
+          "check": "planning-return.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 15431
+        },
+        {
+          "check": "customer-followups.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 13244
+        },
+        {
+          "check": "customer-worklist.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 18926
+        },
+        {
+          "check": "navigation-review.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 7147
+        },
+        {
+          "check": "contact-handoff.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 25980
+        },
+        {
+          "check": "customer-workspace.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 25933
+        },
+        {
+          "check": "visit-communication.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 19088
+        },
+        {
+          "check": "expense-context.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 11912
+        },
+        {
+          "check": "sw-update.e2e.js",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 2066
+        }
+      ]
+    },
+    {
+      "run": "targeted-final-runtime",
+      "results": [
+        {
+          "check": "workspace-cleanup.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 16709
+        },
+        {
+          "check": "navigation-review.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 6504
+        },
+        {
+          "check": "customer-workspace.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 26260
+        },
+        {
+          "check": "home-workspace.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 13526
+        },
+        {
+          "check": "payment-link.e2e.cjs",
+          "status": "passed",
+          "code": 0,
+          "durationMs": 29642
+        }
+      ]
+    }
+  ]
+}

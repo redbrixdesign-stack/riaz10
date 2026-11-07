@@ -1,0 +1,67 @@
+{
+  "deploymentId": "dpl_CGvtrU28XYwDm7oRrPKirMSQZFys",
+  "url": "https://beelo1-7a7kvxf9m-beelomvp.vercel.app",
+  "runtimeCommit": "cd2008b798990c103e1047affddbf66f5079b056",
+  "assets": [
+    {
+      "path": "index.html",
+      "sha256": "8f76fee1ff19c6b07da589c31802839d86f68eaf11b56540c88d5932d690829b",
+      "matches": true
+    },
+    {
+      "path": "sw.js",
+      "sha256": "2ff8f464d03bd5580592b7593b12d88b810a1ffc87f693f1c9fba8af6cd3d757",
+      "matches": true
+    },
+    {
+      "path": "css/components.css",
+      "sha256": "f85e679a8a59bf275871915982c9da4bdd3aaf95ee68589b7a75483f0e0e115b",
+      "matches": true
+    },
+    {
+      "path": "js/core/app.min.js",
+      "sha256": "f35ad1cc303cfa674cab448c8fff5067439cb6b430fc8c14482ab313bdaa063b",
+      "matches": true
+    },
+    {
+      "path": "js/features/appointments/appointments.min.js",
+      "sha256": "e52d6530fb9e5ef6fc38839fc2c9de2232d59c965678a7dbefdb1c8ee3a982b0",
+      "matches": true
+    },
+    {
+      "path": "js/features/companion/companion.min.js",
+      "sha256": "7faebf4f954a67ddf0b15ca3f9abd42aaaa6ade02994ad5faa39f039973c380e",
+      "matches": true
+    },
+    {
+      "path": "js/features/control/control.min.js",
+      "sha256": "1c9afb70af8c604e9fd3a9736a17a08ec842a29efc811dc9a043e8984bc361ee",
+      "matches": true
+    },
+    {
+      "path": "js/features/customer/customer.min.js",
+      "sha256": "997449cd318ee5e01f5b27cf9f16ffdc80d681949ba22fce629486cd2f844133",
+      "matches": true
+    },
+    {
+      "path": "js/features/customer/workspace.min.js",
+      "sha256": "3b9d301c35153541ac9b3a9428937b57cbefdf9742d3217c8da705c21205590b",
+      "matches": true
+    },
+    {
+      "path": "js/features/today/home-workspace.min.js",
+      "sha256": "591690bd0945cbd708ddb64b2f3f83bb26861bcd07c08c66a956f237ef7cc285",
+      "matches": true
+    },
+    {
+      "path": "js/features/money/money.min.js",
+      "sha256": "caca4d69eabbe315dd186a5975fd370acdc808326c483f901df841a168fff6f6",
+      "matches": true
+    },
+    {
+      "path": "js/features/customer/document-import.min.js",
+      "sha256": "382a4e21cc6c1368e7e87be96be11d2ed97be71c31bf66b8bbbfdf9ff44d4006",
+      "matches": true
+    }
+  ]
+}

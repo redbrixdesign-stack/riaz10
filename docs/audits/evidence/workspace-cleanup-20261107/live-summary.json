@@ -1,0 +1,23 @@
+{
+  "sourceCommit": null,
+  "results": [
+    {
+      "check": "workspace-cleanup.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 18558
+    },
+    {
+      "check": "customer-document-import.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 46715
+    },
+    {
+      "check": "cold-offline.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 7680
+    }
+  ]
+}

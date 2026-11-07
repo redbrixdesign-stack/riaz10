@@ -1,0 +1,12 @@
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+2 !== 4
+
+    at /private/tmp/beelo-home-release-20261107/tests/browser/lazy-state.e2e.cjs:16:10 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 2,
+  expected: 4,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
