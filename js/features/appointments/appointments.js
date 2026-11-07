@@ -1872,6 +1872,7 @@ const AppointmentsFeature = {
 
   formatOnSiteDuration(minutes) {
     if (!Number.isFinite(minutes)) return '';
+    minutes=Math.round(minutes);
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return hours > 0 ? `${hours}h ${mins}m` : `${mins} min`;
@@ -1879,7 +1880,8 @@ const AppointmentsFeature = {
 
   renderOnSiteCard(appt) {
     if (!appt || appt.status === 'cancelled') return '';
-    const active = !!appt.arrivedAt && !appt.leftAt && appt.status !== 'completed';
+    if(typeof VisitTiming!=='undefined'&&appt.arrivedAt)return VisitTiming.summary(appt);
+    const active = !!appt.arrivedAt && !appt.leftAt;
     const duration = this.onSiteDurationMinutes(appt);
     if (active) {
       return `<div class="card card-page" style="border-left:4px solid var(--accent);">
@@ -1887,20 +1889,20 @@ const AppointmentsFeature = {
           <span class="material-symbols-rounded text-accent">timer</span>
           <div class="flex-1 min-w-0"><div class="fw-600">On-site timer running</div><div class="fs-13 text-secondary mt-2">Started ${Utils.escapeHtml(Utils.formatTimeUK(appt.arrivedAt))}${duration !== null ? ` · ${Utils.escapeHtml(this.formatOnSiteDuration(duration))} so far` : ''}</div></div>
         </div>
-        <button class="btn btn-primary btn-block mt-md" data-action="AppointmentsFeature.finishOnSite" data-args='${JSON.stringify([appt.id])}'><span class="material-symbols-rounded">logout</span>Leave customer</button>
-        <div class="hint mt-sm">Saving the visit outcome also stops this timer.</div>
-      </div>`;
+        <button class="btn btn-outline btn-block mt-md" data-action="AppointmentsFeature.finishOnSite" data-args='${JSON.stringify([appt.id])}'><span class="material-symbols-rounded">logout</span>End timer manually</button>
+        <div class="hint mt-sm">Departure detection ends the timer automatically when reliable location updates are available. Recording an outcome does not end physical time on site.</div>
+      </div>${typeof VisitTiming!=='undefined'?VisitTiming.summary(appt):''}${typeof VisitTiming!=='undefined'&&VisitTiming.session?.appointmentId!==appt.id?`<button class="btn btn-outline btn-sm" data-action="VisitTiming.resumeFor" data-args='${JSON.stringify([appt.id])}'>Resume departure detection</button>`:''}`;
     }
     if (appt.arrivedAt && appt.leftAt) {
-      const recorded = Number.isFinite(Number(appt.onSiteDurationMinutes)) ? Number(appt.onSiteDurationMinutes) : duration;
+      const recorded = Number.isFinite(appt.onSiteDurationMinutes) ? appt.onSiteDurationMinutes : duration;
       return `<div class="card card-page">
         <div class="flex items-start gap-12"><span class="material-symbols-rounded text-tertiary">schedule</span><div><div class="fw-600">Time at customer: ${Utils.escapeHtml(this.formatOnSiteDuration(recorded))}</div><div class="fs-13 text-secondary mt-2">${Utils.escapeHtml(Utils.formatTimeUK(appt.arrivedAt))}–${Utils.escapeHtml(Utils.formatTimeUK(appt.leftAt))}</div></div></div>
-      </div>`;
+      </div>${typeof VisitTiming!=='undefined'?VisitTiming.summary(appt):''}`;
     }
     if (appt.status === 'completed') return '';
     return `<div class="card card-page">
-      <div class="flex items-start gap-12"><span class="material-symbols-rounded text-accent">location_on</span><div class="flex-1"><div class="fw-600">At the customer?</div><div class="fs-13 text-secondary mt-2">Start the timer when you arrive. Beelo will store the visit duration on this phone.</div></div></div>
-      <button class="btn btn-primary btn-block mt-md" data-action="AppointmentsFeature.startOnSite" data-args='${JSON.stringify([appt.id])}'><span class="material-symbols-rounded">timer</span>I've arrived — start timer</button>
+      <div class="flex items-start gap-12"><span class="material-symbols-rounded text-accent">location_on</span><div class="flex-1"><div class="fw-600">Automatic visit timing</div><div class="fs-13 text-secondary mt-2">Navigation starts travel tracking. Accurate location updates can start the on-site timer automatically; use this fallback if arrival was not detected.</div></div></div>
+      <button class="btn btn-outline btn-block mt-md" data-action="AppointmentsFeature.startOnSite" data-args='${JSON.stringify([appt.id])}'><span class="material-symbols-rounded" aria-hidden="true">timer</span>Record arrival manually</button>
     </div>`;
   },
 
@@ -1908,7 +1910,9 @@ const AppointmentsFeature = {
     const appt = await DB.getAppointment(id);
     if (!appt || appt.status === 'cancelled' || appt.status === 'completed') return Toast.show('This visit cannot be started', 'warning');
     if (appt.arrivedAt && !appt.leftAt) return Toast.show('On-site timer is already running', 'info');
-    await DB.updateAppointment(id, { travelStatus: 'on_site', arrivedAt: Date.now(), leftAt: null, onSiteDurationMinutes: null });
+    if(typeof Geo!=='undefined')await Geo.closePreviousOnSiteSessions(id,{source:'next_arrival'});
+    await DB.updateAppointment(id, { travelStatus: 'on_site', arrivedAt: Date.now(), leftAt: null, onSiteDurationMinutes: null, arrivalEvidence:'advisor_recorded',onSiteTimeReviewRequired:false });
+    if(typeof VisitTiming!=='undefined')await VisitTiming.resumeFor(id);
     await App.setActiveVisitUnlock?.(true);
     Toast.show('Arrival logged — on-site timer started', 'success');
     App.navigate('appointments', { id });
@@ -1919,10 +1923,12 @@ const AppointmentsFeature = {
     if (!appt?.arrivedAt || appt.leftAt) return Toast.show('No on-site timer is running', 'warning');
     const leftAt = Date.now();
     const onSiteDurationMinutes = this.onSiteDurationMinutes(appt, leftAt);
-    await DB.updateAppointment(id, { travelStatus: null, leftAt, onSiteDurationMinutes });
+    if(typeof DB.endVisitTiming==='function'){const saved=await DB.endVisitTiming(id,new Date(appt.arrivedAt).getTime(),leftAt,{source:'advisor_recorded',needsReview:false});if(!saved)return Toast.show('Timing changed. Review the saved visit times.','info');}
+    else await DB.updateAppointment(id, { travelStatus: null, leftAt, onSiteDurationMinutes,departureEvidence:'advisor_recorded' });
+    if(typeof VisitTiming!=='undefined')VisitTiming.stopFor(id);
     await App.setActiveVisitUnlock?.(false);
     Toast.show(`Time at customer logged: ${this.formatOnSiteDuration(onSiteDurationMinutes)}`, 'success');
-    App.navigate('appointments', { id });
+    if(App.currentFeature?.id==='customer'&&typeof CustomerFeature!=='undefined')CustomerFeature.refreshProfile(CustomerFeature._lastId);else App.navigate('appointments', { id });
   },
 
   async renderDetail(id, params = {}) {
@@ -2046,7 +2052,7 @@ const AppointmentsFeature = {
 
         ${typeof VisitCommunication!=='undefined'?await VisitCommunication.render(appt,customer):'<section class="card card-page" role="alert">Visit communication is unavailable. Reload Beelo to retry.</section>'}
 
-        ${this.renderOnSiteCard(appt)}
+        <div id="visit-time-panel" data-visit-id="${appt.id}">${this.renderOnSiteCard(appt)}</div>
 
         ${appt.type === 'fitting' ? `<div class="card card-page"><div class="flex items-start gap-sm"><span class="material-symbols-rounded text-brand">campaign</span><div class="flex-1"><div class="fw-700">Share your finished work</div><div class="fs-13 text-secondary mt-2">Turn a customer-approved photo or video into an editable social post.</div></div></div><button class="btn btn-outline btn-block mt-sm" data-action="App.navigate" data-args='${JSON.stringify(['social', { appointmentId: appt.id }])}'><span class="material-symbols-rounded">auto_awesome</span>Create Social Post</button></div>` : ''}
 
@@ -3385,11 +3391,14 @@ const AppointmentsFeature = {
     const cancelNote = `Cancelled: ${reason.replace(/_/g, ' ')}${note ? ` - ${note}` : ''}`;
     await DB.updateAppointment(id, {
       status: 'cancelled',
+      onSiteTimeReviewRequired:!!appt.arrivedAt&&!appt.leftAt||!!appt.onSiteTimeReviewRequired,
       cancellationReason: reason,
       audioNotes,
       notes: [existingNotes, cancelNote].filter(Boolean).join('\n\n')
     });
     App.closeModal();
+    if(typeof VisitTiming!=='undefined')VisitTiming.stopFor(id);
+    await App.setActiveVisitUnlock?.(false);
     Toast.show('Visit cancelled', 'success');
     App.navigate('appointments', { id });
   },
@@ -3768,14 +3777,14 @@ const AppointmentsFeature = {
         // editing a morning sale at 17:00) must not move "when the day was
         // completed" - the home screen's closeout window reads this.
         completedAt: appt.completedAt || Date.now(),
-        travelStatus: null,
-        leftAt: appt.leftAt || (appt.arrivedAt ? Date.now() : null),
-        onSiteDurationMinutes: appt.arrivedAt
-          ? this.onSiteDurationMinutes(appt, appt.leftAt || Date.now())
+        travelStatus: appt.arrivedAt&&!appt.leftAt?'on_site':null,
+        leftAt: appt.leftAt || null,
+        onSiteDurationMinutes: appt.arrivedAt&&appt.leftAt
+          ? this.onSiteDurationMinutes(appt, appt.leftAt)
           : (appt.onSiteDurationMinutes ?? null)
         }
       });
-      await App.setActiveVisitUnlock?.(false);
+      await App.setActiveVisitUnlock?.(!!appt.arrivedAt&&!appt.leftAt);
       const paymentNote = result.payment?.applied > 0
         ? ` · ${Utils.formatCurrency(result.payment.applied)} payment recorded`
         : '';

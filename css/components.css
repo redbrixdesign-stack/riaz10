@@ -4065,3 +4065,6 @@ body:has(.comp-page) {
 .hw-calendar-days button[data-workload=yellow] {--day-workload:var(--accent);}
 .hw-calendar-days button[data-workload=red] {--day-workload:var(--danger-text);}
 .hw-calendar-days button[data-workload] {background:color-mix(in srgb,var(--day-workload) 24%,var(--surface-muted));border-color:var(--day-workload);color:var(--text-primary);}
+
+.visit-time-review input {min-width:0;max-width:100%;width:100%;box-sizing:border-box;}
+.visit-time-summary .flex {flex-wrap:wrap;}

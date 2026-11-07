@@ -39,11 +39,11 @@ const Geo = {
   // explicitly started earlier.
   async init() {
     await this.restoreActiveTrip();
+    if(typeof VisitTiming!=='undefined')await VisitTiming.init();
 
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && this.activeTrip) {
-        this.checkArrivalOnResume();
-      }
+      if(document.visibilityState==='visible'){if(this.activeTrip)this.checkArrivalOnResume();if(typeof VisitTiming!=='undefined')VisitTiming.resume();}
+      else if(typeof VisitTiming!=='undefined')VisitTiming.suspend();
     });
   },
 
@@ -51,25 +51,7 @@ const Geo = {
     if (!this.activeTrip || this.finishingTrip || this.activeTrip.saveFailed) return;
     try {
       const pos = await this.getCurrentPosition();
-      const last = this.activeTrip.lastPos;
-      const segment = last ? this.calculateDistance(last.lat, last.lng, pos.lat, pos.lng) : 0;
-
-      if (segment >= this.MIN_MOVE_KM) {
-        this.activeTrip.distanceKm += segment;
-        this.activeTrip.path.push({ lat: pos.lat, lng: pos.lng });
-      }
-      this.activeTrip.lastPos = { lat: pos.lat, lng: pos.lng };
-      this.persistActiveTrip();
-
-      if (this.activeTrip.destination && this.activeTrip.distanceKm >= this.MIN_UNDERWAY_KM) {
-        const distToDest = this.calculateDistance(pos.lat, pos.lng, this.activeTrip.destination.lat, this.activeTrip.destination.lng);
-        if (distToDest <= this.ARRIVAL_RADIUS_KM) {
-          this.finishTrip({ auto: true });
-          return;
-        }
-      }
-
-      this.updateTripBanner();
+      this.onTripPositionUpdate({coords:{latitude:pos.lat,longitude:pos.lng,accuracy:pos.accuracy,speed:pos.speed},timestamp:pos.timestamp});
     } catch (e) {
       console.log('Arrival re-check skipped:', e);
     }
@@ -88,6 +70,7 @@ const Geo = {
             lat: pos.coords.latitude,
             lng: pos.coords.longitude,
             accuracy: pos.coords.accuracy,
+            speed: pos.coords.speed,
             timestamp: pos.timestamp
           };
           resolve(this.currentPosition);
@@ -99,17 +82,29 @@ const Geo = {
   },
 
   // ---- Start / Stop / auto-finish a live trip ----
-  async startTrip({ destinationAddress = '', appointmentId = null } = {}) {
+  async startTrip(options = {}) {
+    if(this._startingTrip){
+      if((options.appointmentId??null)!==this._startingAppointmentId){Toast.show('A journey is already starting. Review it before tracking another visit.','info');return null;}
+      return this._startingTrip;
+    }
+    this._startingAppointmentId=options.appointmentId??null;
+    const request=this._startingTrip=this.startTripOnce(options);
+    try{return await request;}finally{if(this._startingTrip===request)this._startingTrip=null;}
+  },
+
+  async startTripOnce({ destinationAddress = '', appointmentId = null } = {}) {
     if (this.activeTrip) {
       Toast.show('A trip is already in progress', 'info');
-      return this.activeTrip;
+      return (appointmentId??null)===(this.activeTrip.appointmentId??null)?this.activeTrip:null;
     }
+    const departedAt=Date.now();
+    if(appointmentId&&typeof DB!=='undefined'&&typeof DB.getAppointment==='function'){const appt=await DB.getAppointment(appointmentId);if(!appt||['completed','cancelled'].includes(appt.status)||appt.arrivedAt&&!appt.leftAt){Toast.show('Navigation will open. Review this visit’s timing or create a new visit before starting another tracked journey.','info');return null;}}
 
     // Starting the next appointment's journey is the advisor's clearest
     // low-input signal that any previous customer visit has ended. Close a
     // stale on-site timer before beginning the new trip; the visit-detail
     // controls remain available when GPS or this inference needs correcting.
-    await this.closePreviousOnSiteSessions(appointmentId);
+
 
     let startPos;
     try {
@@ -122,12 +117,14 @@ const Geo = {
     let destination = null;
     if (destinationAddress) {
       const geocoded = await this.geocode(destinationAddress);
-      if (geocoded) destination = { lat: geocoded.lat, lng: geocoded.lng };
+      if (geocoded && !geocoded.postcodeOnly) destination = { lat: geocoded.lat, lng: geocoded.lng };
     }
 
     this.activeTrip = {
       id: Utils.generateId('trip'),
-      startTime: new Date().toISOString(),
+      startTime: new Date(departedAt).toISOString(),
+      lastTimingFixAt:startPos.timestamp||departedAt,
+      timingReviewRequired:(startPos.timestamp||Date.now())-departedAt>120000,
       startLocation: 'Trip start',
       destinationAddress,
       destination,
@@ -142,11 +139,13 @@ const Geo = {
       return null;
     }
 
+    await this.closePreviousOnSiteSessions(appointmentId);
+
     if (appointmentId) {
       try {
         await DB.db.appointments.update(appointmentId, {
           travelStatus: 'in_transit',
-          travelStartedAt: Date.now()
+          travelStartedAt: departedAt
         });
       } catch (e) { console.log('travelStatus update (in_transit) failed:', e); }
     }
@@ -158,30 +157,28 @@ const Geo = {
     );
 
     this.renderTripBanner();
+    if(typeof VisitTiming!=='undefined')VisitTiming.refresh();
     if (appointmentId && typeof MessageScheduler !== 'undefined') MessageScheduler.startDelayChecker(appointmentId);
-    Toast.show(destination ? "Trip started — I'll check for arrival whenever you reopen Beelo" : 'Trip started', 'success');
+    Toast.show(destination ? "Trip started — arrival is checked while Beelo receives location updates" : 'Trip started', 'success');
     return this.activeTrip;
   },
 
-  async closePreviousOnSiteSessions(nextAppointmentId = null) {
+  async closePreviousOnSiteSessions(nextAppointmentId = null,{source='next_journey'}={}) {
     if (typeof DB === 'undefined' || !DB.db?.appointments) return 0;
 
     try {
       const openVisits = await DB.db.appointments
-        .filter(appt => !!appt.arrivedAt && !appt.leftAt && appt.status !== 'completed' && appt.id !== nextAppointmentId)
+        .filter(appt => !!appt.arrivedAt && !appt.leftAt && appt.status !== 'cancelled' && appt.id !== nextAppointmentId)
         .toArray();
       const leftAt = Date.now();
 
+      let closed=0;
       for (const visit of openVisits) {
-        await DB.db.appointments.update(visit.id, {
-          travelStatus: null,
-          leftAt,
-          onSiteDurationMinutes: Math.max(0, Math.round((leftAt - new Date(visit.arrivedAt).getTime()) / 60000))
-        });
+        const saved=typeof DB.endVisitTiming==='function'?await DB.endVisitTiming(visit.id,new Date(visit.arrivedAt).getTime(),leftAt,{source,needsReview:true}):await DB.db.appointments.update(visit.id,{travelStatus:null,leftAt,departureEvidence:source,onSiteTimeReviewRequired:true,onSiteDurationMinutes:Math.max(0,Math.round((leftAt-new Date(visit.arrivedAt).getTime())/60000))});
+        if(saved!==false){closed++;if(typeof VisitTiming!=='undefined')VisitTiming.stopFor(visit.id);}
       }
-
-      if (openVisits.length) await App.setActiveVisitUnlock?.(false);
-      return openVisits.length;
+      if(closed)await App.setActiveVisitUnlock?.(false);
+      return closed;
     } catch (e) {
       console.log('Previous on-site session close skipped:', e);
       return 0;
@@ -205,18 +202,38 @@ const Geo = {
       this.activeTrip.lastPos = { lat, lng };
     }
 
-    if (this.activeTrip.destination && this.activeTrip.distanceKm >= this.MIN_UNDERWAY_KM) {
-      const distToDest = this.calculateDistance(lat, lng, this.activeTrip.destination.lat, this.activeTrip.destination.lng);
-      if (distToDest <= this.ARRIVAL_RADIUS_KM) {
-        this.finishTrip({ auto: true });
-      }
+    if(typeof VisitTiming!=='undefined'){
+      const fix=VisitTiming.fix(position);
+      if(fix){if(fix.at-(this.activeTrip.lastTimingFixAt||Date.parse(this.activeTrip.startTime))>VisitTiming.GAP_MS)this.activeTrip.timingReviewRequired=true;this.activeTrip.lastTimingFixAt=fix.at;}
+      else this.activeTrip.timingReviewRequired=true;
+      const arrival=VisitTiming.arrival(this.activeTrip,position);
+      this.persistActiveTrip();
+      if(!arrival)this.scheduleArrivalCheck();
+      if(arrival)return this.finishTrip({auto:true,arrivalAt:arrival.arrivedAt,anchor:arrival.anchor});
+    }else if(this.activeTrip.destination&&this.activeTrip.distanceKm>=this.MIN_UNDERWAY_KM){
+      const distance=this.calculateDistance(lat,lng,this.activeTrip.destination.lat,this.activeTrip.destination.lng);
+      if(distance<=this.ARRIVAL_RADIUS_KM)return this.finishTrip({auto:true});
     }
   },
 
-  async finishTrip({ auto = false } = {}) {
+  scheduleArrivalCheck() {
+    const trip=this.activeTrip,candidate=trip?.arrivalCandidate,key=candidate?`${trip.id}:${candidate.at}`:null;
+    if(this._arrivalPollKey===key)return;
+    clearTimeout(this._arrivalPoll);this._arrivalPollKey=key;if(!key)return;
+    this._arrivalPoll=setTimeout(async()=>{
+      if(this.activeTrip!==trip||this.finishingTrip||document.visibilityState!=='visible')return;
+      try{const p=await this.getCurrentPosition();if(this.activeTrip===trip&&!this.finishingTrip)await this.onTripPositionUpdate({coords:{latitude:p.lat,longitude:p.lng,accuracy:p.accuracy,speed:p.speed},timestamp:p.timestamp});}catch(_){trip.timingReviewRequired=true;this.persistActiveTrip();}
+    },30000);
+  },
+
+  async finishTrip({ auto = false, arrivalAt = null, anchor = null } = {}) {
     if (!this.activeTrip || this.finishingTrip) return null;
     this.finishingTrip = true;
+    clearTimeout(this._arrivalPoll);this._arrivalPollKey=null;
     const trip = this.activeTrip;
+    // Persist the observation boundary before any routing/storage wait. Retry
+    // uses the same end instant and cannot inflate elapsed customer time.
+    if(!trip.endTime){trip.endTime=new Date(arrivalAt||Date.now()).toISOString();trip.arrivalEvidence=auto?'gps_arrival':'advisor_finished_trip';trip.arrivalAnchor=anchor;await this.persistActiveTrip();}
 
     if (this.watchId !== null) {
       navigator.geolocation.clearWatch(this.watchId);
@@ -242,7 +259,8 @@ const Geo = {
         distanceKm,
         purpose: 'business',
         appointmentId: trip.appointmentId,
-        autoTracked: true
+        autoTracked: true,trackingIncomplete:!!trip.timingReviewRequired,endedAt:trip.endTime,arrivalAt:Date.parse(trip.endTime),arrivalEvidence:trip.arrivalEvidence,
+        durationSeconds:Math.max(0,(Date.parse(trip.endTime)-Date.parse(trip.startTime))/1000),timingReviewRequired:!!trip.timingReviewRequired
       });
       const distance = CONFIG.distanceUnit === 'miles' ? distanceKm * 0.621371 : distanceKm;
       Toast.show(`${auto ? 'Arrived — trip' : 'Trip'} logged: ${distance.toFixed(1)} ${CONFIG.distanceUnit}`, 'success');
@@ -257,13 +275,16 @@ const Geo = {
       return null;
     }
 
+    if(typeof VisitTiming!=='undefined'&&trip.appointmentId&&trip.arrivalAnchor){try{const appt=await DB.getAppointment(trip.appointmentId);if(appt&&!appt.leftAt&&appt.arrivalTripOperationId===trip.id&&!(VisitTiming.session?.appointmentId===trip.appointmentId&&VisitTiming.session?.arrivedAt===Number(appt.arrivedAt)))await VisitTiming.begin(trip.appointmentId,Number(appt.arrivedAt),trip.arrivalAnchor);}catch(_){Toast.show('Trip saved; automatic departure tracking could not start. Review visit times.','warning');}}
     this.activeTrip = null;
     this.finishingTrip = false;
     this.clearPersistedTrip();
     if (typeof MessageScheduler !== 'undefined') MessageScheduler.stopDelayChecker();
     this.removeTripBanner();
 
-    if (App.currentFeature && ['today', 'money'].includes(App.currentFeature.id)) {
+    if(typeof VisitTiming!=='undefined')VisitTiming.refresh();
+    const editing=document.activeElement?.matches?.('input,textarea,select')||document.getElementById('modal-overlay')?.classList.contains('active');
+    if (App.currentFeature?.id==='money'&&!editing) {
       App.navigate(App.currentFeature.id);
     }
     return distanceKm;
@@ -279,6 +300,7 @@ const Geo = {
   },
 
   cancelTrip() {
+    clearTimeout(this._arrivalPoll);this._arrivalPollKey=null;
     if (!this.activeTrip) return;
     if (this.finishingTrip) {
       Toast.show('Trip is already being saved', 'info');
@@ -327,6 +349,7 @@ const Geo = {
         ? JSON.parse(await decryptField(stored.encrypted)) : stored;
       if (!trip) return;
       if (!trip.id || !Array.isArray(trip.path) || !trip.lastPos) throw new Error('Invalid trip recovery data');
+      if(trip.endTime)trip.saveFailed=true;
       this.activeTrip = trip;
       // Migrate legacy plaintext before resuming tracking. Never fall back to plaintext.
       if (!await this.persistActiveTrip()) { this.activeTrip = null; return; }
@@ -368,7 +391,7 @@ const Geo = {
         <span class="material-symbols-rounded">directions_car</span>
         <div class="trip-banner-text">
           <strong>${this.activeTrip.saveFailed ? 'Trip needs saving' : 'Trip in progress'}</strong>
-          <span>${distance.toFixed(1)} ${CONFIG.distanceUnit}${this.activeTrip.destination ? ' · finishes when you arrive & reopen the app' : ''}</span>
+          <span>${distance.toFixed(1)} ${CONFIG.distanceUnit}${this.activeTrip.timingReviewRequired?' · location gap: time/mileage need review':this.activeTrip.destination ? ' · automatic arrival while location is available' : ''}</span>
         </div>
         <button class="btn btn-sm btn-ghost" data-action="Geo.cancelTrip" title="Cancel trip">
           <span class="material-symbols-rounded">close</span>

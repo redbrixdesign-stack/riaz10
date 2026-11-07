@@ -1669,13 +1669,60 @@ const DB = {
       if (existing && typeof this.db.transaction === 'function') return existing;
       const saved = existing || await this.addTrip(data);
       if (data.appointmentId) {
-        await this.db.appointments.update(data.appointmentId, {
-          travelStatus: 'on_site', arrivedAt: Date.now(), leftAt: null,
-          onSiteDurationMinutes: null
-        });
+        const appt=await this.db.appointments.get(data.appointmentId);
+        if(appt&&appt.status!=='cancelled'&&(appt.status!=='completed'||appt.arrivalTripOperationId===data.operationId)){
+          const trips=(await this.db.trips.toArray()).filter(t=>t.appointmentId===data.appointmentId);
+          const timed=trips.filter(t=>Number.isFinite(t.durationSeconds)&&t.durationSeconds>=0);
+          const sameArrival=appt.arrivalTripOperationId===data.operationId;
+          await this.db.appointments.update(data.appointmentId, {
+            travelStatus: sameArrival?appt.travelStatus:'on_site',
+            arrivedAt: sameArrival?appt.arrivedAt:(Number.isFinite(data.arrivalAt)?data.arrivalAt:Date.now()),
+            leftAt:sameArrival?appt.leftAt:null,onSiteDurationMinutes:sameArrival?appt.onSiteDurationMinutes:null,
+            onSiteSessions:!sameArrival&&appt.arrivedAt&&appt.leftAt?[...(appt.onSiteSessions||[]),{arrivedAt:appt.arrivedAt,leftAt:appt.leftAt,arrivalEvidence:appt.arrivalEvidence||null,departureEvidence:appt.departureEvidence||null,needsReview:!!appt.onSiteTimeReviewRequired}]:appt.onSiteSessions||[],
+            onSiteTimeReviewRequired:sameArrival?!!appt.onSiteTimeReviewRequired:false,
+            travelDurationOverrideMinutes:sameArrival?appt.travelDurationOverrideMinutes:appt.travelTimeReviewed&&Number.isFinite(appt.travelDurationOverrideMinutes)&&Number.isFinite(data.durationSeconds)?appt.travelDurationOverrideMinutes+data.durationSeconds/60:null,
+            travelTimeReviewed:sameArrival?!!appt.travelTimeReviewed:!!appt.travelTimeReviewed&&Number.isFinite(data.durationSeconds)&&data.timingReviewRequired!==true,
+            arrivalTripOperationId:data.operationId,arrivalEvidence:sameArrival?appt.arrivalEvidence:(data.arrivalEvidence||'advisor_finished_trip'),
+            travelDurationMinutes:timed.length?timed.reduce((sum,t)=>sum+t.durationSeconds,0)/60:null,
+            travelTimeIncomplete:timed.length!==trips.length,
+            travelTimeReviewRequired:trips.some(t=>t.timingReviewRequired===true)
+          });
+        }
       }
       return saved;
     });
+  },
+
+  _visitTimingWrite(operation) {
+    const next=(this._visitTimingQueue||Promise.resolve()).then(operation);
+    this._visitTimingQueue=next.catch(()=>{});return next;
+  },
+
+  async endVisitTiming(id,arrivedAt,leftAt,evidence) {
+    return this._visitTimingWrite(()=>this._runWrite(['appointments'],async()=>{
+      const appt=await this.db.appointments.get(id);
+      if(!appt||appt.leftAt||appt.status==='cancelled'||new Date(appt.arrivedAt).getTime()!==Number(arrivedAt))return false;
+      if(!Number.isFinite(leftAt)||leftAt<Number(arrivedAt)||leftAt>Date.now()+5000)throw Error('Invalid departure observation');
+      await this.db.appointments.update(id,{leftAt,travelStatus:null,onSiteDurationMinutes:(leftAt-Number(arrivedAt))/60000,departureEvidence:evidence.source,departureObservedFrom:evidence.from||null,departureObservedTo:evidence.to||leftAt,onSiteTimeReviewRequired:!!evidence.needsReview||!!appt.onSiteTimeReviewRequired});
+      return true;
+    }));
+  },
+
+  visitTimeSnapshot(appt) {
+    return JSON.stringify([appt.arrivedAt,appt.leftAt,appt.travelDurationMinutes,appt.travelDurationOverrideMinutes,appt.onSiteTimeReviewRequired,appt.travelTimeReviewed]);
+  },
+
+  async saveVisitTimeReview(id, expected, values) {
+    return this._visitTimingWrite(()=>this._runWrite(['appointments'],async()=>{
+      const appt=await this.db.appointments.get(id);
+      if(!appt||this.visitTimeSnapshot(appt)!==expected)throw Error('Visit timing changed. Reopen the time review.');
+      const {arrivedAt,leftAt,travelMinutes}=values;
+      if(appt.status==='cancelled'&&!leftAt)throw Error('Record the actual departure for this cancelled visit.');
+      if(!Number.isFinite(arrivedAt)||arrivedAt<=0||arrivedAt>Date.now()+60000||leftAt!=null&&(!Number.isFinite(leftAt)||leftAt<arrivedAt||leftAt>Date.now()+60000)||travelMinutes!=null&&(!Number.isFinite(travelMinutes)||travelMinutes<0||travelMinutes>1440))throw Error('Check the actual arrival, departure and travel time.');
+      const review={recordedAt:Date.now(),provenance:'advisor_recorded',before:{arrivedAt:appt.arrivedAt||null,leftAt:appt.leftAt||null,travelDurationOverrideMinutes:appt.travelDurationOverrideMinutes??null,onSiteTimeReviewRequired:!!appt.onSiteTimeReviewRequired},after:{arrivedAt,leftAt,travelMinutes}};
+      await this.db.appointments.update(id,{arrivedAt,leftAt,travelStatus:leftAt?null:'on_site',onSiteDurationMinutes:leftAt?(leftAt-arrivedAt)/60000:null,travelDurationOverrideMinutes:travelMinutes,travelTimeReviewed:true,onSiteTimeReviewRequired:false,arrivalEvidence:'advisor_recorded',departureEvidence:leftAt?'advisor_recorded':null,timeReviews:[...(appt.timeReviews||[]),review]});
+      return {...appt,arrivedAt,leftAt};
+    }));
   },
 
   async addTrip(data) {

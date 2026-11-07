@@ -94,6 +94,11 @@ const Legal = {
       </div>
 
       <div class="card mb-md">
+        <h2 class="fs-15 fw-700 mb-10">Location-supported visit timing</h2>
+        <div class="fs-13 lh-160 text-secondary">Choosing Navigate starts travel tracking with your location permission. After a detected arrival, Beelo uses location to detect departure and record time on site. Temporary on-site recovery coordinates are encrypted on this device and removed when that tracking session ends. Beelo does not send the on-site location readings to its map or AI providers, or send customer messages. Browser location updates can pause while Maps is open or the phone is locked; reopen Beelo and review any flagged timing gaps. You can end the on-site timer manually and review recorded times. Travel routing may use the providers below.</div>
+      </div>
+
+      <div class="card mb-md">
         <h2 class="fs-15 fw-700 mb-10" >What may leave your device</h2>
         <div class="fs-13 lh-160 text-secondary">
           Network features are explained here so there are no surprises:

@@ -959,7 +959,7 @@ const App = {
     const objpath = m[1];
     const arglist = m[2].trim();
     const root = objpath.split('.')[0];
-    const KNOWN = ['App', 'AppointmentsFeature', 'SettingsFeature', 'MoneyFeature', 'TalkFeature', 'MeasureFeature', 'OnboardingFeature', 'RouteFeature', 'OrdersFeature', 'ContactFeature', 'HomeScreenController', 'HomeWorkspace', 'CompanionFeature', 'ExportService', 'OCRFeature', 'ControlFeature', 'TodayFeature', 'Geo', 'CustomerFeature', 'FollowupsFeature', 'LeadsFeature', 'QuotesFeature', 'JobsFeature', 'InvoicesFeature', 'SuppliersFeature', 'CapacityFeature', 'ProfitabilityFeature', 'RetentionFeature', 'CommunicationsFeature', 'VoiceNotes', 'NoteCapture', 'VisitDraft', 'VisitCommunication'];
+    const KNOWN = ['App', 'AppointmentsFeature', 'SettingsFeature', 'MoneyFeature', 'TalkFeature', 'MeasureFeature', 'OnboardingFeature', 'RouteFeature', 'OrdersFeature', 'ContactFeature', 'HomeScreenController', 'HomeWorkspace', 'CompanionFeature', 'ExportService', 'OCRFeature', 'ControlFeature', 'TodayFeature', 'Geo', 'VisitTiming', 'CustomerFeature', 'FollowupsFeature', 'LeadsFeature', 'QuotesFeature', 'JobsFeature', 'InvoicesFeature', 'SuppliersFeature', 'CapacityFeature', 'ProfitabilityFeature', 'RetentionFeature', 'CommunicationsFeature', 'VoiceNotes', 'NoteCapture', 'VisitDraft', 'VisitCommunication'];
     if (!KNOWN.includes(root)) return '';
     // Convert the JS-ish argument list into a JSON array string:
     //   'appointments', {tab: 'upcoming'}  ->  ["appointments", {"tab": "upcoming"}]
@@ -1045,6 +1045,7 @@ const App = {
       ControlFeature,
       TodayFeature,
       Geo,
+      VisitTiming: typeof VisitTiming === 'undefined' ? null : VisitTiming,
       CustomerFeature,
       FollowupsFeature,
       LeadsFeature,

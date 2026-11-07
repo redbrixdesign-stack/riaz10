@@ -246,7 +246,8 @@ async function runDbJs(engine, tag) {
   await DB.init();
   await sandbox.initEncryption('test-passphrase-123');
 
-  const tracked = { operationId: 'audit-trip', date: new Date().toISOString(), distanceKm: 2, appointmentId: 1 };
+  const timingVisit=await DB.addAppointment({clientName:'SYNTHETIC Timing',type:'fitting',status:'confirmed',date:new Date().toISOString()});
+  const tracked = { operationId: 'audit-trip', date: new Date().toISOString(), distanceKm: 2, appointmentId: timingVisit.id,durationSeconds:120,arrivalAt:Date.now()-60000 };
   const originalUpdate = DB.db.appointments.update.bind(DB.db.appointments);
   DB.db.appointments.update = async () => { throw new Error('simulated appointment write failure'); };
   try { await DB.completeTrackedTrip(tracked); ok(engine + ': completion failure propagates', false); }
@@ -256,7 +257,21 @@ async function runDbJs(engine, tag) {
   const completedTrip = await DB.completeTrackedTrip(tracked);
   const retriedTrip = await DB.completeTrackedTrip(tracked);
   ok(engine + ': trip retry is idempotent', completedTrip.id === retriedTrip.id);
-  ok(engine + ': completion advances appointment', (await DB.db.appointments.get(1)).travelStatus === 'on_site');
+  ok(engine + ': completion advances appointment', (await DB.db.appointments.get(timingVisit.id)).travelStatus === 'on_site');
+
+  ok(engine+': observed travel minutes retained',(await DB.db.appointments.get(timingVisit.id)).travelDurationMinutes===2);
+  const timing=await DB.getAppointment(timingVisit.id);
+  const beforeEnd=DB.visitTimeSnapshot(timing);DB.db.appointments.update=async()=>{throw Error('SYNTHETIC departure write failure');};
+  try{await DB.endVisitTiming(timingVisit.id,timing.arrivedAt,Date.now(),{source:'gps_departure',needsReview:false});ok(engine+': failed departure is not falsely saved',false);}catch(_){ok(engine+': failed departure is not falsely saved',!(await DB.getAppointment(timingVisit.id)).leftAt);}
+  DB.db.appointments.update=originalUpdate;
+  await DB.endVisitTiming(timingVisit.id,timing.arrivedAt,Date.now(),{source:'gps_departure',needsReview:false});
+  try{await DB.saveVisitTimeReview(timingVisit.id,beforeEnd,{arrivedAt:timing.arrivedAt,leftAt:Date.now(),travelMinutes:2});ok(engine+': stale timing review rejected',false);}catch(_){ok(engine+': stale timing review rejected',true);}
+  const finished=await DB.getAppointment(timingVisit.id);await DB.saveVisitTimeReview(timingVisit.id,DB.visitTimeSnapshot(finished),{arrivedAt:finished.arrivedAt,leftAt:finished.leftAt,travelMinutes:null});
+  ok(engine+': unknown reviewed travel stays explicitly unknown',(await DB.getAppointment(timingVisit.id)).travelTimeReviewed===true&&(await DB.getAppointment(timingVisit.id)).travelDurationOverrideMinutes===null);
+
+  ok(engine+': departure does not complete fitting',(await DB.getAppointment(timingVisit.id)).status==='confirmed');
+  await DB.db.trips.delete(completedTrip.id);
+  await DB.db.appointments.delete(timingVisit.id);
 
   // Legacy migration results
   const customers = await DB.db.customers.toArray();
