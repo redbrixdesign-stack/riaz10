@@ -2564,7 +2564,7 @@ const DB = {
     if(data.measurements?.length)data.measurements=await Promise.all(data.measurements.map(decryptMeasurementAudio));
     if(data.photos?.length)data.photos=await Promise.all(data.photos.map(decryptPhoto));
     const RUNTIME_SETTING_KEYS = ['__v6_legacy_migrated__', '__storage_probe__', 'pitchDemoSeeded', DEVICE_AI_SECRET_SETTING, NEW_VISIT_DRAFT_SETTING];
-    data.settings = (await this.db.settings.toArray()).filter(s => !RUNTIME_SETTING_KEYS.includes(s.key) && !s.key.startsWith('communication-draft:') && !s.key.startsWith('visit-plan:'));
+    data.settings = (await this.db.settings.toArray()).filter(s => !RUNTIME_SETTING_KEYS.includes(s.key) && !s.key.startsWith('communication-draft:') && !s.key.startsWith('visit-plan:') && !s.key.startsWith('customer-note-draft:'));
     data.sequences = await this.db.sequences.toArray();
     return data;
   },
@@ -2572,6 +2572,7 @@ const DB = {
   async importAll(data) {
     // Device-local recovery entries cannot be moved between encryption keys,
     // or silently destroyed by replacing the working database.
+    if ((await this.db.settings.toArray()).some(row=>row.key.startsWith('customer-note-draft:'))) throw new Error('Save your unfinished customer notes before restoring a backup.');
     if (await this.db.settings.get(NEW_VISIT_DRAFT_SETTING)) throw new Error('Resume and save, or explicitly discard your unfinished visit before restoring a backup.');
     if (Array.isArray(data?.settings) && data.settings.some(row => row.key === NEW_VISIT_DRAFT_SETTING)) throw new Error('Backups cannot contain a device-local unfinished visit.');
     // Validate the whole backup — table shapes, record structure, primary

@@ -199,7 +199,7 @@ const CompanionFeature = {
     // moment Home opens — the "screen displaces" bug. The advisor taps the
     // field when they actually want to type, and focus happens naturally.
     const input = document.getElementById('comp-input');
-    if (input && window.matchMedia('(pointer: fine)').matches) input.focus();
+    if (input && typeof HomeWorkspace === 'undefined' && window.matchMedia('(pointer: fine)').matches) input.focus();
   },
 
   unmount() {
@@ -254,6 +254,7 @@ const CompanionFeature = {
   /* ---------- transcript rendering (scroll area only — original composer untouched) ---------- */
 
   renderScroll() {
+    const epoch=this._renderEpoch=(this._renderEpoch||0)+1;
     const scroll = document.getElementById('comp-scroll');
     if (!scroll) return;
     if (this._turns.length === 0) {
@@ -261,7 +262,13 @@ const CompanionFeature = {
       // position the advisor was at (the feed is taller than the viewport,
       // so without this the screen visibly jumps to the top).
       scroll.innerHTML = this.loadingShellHtml();
-      this.buildHomeData().then(homeData => {
+      const revision = App._navigationRevision;
+      const composer = document.querySelector('.comp-composer');
+      if (composer && typeof HomeWorkspace !== 'undefined') composer.hidden = true;
+      this.buildHomeData().then(async homeData => {
+        if(epoch!==this._renderEpoch||revision!==App._navigationRevision||scroll!==document.getElementById('comp-scroll'))return;
+        if (typeof HomeWorkspace !== 'undefined') homeData = await HomeWorkspace.enrich(homeData);
+        if (epoch!==this._renderEpoch || revision !== App._navigationRevision || scroll !== document.getElementById('comp-scroll')) return;
         const again = document.getElementById('comp-scroll');
         if (again && this._turns.length === 0 && again.innerHTML) {
           again.innerHTML = this.welcomeHtml(homeData);
@@ -273,12 +280,14 @@ const CompanionFeature = {
       }).catch(() => {
         // Offline/corrupt-data fallback: a calm empty feed, never a hang.
         const again = document.getElementById('comp-scroll');
-        if (again && this._turns.length === 0) {
-          again.innerHTML = this.welcomeHtml({ nextVisit: null, upcomingVisits: [], attention: [], suggestions: [] });
+        if (epoch===this._renderEpoch && revision===App._navigationRevision && again===scroll && this._turns.length === 0) {
+          again.innerHTML = this.welcomeHtml({ nextVisit: null, upcomingVisits: [], attention: [], suggestions: [], loadError:true });
         }
       });
       return;
     }
+    const composer = document.querySelector('.comp-composer');
+    if (composer) composer.hidden = false;
     // Chat mode — the composer stays put below; a slim header offers the
     // way back to the Home feed (tapping an Ask Beelo chip must never
     // strand the advisor in a transcript with no way out).
@@ -320,6 +329,7 @@ const CompanionFeature = {
   },
 
   welcomeHtml(homeData) {
+    if (typeof HomeWorkspace !== 'undefined') return HomeWorkspace.render(homeData);
     // Home = advisor identity, weekly calendar, thumb-reachable capture,
     // today's route, then ONE appointment feed (NEXT visit as a rich card +
     // compact rows), attention and Ask Beelo chips.

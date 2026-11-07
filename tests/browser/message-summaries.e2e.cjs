@@ -33,7 +33,7 @@ const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8055';
  // Failed task reads must not turn into an all-clear statement.
  const failed=await p.evaluate(async()=>{const load=FollowupsFeature.loadTasks;FollowupsFeature.loadTasks=async()=>{throw Error('SYNTHETIC read failure');};try{return {messages:await CompanionFeature.answerMessages(),evening:await CompanionFeature.answerEveningReview(),after:await CompanionFeature.answerAfterVisit(),homeRejected:await CompanionFeature.buildHomeData().then(()=>false,()=>true)};}finally{FollowupsFeature.loadTasks=load;}});
  assert.match(failed.messages.text,/could not check/i);assert(failed.evening.facts.some(t=>t.label==='Follow-ups unavailable'));assert(failed.after.facts.some(t=>t.label==='Follow-ups unavailable'));assert(failed.homeRejected);
- assert.deepEqual(errors,[]);assert.deepEqual(posts,[]);await p.evaluate(()=>App.navigate('today'));await p.getByText('ASK BEELO',{exact:true}).first().waitFor();await p.screenshot({path:artifactPath('message-summaries-'+engine.name()+'-'+timezoneId.replace('/','-')+'.png')});
+ assert.deepEqual(errors,[]);assert.deepEqual(posts,[]);await p.evaluate(()=>App.navigate('today'));await p.locator('.hw-ask').waitFor();await p.screenshot({path:artifactPath('message-summaries-'+engine.name()+'-'+timezoneId.replace('/','-')+'.png')});
  console.log('PASS '+engine.name()+' '+timezoneId+': canonical Home/evening/after/messages; new, handoff, explicit sent/agreed, offline reads/reload, reschedule, cancellation, completed, two known visits and read failure; no external contact');
  }finally{await browser.close();}}
  fs.writeFileSync(artifactPath('message-summaries.json'),JSON.stringify(evidence,null,2));

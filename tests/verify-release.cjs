@@ -7,7 +7,7 @@ const {spawn}=require('node:child_process');
 const root=path.resolve(__dirname,'..');
 const directory=process.env.BEELO_ARTIFACT_DIR?path.resolve(process.env.BEELO_ARTIFACT_DIR):fs.mkdtempSync(path.join(os.tmpdir(),'beelo-release-'));
 fs.mkdirSync(directory,{recursive:true});
-const checks=['payment-link.e2e.cjs','protected-backup.e2e.cjs','context-encryption.e2e.cjs','lazy-state.e2e.cjs','social-share.e2e.cjs','cold-offline.e2e.cjs','script-load-deadline.e2e.cjs','claude-usage.e2e.cjs','test-session-boundary.e2e.cjs','visit-reminder-expiry.e2e.cjs','visit-reminder-lifecycle.e2e.cjs','visit-form-layout.e2e.cjs','modal-form-state.e2e.cjs','visit-draft.e2e.cjs','expense-date.e2e.cjs','expense-context.e2e.cjs','sw-update.e2e.js'];
+const checks=['home-workspace.e2e.cjs','payment-link.e2e.cjs','protected-backup.e2e.cjs','context-encryption.e2e.cjs','lazy-state.e2e.cjs','social-share.e2e.cjs','cold-offline.e2e.cjs','script-load-deadline.e2e.cjs','claude-usage.e2e.cjs','test-session-boundary.e2e.cjs','visit-reminder-expiry.e2e.cjs','visit-reminder-lifecycle.e2e.cjs','visit-form-layout.e2e.cjs','modal-form-state.e2e.cjs','visit-draft.e2e.cjs','expense-date.e2e.cjs','expense-context.e2e.cjs','sw-update.e2e.js'];
 checks.splice(checks.indexOf('expense-context.e2e.cjs'),0,'communication-resolution.e2e.cjs');
 checks.splice(checks.indexOf('expense-context.e2e.cjs'),0,'expense-finder.e2e.cjs');
 checks.splice(checks.indexOf('expense-context.e2e.cjs'),0,'working-memory-search.e2e.cjs');
@@ -57,7 +57,9 @@ async function run(check,base){
 (async()=>{
  try{
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const base=`http://127.0.0.1:${server.address().port}`;
-  for(const check of checks)await run(check,base);
+  const from=process.env.BEELO_RELEASE_FROM;
+  if(from&&!checks.includes(from))throw Error('Unknown browser acceptance starting check: '+from);
+  for(const check of checks.slice(from?checks.indexOf(from):0))await run(check,base);
   console.log(`All synthetic browser acceptance checks passed. Evidence: ${directory}`);
  }finally{if(active)active.kill('SIGTERM');server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
 })().catch(error=>{console.error(error.message);process.exitCode=1;});

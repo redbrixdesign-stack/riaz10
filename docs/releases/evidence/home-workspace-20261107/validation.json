@@ -1,0 +1,266 @@
+{
+  "date": "2026-11-07",
+  "type": "Synthetic local hosted acceptance, across initial and resumed runs; final Home separately rechecked after refresh-race fix",
+  "results": [
+    {
+      "check": "payment-link.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 30127,
+      "evidenceRun": "/var/folders/mw/x5t4mxwn2gb8147zl7b1pk8m0000gn/T/beelo-release-tdBpUX/summary.json"
+    },
+    {
+      "check": "protected-backup.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 8511,
+      "evidenceRun": "/var/folders/mw/x5t4mxwn2gb8147zl7b1pk8m0000gn/T/beelo-release-tdBpUX/summary.json"
+    },
+    {
+      "check": "context-encryption.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 11052,
+      "evidenceRun": "/var/folders/mw/x5t4mxwn2gb8147zl7b1pk8m0000gn/T/beelo-release-tdBpUX/summary.json"
+    },
+    {
+      "check": "lazy-state.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 5565,
+      "evidenceRun": "/var/folders/mw/x5t4mxwn2gb8147zl7b1pk8m0000gn/T/beelo-release-tdBpUX/summary.json"
+    },
+    {
+      "check": "social-share.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 8042,
+      "evidenceRun": "/var/folders/mw/x5t4mxwn2gb8147zl7b1pk8m0000gn/T/beelo-release-tdBpUX/summary.json"
+    },
+    {
+      "check": "cold-offline.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 6233,
+      "evidenceRun": "/var/folders/mw/x5t4mxwn2gb8147zl7b1pk8m0000gn/T/beelo-release-tdBpUX/summary.json"
+    },
+    {
+      "check": "script-load-deadline.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 93976,
+      "evidenceRun": "/var/folders/mw/x5t4mxwn2gb8147zl7b1pk8m0000gn/T/beelo-release-tdBpUX/summary.json"
+    },
+    {
+      "check": "claude-usage.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 4130,
+      "evidenceRun": "/var/folders/mw/x5t4mxwn2gb8147zl7b1pk8m0000gn/T/beelo-release-tdBpUX/summary.json"
+    },
+    {
+      "check": "test-session-boundary.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 12972,
+      "evidenceRun": "/var/folders/mw/x5t4mxwn2gb8147zl7b1pk8m0000gn/T/beelo-release-tdBpUX/summary.json"
+    },
+    {
+      "check": "visit-reminder-expiry.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 1500,
+      "evidenceRun": "/var/folders/mw/x5t4mxwn2gb8147zl7b1pk8m0000gn/T/beelo-release-tdBpUX/summary.json"
+    },
+    {
+      "check": "visit-reminder-lifecycle.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 2652,
+      "evidenceRun": "/var/folders/mw/x5t4mxwn2gb8147zl7b1pk8m0000gn/T/beelo-release-tdBpUX/summary.json"
+    },
+    {
+      "check": "visit-form-layout.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 2557,
+      "evidenceRun": "/var/folders/mw/x5t4mxwn2gb8147zl7b1pk8m0000gn/T/beelo-release-tdBpUX/summary.json"
+    },
+    {
+      "check": "modal-form-state.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 3348,
+      "evidenceRun": "/var/folders/mw/x5t4mxwn2gb8147zl7b1pk8m0000gn/T/beelo-release-tdBpUX/summary.json"
+    },
+    {
+      "check": "visit-draft.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 37365,
+      "evidenceRun": "/var/folders/mw/x5t4mxwn2gb8147zl7b1pk8m0000gn/T/beelo-release-tdBpUX/summary.json"
+    },
+    {
+      "check": "expense-date.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 13701,
+      "evidenceRun": "/var/folders/mw/x5t4mxwn2gb8147zl7b1pk8m0000gn/T/beelo-release-tdBpUX/summary.json"
+    },
+    {
+      "check": "communication-resolution.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 9415,
+      "evidenceRun": "/var/folders/mw/x5t4mxwn2gb8147zl7b1pk8m0000gn/T/beelo-release-tdBpUX/summary.json"
+    },
+    {
+      "check": "expense-finder.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 18493,
+      "evidenceRun": "/var/folders/mw/x5t4mxwn2gb8147zl7b1pk8m0000gn/T/beelo-release-tdBpUX/summary.json"
+    },
+    {
+      "check": "working-memory-search.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 12372,
+      "evidenceRun": "/var/folders/mw/x5t4mxwn2gb8147zl7b1pk8m0000gn/T/beelo-release-tdBpUX/summary.json"
+    },
+    {
+      "check": "compact-plan.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 17297,
+      "evidenceRun": "/var/folders/mw/x5t4mxwn2gb8147zl7b1pk8m0000gn/T/beelo-release-tdBpUX/summary.json"
+    },
+    {
+      "check": "proposed-route.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 22798,
+      "evidenceRun": "/var/folders/mw/x5t4mxwn2gb8147zl7b1pk8m0000gn/T/beelo-release-tdBpUX/summary.json"
+    },
+    {
+      "check": "communication-continuity.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 14686,
+      "evidenceRun": "/var/folders/mw/x5t4mxwn2gb8147zl7b1pk8m0000gn/T/beelo-release-tdBpUX/summary.json"
+    },
+    {
+      "check": "home-outcome-timing.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 9755,
+      "evidenceRun": "/private/tmp/beelo-home-evidence/remaining/summary.json"
+    },
+    {
+      "check": "message-summaries.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 8545,
+      "evidenceRun": "/private/tmp/beelo-home-evidence/remaining2/summary.json"
+    },
+    {
+      "check": "eod-earnings.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 5507,
+      "evidenceRun": "/private/tmp/beelo-home-evidence/remaining2/summary.json"
+    },
+    {
+      "check": "planning-day.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 20116,
+      "evidenceRun": "/private/tmp/beelo-home-evidence/remaining2/summary.json"
+    },
+    {
+      "check": "scan-planning-day.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 18750,
+      "evidenceRun": "/private/tmp/beelo-home-evidence/remaining2/summary.json"
+    },
+    {
+      "check": "planning-return.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 15014,
+      "evidenceRun": "/private/tmp/beelo-home-evidence/remaining2/summary.json"
+    },
+    {
+      "check": "customer-followups.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 16094,
+      "evidenceRun": "/private/tmp/beelo-home-evidence/remaining2/summary.json"
+    },
+    {
+      "check": "customer-worklist.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 18225,
+      "evidenceRun": "/private/tmp/beelo-home-evidence/remaining2/summary.json"
+    },
+    {
+      "check": "navigation-review.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 5846,
+      "evidenceRun": "/private/tmp/beelo-home-evidence/remaining2/summary.json"
+    },
+    {
+      "check": "contact-handoff.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 25910,
+      "evidenceRun": "/private/tmp/beelo-home-evidence/remaining2/summary.json"
+    },
+    {
+      "check": "customer-workspace.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 24546,
+      "evidenceRun": "/private/tmp/beelo-home-evidence/remaining2/summary.json"
+    },
+    {
+      "check": "visit-communication.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 18307,
+      "evidenceRun": "/private/tmp/beelo-home-evidence/remaining2/summary.json"
+    },
+    {
+      "check": "expense-context.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 9713,
+      "evidenceRun": "/private/tmp/beelo-home-evidence/remaining2/summary.json"
+    },
+    {
+      "check": "sw-update.e2e.js",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 2112,
+      "evidenceRun": "/private/tmp/beelo-home-evidence/remaining2/summary.json"
+    },
+    {
+      "check": "home-workspace.e2e.cjs",
+      "status": "passed",
+      "engines": [
+        "chromium",
+        "webkit"
+      ],
+      "includes": [
+        "deterministic stale-read race",
+        "accessibility",
+        "encrypted draft privacy and backup guard",
+        "Home-to-customer back destination"
+      ],
+      "evidenceRun": "/private/tmp/beelo-home-accepted.log"
+    }
+  ]
+}
