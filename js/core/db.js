@@ -1504,25 +1504,33 @@ const DB = {
       if(duplicate){if(duplicate.customerId!==plan.customerId)throw new Error('This document is already attached to another customer');return {documentId:duplicate.id,orderId:duplicate.orderId||null,duplicate:true};}
       checkImportKey();
       let orderId=null;
+      if(plan.targetOrderId&&!plan.order){
+        const target=await this.db.orders.get(plan.targetOrderId);
+        if(!target||target.customerId!==plan.customerId)throw new Error('Selected order does not belong to this customer');
+        if(plan.expectedOrder!==JSON.stringify(target))throw new Error('Order changed during review. Reopen the review before saving.');
+        orderId=target.id;
+      }
       if(plan.order){
         const orders=await this.db.orders.toArray();
-        const matches=orders.filter(o=>o.customerId===plan.customerId && String(o.orderNumber||'').trim().toLowerCase()===plan.fields.reference.toLowerCase());
+        const ref=String(plan.fields.reference||'').trim().toLowerCase();
+        const matches=plan.targetOrderId?orders.filter(o=>o.customerId===plan.customerId&&o.id===plan.targetOrderId):orders.filter(o=>o.customerId===plan.customerId && ([o.orderNumber,o.supplierOrderNumber,o.externalReference].some(r=>String(r||'').trim().toLowerCase()===ref)||docs.some(d=>d.customerId===plan.customerId&&d.orderId===o.id&&String(d.externalReference||'').trim().toLowerCase()===ref)));
         if(matches.length>1)throw new Error('More than one matching order. Resolve this in the customer profile before importing.');
         const existing=matches[0];
         if(existing){
+          if(plan.createNewOrder)throw new Error('A matching order already exists. Refresh the review and link it instead.');
           orderId=existing.id;
           if(plan.expectedOrder!==JSON.stringify(existing))throw new Error('Order changed during review. Reopen the review before saving.');
           if(plan.replaceOrderValues){
-            if(!(existing.paymentManagedExternally||['company','external'].includes(existing.paymentResponsibility)||existing.source==='survey_referral'))throw new Error('This order is not confirmed company-managed. Only the document will be linked; review responsibility first.');
+            if(!(existing.paymentManagedExternally||['company','external'].includes(existing.paymentResponsibility)||existing.source==='survey_referral'))throw new Error('This order is not confirmed company-managed. Leave its figures unchanged or review collection responsibility first.');
             await this.db.orders.update(orderId,{total:plan.fields.total,balanceDue:plan.fields.balance??existing.balanceDue,externalBalanceKnown:plan.fields.balance!==null?true:existing.externalBalanceKnown,updatedAt:new Date().toISOString()});
           }
         }else{
-          if(plan.expectedOrder)throw new Error('Order changed during review. Reopen the review.');
+          if(plan.expectedOrder||plan.targetOrderId)throw new Error('Order changed during review. Reopen the review.');
           orderId=await this.db.orders.add({customerId:plan.customerId,orderNumber:plan.fields.reference,total:plan.fields.total,balanceDue:plan.fields.balance??0,externalBalanceKnown:plan.fields.balance!==null,paymentManagedExternally:true,paymentResponsibility:'company',source:'external_document',orderDate:plan.fields.documentDate||null,stage:'ordered',status:'ordered',depositPaid:0,commission:0,createdAt:new Date().toISOString(),fittingDatePending:!!plan.fields.fittingDate && plan.fields.fittingDate>=Utils.formatDate(Utils.getToday(),'iso')});
         }
       }
       checkImportKey();
-      const documentId=await this.db.documents.add({...prepared,orderId});
+      const documentId=await this.db.documents.add({...prepared,orderId,importGroup:orderId?plan.customerId+':order:'+orderId+':'+plan.fields.documentType:prepared.importGroup});
       checkImportKey();
       return {documentId,orderId,duplicate:false};
     });
