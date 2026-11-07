@@ -1,0 +1,6 @@
+{
+  "results": [
+    "PASS chromium: Home weekly summary \u2192 Money \u2192 Back; Tools fallback and Orders overview; expense sheet, offline navigation, reload/deep link, customer money, 320\u2013768px; unchanged records, no contacts/provider requests",
+    "PASS webkit: Home weekly summary \u2192 Money \u2192 Back; Tools fallback and Orders overview; expense sheet, offline navigation, reload/deep link, customer money, 320\u2013768px; unchanged records, no contacts/provider requests"
+  ]
+}
