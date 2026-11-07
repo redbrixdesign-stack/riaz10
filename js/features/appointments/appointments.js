@@ -3716,6 +3716,7 @@ const AppointmentsFeature = {
   },
 
   async saveOutcome(id, outcomeId) {
+    const navigationRevision = App._navigationRevision;
     const grossValue = parseFloat(document.getElementById('outcome-value')?.value || 0);
     const discountPct = outcomeId === 'ordered'
       ? Math.min(100, Math.max(0, parseFloat(document.getElementById('outcome-discount')?.value || 0)))
@@ -3796,6 +3797,7 @@ const AppointmentsFeature = {
         ? ` · ${Utils.formatCurrency(result.payment.applied)} payment recorded`
         : '';
 
+      if (navigationRevision !== App._navigationRevision) return;
       App.closeModal();
       Toast.show('Outcome saved' + paymentNote, 'success');
 
@@ -3815,7 +3817,7 @@ const AppointmentsFeature = {
         return;
       }
 
-      this.returnToVisit(id);
+      await this.returnToVisit(id);
     } catch (e) {
       console.error('Save outcome error:', e);
       const message = e.code === 'payment_order' ? e.message : 'Failed to save outcome';
@@ -3921,7 +3923,7 @@ const AppointmentsFeature = {
     }
   },
 
-  async returnToVisit(id) { const visit=await DB.getAppointment(id);if(App.currentFeature?.id==='customer' && document.getElementById('customer-workspace') && Number(visit?.customerId)===Number(CustomerFeature._lastId))return CustomerFeature.refreshProfile(visit.customerId);return App.navigate('appointments',{id}); },
+  async returnToVisit(id) { const revision=App._navigationRevision;const visit=await DB.getAppointment(id);if(revision!==App._navigationRevision)return;if(App.currentFeature?.id==='customer' && document.getElementById('customer-workspace') && Number(visit?.customerId)===Number(CustomerFeature._lastId))return CustomerFeature.refreshProfile(visit.customerId);return App.navigate('appointments',{id}); },
 
   offerServiceCallBooking(appt) {
     const content = `<div class="sheet-handle"></div>

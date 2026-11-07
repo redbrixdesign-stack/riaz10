@@ -43,6 +43,17 @@ const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8000';
  assert.equal(await p.getByRole('heading',{name:'Worth sharing?',exact:true}).count(),0);
  await p.evaluate(id=>App.navigate('customer',{id}),ids.customer);await p.locator('#customer-workspace').waitFor();
  assert.equal(await p.locator('.cw-money-overview-grid').count(),0);
+ await p.evaluate(async id=>{
+   const original=DB.getAppointment;let release;
+   DB.getAppointment=async function(key){const value=await original.call(DB,key);await new Promise(resolve=>release=resolve);return value;};
+   const pending=AppointmentsFeature.returnToVisit(id);
+   while(!release)await new Promise(resolve=>setTimeout(resolve,0));
+   App.navigate('control');release();await pending;DB.getAppointment=original;
+ },ids.visit);
+ await p.getByRole('heading',{name:'Tools',exact:true}).waitFor();
+ assert.equal(await p.evaluate(()=>App.currentHash),'control','Late completion refresh cannot override a later navigation');
+ await p.evaluate(id=>App.navigate('customer',{id}),ids.customer);await p.locator('#customer-workspace').waitFor();
+
  await p.screenshot({path:artifactPath('cleanup-customer-'+engine.name()+'.png'),fullPage:true});
  const after=await p.evaluate(async ids=>({customer:!!await DB.getCustomer(ids.customer),visit:await DB.getAppointment(ids.visit),order:await DB.db.orders.get(ids.order)}),ids);assert(after.customer);assert.equal(after.visit.status,'completed');assert.equal(after.order.total,400);assert.deepEqual(errors,[]);assert.deepEqual(posts,[]);assert.deepEqual(external,[]);console.log('PASS cleanup '+engine.name()+': Home weekly summary → Money → Back; Tools fallback and Orders overview; expense sheet, offline navigation, reload/deep link, customer money, 320–768px; unchanged records, no contacts/provider requests');
  }finally{await browser.close();}}})().catch(e=>{console.error(e);process.exitCode=1});
