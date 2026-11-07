@@ -39,3 +39,15 @@ Tax reference evidence checked 7 November 2026: [HMRC vehicle simplified expense
 - Home WCAG A/AA automated check: no serious/critical violations. Fixed the unlabelled scan input found by that check. This is bounded automated coverage, not accessibility certification.
 - Social checks, documentation guardrails, performance-gate tests, build/minified asset manifest and `git diff --check` passed. No new Lighthouse performance measurement or physical-device pass is claimed.
 - Evidence: `evidence/home-workspace-20261107/validation.json` and four browser screenshots. Existing workflows were tested with synthetic data; no real calls/messages or provider requests were made by those browser journeys.
+
+## Live deployment — complete
+
+- Runtime commit: `2ead71f9de462613f7cf856979892e30c5b3f992`; pushed on `codex/home-workspace-20261107`.
+- Cache: `advisoros-v6-187-home-workspace`.
+- Verified project/team: `beelo1` / `beelomvp` (`prj_CAmB2Q25P5G1oMCCIxMhs2FWzAwE`).
+- Exact staged production deployment: `dpl_AXh6ZdgS3x19yxLMWAmnpNDmx6wF`, `https://beelo1-hczvuvf63-beelomvp.vercel.app`. Promoted that same deployment without rebuilding.
+- Public app: https://beelo.beelestial.co.uk/ resolves to that deployment. All eight changed served assets match local/staged SHA-256. Both `/api/claude` and `/api/transcribe` reject GET with 405; no provider request was made by that endpoint-presence check.
+- Public-origin Chromium/WebKit Home/customer acceptance passed with isolated synthetic data, blocked outside services, no POSTs, and automated accessibility checks. Test-only axe injection was moved to browser initialization to retain production CSP protection.
+- No credentials/environment values changed. No public preview-share link was created; automatic approval review rejected that access grant and verification continued through existing authenticated CLI access.
+- Original checkout's non-documentation diff hash remains unchanged. Its living development record receives an append-only evidence entry; no original application edits are staged into this release.
+- Existing installations may need **Update and reload** when Beelo displays the update banner. Native iPhone hardware smoke testing remains an open evidence item.

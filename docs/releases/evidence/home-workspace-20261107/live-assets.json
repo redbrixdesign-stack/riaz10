@@ -1,0 +1,47 @@
+{
+  "origin": "https://beelo.beelestial.co.uk",
+  "deploymentId": "dpl_AXh6ZdgS3x19yxLMWAmnpNDmx6wF",
+  "runtimeCommit": "2ead71f9de462613f7cf856979892e30c5b3f992",
+  "results": [
+    {
+      "file": "index.html",
+      "sha256": "8fe2f689512bcd1048624429ea7e87b76cdbaab6f52ac06eb1c96b5b4b7c7081",
+      "matched": true
+    },
+    {
+      "file": "sw.js",
+      "sha256": "308a308541e1fab0a00e602bf3e796454d3587b3695e6301b53e5365e4907bbe",
+      "matched": true
+    },
+    {
+      "file": "css/components.css",
+      "sha256": "f114d3e5ca0d68e0af703e693658f5a9e77ce53a085255448ff98fb82a41e48d",
+      "matched": true
+    },
+    {
+      "file": "js/core/app.min.js",
+      "sha256": "fc9d28f97bfe9531ba07358892e085ad78f46c9cde7ff1e8454aa0f21226ca0f",
+      "matched": true
+    },
+    {
+      "file": "js/core/db.min.js",
+      "sha256": "1cc5d62967f2390d2c475ad24c22adb309ce520756986695be43a2eada89869c",
+      "matched": true
+    },
+    {
+      "file": "js/features/today/home-workspace.min.js",
+      "sha256": "488bf35c507181a1edd9b2641af35bee09e3d4e5e774f995d20df3623f98f308",
+      "matched": true
+    },
+    {
+      "file": "js/features/companion/companion.min.js",
+      "sha256": "fb5a06d00014b91f37c0d387701afb5192dab134055d5c2abfa059a466a128fb",
+      "matched": true
+    },
+    {
+      "file": "js/features/customer/workspace.min.js",
+      "sha256": "52384b3b16ae9fe8ba6f33186a9c48060ada41a8a594d91be52e656564b2b27e",
+      "matched": true
+    }
+  ]
+}
