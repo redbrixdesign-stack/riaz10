@@ -1,7 +1,7 @@
 const CACHE_PREFIX = 'advisoros-';
-const CACHE_NAME = 'advisoros-v6-189-adviser-plan-day';
+const CACHE_NAME = 'advisoros-v6-190-adviser-active-visit';
 const STATIC_ASSETS = [
-  'js/features/today/home-workspace.min.js?v=3',
+  'js/features/today/home-workspace.min.js?v=4',
   'js/features/customer/workspace.min.js?v=3','js/features/appointments/visit-communication.min.js?v=1',
   'js/services/note-capture.min.js?v=8','js/services/visit-draft.min.js?v=2','js/services/visit-summaries.min.js?v=1',
   './','index.html','manifest.json?v=3','css/core.css?v=34','css/components.css?v=67',

@@ -31,3 +31,13 @@ This is a running audit, not a certification that the whole app has been checked
 ### AW-001 deployed and live-verified
 
 Runtime `651496f`, cache 189. Exact production deployment `dpl_2pY71bZwRdNg13igtPCfwdFqAZYt` (`beelo1-d9fp67ik8-beelomvp.vercel.app`) was staged, authenticated asset-verified and promoted without rebuild to https://beelo.beelestial.co.uk/. Public changed assets match tested hashes. Public-origin Chromium/WebKit Tomorrow/future-plan/Add-date acceptance passed, with no external contact or provider calls. Evidence saved alongside the reproduction screenshots.
+
+## AW-002 — Home can feature the wrong customer while working — P1
+
+**Confirmed:** With an earlier unfinished booking and a later visit marked on site, Home still featured the earlier customer and its Navigate action. Synthetic browser assertion reproduced `SYNTHETIC Earlier` instead of `SYNTHETIC Active`.
+
+**Fix:** Today's featured visit follows the newest recorded arrival/travel-start signal among unfinished visits; otherwise it uses booked order. A newer journey can supersede an older forgotten on-site timer. Same-instant arrival takes priority; cancelled/completed/result-recorded visits cannot displace the active customer. A fresh in-transit status is not mistaken for a new arrival because of older arrival metadata. Future-day planning remains in booked order. Earlier unfinished visits stay in Remaining today.
+
+**Evidence:** Active-visit browser journey passed Chromium/WebKit: on-site priority, current finish action, newer journey with older timer still open, no inferred arrival from old timestamps, retained earlier visit and booked-order fallback. Booking/timer/outcome/earnings fields compared unchanged across Home rendering (intended communication-archive metadata excluded); trip count stays zero; no outside requests or messages. Home visual/search/calendar/customer/notes regression journey passed both engines. Unit cases cover signal ties, cancelled states, completed outcomes and invalid arrival evidence. Financial formulas and tracking services are unchanged.
+
+Cache 190 deployment identity/status is appended after promotion and live verification.
