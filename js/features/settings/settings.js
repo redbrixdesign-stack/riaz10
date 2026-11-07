@@ -250,7 +250,7 @@ const SettingsFeature = {
         </div>
         <div class="form-group mb-0">
           <label>Weekly Sales Target (derived)</label>
-          <input type="text" class="input op-75" id="set-sales-target" value="${Utils.formatCurrency(TaxCalculator.getRequiredWeeklySales(CONFIG.weeklyTarget)).replace('.00','')}" disabled>
+          <input type="text" class="input op-75" id="set-sales-target" value="${TaxCalculator.getEffectiveCommissionRate()>0?Utils.formatCurrency(TaxCalculator.getRequiredWeeklySales(CONFIG.weeklyTarget)).replace('.00',''):'Set your commission first'}" disabled>
           <div class="hint">Sales needed to hit your earnings target at the current ${(TaxCalculator.getEffectiveCommissionRate() * 100).toFixed(1)}% effective commission rate. Change your commission structure below to update this automatically.</div>
         </div>
         <div class="form-group mb-0 mt-14">
