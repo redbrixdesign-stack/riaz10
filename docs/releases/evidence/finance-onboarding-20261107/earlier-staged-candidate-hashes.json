@@ -1,0 +1,72 @@
+{
+  "deploymentId": "dpl_A9aCyZEVLmnAJzNdmr5oaDQUgug2",
+  "url": "https://beelo1-gxs9q8ls4-beelomvp.vercel.app",
+  "runtimeCommit": "c61d0a5ea6326aa8e3739d82031c1f297e005141",
+  "assets": [
+    {
+      "path": "index.html",
+      "sha256": "f7b17a63024bf4be123423c6e0258bc10edea8bab13012d301532da1af33d8f4",
+      "matches": true
+    },
+    {
+      "path": "sw.js",
+      "sha256": "1568b6c79bea021ca7b1151ccff58150d01a03a920ce8733124429d3a2fc52f1",
+      "matches": true
+    },
+    {
+      "path": "js/core/config.min.js",
+      "sha256": "440b6b75fd5642dda276600de8cce3ed3bca3e1c4560292204714cd2eed8a9d3",
+      "matches": true
+    },
+    {
+      "path": "js/core/tax.min.js",
+      "sha256": "bf5ae9137eedc17c082c1d9330267750aa5b7f1d40ea8eb3e1ee075fa7b3702e",
+      "matches": true
+    },
+    {
+      "path": "js/core/legal.min.js",
+      "sha256": "e10987a71dfa42ccaa13cbd8c775b2899f67d281b74a8fa19471f25267dc4e0a",
+      "matches": true
+    },
+    {
+      "path": "js/core/lazy-features.min.js",
+      "sha256": "31b4610644300b4d2102a3c21db24c6826cccee99b9cc733dce399b9df5a8c13",
+      "matches": true
+    },
+    {
+      "path": "js/features/onboarding/onboarding.min.js",
+      "sha256": "54f318d620e0b49d8779ee167d041744e59813182a28f81bd845b9f0f31608b4",
+      "matches": true
+    },
+    {
+      "path": "js/features/settings/settings.min.js",
+      "sha256": "0e0280cc07b4d60a3b052a65f4c15390a30cb368ae3ce44ed1d962407836a1e4",
+      "matches": true
+    },
+    {
+      "path": "js/features/money/money.min.js",
+      "sha256": "4ddc5ce9a87672c96801f0682ed64cc965e7e01c8e404fb19a717b58f002cf46",
+      "matches": true
+    },
+    {
+      "path": "js/features/today/home-workspace.min.js",
+      "sha256": "e4e9a855c39e60fe9fe775daf31f21ef43121ed406dc002eab97e1e86907a121",
+      "matches": true
+    },
+    {
+      "path": "js/features/companion/companion.min.js",
+      "sha256": "6b974ae63b2cedca685d4bc6b6cfeb783740cdb62829bfc89b8630514a03dc1a",
+      "matches": true
+    },
+    {
+      "path": "js/services/export.min.js",
+      "sha256": "936f79f1d8ab374144665366e393c6c725a511629e5351188ac33549e0463283",
+      "matches": true
+    },
+    {
+      "path": "js/services/notification.min.js",
+      "sha256": "c4cfb5f6c785f1cbc4d3bfb20f77f4a285f47f2cdcf6fbb143690092f642e0cf",
+      "matches": true
+    }
+  ]
+}

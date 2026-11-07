@@ -1,0 +1,1 @@
+An interrupted pre-final browser run is not a passing release gate. Final-focused checks rerun the completed runtime after the restore-config persistence correction; full release acceptance and served-asset checks are recorded separately. Screenshots wait for settled screen animation. All records/media are synthetic.

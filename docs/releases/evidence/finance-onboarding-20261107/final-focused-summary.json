@@ -1,0 +1,17 @@
+{
+  "sourceCommit": null,
+  "results": [
+    {
+      "check": "mvp-finance-onboarding.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 36163
+    },
+    {
+      "check": "protected-backup.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 7554
+    }
+  ]
+}

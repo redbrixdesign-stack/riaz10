@@ -1,0 +1,2 @@
+PASS .js: explicit storage acknowledgement, zero target, role/social/commission persistence, rate rejection, save failure retained, custom-role preservation, slow-onboarding disclosure rescheduling
+PASS .min.js: explicit storage acknowledgement, zero target, role/social/commission persistence, rate rejection, save failure retained, custom-role preservation, slow-onboarding disclosure rescheduling

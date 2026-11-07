@@ -1,0 +1,23 @@
+{
+  "sourceCommit": null,
+  "results": [
+    {
+      "check": "mvp-finance-onboarding.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 32076
+    },
+    {
+      "check": "home-money-navigation.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 13597
+    },
+    {
+      "check": "cold-offline.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 7141
+    }
+  ]
+}

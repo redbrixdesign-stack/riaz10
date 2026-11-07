@@ -1,0 +1,2 @@
+PASS .js: cash/deduction separation, vehicle/typed insurance/review categories, private/unconfirmed mileage exclusion, Home/Money parity, 2025/26 and 2026/27 bands, immutable records, explicit commission
+PASS .min.js: cash/deduction separation, vehicle/typed insurance/review categories, private/unconfirmed mileage exclusion, Home/Money parity, 2025/26 and 2026/27 bands, immutable records, explicit commission

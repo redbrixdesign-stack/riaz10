@@ -66,3 +66,10 @@ Recommended pilot surface: Home/next action; reviewed visit capture; Customer wo
 ## Preservation and status
 
 Assessment/documentation only. No runtime fix, credential/permission change, deployment, real customer contact or database migration was made. Fresh browser records are isolated synthetic records. Original tracked non-documentation diff remains `8b6f2a59c93c01d1e4bee30742536a538f010119e3acf6b99e9b2f63e8e295d1`. Findings are open; prior browser passes do not override these new reproductions. There is no pilot-approved feature designation or claimed traction.
+
+
+## Implementation update — finance and onboarding corrections
+
+The original findings above describe cache198. [Cache199's verified corrections](../releases/FINANCE_ONBOARDING_2026-11-07.md), runtime `dff299f`, are now live: shared cash/deduction/mileage policy and category review, truthful planning export/no fake savings acknowledgement, reliable first-run disclosure and setup guard, generic editable new-adviser identity/blank social links/explicit commission choice, zero targets, and profile preservation through backup restore. Existing founder settings were preserved. All 46 maintained browser journeys passed, with final committed setup/restore checks and public smoke evidence recorded separately.
+
+This resolves the reproduced MVP-01/MVP-02/MVP-03 identity/default-scheme/MVP-06 defects within the documented prototype assumptions. MVP-04 physical acceptance, MVP-05 assisted access and positive-provider proof, business-rule decisions and broader pilot/support gates remain open. The earlier no-go for an unrestricted/self-service launch remains; no pilot approval or financial/legal certification is inferred.

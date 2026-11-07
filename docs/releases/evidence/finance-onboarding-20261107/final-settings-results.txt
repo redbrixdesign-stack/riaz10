@@ -1,0 +1,35 @@
+AI index summary (never claim a connection that is not there)
+  OK disabled -> Off
+commission index summary (decimal rate rendered as a percentage)
+  OK 0.122 effective rate -> 12.2%
+  OK does not display the decimal as 0.122%
+  OK enabled without proxy URL -> Needs setup
+  OK enabled with proxy URL -> Connected
+single render path per screen (vestigial duplicates removed)
+  OK renderCommissionDetail exists
+  OK renderAutoMessagesDetail exists
+  OK renderAIDetail exists
+  OK renderCommissionCard gone
+  OK renderAutoMessagesCard gone
+  OK renderAICard gone
+detail screens render
+  OK commission detail renders example line
+  OK units detail renders HMRC mileage hint for GB
+  OK navigation detail offers ask + three map apps
+  OK ask every time is selected by default
+  OK app lock offers minute and hour choices
+  OK app lock explains the active-visit exception
+navigation preference persists
+  OK Waze becomes the active preference
+  OK navigation preference is saved locally
+  OK settings index reflects saved map
+app-lock timeout persists
+  OK 30-minute timeout becomes active
+  OK unlock timeout is saved locally
+  OK changing timeout refreshes the current grace window
+AI shared secret persists as a device-only credential
+  OK secret reaches encrypted-device storage API
+  OK secret remains available to the current session
+  OK ordinary saved config excludes the secret
+  OK AI settings explains device-only encrypted storage
+  OK forget secret clears device and session copies

@@ -1,0 +1,17 @@
+{
+  "sourceCommit": null,
+  "results": [
+    {
+      "check": "mvp-finance-onboarding.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 29673
+    },
+    {
+      "check": "workspace-cleanup.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 14867
+    }
+  ]
+}

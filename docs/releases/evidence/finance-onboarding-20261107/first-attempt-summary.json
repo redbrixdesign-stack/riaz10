@@ -1,0 +1,11 @@
+{
+  "sourceCommit": null,
+  "results": [
+    {
+      "check": "mvp-finance-onboarding.e2e.cjs",
+      "status": "failed",
+      "code": 1,
+      "durationMs": 43482
+    }
+  ]
+}
