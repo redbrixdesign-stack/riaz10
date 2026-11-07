@@ -1,0 +1,83 @@
+{
+  "runtime": "93846a4",
+  "cache": 194,
+  "deployment": "dpl_43ZRoNaMgSbmGVauC1WzgaeQPCiJ",
+  "base": "https://beelo.beelestial.co.uk",
+  "results": [
+    {
+      "file": "sw.js",
+      "sha256": "0dda6a55ca6ad2d3df272c7b5b608acffbd41e93582ea4f4d5e0018d5c279a5a",
+      "matched": true
+    },
+    {
+      "file": "index.html",
+      "sha256": "07597023b7b0f1fd9bc06c5db20cd6ebb68dda10b7739342ee674b50d95e51b5",
+      "matched": true
+    },
+    {
+      "file": "css/components.css",
+      "sha256": "b63dac2a25940b435bf1f4e27de9f95b78fcfbd35820a7c004e2fb4d25a79027",
+      "matched": true
+    },
+    {
+      "file": "js/features/today/home-workspace.min.js",
+      "sha256": "282974534008c34305d1fff24a6909dabc2c37ff0253aa53e210eea2552c5e39",
+      "matched": true
+    },
+    {
+      "file": "js/core/app.min.js",
+      "sha256": "939599d1025b58af18cdb799d6c05721af6b4f4dcae435bc29c637a5c3d7fe14",
+      "matched": true
+    },
+    {
+      "file": "js/core/db.min.js",
+      "sha256": "feaf5d07b7468eb9b9fc7ced4106c873f7bffab9874d563a33a5b666e7a5aac8",
+      "matched": true
+    },
+    {
+      "file": "js/features/appointments/appointments.min.js",
+      "sha256": "3e0b230e2744b8827c67ad0018bd89a3bd2228ec668b25cc7429e3ef4c030f6f",
+      "matched": true
+    },
+    {
+      "file": "js/features/customer/workspace.min.js",
+      "sha256": "b11ba886713d2af42dac4bf0053820f74fd6de4966f5527bb654cbff03334d55",
+      "matched": true
+    },
+    {
+      "file": "js/features/companion/companion.min.js",
+      "sha256": "fb5a06d00014b91f37c0d387701afb5192dab134055d5c2abfa059a466a128fb",
+      "matched": true
+    },
+    {
+      "file": "js/features/orders/orders.min.js",
+      "sha256": "b99e357810d41fde9d04629b5a38817d16f7eb6f41da4aa3113f71b48583ef00",
+      "matched": true
+    },
+    {
+      "file": "js/services/tasks.min.js",
+      "sha256": "4326bf184f5fcb6b8babe9d271a50164cb101dc73cb8c81819eca839f523d761",
+      "matched": true
+    },
+    {
+      "file": "js/features/followups/followups.min.js",
+      "sha256": "fa5dd73b7569f95fff86974cef235a9fc074e6715985db36acf5f6f99266be66",
+      "matched": true
+    },
+    {
+      "file": "js/core/geo.min.js",
+      "sha256": "99a284cda2d1648c10880fa8851361f6f4884f10e47c302864032cf5c55bc93d",
+      "matched": true
+    },
+    {
+      "file": "js/core/visit-timing.min.js",
+      "sha256": "544f4864e6283b0c7b062dde1ff4d4b5bbd222f56ec638aa34027fb75578f856",
+      "matched": true
+    },
+    {
+      "file": "js/core/legal.min.js",
+      "sha256": "bc52d150a26dfd653da8039095ab8777bbd59edf16c391b8d4fe520709bec776",
+      "matched": true
+    }
+  ]
+}

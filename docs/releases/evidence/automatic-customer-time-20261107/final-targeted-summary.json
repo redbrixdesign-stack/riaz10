@@ -1,0 +1,45 @@
+{
+  "fixture": "Node HTTP server; dynamic loopback port",
+  "results": [
+    {
+      "check": "automatic-customer-time.e2e.cjs",
+      "status": "passed",
+      "durationMs": 13362
+    },
+    {
+      "check": "home-workspace.e2e.cjs",
+      "status": "passed",
+      "durationMs": 13656
+    },
+    {
+      "check": "adviser-active-visit.e2e.cjs",
+      "status": "passed",
+      "durationMs": 2726
+    },
+    {
+      "check": "customer-workspace.e2e.cjs",
+      "status": "passed",
+      "durationMs": 25630
+    },
+    {
+      "check": "navigation-review.e2e.cjs",
+      "status": "passed",
+      "durationMs": 6568
+    },
+    {
+      "check": "contact-handoff.e2e.cjs",
+      "status": "passed",
+      "durationMs": 24634
+    },
+    {
+      "check": "cold-offline.e2e.cjs",
+      "status": "passed",
+      "durationMs": 6197
+    },
+    {
+      "check": "sw-update.e2e.js",
+      "status": "passed",
+      "durationMs": 2096
+    }
+  ]
+}

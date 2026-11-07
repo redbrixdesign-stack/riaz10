@@ -1,6 +1,6 @@
 # Automatic customer time — 7 November 2026
 
-Release candidate: deployment identity and public acceptance are appended after promotion. This is pilot-stage, location-supported operational memory, not certified billing/attendance evidence or native background tracking.
+Live runtime `93846a4`, cache 194, deployment `dpl_43ZRoNaMgSbmGVauC1WzgaeQPCiJ` (`beelo1-m8k86q89o-beelomvp.vercel.app`). The exact production build was staged, asset-verified and promoted without rebuild to https://beelo.beelestial.co.uk/. This is pilot-stage, location-supported operational memory, not certified billing/attendance evidence or native background tracking.
 
 ## Implemented behavior
 
@@ -27,3 +27,11 @@ The new browser journey uses real encrypted storage with **controlled synthetic 
 One targeted rerun against the old Python loopback fixture captured connection-reset/socket failures for startup scripts. The final eight checks used a Node HTTP fixture like the passing full release runner. No production startup fix is claimed from this fixture adjustment.
 
 Evidence lives in `evidence/automatic-customer-time-20261107/`. Original application changes are preserved in the dirty workspace; all runtime edits are isolated on `codex/adviser-workflow-20261107`.
+
+## Public acceptance and release evidence
+
+All 15 selected staged assets match tested hashes and their public counterparts. Public-origin automatic-customer-time and Home journeys passed in Chromium/WebKit after promotion, including the retained calendar workload colours. The complete mock timing journey includes a final failed-review-save/retry and narrow-phone review form. Final screenshots were visually inspected. A recent error-level deployment query returned zero rows; this is bounded deployment observation, not a guarantee of absent client/device errors.
+
+The original non-documentation working-tree diff remains SHA-256 `8b6f2a59c93c01d1e4bee30742536a538f010119e3acf6b99e9b2f63e8e295d1`. Application source changes are isolated on the release branch. No production credentials, real customer records, outgoing communications or marketing-site copy were changed.
+
+Next priority: consented physical-iPhone field acceptance of foreground arrival/departure, suspension/return, permission denial, battery use, storage failure and last-visit departure. Fully dependable background timing remains native work; pilot claims must retain that limitation.

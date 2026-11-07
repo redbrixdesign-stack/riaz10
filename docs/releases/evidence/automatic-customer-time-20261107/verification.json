@@ -1,0 +1,17 @@
+{
+  "runtime": "93846a4",
+  "cache": 194,
+  "deployment": "dpl_43ZRoNaMgSbmGVauC1WzgaeQPCiJ",
+  "fullUnitSuite": "passed",
+  "integratedBaselineJourneys": 41,
+  "finalAffectedJourneys": 8,
+  "finalTimingJourneyAfterWording": "chromium/webkit passed",
+  "publicTimingJourney": "chromium/webkit passed",
+  "publicHomeJourney": "chromium/webkit passed",
+  "selectedAssetHashesMatched": 15,
+  "recentErrorRows": 0,
+  "sensorEvidence": "Controlled synthetic GPS in Chromium and WebKit; actual encrypted storage and app UI",
+  "physicalIPhoneAcceptance": "open",
+  "continuousNativeBackgroundTracking": "not implemented",
+  "realContactsOrProviderRequestsDeliveredByJourneys": 0
+}
