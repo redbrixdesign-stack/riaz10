@@ -1,0 +1,22 @@
+{
+  "cache": 190,
+  "runtimeCommit": "0641529",
+  "deploymentId": "dpl_4KMvYTDSEaYD3rnq3FaMR8nPTEJ8",
+  "results": [
+    {
+      "file": "index.html",
+      "sha256": "904db50ec8dfb18a70657b6954510fef4f85415545ccd8ff9d65f98c5856ecbe",
+      "matched": true
+    },
+    {
+      "file": "sw.js",
+      "sha256": "43af51de6b5f4d2b84e7231d6d28317a34d2fbad79c43d8b461f94f1bb94c340",
+      "matched": true
+    },
+    {
+      "file": "js/features/today/home-workspace.min.js",
+      "sha256": "f378da4d4580f830a50bb4be9f5ce60e990411c95f83182912f3dc9bb97690e9",
+      "matched": true
+    }
+  ]
+}

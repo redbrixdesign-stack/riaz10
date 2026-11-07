@@ -41,3 +41,7 @@ Runtime `651496f`, cache 189. Exact production deployment `dpl_2pY71bZwRdNg13igt
 **Evidence:** Active-visit browser journey passed Chromium/WebKit: on-site priority, current finish action, newer journey with older timer still open, no inferred arrival from old timestamps, retained earlier visit and booked-order fallback. Booking/timer/outcome/earnings fields compared unchanged across Home rendering (intended communication-archive metadata excluded); trip count stays zero; no outside requests or messages. Home visual/search/calendar/customer/notes regression journey passed both engines. Unit cases cover signal ties, cancelled states, completed outcomes and invalid arrival evidence. Financial formulas and tracking services are unchanged.
 
 Cache 190 deployment identity/status is appended after promotion and live verification.
+
+### AW-002 deployed and live-verified
+
+Full regression suite passed. Runtime `0641529`, cache 190. Exact production deployment `dpl_4KMvYTDSEaYD3rnq3FaMR8nPTEJ8` (`beelo1-g0dgpqxvw-beelomvp.vercel.app`) was staged, asset-verified and promoted without rebuild. Public changed assets match tested hashes. The active-visit journey passed on the public origin in Chromium/WebKit, including the newer-journey/forgotten-timer case and unchanged booking/timer/earnings fields.
