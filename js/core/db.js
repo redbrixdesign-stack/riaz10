@@ -1486,6 +1486,43 @@ const DB = {
   async createCreditNote(invoiceId,data={}){const pack=await this.getInvoice(invoiceId);if(!pack||pack.invoice.status==='draft')throw new Error('Credit notes require an issued invoice');const amount=Math.round((Number(data.amount)||0)*100)/100;const existing=(await this.db.creditNotes.where('invoiceId').equals(invoiceId).toArray()).filter(c=>c.status==='issued').reduce((s,c)=>s+(c.amount||0),0);if(!(amount>0)||amount>Math.max(0,pack.invoice.total-existing))throw new Error('Credit amount exceeds invoice balance');const snapshot=data.itemSnapshot||pack.items;if(!Array.isArray(snapshot)||!snapshot.length)throw new Error('Credit item snapshot is required');const now=new Date().toISOString();const base=await encryptCreditNote({...data,invoiceId,customerId:pack.invoice.customerId,amount,itemSnapshot:snapshot,status:'issued',issueDate:data.issueDate||now,createdAt:now});let id;await this._runWrite(['creditNotes','sequences'],async()=>{const seq=await this._nextSequenceUnsafe('credit');id=await this.db.creditNotes.add({...base,creditNumber:`CRN-${new Date().getFullYear()}-${String(seq).padStart(4,'0')}`});});return decryptCreditNote(await this.db.creditNotes.get(id));},
   async getCreditNote(id){const row=await this.db.creditNotes.get(id);return row?decryptCreditNote(row):null;},
   async getCreditNotes(filters={}){let rows=await this.db.creditNotes.toArray();for(const f of ['customerId','invoiceId','status'])if(filters[f]!=null)rows=rows.filter(r=>r[f]===filters[f]);return Promise.all(rows.map(decryptCreditNote));},
+  async saveCustomerDocumentImport(plan) {
+    if(!encryptionKey)throw new Error('Unlock Beelo before importing a document');
+    if(typeof this.db.transaction!=='function')throw new Error('Atomic document saving is unavailable. Reopen Beelo and retry.');
+    if(!plan||!Number.isInteger(plan.customerId)||!/^([a-f0-9]{64})$/.test(plan.hash||'')||typeof plan.contentData!=='string'||plan.contentData.length>3*1024*1024||!plan.fields)throw new Error('Incomplete import');
+    if(plan.order&&(!plan.fields.reference||!Number.isFinite(plan.fields.total)||plan.fields.total<0||plan.fields.balance!==null&&(!Number.isFinite(plan.fields.balance)||plan.fields.balance<0||plan.fields.balance>plan.fields.total)))throw new Error('Invalid order figures');
+    if(plan.order&&!['invoice','order_receipt'].includes(plan.fields.documentType))throw new Error('Quotes and reference documents cannot create an order');
+    const customer=await this.getCustomer(plan.customerId);if(!customer)throw new Error('Customer no longer exists');
+    const prepared=await encryptDocument({customerId:plan.customerId,type:'external_customer_document',filename:plan.filename,contentData:plan.contentData,extractedText:JSON.stringify(plan.fields),mimeType:plan.mimeType,importHash:plan.hash,externalReference:plan.fields.reference,externalCustomerNumber:plan.fields.customerNumber,documentKind:plan.fields.documentType,importGroup:plan.group,createdAt:new Date().toISOString(),generatedAt:new Date().toISOString()});
+    return this._runWrite(['documents','orders','customers'],async()=>{
+      if(!await this.db.customers.get(plan.customerId))throw new Error('Customer no longer exists');
+      const docs=await this.db.documents.toArray();
+      const duplicate=docs.find(d=>d.importHash===plan.hash);
+      if(duplicate){if(duplicate.customerId!==plan.customerId)throw new Error('This document is already attached to another customer');return {documentId:duplicate.id,orderId:duplicate.orderId||null,duplicate:true};}
+      let orderId=null;
+      if(plan.order){
+        const orders=await this.db.orders.toArray();
+        const matches=orders.filter(o=>o.customerId===plan.customerId && String(o.orderNumber||'').trim().toLowerCase()===plan.fields.reference.toLowerCase());
+        if(matches.length>1)throw new Error('More than one matching order. Resolve this in the customer profile before importing.');
+        const existing=matches[0];
+        if(existing){
+          orderId=existing.id;
+          if(plan.expectedOrder!==JSON.stringify(existing))throw new Error('Order changed during review. Reopen the review before saving.');
+          if(plan.replaceOrderValues){
+            if(!(existing.paymentManagedExternally||['company','external'].includes(existing.paymentResponsibility)||existing.source==='survey_referral'))throw new Error('This order is not confirmed company-managed. Only the document will be linked; review responsibility first.');
+            await this.db.orders.update(orderId,{total:plan.fields.total,balanceDue:plan.fields.balance??existing.balanceDue,externalBalanceKnown:plan.fields.balance!==null?true:existing.externalBalanceKnown,updatedAt:new Date().toISOString()});
+          }
+        }else{
+          if(plan.expectedOrder)throw new Error('Order changed during review. Reopen the review.');
+          orderId=await this.db.orders.add({customerId:plan.customerId,orderNumber:plan.fields.reference,total:plan.fields.total,balanceDue:plan.fields.balance??0,externalBalanceKnown:plan.fields.balance!==null,paymentManagedExternally:true,paymentResponsibility:'company',source:'external_document',orderDate:plan.fields.documentDate||null,stage:'ordered',status:'ordered',depositPaid:0,commission:0,createdAt:new Date().toISOString(),fittingDatePending:!!plan.fields.fittingDate && plan.fields.fittingDate>=Utils.formatDate(Utils.getToday(),'iso')});
+        }
+      }
+      const documentId=await this.db.documents.add({...prepared,orderId});
+      return {documentId,orderId,duplicate:false};
+    });
+  },
+
+  async getCustomerImportedDocuments(customerId){const rows=await this.db.documents.where('customerId').equals(Number(customerId)).toArray();return Promise.all(rows.filter(d=>d.type==='external_customer_document').map(({contentData,...d})=>decryptDocument(d)));},
   async addDocumentMetadata(data){if(!data||!data.type)throw new Error('Document type is required');const plain={...data,generatedAt:data.generatedAt||new Date().toISOString(),createdAt:new Date().toISOString()};const row=await encryptDocument(plain);const id=await this.db.documents.add(row);return{...plain,id};},
   async getDocument(id){const row=await this.db.documents.get(id);return row?decryptDocument(row):null;},
   async getDocuments(filters={}){let rows=await this.db.documents.toArray();for(const field of ['customerId','invoiceId','paymentId','jobId','purchaseOrderId','type'])if(filters[field]!=null)rows=rows.filter(row=>row[field]===filters[field]);rows.sort((a,b)=>new Date(b.createdAt||b.generatedAt)-new Date(a.createdAt||a.generatedAt));return Promise.all(rows.map(decryptDocument));},

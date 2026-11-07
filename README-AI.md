@@ -93,3 +93,8 @@ server changes, stage and verify first; documentation edits require no redeploy.
 verify guards and contracts, not a paid live-provider success. See the
 [C07 audit](docs/audits/C07_CLAUDE_USAGE_FIX_2026-10-23.md) and
 [transcription allowance audit](docs/audits/BEELO_TRANSCRIPTION_USAGE_2026-10-23.md).
+
+
+### Customer company-document extraction
+
+`customer_document` accepts a base64 PDF (`application/pdf`, native document block) or supported image through the existing protected Claude route. Decoded content is capped at 2 MiB. The application matches an existing customer, requires review/confirmation and saves original/extracted data with device encryption; it does not create adviser income, payment evidence or an automatic booking. Other OCR/receipt routes remain image-only. See [customer document import](docs/releases/CUSTOMER_DOCUMENT_IMPORT_2026-11-07.md) for limits and evidence.

@@ -148,6 +148,22 @@ const AIService = {
   },
 
   // ---- OCR: extract expense-receipt fields from a photo ----
+  async extractCustomerDocument(file) {
+    if (!this.isEnabled()) return {ok:false,message:'Enable and connect AI in Settings to read this document.'};
+    if(file.size>2*1024*1024)return {ok:false,message:'Choose a document of 2 MB or smaller.'};
+    const pdf=file.type==='application/pdf'||/\.pdf$/i.test(file.name||'');
+    let input;
+    if(pdf){
+      const data=new Uint8Array(await file.arrayBuffer());
+      if(new TextDecoder().decode(data.slice(0,5))!=='%PDF-')return {ok:false,message:'This file is not a PDF.'};
+      const base64=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]||'');reader.onerror=()=>reject(new Error('Could not read file'));reader.readAsDataURL(file);});
+      input={base64,mediaType:'application/pdf'};
+    }else input=await this._toBase64(file);
+    const result=await this._request({type:'customer_document',model:this.config().ocrModel,image:input.base64,mediaType:input.mediaType},60000);
+    if(!result.ok)return result;
+    try{const text=String(result.data.text||'').replace(/```(?:json)?/gi,'').trim();return {ok:true,fields:JSON.parse(text)};}catch(_){return {ok:false,message:'Could not read a complete document. Try a clearer photo or shorter PDF.'};}
+  },
+
   async extractReceipt(file) {
     const { base64, mediaType } = await this._toBase64(file);
     if (base64 && (base64.length * 3) / 4 > 2 * 1024 * 1024) {

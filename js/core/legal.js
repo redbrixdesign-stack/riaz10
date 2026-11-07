@@ -118,7 +118,7 @@ const Legal = {
               serverless proxy to OpenAI for speech-to-text processing. Recording,
               saving and playback remain available without transcription.</li>
             <li class="mb-6"><strong>Claude AI (optional, off by default).</strong> If you
-              turn on AI in Settings, photos you scan and message drafts are sent to
+              turn on AI in Settings, photos or customer PDFs you choose to read (including any signatures) and message drafts are sent to
               the configured protected proxy, which forwards them to Anthropic's
               Claude. Provider API keys are not placed in the browser. Turn the
               toggle off at any time to stop these Claude requests.</li>

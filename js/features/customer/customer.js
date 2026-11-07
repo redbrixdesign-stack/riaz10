@@ -40,6 +40,7 @@ const CustomerFeature = {
     let photos = [];
     let voiceNotes = [];
     let structuredQuotes = [];
+    let importedDocuments = [];
     let jobs = [];
     let invoices = [];
     let payments = [];
@@ -52,6 +53,7 @@ const CustomerFeature = {
     try { if (typeof CommunicationService !== 'undefined') comms = await CommunicationService.decorate(comms); } catch (e) { communicationLoadFailed = true; }
     try { photos = await DB.getPhotosForCustomer(customerId); } catch (e) {}
     try { voiceNotes = await DB.getVoiceNotes({ customerId }); } catch (e) {}
+    try { if(typeof DB.getCustomerImportedDocuments==='function')importedDocuments=await DB.getCustomerImportedDocuments(customerId); } catch(_){readErrors.push('documents');}
     try { if (typeof DB.getQuotes === 'function') structuredQuotes = await DB.getQuotes({ customerId }); } catch (e) {}
     try { if (typeof DB.getJobs === 'function') jobs = await DB.getJobs({ customerId }); } catch (e) {}
     try { if (typeof DB.getInvoices === 'function') invoices = await DB.getInvoices({ customerId }); } catch (e) {}
@@ -114,7 +116,7 @@ const CustomerFeature = {
     const address = customer.address?.line1 || '';
     const name = customer.fullName || `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'Customer';
 
-    if(typeof CustomerWorkspace!=='undefined')return CustomerWorkspace.render({readErrors,customerId,customer,appts,orders,comms,communicationLoadFailed,photos,voiceNotes,structuredQuotes,jobs,invoices,payments,retention,linkedExpenses,measurements,params});
+    if(typeof CustomerWorkspace!=='undefined')return CustomerWorkspace.render({readErrors,customerId,customer,appts,orders,comms,communicationLoadFailed,photos,voiceNotes,structuredQuotes,importedDocuments,jobs,invoices,payments,retention,linkedExpenses,measurements,params});
 
     return `
       <div class="fade-in">
@@ -402,7 +404,7 @@ const CustomerFeature = {
   },
 
   orderStageLabel(order) {
-    if (order.source === 'survey_referral') return `Referred · ${['ordered', 'delivered', 'fitted'].includes(order.stage) ? order.stage : 'ordered'} · payment managed externally`;
+    if (order.paymentManagedExternally || ['company','external'].includes(order.paymentResponsibility) || order.source === 'survey_referral') return `${order.source==='survey_referral'?'Referred':'Company-managed'} · ${['ordered', 'delivered', 'fitted'].includes(order.stage) ? order.stage : 'ordered'} · payment managed externally`;
     if ((order.balanceDue || 0) <= 0) return 'Paid';
     return (order.stage || 'ordered').replace(/_/g, ' ');
   },
@@ -416,6 +418,7 @@ const CustomerFeature = {
 
   activate(params = {}) {
     if(this._workspaceRestore && Number(params.id)===this._workspaceRestore.customerId){const restore=this._workspaceRestore;this._workspaceRestore=null;restore.open.forEach(id=>{const el=document.getElementById(id);if(el)el.open=true;});App._workspaceNavigationScroll={revision:App._navigationRevision,scroll:restore.scroll};return;}
+    if (params.section === 'documents' && typeof this.showWorkspaceSection === 'function') { const section=document.getElementById('customer-documents');if(section)section.open=true;return; }
     if (params.section !== 'followups') return;
     const revision = App._navigationRevision;
     const panel = document.getElementById('customer-followups');

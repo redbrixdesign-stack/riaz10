@@ -110,6 +110,7 @@ const ControlFeature = {
           `)}
 
           ${card('Customer', `
+            <button class="control-tile" type="button" data-action="CustomerFeature.openDocumentImport"><span aria-hidden="true" class="material-symbols-rounded">upload_file</span><span>Import customer document</span></button>
             <button class="control-tile" type="button" title="All customers and personal tasks" data-action="App.navigate" data-args='${JSON.stringify(["followups"])}'>
               <span class="material-symbols-rounded" aria-hidden="true">campaign</span>
               <span>Follow-ups</span>

@@ -256,7 +256,7 @@ const OrdersFeature = {
           <div class="kanban-sheet-cell"><div class="kanban-sheet-label">Total</div><div class="kanban-sheet-value">${Utils.formatCurrency(order.total || 0)}</div></div>
           ${!referral ? `<div class="kanban-sheet-cell"><div class="kanban-sheet-label">Deposit</div><div class="kanban-sheet-value">${Utils.formatCurrency(order.depositRequired || 0)}</div></div>
           <div class="kanban-sheet-cell"><div class="kanban-sheet-label">Deposit paid</div><div class="kanban-sheet-value">${Utils.formatCurrency(order.depositPaid || 0)}</div></div>
-          <div class="kanban-sheet-cell"><div class="kanban-sheet-label">Balance due</div><div class="kanban-sheet-value" style="color:${isPaid ? 'var(--secondary)' : 'var(--warning)'};">${Utils.formatCurrency(order.balanceDue || 0)}</div></div>
+          <div class="kanban-sheet-cell"><div class="kanban-sheet-label">Balance due</div><div class="kanban-sheet-value" style="color:${isPaid ? 'var(--secondary)' : 'var(--warning)'};">${order.externalBalanceKnown===false?'Not stated':Utils.formatCurrency(order.balanceDue || 0)}</div></div>
           ` : ''}
           <div class="kanban-sheet-cell"><div class="kanban-sheet-label">${referral ? 'Survey earnings' : 'Commission'}</div><div class="kanban-sheet-value">${Utils.formatCurrency(commission)}</div></div>
           <div class="kanban-sheet-cell"><div class="kanban-sheet-label">Stage</div><div class="kanban-sheet-value">${Utils.escapeHtml(this.STAGES.find(s => s.id === stage)?.name || stage)}</div></div>
