@@ -28,7 +28,7 @@ const context = vm.createContext({
     appointmentTypes: [{ id: 'consultation', name: 'Consultation' }, { id: 'fitting', name: 'Fitting' }]
   },
   DB: {
-    db: { orders: { get: async id => id === 77 ? order : null } },
+    db: { orders: { get: async id => id === 77 ? order : null, update: async (id,patch) => {if(id!==77)return 0;Object.assign(order,patch);return 1;} } },
     getCustomer: async id => id === 5 ? customer : null,
     getAppointment: async id => id === 11 ? saleVisit : visits.find(visit => visit.id === id),
     getAppointmentsByCustomer: async id => id === 5 ? visits : [],
@@ -80,7 +80,8 @@ for (const file of ['js/features/appointments/appointments.js', 'js/features/ord
   assert.match(app.modal, /Date not agreed yet/);
   assert.match(app.modal, /Nothing is sent to the customer automatically/);
 
-  appointments.deferFittingBooking(77);
+  await appointments.deferFittingBooking(77);
+  assert.equal(order.fittingDatePending,true,'An explicit deferred date is remembered');
   assert.equal(visits.length, 1, 'deferring does not create a fitting visit');
   assert.equal(app.navigation.feature, 'orders');
   await orders.openOrderSheet(77);

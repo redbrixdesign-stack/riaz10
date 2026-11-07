@@ -101,6 +101,7 @@ const FollowupsFeature = {
     let futureAppts = [];
     let todayAppts = [];
     let allAppts = [];
+    let allApptsLoaded = false;
     try { pipeline = await DB.getPipeline(); } catch (e) {}
     try { orders = await DB.db.orders.toArray(); } catch (e) {}
     try { upcoming = await DB.getUpcomingAppointments(5); } catch (e) {}
@@ -108,7 +109,7 @@ const FollowupsFeature = {
     // includes earlier-today visits; the separate full-day pull stays as a
     // harmless redundant guard for the outcome tasks.
     try { todayAppts = await DB.getAppointmentsForDate(now.toISOString()); } catch (e) {}
-    try { allAppts = await DB.getAllAppointments(); } catch (e) {}
+    try { const rows = await DB.getAllAppointments(); if(Array.isArray(rows)){allAppts=rows;allApptsLoaded=true;} } catch (e) {}
     // Intro messages apply to ANY distance of booking, not just the next few
     // days — otherwise a visit booked 2-3 weeks out (common for renovations)
     // gets no intro task and its customer is never messaged.
@@ -205,6 +206,15 @@ const FollowupsFeature = {
         priority: responsibility==='unknown'?'normal':'high',
         inDays: paymentDays - daysSince
       });
+    }
+
+    // Only an explicit "Date not agreed yet" creates this obligation. Missing
+    // diary data alone is not evidence that an external booking needs fitting.
+    for(const order of orders){
+      if(order.fittingDatePending!==true||!order.customerId||!['ordered','delivered','paid'].includes(order.stage||'ordered')||['cancelled','cancelled_order','archived'].includes(order.status))continue;
+      const hasFitting=allAppts.some(v=>Number(v.orderId)===Number(order.id)&&Number(v.customerId)===Number(order.customerId)&&v.type==='fitting'&&v.status!=='cancelled'&&v.outcome!=='cancelled');
+      if(hasFitting)continue;
+      tasks.push({kind:'fitting_date',derivedKey:`fitting-date:order:${order.id}`,due:true,inDays:0,order,customer:customerMap.get(order.customerId)||null,verificationFailed:!allApptsLoaded,action:allApptsLoaded?'Fitting date not agreed yet — choose the next step':'Could not check fitting records — retry before arranging a date',daysLabel:'Date to agree',priority:'normal'});
     }
 
     // 3. Today's unresolved visits become due only at their scheduled finish.
@@ -730,7 +740,7 @@ const FollowupsFeature = {
       ? `${Utils.formatDate(task.appointment.date, 'short')} · ${task.daysLabel}${dueIn}`
       : (task.order ? `${Utils.escapeHtml(task.order.orderNumber || 'Order')} · ${task.daysLabel}${dueIn}` : `${task.daysLabel || ''}${dueIn}`);
 
-    const icons = { quote: 'receipt_long', structured_quote: 'request_quote', quote_expiring: 'event_busy', quote_accepted: 'task_alt', job_issue: 'construction', supplier_issue: 'local_shipping', retention: 'handshake', invoice_overdue: 'request_quote', payment: 'payments', visit_today: 'event_available', visit_tomorrow: 'event', intro: 'waving_hand', intro_confirmation: 'mark_chat_unread', post_fit: 'handyman', service: 'build', };
+    const icons = { fitting_date:'event', quote: 'receipt_long', structured_quote: 'request_quote', quote_expiring: 'event_busy', quote_accepted: 'task_alt', job_issue: 'construction', supplier_issue: 'local_shipping', retention: 'handshake', invoice_overdue: 'request_quote', payment: 'payments', visit_today: 'event_available', visit_tomorrow: 'event', intro: 'waving_hand', intro_confirmation: 'mark_chat_unread', post_fit: 'handyman', service: 'build', };
     // Border colour = what the task needs from you. Payment and service issues
     // are urgent (warning/danger); today's visits and intros are primary
     // actions; everything else (quote chases, post-fit thank-yous,
@@ -767,7 +777,7 @@ const FollowupsFeature = {
           ${task.appointment && ['intro', 'intro_confirmation', 'visit_tomorrow'].includes(task.kind) ? `<button class="btn btn-sm btn-outline" data-action="FollowupsFeature.openContactOutcome" data-args='${JSON.stringify([task.appointment.id])}'>Record phone contact</button>` : ''}
           ${task.appointment ? `<button class="btn btn-sm btn-outline" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: task.appointment.id}])}'>Open visit</button>` : ''}
           ${task.kind === 'payment' && task.order?.appointmentId ? `<button class="btn btn-sm btn-outline" data-action="OrdersFeature.paymentMessage" data-args='${JSON.stringify([task.order.id])}'>Review payment message</button>` : ''}
-          ${task.durable && task.sourceSuggestion ? `<button class="btn btn-sm btn-outline" aria-label="Complete ${name}" data-action="FollowupsFeature.completeDurableTask" data-args='${JSON.stringify([task.id])}'>Mark task done</button>` : ''}
+          ${task.durable && task.sourceSuggestion && task.kind!=='fitting_date' ? `<button class="btn btn-sm btn-outline" aria-label="Complete ${name}" data-action="FollowupsFeature.completeDurableTask" data-args='${JSON.stringify([task.id])}'>Mark task done</button>` : ''}
           ${task.kind !== 'send_confirmation' ? `<button class="btn btn-sm btn-outline" aria-label="Snooze ${name}" data-action="FollowupsFeature.openSnooze" data-args='${JSON.stringify([task.durable ? task.id : null, task.derivedKey])}'><span aria-hidden="true" class="material-symbols-rounded fs-16">snooze</span>Snooze</button>` : '<span class="hint">Record whether it was sent first; an unsent reminder can then be snoozed.</span>'}
           ${task.customer && !inCustomerProfile ? `<button class="btn btn-ghost btn-sm" aria-label="Open customer profile" data-action="App.navigate" data-args='${JSON.stringify(["customer", {id: (task.customer.id)}])}'><span aria-hidden="true" class="material-symbols-rounded fs-18" >person</span></button>` : ''}
         </div></details>
@@ -776,6 +786,8 @@ const FollowupsFeature = {
   },
 
   renderPrimaryAction(task) {
+    if(task.kind==='fitting_date'&&task.verificationFailed)return `<button class="btn btn-primary btn-block" data-action="FollowupsFeature.refreshTaskView">Retry fitting check</button>`;
+    if(task.kind==='fitting_date')return `<button class="btn btn-primary btn-block" data-action="AppointmentsFeature.offerFittingBooking" data-args='${JSON.stringify([task.order.id])}'>Review fitting date</button>`;
     if(task.kind==='payment_review') return `<button class="btn btn-primary btn-block" data-action="FollowupsFeature.openPaymentResponsibility" data-args='${JSON.stringify([task.order.id])}'>Review collection responsibility</button>`;
     if (task.kind === 'send_confirmation') return `<button class="btn btn-primary btn-block" data-action="TalkFeature.openSentConfirmation" data-args='${JSON.stringify([task.communicationId])}'>Record whether sent</button>`;
     if (task.retentionRecord) {

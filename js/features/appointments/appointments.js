@@ -3849,6 +3849,7 @@ const AppointmentsFeature = {
         <div class="form-row"><div class="form-group"><label for="fitting-time">Diary time within slot</label><input type="time" class="input" id="fitting-time" step="900"></div><div class="form-group"><label for="fitting-duration">Expected duration</label><select class="select" id="fitting-duration">${this.renderDurationOptions(4)}</select></div></div>
         <div class="hint mb-md">The slot is the arrival window; the diary time is used for route planning. You can reschedule later.</div>
         <button class="btn btn-primary btn-block" data-action="AppointmentsFeature.saveFittingBooking" data-args='${JSON.stringify([orderId])}'>Add fitting to diary</button>
+        <p id="fitting-pending-status" role="status"></p>
         <button class="btn btn-outline btn-block mt-sm" data-action="AppointmentsFeature.deferFittingBooking" data-args='${JSON.stringify([orderId])}'>Date not agreed yet</button>
       </div>`;
     App.openModal(content);
@@ -3863,9 +3864,24 @@ const AppointmentsFeature = {
     if (time) time.value = block?.start || '';
   },
 
-  deferFittingBooking(orderId) {
-    App.closeModal();
-    App.navigate('orders', { id: orderId });
+  async deferFittingBooking(orderId) {
+    if(this._deferringFitting)return;
+    this._deferringFitting=true;
+    const revision=App._navigationRevision,status=document.getElementById('fitting-pending-status');
+    try{
+      const order=await DB.db.orders.get(orderId);
+      if(!order?.customerId)throw Error('This order is no longer available.');
+      const profileId=App.currentFeature?.id==='customer'?Number(new URLSearchParams((App.currentHash||'').split('?')[1]).get('id')):null;
+      if(profileId&&profileId!==Number(order.customerId))throw Error('This order belongs to a different customer.');
+      if(revision!==App._navigationRevision)return;
+      if(status)status.textContent='Saving the next step…';
+      if(!await DB.db.orders.update(orderId,{fittingDatePending:true,fittingDateDeferredAt:new Date().toISOString()}))throw Error('The fitting reminder could not be saved.');
+      if(revision!==App._navigationRevision)return;
+      App.closeModal();
+      if(profileId&&typeof CustomerFeature!=='undefined')return CustomerFeature.refreshProfile(profileId);
+      App.navigate('orders', { id: orderId });
+    }catch(error){if(revision===App._navigationRevision){if(status?.isConnected)status.textContent=error.message||'Not saved. Please retry.';Toast.show('Fitting date reminder not saved. Keep this prompt open and retry.','error');}}
+    finally{this._deferringFitting=false;}
   },
 
   async saveFittingBooking(orderId) {

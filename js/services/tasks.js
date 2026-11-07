@@ -95,6 +95,13 @@ const TaskService = {
           }
         }
         if(!reason && task.orderId && key.startsWith('payment:') && DB.db?.orders?.get){const order=await DB.db.orders.get(task.orderId);if(order){if(Number(order.balanceDue)<=0)reason='order_balance_settled';else if(typeof CommunicationService!=='undefined'&&typeof CommunicationService.collectionResponsibility==='function'&&CommunicationService.collectionResponsibility(order)==='external')reason='collection_managed_externally';}}
+        if(!reason && /^fitting-date:order:\d+$/.test(key) && DB.db?.orders?.get && typeof DB.getAppointmentsByCustomer==='function'){
+          const order=await DB.db.orders.get(Number(key.split(':').pop()));
+          if(order){
+            if(order.fittingDatePending===false||!['ordered','delivered','paid'].includes(order.stage||'ordered')||['cancelled','cancelled_order','archived'].includes(order.status))reason='fitting_date_no_longer_pending';
+            else if((await DB.getAppointmentsByCustomer(order.customerId)).some(v=>Number(v.orderId)===Number(order.id)&&Number(v.customerId)===Number(order.customerId)&&v.type==='fitting'&&v.status!=='cancelled'&&v.outcome!=='cancelled'))reason='fitting_scheduled';
+          }
+        }
         if(!reason && /^invoice:overdue:\d+$/.test(key) && DB.getInvoice && typeof CommunicationService!=='undefined'){
           const pack=await DB.getInvoice(Number(key.split(':').pop())),invoice=pack?.invoice;
           if(invoice){const owner=invoice.orderId?await DB.db.orders.get(invoice.orderId)||invoice:invoice;if(CommunicationService.collectionResponsibility(owner)==='external')reason='collection_managed_externally';}

@@ -45,3 +45,13 @@ Cache 190 deployment identity/status is appended after promotion and live verifi
 ### AW-002 deployed and live-verified
 
 Full regression suite passed. Runtime `0641529`, cache 190. Exact production deployment `dpl_4KMvYTDSEaYD3rnq3FaMR8nPTEJ8` (`beelo1-g0dgpqxvw-beelomvp.vercel.app`) was staged, asset-verified and promoted without rebuild. Public changed assets match tested hashes. The active-visit journey passed on the public origin in Chromium/WebKit, including the newer-journey/forgotten-timer case and unchanged booking/timer/earnings fields.
+
+## AW-003 — Deferred fitting date disappears after survey — P1
+
+**Confirmed:** Complete a referred survey with an order amount, then choose **Date not agreed yet**. The order is retained, but the customer workspace previously had no actionable reminder to arrange fitting. Red test reproduced zero “Review fitting date” actions.
+
+**Fix:** The explicit deferral saves a pending fitting-date decision on that order. The customer next-action panel offers **Review fitting date**; deferring there stays in the same customer workspace. A linked, non-cancelled fitting clears the action, including a previously snoozed durable reminder. Cancelling that fitting restores the outstanding decision once; a fitted/cancelled/archived order stops it. Historical orders without this explicit decision do not acquire invented fitting obligations. Failed saves keep the prompt open with an error; failed diary reads show a retry action rather than claiming no fitting exists.
+
+**Boundaries:** No customer agreement is inferred, no appointment is created by deferral, no communication sends, no accounting/payment changes. Survey earnings remain £80 on the synthetic £1,000 order at the configured 10% normal / 8% survey rate. The £0 external collection balance is not treated as proof of fitting completion.
+
+**Evidence:** Maintained encrypted-storage Chromium/WebKit journey exercises actual survey outcome and fitting forms, profile deferral/reload, injected failed save/read, offline fitting save, durable snooze reconciliation, cancellation and completed-order suppression. All outside traffic is blocked; the existing startup address-lookup attempt after reload is recorded separately and never delivered. Native/physical iPhone acceptance is not claimed for this step. Deployment evidence follows after release checks.
