@@ -1,0 +1,38 @@
+{
+  "base": "https://beelo.beelestial.co.uk",
+  "commit": "d1f4c32",
+  "cache": 192,
+  "deployment": "dpl_Ek5MAd6NnNaWm83Emufq2NMtx3PB",
+  "results": [
+    {
+      "file": "index.html",
+      "sha256": "7b7ff33ee50774ddbe997a17eb45edf300605a9bd1e715e30f914aa039326fe8",
+      "matched": true
+    },
+    {
+      "file": "sw.js",
+      "sha256": "ad631ab8abc1fe488a1962569c964794fa98f66e7d4f0668bd01dc965dd15917",
+      "matched": true
+    },
+    {
+      "file": "js/features/appointments/appointments.min.js",
+      "sha256": "4abb7d7638cf53434a16aaeda01948f0ac2c4c22123febdd8e74234d2db355c1",
+      "matched": true
+    },
+    {
+      "file": "js/features/followups/followups.min.js",
+      "sha256": "fa5dd73b7569f95fff86974cef235a9fc074e6715985db36acf5f6f99266be66",
+      "matched": true
+    },
+    {
+      "file": "js/services/tasks.min.js",
+      "sha256": "4326bf184f5fcb6b8babe9d271a50164cb101dc73cb8c81819eca839f523d761",
+      "matched": true
+    },
+    {
+      "file": "js/features/orders/orders.min.js",
+      "sha256": "b99e357810d41fde9d04629b5a38817d16f7eb6f41da4aa3113f71b48583ef00",
+      "matched": true
+    }
+  ]
+}

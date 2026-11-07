@@ -1,0 +1,23 @@
+{
+  "runtime": "d1f4c32",
+  "cache": 192,
+  "unitSuite": "passed",
+  "precedingFullSweep": {
+    "cache": 191,
+    "journeys": 39,
+    "failed": 0
+  },
+  "affectedJourneys": {
+    "adviser-order-navigation": "chromium/webkit passed",
+    "adviser-deferred-fitting": "chromium/webkit passed",
+    "customer-workspace": "chromium/webkit passed",
+    "payment-link": "chromium/webkit passed"
+  },
+  "publicJourneys": [
+    "adviser-order-navigation chromium/webkit passed",
+    "adviser-deferred-fitting chromium/webkit passed"
+  ],
+  "errorLogRows": 0,
+  "originalNonDocumentationDiffSha256": "8b6f2a59c93c01d1e4bee30742536a538f010119e3acf6b99e9b2f63e8e295d1",
+  "nativeAcceptance": "not claimed"
+}

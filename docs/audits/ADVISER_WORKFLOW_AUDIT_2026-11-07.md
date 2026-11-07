@@ -67,3 +67,14 @@ Runtime `7d6346e`, cache 191; exact deployment `dpl_FwejnUbgTt7KhctidfvLJpvPK3No
 **Fix:** Order panels retain their originating navigation revision and latest request identity. A stale read cannot display a panel/error after navigation or a newer order request. Leaving Orders cancels its scheduled panel and invalidates in-flight requests; its timer also verifies the originating navigation before opening. Legitimate order opens from Orders and the customer profile remain supported. No order/payment/commission data is changed by this fix.
 
 **Evidence:** Synthetic browser journey passes Chromium/WebKit for delayed encrypted-store read, stale activation timer, valid board/profile opens, and unchanged £500 balance/ordered stage. Public release follows after unit and affected-workflow checks. This does not claim every asynchronous feature in the app has received the same ownership audit.
+
+### AW-004 deployed and live-verified
+
+Runtime `d1f4c32`, cache 192; exact deployment `dpl_Ek5MAd6NnNaWm83Emufq2NMtx3PB` (`beelo1-psy20qwdz-beelomvp.vercel.app`) staged, 12 selected assets verified and promoted without rebuild. Full unit suite passed. Affected browser journeys passed in Chromium/WebKit: new order navigation ownership, deferred fitting lifecycle, customer workspace and payment allocation. The earlier 39-journey full sweep passed at cache 191; it is not misreported as a 40-journey rerun of cache 192. Both new journeys passed again on the public origin. Public changed-asset hashes match; recent error-level deployment query returned zero rows. Final pending-fitting screenshot now shows the customer action without the stale order panel.
+
+## Remaining evidence and development priorities
+
+- **Open:** Physical iPhone/Safari/installed-PWA, VoiceOver, large-text and large-record-library acceptance. Browser-engine evidence is bounded; native Simulator automation has previously been unreliable.
+- **Open observation:** Intermittent startup/tab timing under automated load has not yielded an independently confirmed production defect/root cause. Preserve failing-state diagnostics rather than declare it fixed by a later pass.
+- **Next:** Extend manual adviser journeys through interrupted/partial fittings, issue → service/revisit → closure, cancelled/rebooked windows, and end-of-day reconciliation on a native device. Audit asynchronous screen ownership in other features separately; AW-004 fixes Orders only.
+- **Boundaries:** Synthetic records, isolated browser storage, no actual calls/messages/shares or delivered geocoding/AI requests. No released commercial/pilot approval, HMRC/MTD filing, accounting completeness, customer agreement or verified savings is inferred from these checks.
