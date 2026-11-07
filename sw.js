@@ -1,10 +1,10 @@
 const CACHE_PREFIX = 'advisoros-';
-const CACHE_NAME = 'advisoros-v6-192-order-panel-ownership';
+const CACHE_NAME = 'advisoros-v6-193-calendar-workload';
 const STATIC_ASSETS = [
-  'js/features/today/home-workspace.min.js?v=4',
+  'js/features/today/home-workspace.min.js?v=5',
   'js/features/customer/workspace.min.js?v=3','js/features/appointments/visit-communication.min.js?v=1',
   'js/services/note-capture.min.js?v=8','js/services/visit-draft.min.js?v=2','js/services/visit-summaries.min.js?v=1',
-  './','index.html','manifest.json?v=3','css/core.css?v=34','css/components.css?v=67',
+  './','index.html','manifest.json?v=3','css/core.css?v=34','css/components.css?v=68',
   'assets/fonts/material-symbols-rounded.woff2','assets/fonts/hankengrotesk-latin.woff2','assets/fonts/hankengrotesk-latinext.woff2','assets/fonts/jetbrainsmono-latin.woff2',
   'assets/icons/badge-gold-72.png','assets/icons/icon-gold-72.png','assets/icons/icon-gold-96.png','assets/icons/icon-gold-128.png','assets/icons/icon-gold-144.png','assets/icons/icon-gold-152.png','assets/icons/icon-gold-192.png','assets/icons/icon-gold-384.png','assets/icons/icon-gold-512.png','assets/icons/icon-gold-192-maskable.png','assets/icons/icon-gold-512-maskable.png','assets/icons/apple-touch-icon-gold-180.png',
   'assets/img/marker-icon.png','assets/img/marker-icon-2x.png','assets/img/marker-shadow.png',
