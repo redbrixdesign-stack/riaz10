@@ -70,7 +70,7 @@ const TodayFeature = {
       <div class="sheet-handle"></div>
       <div class="sheet-header">
         <h3>End of Day</h3>
-        <button class="btn btn-ghost btn-sm" data-action="App.closeModal"App.closeModal()">
+        <button class="btn btn-ghost btn-sm" data-action="App.closeModal" aria-label="Close end-of-day review">
           <span class="material-symbols-rounded">close</span>
         </button>
       </div>

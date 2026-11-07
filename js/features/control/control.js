@@ -75,134 +75,17 @@ const ControlFeature = {
   },
 
   async render() {
-    const demoSeeded = await DB.getSetting('pitchDemoSeeded', false);
-
-    // One .card per category — the same dark-canvas/cream-card pattern as
-    // every other screen (Settings, Money, Orders…). No full-screen surface.
-    const card = (title, tiles) => `
-      <div class="card mb-md">
-        <div class="fw-600 fs-16 mb-sm" >${title}</div>
-        <div class="control-grid">${tiles}</div>
-      </div>`;
-
-    return `
-      <div class="fade-in">
-        ${App.renderTopHeader({ title: 'Tools' })}
-
-        <div class="p-md" >
-          ${card('Today', `
-            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {action: "add"}])}'>
-              <span aria-hidden="true" class="material-symbols-rounded">add</span>
-              <span>Add Visit</span>
-            </button>
-            <button class="control-tile" type="button" data-action="MoneyFeature.openMileageModal">
-              <span aria-hidden="true" class="material-symbols-rounded">route</span>
-              <span>Log Mileage</span>
-            </button>
-            <button class="control-tile" type="button" data-action="MoneyFeature.openExpenseModal">
-              <span aria-hidden="true" class="material-symbols-rounded">receipt_long</span>
-              <span>Log Expense</span>
-            </button>
-            <button class="control-tile" type="button" data-action="TodayFeature.openEODModal">
-              <span aria-hidden="true" class="material-symbols-rounded">fact_check</span>
-              <span>End of Day</span>
-            </button>
-          `)}
-
-          ${card('Customer', `
-            <button class="control-tile" type="button" data-action="CustomerFeature.openDocumentImport"><span aria-hidden="true" class="material-symbols-rounded">upload_file</span><span>Import customer document</span></button>
-            <button class="control-tile" type="button" title="All customers and personal tasks" data-action="App.navigate" data-args='${JSON.stringify(["followups"])}'>
-              <span class="material-symbols-rounded" aria-hidden="true">campaign</span>
-              <span>Follow-ups</span>
-            </button>
-            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["jobs"])}'>
-              <span aria-hidden="true" class="material-symbols-rounded">construction</span>
-              <span>Jobs</span>
-            </button>
-            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["leads"])}'>
-              <span aria-hidden="true" class="material-symbols-rounded">person_add</span>
-              <span>Lead Inbox</span>
-            </button>
-            <button class="control-tile" type="button" data-action="AppointmentsFeature.openCustomerSearch" data-args='${JSON.stringify([true])}'>
-              <span aria-hidden="true" class="material-symbols-rounded">person_search</span>
-              <span>Find Customer</span>
-            </button>
-          `)}
-
-          ${card('Business', `
-            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["money"])}'>
-              <span aria-hidden="true" class="material-symbols-rounded">account_balance_wallet</span>
-              <span>Money</span>
-            </button>
-            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["orders"])}'>
-              <span aria-hidden="true" class="material-symbols-rounded">view_kanban</span>
-              <span>Orders overview</span>
-            </button>
-          `)}
-          <details class="card mb-md control-more"><summary class="fw-600 fs-16">More business tools</summary><div class="control-grid mt-sm">
-            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["suppliers"])}'>
-              <span aria-hidden="true" class="material-symbols-rounded">local_shipping</span>
-              <span>Suppliers</span>
-            </button>
-            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["capacity"])}'>
-              <span aria-hidden="true" class="material-symbols-rounded">event_busy</span>
-              <span>Availability</span>
-            </button>
-            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["profitability"])}'>
-              <span aria-hidden="true" class="material-symbols-rounded">monitoring</span>
-              <span>Profitability</span>
-            </button>
-            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["invoices"])}'>
-              <span aria-hidden="true" class="material-symbols-rounded">receipt_long</span>
-              <span>Invoices</span>
-            </button>
-          </div></details>
-
-          ${card('Field tools', `
-            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["route"])}'>
-              <span aria-hidden="true" class="material-symbols-rounded">map</span>
-              <span>Route Planner</span>
-            </button>
-            <button class="control-tile" type="button" data-action="ControlFeature.openMeasurePicker">
-              <span aria-hidden="true" class="material-symbols-rounded">straighten</span>
-              <span>Measure</span>
-            </button>
-            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["ocr"])}'>
-              <span aria-hidden="true" class="material-symbols-rounded">document_scanner</span>
-              <span>Scan Document</span>
-            </button>
-          `)}
-
-          ${card('Data & Settings', `
-            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["communications"])}'>
-              <span aria-hidden="true" class="material-symbols-rounded">hub</span>
-              <span>Integrations</span>
-            </button>
-            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["settings"])}'>
-              <span aria-hidden="true" class="material-symbols-rounded">settings</span>
-              <span>Settings</span>
-            </button>
-            <button class="control-tile" type="button" data-action="ExportService.exportBackup">
-              <span aria-hidden="true" class="material-symbols-rounded">backup</span>
-              <span>Export Backup</span>
-            </button>
-            ${demoSeeded ? `
-            <button class="control-tile" type="button" data-action="ControlFeature.confirmClearPitchDemo">
-              <span aria-hidden="true" class="material-symbols-rounded text-danger">delete_sweep</span>
-              <span>Remove Demo Data</span>
-            </button>
-            ` : ''}
-          `)}
-        </div>
-      </div>
-    `;
-  },
-
-  at(date, time) {
-    const [hours, minutes] = time.split(':').map(Number);
-    const d = new Date(date);
-    d.setHours(hours, minutes, 0, 0);
-    return d.toISOString();
+    const tile = (label,icon,action,args=[]) => `<button class="control-tile" type="button" data-action="${action}" data-args='${Utils.escapeHtml(JSON.stringify(args))}'><span class="material-symbols-rounded" aria-hidden="true">${icon}</span><span>${label}</span></button>`;
+    const route = (label,icon,id,params) => tile(label,icon,'App.navigate',params?[id,params]:[id]);
+    const card = (title,content) => `<section class="card mb-md" aria-label="${title}"><h2 class="fw-600 fs-16 mb-sm">${title}</h2><div class="control-grid">${content}</div></section>`;
+    return `<div class="fade-in">${App.renderTopHeader({title:'Tools'})}<div class="p-md"><p class="hint mb-md">Find customers on Home. Open their visit for measurements, notes and messages.</p>
+      ${card('Add & capture',route('Add Visit','add','appointments',{action:'add'})+tile('Log Expense','receipt_long','MoneyFeature.openExpenseModal')+tile('Log Mileage','route','MoneyFeature.openMileageModal')+tile('Import customer document','upload_file','CustomerFeature.openDocumentImport'))}
+      ${card('Plan & review',route('Route Planner','map','route')+tile('End of Day','fact_check','TodayFeature.openEODModal')+route('Follow-ups','campaign','followups'))}
+      ${card('Money & settings',route('Money','account_balance_wallet','money')+route('Backup & restore','backup','settings',{section:'data'})+route('Settings','settings','settings'))}
+      <details class="card mb-md control-more" id="tools-more"><summary class="fw-600 fs-16">More tools &amp; saved records</summary><p class="hint mt-sm">Optional workflows and business setup. Your existing records stay available.</p><div class="control-grid mt-sm">
+        ${route('Orders overview','view_kanban','orders')}${route('Jobs','construction','jobs')}${route('Lead Inbox','person_add','leads')}${route('Availability','event_busy','capacity')}${route('Invoices','receipt_long','invoices')}${route('Suppliers','local_shipping','suppliers')}${route('Job costing setup','monitoring','profitability')}
+      </div></details>
+    </div></div>`;
   },
 
   // Pick a visit, then open the Measure tool against it. Measure is a per-visit
@@ -241,47 +124,6 @@ const ControlFeature = {
         </div>
       </div>`;
     App.openModal(content);
-  },
-
-  // The six phone numbers seedPitchDemo used to create its fake customers -
-  // unique placeholder numbers unlikely to collide with a real customer's
-  // number, so they're a safe, precise way to find and remove exactly what
-  // that feature created, on a device where it was run before this tool was
-  // taken out of the UI. Deliberately not a general "clear all test data"
-  // button - there's no way to reliably tell a person's own manually-entered
-  // test customers apart from real ones, so this only ever touches the
-  // specific records this app itself seeded.
-  PITCH_DEMO_PHONES: ['07494 809272', '07700 900481', '07700 900612', '07700 900734', '07700 900845', '07700 900926'],
-
-  async confirmClearPitchDemo() {
-    const content = `<div class="sheet-handle"></div>
-      <div class="sheet-header"><h3>Remove Demo Data?</h3><button class="btn btn-ghost btn-sm" data-action="App.closeModal"><span aria-hidden="true" class="material-symbols-rounded">close</span></button></div>
-      <div class="sheet-body">
-        <div class="fs-14 text-secondary mb-md" >
-          This removes the sample customers and visits used for demoing the app (Ayesha Khan, James Wilson, and others), along with their visits, orders, and messages. Your own customers and visits are not affected.
-        </div>
-        <button class="btn btn-danger btn-block" data-action="ControlFeature.clearPitchDemo">
-          <span aria-hidden="true" class="material-symbols-rounded">delete_sweep</span>Remove Demo Data
-        </button>
-        <button class="btn btn-outline btn-block mt-sm"  data-action="App.closeModal">Cancel</button>
-      </div>`;
-    App.openModal(content);
-  },
-
-  async clearPitchDemo() {
-    try {
-      const customers = (await DB.getAllCustomers()).filter(c => this.PITCH_DEMO_PHONES.includes(c.phone));
-      for (const customer of customers) {
-        await DB.deleteCustomer(customer.id);
-      }
-      await DB.setSetting('pitchDemoSeeded', false);
-      App.closeModal();
-      Toast.show(customers.length > 0 ? `Removed ${customers.length} demo customer${customers.length === 1 ? '' : 's'}` : 'Demo data already removed', 'success');
-      App.navigate('control');
-    } catch (e) {
-      console.error('Clear demo data failed:', e);
-      Toast.show('Failed to remove demo data', 'error');
-    }
   }
 };
 

@@ -21,7 +21,7 @@ global.DB = {
   getIntegrationLinks: async () => [{ id: 1 }]
 };
 const code = fs.readFileSync(path.join(__dirname, '..', 'js/services/communications.js'), 'utf8');
-(0, eval)(`${code}\nglobal.CommunicationService=CommunicationService;global.IntegrationAdapterRegistry=IntegrationAdapterRegistry;`);
+(0, eval)(`${code}\nglobal.CommunicationService=CommunicationService;`);
 const ok = (name, condition) => { if (!condition) { console.error('FAIL:', name); process.exitCode = 1; } else console.log('OK:', name); };
 
 (async () => {
@@ -45,13 +45,5 @@ const ok = (name, condition) => { if (!condition) { console.error('FAIL:', name)
   ok('confirmed lifecycle is safe for sent history', CommunicationService.isConfirmed(decorated));
   const reply = await CommunicationService.recordReply(1, 'Tuesday works well', 'whatsapp');
   ok('manual inbound reply is recorded with provenance', reply.direction === 'inbound' && reply.receivedAt && events.at(-1).provenance === 'advisor_recorded_reply');
-  let failed = false;
-  try { await IntegrationAdapterRegistry.enqueue('manual', 'customer', 1, 'push', {}); } catch (e) { failed = /disconnected/.test(e.message); }
-  ok('built-in manual adapter is disabled by default', failed);
-  const adapter = IntegrationAdapterRegistry.get('manual');
-  await adapter.connect();
-  const queued = await IntegrationAdapterRegistry.enqueue('manual', 'customer', 1, 'push', {});
-  ok('enabled adapter queues local-first outbox with provenance', queued.status === 'pending' && queued.provenance === 'local');
-  const result = await IntegrationAdapterRegistry.disconnect('manual');
-  ok('disconnect preserves local data and provenance links', result.localDataPreserved && result.retainedLinks === 1);
+  ok('mock-only live-connection controls are retired', !code.includes('class ManualIntegrationAdapter') && !code.includes('CommunicationsFeature.connect') && !code.includes('Providers &amp; integrations'));
 })();

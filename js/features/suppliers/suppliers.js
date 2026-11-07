@@ -43,7 +43,7 @@ const SuppliersFeature = {
       ${App.renderTopHeader({ title: 'Supplier orders', showBack: true, backHref, actions: (orderId || jobId) ? `<button class="btn btn-primary btn-sm" data-action="SuppliersFeature.openCreate" data-args='${JSON.stringify([orderId, jobId])}'><span class="material-symbols-rounded">add</span>New</button>` : '' })}
       <div class="p-md">
         <div class="hint mb-md">Buying and delivery progress lives here. It never moves the customer order stage automatically.</div>
-        ${records.length ? records.map(record => this.renderCard(record)).join('') : `<div class="empty-state empty-state-lg"><span class="material-symbols-rounded">local_shipping</span><div class="fw-600">No supplier orders yet</div><div class="fs-13">Create one to track submission, delivery and checks.</div>${(orderId || jobId) ? `<button class="btn btn-primary btn-sm mt-md" data-action="SuppliersFeature.openCreate" data-args='${JSON.stringify([orderId, jobId])}'>Create supplier order</button>` : ''}</div>`}
+        ${records.length ? records.map(record => this.renderCard(record)).join('') : `<div class="empty-state empty-state-lg"><span class="material-symbols-rounded">local_shipping</span><div class="fw-600">No supplier orders yet</div><div class="fs-13">Open a customer order or job to add a supplier record and track delivery checks.</div>${(orderId || jobId) ? `<button class="btn btn-primary btn-sm mt-md" data-action="SuppliersFeature.openCreate" data-args='${JSON.stringify([orderId, jobId])}'>Create supplier order</button>` : `<button class="btn btn-outline btn-sm mt-md" data-action="App.navigate" data-args='["orders"]'>Open orders</button>`}</div>`}
       </div>
     </div>`;
   },

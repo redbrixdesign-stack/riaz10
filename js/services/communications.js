@@ -179,57 +179,20 @@ const CommunicationService = {
   operationId(action, id) { return `comm:${action}:${id || 'new'}:${globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`}`; }
 };
 
-class ManualIntegrationAdapter {
-  constructor() { this.id = 'manual'; this.name = 'Manual hand-off'; this.enabled = false; }
-  async connect() { this.enabled = true; return { connected: true, provider: this.id }; }
-  async disconnect() { this.enabled = false; return { connected: false, localDataPreserved: true }; }
-  async push() { return { status: 'manual', message: 'Open the destination app and confirm the result yourself.' }; }
-}
-
-const IntegrationAdapterRegistry = {
-  adapters: new Map(),
-  register(adapter) { if (!adapter?.id) throw new Error('Adapter id is required'); this.adapters.set(adapter.id, adapter); return adapter; },
-  get(id) { return this.adapters.get(id) || null; },
-  list() { return [...this.adapters.values()]; },
-  async enqueue(provider, entityType, localId, action, payload = {}) {
-    const adapter = this.get(provider);
-    if (!adapter || !adapter.enabled) throw new Error('Integration is disconnected');
-    if (typeof DB.enqueueIntegrationOutbox !== 'function') throw new Error('Integration outbox is unavailable');
-    const operationId = CommunicationService.operationId('outbox', localId);
-    return DB.enqueueIntegrationOutbox({ provider, entityType, localId, action, payload, status: 'pending', provenance: 'local', operationId }, operationId);
-  },
-  async disconnect(provider) {
-    const adapter = this.get(provider); if (!adapter) throw new Error('Integration not found');
-    const result = await adapter.disconnect();
-    if (typeof DB.getIntegrationLinks === 'function') {
-      const links = await DB.getIntegrationLinks({ provider });
-      // Links remain as provenance; disconnection never deletes local rows.
-      return { ...result, retainedLinks: Array.isArray(links) ? links.length : 0 };
-    }
-    return result;
-  }
-};
-IntegrationAdapterRegistry.register(new ManualIntegrationAdapter());
-
 const CommunicationsFeature = {
-  id: 'communications', name: 'Communications', icon: 'forum', route: false,
+  id: 'communications', name: 'Communication history', icon: 'forum', route: false,
   async render() {
-    const outbox = typeof DB.getIntegrationOutbox === 'function' ? await DB.getIntegrationOutbox({}) : [];
-    const conflicts = typeof DB.getIntegrationConflicts === 'function' ? await DB.getIntegrationConflicts({ status: 'open' }) : [];
-    let communications = [];
-    try { communications = await CommunicationService.decorate((await DB.db.communications.toArray()).sort((a,b) => new Date(b.createdAt || b.sentAt || 0) - new Date(a.createdAt || a.sentAt || 0)).slice(0, 20)); } catch (e) {}
-    const adapters = IntegrationAdapterRegistry.list();
-    const labels = { handed_off: 'Opened — confirmation needed', advisor_confirmed_sent: 'Confirmed sent', delivered: 'Delivered', replied: 'Customer reply', cancelled: 'Not sent', note: 'Internal note' };
-    return `<div class="fade-in">${App.renderTopHeader({ title: 'Communications', showBack: true, backHref: 'settings' })}<div class="p-md"><div class="card card-page"><div class="section-label">Recent activity</div>${communications.length ? communications.map(row => `<div class="py-8"><div class="flex justify-between gap-sm"><div class="min-w-0"><strong class="fs-13">${Utils.escapeHtml(labels[row.lifecycleState] || row.lifecycleState || 'Message')}</strong><div class="fs-12 text-tertiary ellipsis">${Utils.escapeHtml(row.content || row.type || '')}</div></div>${row.lifecycleState === 'handed_off' ? `<button class="btn btn-primary btn-sm" data-action="CommunicationsFeature.confirmSent" data-args='${JSON.stringify([row.id, row.customerId || 0])}'>Confirm sent</button>` : ''}</div></div>`).join('') : '<div class="fs-13 text-tertiary">No communication activity yet.</div>'}</div><div class="card card-page"><div class="section-label">Providers &amp; integrations</div>${adapters.map(adapter => `<div class="flex justify-between items-center py-8"><div><strong>${Utils.escapeHtml(adapter.name)}</strong><div class="fs-12 text-tertiary">${adapter.enabled ? 'Connected' : 'Off by default'} · local records remain available</div></div>${adapter.enabled ? `<button class="btn btn-outline btn-sm" data-action="CommunicationsFeature.disconnect" data-args='${JSON.stringify([adapter.id])}'>Disconnect</button>` : `<button class="btn btn-outline btn-sm" data-action="CommunicationsFeature.connect" data-args='${JSON.stringify([adapter.id])}'>Enable</button>`}</div>`).join('')}</div><div class="card card-page"><div class="flex justify-between"><span>Outbox</span><strong>${outbox.filter(row => !['completed', 'cancelled'].includes(row.status)).length}</strong></div>${outbox.filter(row => !['completed', 'cancelled'].includes(row.status)).slice(0,5).map(row => `<div class="fs-12 text-secondary mt-4">${Utils.escapeHtml(row.action)} · ${Utils.escapeHtml(row.status)}</div>`).join('')}<div class="flex justify-between mt-sm"><span>Conflicts needing review</span><strong>${conflicts.length}</strong></div>${conflicts.map(row => `<div class="inset-dark p-sm mt-sm"><div class="fs-13">Local and provider versions differ.</div><div class="flex gap-sm mt-sm"><button class="btn btn-outline btn-sm" data-action="CommunicationsFeature.resolveConflict" data-args='${JSON.stringify([row.id, "keep_local"])}'>Keep local</button><button class="btn btn-outline btn-sm" data-action="CommunicationsFeature.resolveConflict" data-args='${JSON.stringify([row.id, "accept_remote"])}'>Use provider copy</button></div></div>`).join('')}<p class="hint mt-sm">Changes are saved locally first. A provider connection never becomes the only copy.</p></div></div></div>`;
-  },
-  async connect(provider) {
-    const adapter = IntegrationAdapterRegistry.get(provider); if (!adapter) return Toast.show('Integration not found', 'error');
-    await adapter.connect(); Toast.show('Manual integration enabled — no automatic sync', 'success'); App.navigate('communications');
-  },
-  async disconnect(provider) {
-    const result = await IntegrationAdapterRegistry.disconnect(provider);
-    Toast.show(`Disconnected — local data preserved${result.retainedLinks ? ` (${result.retainedLinks} linked record${result.retainedLinks === 1 ? '' : 's'})` : ''}`, 'success');
-    App.navigate('communications');
+    let outbox=[],conflicts=[],communications=[];const errors=[];
+    try { outbox=typeof DB.getIntegrationOutbox==='function'?await DB.getIntegrationOutbox({}):[]; } catch(_){errors.push('pending local records');}
+    try { conflicts=typeof DB.getIntegrationConflicts==='function'?await DB.getIntegrationConflicts({status:'open'}):[]; } catch(_){errors.push('legacy conflicts');}
+    try { communications=await CommunicationService.decorate((await DB.db.communications.toArray()).sort((a,b)=>new Date(b.createdAt||b.sentAt||0)-new Date(a.createdAt||a.sentAt||0)).slice(0,20)); } catch(_){errors.push('communication activity');}
+    const e=Utils.escapeHtml,labels={handed_off:'Opened — confirmation needed',advisor_confirmed_sent:'Confirmed sent',delivered:'Delivered',replied:'Customer reply',cancelled:'Not sent',note:'Internal note'},pending=outbox.filter(r=>!['completed','cancelled'].includes(r.status));
+    return `<div class="fade-in">${App.renderTopHeader({title:'Communication history',showBack:true,backHref:'settings'})}<div class="p-md">
+      <p class="hint mb-md">Recent records saved in Beelo. Review each customer’s full context in their profile. Opening another app does not prove sending or delivery.</p>
+      ${errors.length?`<p role="alert">Could not load ${e(errors.join(', '))}. Reopen this screen to retry.</p>`:''}
+      <section class="card card-page"><h2 class="fs-16">Recent activity · latest 20</h2>${communications.length?communications.map(row=>`<div class="py-8"><strong class="fs-13">${e(labels[row.lifecycleState]||row.lifecycleState||'Message')}</strong><div class="fs-12 text-tertiary prewrap">${e(row.content||row.type||'')}</div>${row.lifecycleState==='handed_off'?`<button class="btn btn-primary btn-sm" data-action="CommunicationsFeature.confirmSent" data-args='${JSON.stringify([row.id,row.customerId||0])}'>Record whether sent</button>`:''}</div>`).join(''):errors.includes('communication activity')?'':'<p class="hint">No communication activity recorded yet.</p>'}</section>
+      ${pending.length||conflicts.length||errors.some(r=>r!=='communication activity')?`<details class="card card-page"><summary>Saved legacy exchange records</summary><p class="hint">Local pending records and conflicts retained from the prototype. These entries do not establish a live provider connection.</p><p>Pending: ${errors.includes('pending local records')?'Unavailable':pending.length}</p>${pending.slice(0,5).map(r=>`<p class="hint">${e(r.action)} · ${e(r.status)}</p>`).join('')}<p>Conflicts: ${errors.includes('legacy conflicts')?'Unavailable':conflicts.length}</p>${conflicts.map(r=>`<div class="inset-dark p-sm"><p>Saved local and provider-labelled copies differ. Review before choosing.</p><button class="btn btn-outline btn-sm" data-action="CommunicationsFeature.resolveConflict" data-args='${JSON.stringify([r.id,'keep_local'])}'>Keep local</button><button class="btn btn-outline btn-sm" data-action="CommunicationsFeature.resolveConflict" data-args='${JSON.stringify([r.id,'accept_remote'])}'>Use saved provider copy</button></div>`).join('')}</details>`:''}
+    </div></div>`;
   },
   async resolveConflict(id, resolution) {
     if (typeof DB.resolveIntegrationConflict !== 'function') return Toast.show('Conflict storage is unavailable', 'error');

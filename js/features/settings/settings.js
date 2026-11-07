@@ -136,10 +136,10 @@ const SettingsFeature = {
       {
         id: 'communications',
         route: 'communications',
-        title: 'Communications',
+        title: 'Communication history',
         icon: 'forum',
-        summary: 'Preferences, hand-offs & integrations',
-        description: 'Review communication status and connections'
+        summary: 'Recent saved activity and pending hand-offs',
+        description: 'Review local history; customer preferences stay in their profiles'
       },
       {
         id: 'data',

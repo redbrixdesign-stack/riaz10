@@ -11,6 +11,15 @@ const JobsFeature = {
   icon: 'construction',
   route: false,
 
+  async openCosting(jobId) {
+    try {
+      await App.loadScripts(['js/features/profitability/profitability.min.js?v=2']);
+      return await ProfitabilityFeature.openJob(jobId);
+    } catch (error) {
+      Toast.show('Job costing could not load. Please retry.', 'error');
+    }
+  },
+
   STAGES: [
     ['materials_ordered', 'Materials ordered', 'inventory_2'],
     ['materials_received', 'Materials received', 'inventory'],
@@ -40,7 +49,7 @@ const JobsFeature = {
     return `<div class="fade-in">
       ${App.renderTopHeader({ title: orderId ? 'Order jobs' : 'Jobs', showBack: true, backHref: orderId ? `orders?id=${orderId}` : 'control', actions: orderId ? `<button class="btn btn-sm btn-primary" data-action="JobsFeature.createFromOrder" data-args='${JSON.stringify([orderId])}'><span class="material-symbols-rounded">add</span>Job</button>` : '' })}
       <div class="px-md pb-lg">
-        ${jobs.length ? jobs.map(job => this.renderJobCard(job)).join('') : `<div class="empty-state empty-state-lg"><span class="material-symbols-rounded">construction</span><div class="fw-600">No jobs yet</div><div class="fs-13">Create a job from an order when operational work begins.</div>${orderId ? `<button class="btn btn-primary btn-sm mt-md" data-action="JobsFeature.createFromOrder" data-args='${JSON.stringify([orderId])}'>Create job</button>` : ''}</div>`}
+        ${jobs.length ? jobs.map(job => this.renderJobCard(job)).join('') : `<div class="empty-state empty-state-lg"><span class="material-symbols-rounded">construction</span><div class="fw-600">No jobs yet</div><div class="fs-13">Create a job from an order when operational work begins.</div>${orderId ? `<button class="btn btn-primary btn-sm mt-md" data-action="JobsFeature.createFromOrder" data-args='${JSON.stringify([orderId])}'>Create job</button>` : `<button class="btn btn-outline btn-sm mt-md" data-action="App.navigate" data-args='["orders"]'>Open orders</button>`}</div>`}
         ${orderId && jobs.length ? '<div class="hint mt-md">An order can have more than one job. Use + Job only when the work genuinely needs a separate operational record.</div>' : ''}
       </div>
     </div>`;
@@ -92,7 +101,7 @@ const JobsFeature = {
         ${fieldWorkspace ? JobFieldService.render(fieldWorkspace) : ''}
         <div class="grid-2 gap-sm">
           ${job.orderId ? `<button class="btn btn-outline btn-sm" data-action="OrdersFeature.openOrderSheet" data-args='${JSON.stringify([job.orderId])}'><span class="material-symbols-rounded">receipt</span>Order</button>` : ''}
-          <button class="btn btn-outline btn-sm" data-action="ProfitabilityFeature.openJob" data-args='${JSON.stringify([job.id])}'><span class="material-symbols-rounded">monitoring</span>Profitability</button>
+          <button class="btn btn-outline btn-sm" data-action="JobsFeature.openCosting" data-args='${JSON.stringify([job.id])}'><span class="material-symbols-rounded">monitoring</span>Job costing</button>
           <button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='${JSON.stringify(['suppliers', { jobId: job.id, orderId: job.orderId }])}'><span class="material-symbols-rounded">local_shipping</span>Supplier orders</button>
           ${job.customerId ? `<button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='${JSON.stringify(['retention', { customerId: job.customerId, jobId: job.id, orderId: job.orderId }])}'><span class="material-symbols-rounded">handshake</span>Aftercare</button>` : ''}
           ${job.customerId ? `<button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='${JSON.stringify(['customer', { id: job.customerId }])}'><span class="material-symbols-rounded">person</span>Customer 360</button>` : ''}
