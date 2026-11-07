@@ -25,8 +25,10 @@ const OrdersFeature = {
 
   isReferral(order) { return order.source === 'survey_referral'; },
 
+  externalPayment(order) { return this.isReferral(order) || order.paymentManagedExternally === true || ['company','external'].includes(order.paymentResponsibility); },
+
   displayStage(order) {
-    if (this.isReferral(order)) return ['ordered', 'delivered', 'fitted'].includes(order.stage) ? order.stage : 'ordered';
+    if (this.externalPayment(order)) return ['ordered', 'delivered', 'fitted'].includes(order.stage) ? order.stage : 'ordered';
     return (order.balanceDue || 0) <= 0 ? 'paid' : (order.stage || 'ordered');
   },
 
@@ -100,7 +102,7 @@ const OrdersFeature = {
             <div class="kanban-summary-label">Deposits in</div>
           </div>
           <div class="kanban-summary-item">
-            <div class="kanban-summary-value">${Utils.formatCurrency(orders.reduce((s, o) => s + ((o.balanceDue || 0) > 0 ? (o.balanceDue || 0) : 0), 0))}</div>
+            <div class="kanban-summary-value">${Utils.formatCurrency(orders.reduce((s, o) => s + (o.paymentResponsibility === 'advisor' && !this.externalPayment(o) && (o.balanceDue || 0) > 0 ? (o.balanceDue || 0) : 0), 0))}</div>
             <div class="kanban-summary-label">Owed</div>
           </div>
         </div>
@@ -178,7 +180,7 @@ const OrdersFeature = {
         </div>
         <div class="kanban-card-sub">${Utils.escapeHtml(order.orderNumber || 'Order')}${order.supplierOrderNumber ? ` · ${Utils.escapeHtml(order.supplierOrderNumber)}` : ''}</div>
         <div class="kanban-card-actions">
-          ${this.isReferral(order) ? '<span class="kanban-card-action">Referred order · payment managed externally</span>' : isPaid
+          ${this.externalPayment(order) ? `<span class="kanban-card-action">${this.isReferral(order)?'Referred order · payment managed externally':'Payment managed externally'}</span>` : isPaid
             ? `<span class="kanban-card-action"><span class="material-symbols-rounded">check_circle</span>Paid</span>`
             : `<span class="kanban-card-action"><span class="material-symbols-rounded">payments</span>Owes ${Utils.formatCurrency(order.balanceDue || 0)}</span>`}
           <span class="kanban-card-action"><span class="material-symbols-rounded">chevron_right</span></span>
@@ -213,6 +215,7 @@ const OrdersFeature = {
     const name = customer?.fullName || (customer ? `${customer.firstName || ''} ${customer.lastName || ''}`.trim() : '') || 'Unknown';
     const phone = customer?.phone || '';
     const referral = this.isReferral(order);
+    const externalPayment = this.externalPayment(order);
     const stage = this.displayStage(order);
     const isPaid = stage === 'paid';
     const stageIndex = this.STAGES.findIndex(s => s.id === stage);
@@ -275,7 +278,7 @@ const OrdersFeature = {
           `).join('')}
         </div>
 
-        ${referral ? '<div class="card mb-md">Payment is managed externally. Beelo has not recorded this order as paid.</div>' : !isPaid ? `
+        ${externalPayment ? '<div class="card mb-md">Payment is managed externally. Beelo has not recorded this order as paid.</div>' : !isPaid ? `
           <div class="divider-text">Record payment</div>
           <div class="form-row mb-12" >
             <div class="form-group mb-0" >
@@ -342,7 +345,7 @@ const OrdersFeature = {
   async recordPayment(orderId) {
     const order = await DB.db.orders.get(orderId);
     if (!order) return;
-    if (this.isReferral(order)) return Toast.show('Payment is managed externally for this referred order', 'info');
+    if (this.externalPayment(order)) return Toast.show('Payment is managed externally for this order', 'info');
     const amount = parseFloat(document.getElementById('order-payment-amount')?.value);
     if (!(amount > 0)) {
       Toast.show('Enter an amount first', 'warning');
@@ -366,7 +369,7 @@ const OrdersFeature = {
     let order = null;
     try { order = await DB.db.orders.get(orderId); } catch (e) {}
     if (!order) { Toast.show('Order not found', 'error'); return; }
-    if (this.isReferral(order)) return Toast.show('Payment is managed externally for this referred order. Contact the customer from their profile.', 'info');
+    if (this.externalPayment(order)) return Toast.show('Payment is managed externally for this order. Contact the customer from their profile.', 'info');
     if (!order.appointmentId) {
       let customer = null;
       try { customer = order.customerId ? await DB.getCustomer(order.customerId) : null; } catch (e) {}
@@ -387,7 +390,7 @@ const OrdersFeature = {
   async recordFullPayment(orderId) {
     const order = await DB.db.orders.get(orderId);
     if (!order) return;
-    if (this.isReferral(order)) return Toast.show('Payment is managed externally for this referred order', 'info');
+    if (this.externalPayment(order)) return Toast.show('Payment is managed externally for this order', 'info');
     try {
       await DB.setOrderPaid(orderId);
       Toast.show('Order marked fully paid', 'success');

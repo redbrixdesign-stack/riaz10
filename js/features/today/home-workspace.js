@@ -57,32 +57,18 @@ const HomeWorkspace = {
     const leg=this.legs?.get(v.id),name=v.clientName||v.name||'Customer';
     return this.button('App.navigate',['appointments',{id:v.id}],`<span class="hw-row-time">${this.esc(Utils.formatTimeUK(v.date))}</span><span class="hw-row-main"><strong>${this.esc(name)}</strong><small>${this.esc(v.type?CONFIG.appointmentTypes.find(t=>t.id===v.type)?.name||v.type:'Visit')} · ${this.esc(CompanionFeature.getAreaLabel(v))}${v.leftAt&&!v.outcome?' · Outcome needed':''}</small><small>From ${this.esc(leg?.from||'previous stop')}</small></span><span class="hw-leg"><strong>${leg?.km!=null?(leg.km*.621371).toFixed(1)+' mi':'— mi'}</strong><small>${leg?.minutes!=null?'~'+leg.minutes+' min':'No ETA'}</small></span>${this.icon('chevron_right')}`,'hw-visit-row');
   },
-  visitState(visit) {
-    if(!visit||visit.status==='cancelled'||visit.status==='completed'||visit.outcome)return 'booked';
-    if(visit.travelStatus==='in_transit')return 'in_transit';
-    const arrived=new Date(visit.arrivedAt).getTime();
-    return visit.arrivedAt&&Number.isFinite(arrived)&&arrived>0&&!visit.leftAt?'on_site':'booked';
-  },
-  pickDayVisit(visits,day) {
-    const pending=visits.filter(v=>v.status!=='cancelled'&&v.status!=='completed'&&!v.outcome).sort((a,b)=>new Date(a.date)-new Date(b.date)||a.id-b.id);
-    if(day===Utils.formatDate(Utils.getToday(),'iso')){
-      const signalAt=visit=>new Date(this.visitState(visit)==='on_site'?visit.arrivedAt:visit.travelStartedAt||0).getTime()||0;
-      const active=pending.filter(v=>this.visitState(v)!=='booked').sort((a,b)=>signalAt(b)-signalAt(a)||Number(this.visitState(b)==='on_site')-Number(this.visitState(a)==='on_site'));
-      if(active.length)return active[0];
-    }
-    return pending.find(v=>!v.leftAt)||pending[0]||null;
-  },
+  visitState(visit) { return AdviserContext.state(visit); },
+  pickDayVisit(visits,day) { return AdviserContext.select(visits,day); },
   async presentDay(data,day) {
     const start=this.dayInstant(day),end=this.addDays(start,1);
     const visits=(await DB.getAppointmentsForRange(start.toISOString(),end.toISOString())).filter(v=>v.status!=='cancelled');
     const legs=this.plannedLegs(visits,this.coords(CONFIG.businessLatLng));for(const [id,leg]of legs)this.legs.set(id,leg);
     const pending=visits.filter(v=>v.status!=='completed'&&!v.outcome).sort((a,b)=>new Date(a.date)-new Date(b.date));
-    let selected=this.pickDayVisit(pending,day);
-    const trackedSite=day===Utils.formatDate(Utils.getToday(),'iso')&&typeof VisitTiming!=='undefined'?visits.find(v=>v.id===VisitTiming.session?.appointmentId&&v.arrivedAt&&!v.leftAt&&v.status!=='cancelled'):null;
-    if(trackedSite&&(!selected||this.visitState(selected)!=='in_transit'||Number(selected.travelStartedAt)<Number(trackedSite.arrivedAt)))selected=trackedSite;
+    const selected=AdviserContext.current(visits,day);
+    const onSite=selected&&AdviserContext.state(selected,typeof VisitTiming!=='undefined'?VisitTiming.session?.appointmentId:null)==='on_site';
     let nextVisit=null;
     if(selected){const promise=CompanionFeature.homeVisitTime(selected);let phone=selected.phone||'';if(!phone&&selected.customerId)phone=(await DB.getCustomer(selected.customerId))?.phone||'';
-      nextVisit={id:selected.id,customerId:selected.customerId,name:selected.clientName||'Customer',time:promise.text,hasArrivalWindow:promise.isWindow,type:CONFIG.appointmentTypes.find(t=>t.id===selected.type)?.name||selected.type,address:selected.address||'No address recorded',date:selected.date,phone,customerBrief:await CompanionFeature.customerBriefFor(selected),onSiteActive:this.visitState(selected)==='on_site'||selected===trackedSite,hasOutcome:!!selected.outcome,hasLeft:!!selected.leftAt,travelStatus:this.visitState(selected)};
+      nextVisit={id:selected.id,customerId:selected.customerId,name:selected.clientName||'Customer',time:promise.text,hasArrivalWindow:promise.isWindow,type:CONFIG.appointmentTypes.find(t=>t.id===selected.type)?.name||selected.type,address:selected.address||'No address recorded',date:selected.date,phone,customerBrief:await CompanionFeature.customerBriefFor(selected),onSiteActive:onSite,hasOutcome:!!selected.outcome,hasLeft:!!selected.leftAt,travelStatus:this.visitState(selected)};
     }
     if(!nextVisit&&day===Utils.formatDate(Utils.getToday(),'iso')&&data.upcomingNext&&Utils.formatDate(data.upcomingNext.date,'iso')>day)nextVisit=data.upcomingNext;
     return {...data,shownDay:day,dayVisits:visits,nextVisit};

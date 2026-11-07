@@ -4,6 +4,9 @@
    ============================================ */
 
 const Utils = {
+  confirmedBusinessKm(trips) {
+    return trips.filter(t => t.confirmed === true && t.purpose === 'business').reduce((s,t) => s + Math.max(0,Number(t.distanceKm)||0),0);
+  },
   // Fixture opt-in is valid only on explicit loopback hosts. A storage flag
   // on a public deployment must never select the known fixture key or skip
   // consent/update/install notices. This is not an authentication mechanism.

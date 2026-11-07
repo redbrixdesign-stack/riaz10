@@ -223,7 +223,7 @@ const MoneyFeature = {
     const monthTotal = expenses.reduce((s, e) => s + (e.amount || 0), 0);
     const monthMiles = trips.reduce((s, t) => s + (t.distanceKm || 0), 0);
     const weekTotal = weekExpenses.reduce((s, e) => s + (e.amount || 0), 0);
-    const weekMiles = weekTrips.reduce((s, t) => s + (t.distanceKm || 0), 0);
+    const weekMiles = AdviserContext.businessKm(weekTrips);
     const mileageClaim = TaxCalculator.calculateMileageClaim(weekMiles);
     const weekRecordCount = weekExpenses.length + weekTrips.length;
     const weekEarnings = await this.getWeekEarnings();
@@ -268,7 +268,7 @@ const MoneyFeature = {
 
         <!-- Tax & Deadlines (progressive disclosure) -->
         ${formatted ? `
-        <details class="card card-page-mb" id="tax-section" open="${formatted.profit > 0 ? 'true' : 'false'}">
+        <details class="card card-page-mb" id="tax-section" ${formatted.profit > 0 ? 'open' : ''}>
           <summary class="flex items-center justify-between gap-12 cursor-pointer" style="list-style: none;">
             <div>
               <div class="fw-600" >Tax & deadlines</div>

@@ -198,8 +198,10 @@ async function sectionB() {
   await DB.addExpense({ date: iso(2026, 7, 10), category: 'fuel', amount: 200 });
   await DB.addExpense({ date: iso(2026, 7, 15), category: 'materials', amount: 300 });
   await DB.addExpense({ date: iso(2026, 8, 1), category: 'fuel', amount: 40 });
-  await DB.addTrip({ date: iso(2026, 7, 11), distanceKm: 16093.44 });
-  await DB.addTrip({ date: iso(2026, 7, 21), distanceKm: 2000 });
+  const claimTrip1=await DB.addTrip({ date: iso(2026, 7, 11), distanceKm: 16093.44, purpose:'business' });
+  await DB.db.trips.update(claimTrip1.id,{confirmed:true});
+  const claimTrip2=await DB.addTrip({ date: iso(2026, 7, 21), distanceKm: 2000, purpose:'business' });
+  await DB.db.trips.update(claimTrip2.id,{confirmed:true});
 
   // Week window: Mon 13 - Sun 19 July 2026.
   const week = await DB.getWeekStats(iso(2026, 7, 13, 0), iso(2026, 7, 19, 23));
@@ -218,6 +220,10 @@ async function sectionB() {
   ok('week: quoted-only day -> zero stats', quotedOnly.earnings === 0 && quotedOnly.sales === 0 && quotedOnly.orderedCount === 0, quotedOnly);
   const cancelledOnly = await DB.getWeekStats(iso(2026, 7, 5, 0), iso(2026, 7, 5, 23));
   ok('week: cancelled-only day -> zero stats', cancelledOnly.earnings === 0 && cancelledOnly.sales === 0 && cancelledOnly.orderedCount === 0, cancelledOnly);
+
+  const privateTrip=await DB.addTrip({date:iso(2026,7,12),distanceKm:9999,purpose:'private'});
+  await DB.db.trips.update(privateTrip.id,{confirmed:true});
+  await DB.addTrip({date:iso(2026,7,13),distanceKm:9999,confirmed:false,purpose:'business'});
 
   // calculateFromData: same canonical filters (cancelled excluded), expenses and mileage deducted.
   const period = await Tax.calculateFromData(iso(2026, 7, 1, 0), iso(2026, 7, 31, 23));

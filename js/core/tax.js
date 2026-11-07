@@ -133,7 +133,7 @@ const TaxCalculator = {
 
     // Get mileage
     const trips = await DB.getTripsForPeriod(startDate, endDate);
-    const totalKm = trips.reduce((sum, t) => sum + (t.distanceKm || 0), 0);
+    const totalKm = Utils.confirmedBusinessKm(trips);
     const mileageClaim = this.calculateMileageClaim(totalKm);
 
     // Total deductible expenses

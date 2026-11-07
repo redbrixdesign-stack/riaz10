@@ -462,7 +462,13 @@ const FollowupsFeature = {
     try { tasks = await this.loadCustomerTasks(customerId); }
     catch (_) { return `<section class="card card-page" id="customer-followups"><h2 class="fs-15">Next actions</h2><p role="alert">Could not load this customer's follow-ups. Your reminders have not been cleared.</p><button class="btn btn-outline" data-action="App.navigate" data-args='${Utils.escapeHtml(JSON.stringify(options.appointmentId?['appointments',{id:Number(options.appointmentId)}]:['customer', {id:Number(customerId)}]))}'>Retry follow-ups</button></section>`; }
     const visitId=Number(options.appointmentId)||null;
-    if(visitId)tasks=tasks.filter(t=>Number(t.appointment?.id||t.appointmentId)===visitId && t.kind!=='visit_today');
+    if(visitId){
+      const visit=await DB.getAppointment(visitId);
+      tasks=tasks.filter(t=>{
+        const appointmentId=Number(t.appointment?.id||t.appointmentId)||null;
+        return t.kind!=='visit_today' && (appointmentId===visitId || (!appointmentId && visit && t.order && (Number(t.order.appointmentId)===visitId || Number(visit.orderId)===Number(t.order.id))));
+      });
+    }
     const rank=t=>t.kind==='send_confirmation'?0:t.kind==='service'?1:t.priority==='high'?2:['intro','intro_confirmation','visit_tomorrow','visit_today'].includes(t.kind)?3:t.kind==='payment_review'?5:4;
     const due = tasks.filter(task => task.due).sort((a,b)=>rank(a)-rank(b));
     const later = tasks.filter(task => !task.due && !task.snoozed);

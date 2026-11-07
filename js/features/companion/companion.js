@@ -116,8 +116,9 @@ const CompanionFeature = {
       ['Parking', 'parking'], ['Access', 'access(?: code)?'], ['Pets', 'pets?'], ['Floor', 'floor']
     ];
     for (const [title, pattern] of labels) {
-      const value = [noteField(customerNotes, pattern), ...chronological.map(v => noteField(v.notes, pattern))].find(Boolean);
-      if (value) facts.push(`${title}: ${value}`);
+      const current = noteField(appt.notes, pattern), saved = noteField(customerNotes, pattern);
+      const value = current || saved || chronological.filter(v=>v.id!==appt.id && new Date(v.date)<=new Date(appt.date)).map(v=>noteField(v.notes,pattern)).find(Boolean);
+      if (value) facts.push(`${title}: ${value}${current ? ' (this visit)' : saved ? ' (customer note)' : ' (earlier visit)'}${current && saved && current.toLowerCase()!==saved.toLowerCase() ? ' — differs from customer note; check' : ''}`);
     }
     const past = chronological.filter(v => v.id !== appt.id && new Date(v.date) < new Date());
     if (past.length) {
@@ -127,7 +128,7 @@ const CompanionFeature = {
     // Preserve a useful unlabelled current-visit note after the operational
     // facts and repeat-customer signal, so those higher-value facts survive
     // the deliberately short five-item Home summary.
-    const freeNote = [customerNotes, String(appt.notes || '')].join('\n').split(/\r?\n/)
+    const freeNote = [String(appt.notes || ''), customerNotes].join('\n').split(/\r?\n/)
       .map(s => s.trim()).filter(s => s && !/^(parking|access(?: code)?|pets?|floor)\s*[:\-]/i.test(s))[0];
     if (freeNote) facts.push(freeNote);
     const localText = facts.slice(0, 5).join(' · ') || 'No customer notes recorded yet.';
@@ -732,7 +733,7 @@ const CompanionFeature = {
     }
 
     // Unpaid orders
-    const unpaidOrders = orders.filter(o => (o.balanceDue || 0) > 0);
+    const unpaidOrders = orders.filter(o => AdviserContext.collectable(o) && (o.balanceDue || 0) > 0);
     if (unpaidOrders.length > 0) {
       const totalDue = unpaidOrders.reduce((s, o) => s + (o.balanceDue || 0), 0);
       attention.push({
@@ -929,11 +930,12 @@ const CompanionFeature = {
     this.setBusy(false);
     this._busy = false;
 
+    answer ||= this.answerDefault();
     const turn = { role: 'assistant', answer };
     this._turns.push(turn);
     this.renderScroll();
 
-    if (AIService.isEnabled() && this.aiPrefEnabled()) {
+    if (!answer.authoritative && AIService.isEnabled() && this.aiPrefEnabled()) {
       turn.typing = true;
       this.renderScroll();
       await this.phrase(turn, cleaned);
@@ -946,6 +948,7 @@ const CompanionFeature = {
   },
 
   async phrase(turn, turnText) {
+    if (turn.answer?.authoritative || ['next visit','today','after visit'].includes(this.normalizeCommand(turnText))) { turn.typing = false; this.renderScroll(); return; }
     let history = '';
     try {
       const max = (CONFIG.companion && CONFIG.companion.maxHistoryTurns) || 6;
@@ -974,14 +977,14 @@ const CompanionFeature = {
     week: ['week', 'weekly', 'weekly overview', 'how am i doing this week', 'this week', 'target', 'sales'],
     money: ['money', 'tax', 'money & tax', 'finances', 'earnings', 'miles', 'mileage', 'expenses', 'records', 'cash'],
     'follow-ups': ['follow-ups', 'followups', 'follow up', 'follow-up', 'follow ups', 'reminders', 'nudges', 'who to chase', 'quotes', 'quote'],
-    'next visit': ['next visit', 'next', 'next appointment', 'up next', 'next customer', 'eta'],
+    'next visit': ['what next', "what's next", 'what should i do next', 'next visit', 'next', 'next appointment', 'up next', 'next customer', 'eta'],
     'log expense': ['log expense', 'log expenses', 'expense', 'add expense', 'receipt', 'scan receipt', 'mileage claim'],
     messages: ['messages', 'message', 'what messages', 'who to text', 'who to message', 'texts', 'sends', 'what to send', 'drafts', 'intro', 'send'],
     orders: ['orders', 'order', 'unpaid', 'owe', 'owing', 'outstanding', 'who hasn\'t paid', 'haven\'t paid', 'payment', 'payments', 'receipts'],
     weather: ['weather', 'rain', 'forecast'],
     help: ['help', 'commands', 'what can you do', 'what can you ask', 'menu', 'options'],
     // Post-appointment & evening review
-    'after visit': ['after visit', 'after appointment', 'what now', 'what next', 'just finished', 'done with visit', 'post visit'],
+    'after visit': ['after visit', 'after appointment', 'what now', 'just finished', 'done with visit', 'post visit'],
     'evening review': ['evening review', 'end of day', 'what did i miss', 'what have i missed', 'evening', 'wrap up', 'day review']
   },
 
@@ -1119,14 +1122,21 @@ const CompanionFeature = {
     try { verdict = await AIService.routeCommand(text); } catch (e) { return null; }
     if (!verdict || !verdict.ok || !verdict.command) return null;
     if (verdict.command === 'person') return this.answerPerson(text);
-    if (typeof this['answer' + verdict.command.charAt(0).toUpperCase() + verdict.command.slice(1)] !== 'function') return null;
+    if (!this.commandHandlers[verdict.command]) return null;
     return this.runCommand(verdict.command, text);
   },
 
+  commandHandlers: Object.freeze({
+    today:'answerToday', 'my day':'answerToday', week:'answerWeek', money:'answerMoney',
+    'follow-ups':'answerFollowUps', 'next visit':'answerNextVisit', 'log expense':'answerLogExpense',
+    messages:'answerMessages', orders:'answerOrders', weather:'answerWeather', help:'answerHelp',
+    greeting:'answerGreeting', 'after visit':'answerAfterVisit', 'evening review':'answerEveningReview'
+  }),
   async runCommand(key, text) {
-    const handler = this['answer' + key.charAt(0).toUpperCase() + key.slice(1)];
-    if (!handler) return this.answerDefault();
-    return await handler.call(this, text);
+    const name = Object.prototype.hasOwnProperty.call(this.commandHandlers,key) ? this.commandHandlers[key] : null;
+    const handler = name && this[name];
+    if (typeof handler !== 'function') return this.answerDefault();
+    return await handler.call(this, name === 'answerOrders' ? this.extractOrderNumber(text) : text);
   },
 
   /* ---------- rule handlers — each returns {text, facts, actions, suggestions} ---------- */
@@ -1141,8 +1151,9 @@ const CompanionFeature = {
     } catch (e) { /* no visits */ }
     const total = appts.length;
     const done = appts.filter(a => a.status === 'completed' || a.outcome).length;
-    const next = appts.find(a => a.status !== 'completed' && !a.outcome) || null;
-    const eta = next ? await this.etaFor(next) : null;
+    const next = AdviserContext.current(appts);
+    const activeState = AdviserContext.state(next, typeof VisitTiming !== 'undefined' ? VisitTiming.session?.appointmentId : null);
+    const eta = next && activeState === 'booked' && !next.leftAt ? await this.etaFor(next) : null;
 
     let weather = null;
     try { weather = await WeatherService.getTodayWeather(); } catch (e) { /* off */ }
@@ -1153,7 +1164,7 @@ const CompanionFeature = {
     ];
     if (next) {
       facts.push({
-        label: 'Next up',
+        label: activeState === 'on_site' ? 'At the customer' : activeState === 'in_transit' ? 'On the way' : 'Next up',
         value: `${next.clientName || 'Customer'} · ${Utils.formatTimeUK(next.date)}${eta ? ` · ${eta} away` : ''}`
       });
     }
@@ -1169,10 +1180,13 @@ const CompanionFeature = {
     } else {
       text = `${total - done} visit${total - done === 1 ? '' : 's'} to go${next ? ` — ${next.clientName || 'Customer'} at ${Utils.formatTimeUK(next.date)}${eta ? `, about ${eta} away` : ''} is next` : ''}.`;
     }
+    if (next && activeState !== 'booked') text = `${activeState === 'on_site' ? 'At the customer' : 'On the way'}: ${next.clientName || 'Customer'}. Open this visit for the next step; earlier unfinished work stays saved.`;
     return {
+      authoritative: true,
       text,
       facts,
       actions: [
+        ...(next ? [{label: 'Open current visit', onclick: `App.navigate('appointments', {id: ${Number(next.id)}})`}] : []),
         { label: 'My Day calendar', onclick: "CompanionFeature.openMyDay()" },
         { label: 'Open Visits', onclick: "App.navigate('appointments', {tab: 'upcoming'})" }
       ],
@@ -1219,7 +1233,7 @@ const CompanionFeature = {
     } catch (e) {}
     try {
       const trips = await DB.getTripsForPeriod(monthStart.toISOString(), now.toISOString());
-      monthMiles = trips.reduce((s, t) => s + (t.distanceKm || 0), 0);
+      monthMiles = AdviserContext.businessKm(trips);
     } catch (e) {}
     const mileageClaim = TaxCalculator.calculateMileageClaim(monthMiles);
 
@@ -1238,6 +1252,7 @@ const CompanionFeature = {
     if (taxDue !== null) facts.push({ label: 'Tax estimate', value: `${Utils.formatCurrency(taxDue)} ~31 Jan` });
 
     return {
+        authoritative: true,
       text: gap > 0
         ? `${Utils.formatCurrency(gap)} remaining to this week's target. ${Utils.formatCurrency(monthTotal)} of expenses logged this month.`
         : `You're past this week's target — nice one. ${Utils.formatCurrency(monthTotal)} of expenses logged this month.`,
@@ -1299,35 +1314,29 @@ const CompanionFeature = {
     // Same 14-day window as the Home feed (includes earlier-today visits) so
     // the chat's "next visit" agrees with the featured card.
     try { upcoming = await DB.getUpcomingAppointments(14); } catch (e) {}
-    const now = new Date();
-    const isToday = a => Utils.isSameDay(new Date(a.date), Utils.getToday());
-    const next = upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && isToday(a) && (a.phone || a.customerId))
-      || upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && isToday(a))
-      || upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && new Date(a.date) >= now && (a.phone || a.customerId))
-      || upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && new Date(a.date) >= now)
-      || upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome && (a.phone || a.customerId))
-      || upcoming.find(a => a.status !== 'cancelled' && a.status !== 'completed' && !a.outcome) || null;
+    const today = Utils.formatDate(Utils.getToday(), 'iso');
+    // Fetch today separately: upcoming queries may omit completed on-site work.
+    const rows = await DB.getAppointmentsForDate(Utils.getToday().toISOString());
+    const next = AdviserContext.current(rows) || [...upcoming].filter(a => AdviserContext.pending(a) && Utils.formatDate(a.date,'iso') > today).sort((a,b)=>new Date(a.date)-new Date(b.date)||a.id-b.id)[0] || null;
 
     if (!next) {
       return { text: 'No upcoming visits booked. Add one and I\'ll keep an eye on it.', facts: [], actions: [{ label: 'Add Visit', onclick: "App.navigate('appointments', {action: 'add'})" }], suggestions: ['today', 'week'] };
     }
 
-    const eta = await this.etaFor(next);
-    const facts = [
-      { label: 'Next visit', value: `${next.clientName || 'Customer'} · ${Utils.formatDateUK(next.date, 'long')}` },
-      { label: 'Time', value: Utils.formatTimeUK(next.date) },
-      { label: 'Address', value: next.address || 'No address set' }
-    ];
-    if (eta) facts.push({ label: 'Drive', value: eta });
-
+    const state = AdviserContext.state(next, typeof VisitTiming !== 'undefined' ? VisitTiming.session?.appointmentId : null);
+    const active = state !== 'booked';
+    const label = state === 'on_site' ? 'At the customer' : state === 'in_transit' ? 'On the way' : next.leftAt ? 'Outcome to record' : 'Next visit';
+    const brief = await this.customerBriefFor(next);
     return {
-      text: `Next up: ${next.clientName || 'Customer'} at ${Utils.formatTimeUK(next.date)}${eta ? ` — about ${eta} away` : ''}.`,
-      facts,
-      actions: [
-        { label: 'Navigate', onclick: `AppointmentsFeature.navigateToVisit('${Utils.escapeJsString(next.address || '')}', ${next.id})` },
-        { label: 'Draft morning message', onclick: `TalkFeature.sendMessage(${next.id}, 'morning_of')` }
+      authoritative: true,
+      text: `${label}: ${next.clientName || 'Customer'}. ${state === 'on_site' ? next.outcome ? 'Work outcome saved. Review the timer before leaving.' : 'Keep notes and record the result when the work is finished.' : state === 'in_transit' ? 'Your recorded journey is active.' : next.leftAt ? 'You have left; the unfinished result is still saved.' : `Review the visit before setting off${Utils.formatDate(next.date,'iso') !== today ? ' — it is not booked for today' : ''}.`}`,
+      facts: [
+        {label, value: `${next.clientName || 'Customer'} · ${Utils.formatDateUK(next.date,'long')}`},
+        {label:'Booked time',value:Utils.formatTimeUK(next.date)},
+        {label:'Context',value:brief.text}
       ],
-      suggestions: ['today', 'weather', 'follow-ups']
+      actions: [{label: active ? 'Open current visit' : 'Review visit',onclick:`App.navigate('appointments', {id: ${Number(next.id)}})`}],
+      suggestions: ['today','follow-ups','evening review']
     };
   },
 
@@ -1462,6 +1471,7 @@ const CompanionFeature = {
       const match = orders.find(o => String(o.orderNumber || '').replace(/^0+/, '').includes(num) || String(o.orderNumber || '').replace(/\D/g, '').endsWith(num)) || null;
       if (!match) {
         return {
+        authoritative: true,
           text: `No order matching "${orderNumber}" — check the number on the order card.`,
           facts: [],
           actions: [{ label: 'Open Orders', onclick: "App.navigate('orders')" }],
@@ -1471,10 +1481,11 @@ const CompanionFeature = {
       const cust = match.customerId ? await DB.getCustomer(match.customerId) : null;
       const due = match.balanceDue || 0;
       return {
+        authoritative: true,
         text: `${match.orderNumber} — ${cust ? cust.fullName : 'customer'} · ${match.stage || match.status || 'ordered'}.`,
         facts: [
           { label: 'Total', value: Utils.formatCurrency(match.total || 0) },
-          { label: 'Paid', value: Utils.formatCurrency((match.total || 0) - due) },
+          { label: 'Collection responsibility', value: typeof CommunicationService !== 'undefined' ? CommunicationService.collectionResponsibility(match) : 'unknown' },
           { label: 'Balance due', value: Utils.formatCurrency(due), highlight: due > 0 },
           { label: 'Stage', value: match.stage || match.status || 'ordered' }
         ],
@@ -1484,11 +1495,12 @@ const CompanionFeature = {
     }
 
     const open = orders
-      .filter(o => (o.balanceDue || 0) > 0)
+      .filter(o => AdviserContext.collectable(o) && (o.balanceDue || 0) > 0)
       .sort((a, b) => (b.balanceDue || 0) - (a.balanceDue || 0));
     if (!open.length) {
       return {
-        text: 'Nothing outstanding — every order is settled.',
+        authoritative: true,
+        text: 'No adviser-managed balance recorded as outstanding. Company balances and unverified responsibility are separate.',
         facts: [],
         actions: [{ label: 'Open Orders', onclick: "App.navigate('orders')" }],
         suggestions: ['money', 'week']
@@ -1509,6 +1521,7 @@ const CompanionFeature = {
     }));
 
     return {
+        authoritative: true,
       text: `${open.length} order${open.length === 1 ? '' : 's'} still owe ${Utils.formatCurrency(totalDue)}${open[0] ? ` — ${names.get(open[0].customerId) || open[0].orderNumber} first` : ''}.`,
       facts,
       actions: [
@@ -1540,7 +1553,7 @@ const CompanionFeature = {
     try { expenses = await DB.getExpensesForPeriod(start.toISOString(), end.toISOString()); } catch (e) {}
     try { trips = await DB.getTripsForPeriod(start.toISOString(), end.toISOString()); } catch (e) {}
     monthTotal = expenses.reduce((s, e) => s + (e.amount || 0), 0);
-    monthMiles = trips.reduce((s, t) => s + (t.distanceKm || 0), 0);
+    monthMiles = AdviserContext.businessKm(trips);
     const mileageClaim = TaxCalculator.calculateMileageClaim(monthMiles);
 
     const catTotals = {};
@@ -1635,6 +1648,10 @@ const CompanionFeature = {
   // Situation 4: "What should I do now?" — right after finishing a visit.
   // Suggests: log outcome, send follow-up, check messages due, navigate to next.
   async answerAfterVisit() {
+    const activeRows = await DB.getAppointmentsForDate(Utils.getToday().toISOString());
+    const activeVisit = AdviserContext.current(activeRows);
+    if (activeVisit && AdviserContext.state(activeVisit, typeof VisitTiming !== 'undefined' ? VisitTiming.session?.appointmentId : null) !== 'booked') return this.answerNextVisit();
+
     const today = Utils.getToday();
     let todayAppts = [];
     try {
@@ -1725,7 +1742,7 @@ const CompanionFeature = {
     let unpaidOrders = [];
     try {
       const orders = await DB.db.orders.toArray();
-      unpaidOrders = orders.filter(o => (o.balanceDue || 0) > 0);
+      unpaidOrders = orders.filter(o => AdviserContext.collectable(o) && (o.balanceDue || 0) > 0);
     } catch (e) {}
     if (unpaidOrders.length) {
       const totalDue = unpaidOrders.reduce((s, o) => s + (o.balanceDue || 0), 0);
@@ -1837,7 +1854,7 @@ const CompanionFeature = {
       const expenses = await DB.getExpensesForPeriod(ms.toISOString(), now.toISOString());
       monthExpenses = expenses.reduce((s, e) => s + (e.amount || 0), 0);
       const trips = await DB.getTripsForPeriod(ms.toISOString(), now.toISOString());
-      monthMiles = trips.reduce((s, t) => s + (t.distanceKm || 0), 0);
+      monthMiles = AdviserContext.businessKm(trips);
     } catch (e) {}
 
     let due = [];

@@ -126,7 +126,7 @@ global.DB = {
   getWeekStats: async () => ({ sales: 1250, earnings: 620, orderedCount: 2 }),
   getAppointmentsForRange: async () => RANGE_APPTS.appts.filter(a => a.status !== 'cancelled'),
   getExpensesForPeriod: async () => [{ amount: 80.2, category: 'fuel' }, { amount: 65, category: 'fuel' }],
-  getTripsForPeriod: async () => [{ distanceKm: 120 }, { distanceKm: 98 }],
+  getTripsForPeriod: async () => [{ distanceKm: 120, purpose:'business', confirmed:true }, { distanceKm: 98, purpose:'business', confirmed:true }],
   getUpcomingAppointments: async () => APPOINTMENTS.filter(a => a.status !== 'cancelled'),
   getFutureAppointmentsUntil: async (_end, now = new Date()) => APPOINTMENTS
     .filter(a => a.status !== 'cancelled' && new Date(a.date) >= new Date(now))
@@ -150,6 +150,7 @@ global.Search = {
 loadAll([
   'js/core/config.js',
   'js/core/utils.js',
+  'js/services/adviser-context.js',
   'js/features/companion/companion.js',
   'js/features/talk/talk.js'
 ], 'var utilsRef = Utils; var talkRef = TalkFeature;');
@@ -210,8 +211,8 @@ assert(norm('random gibberish 123') === 'default', 'unknown routes to default');
   // ---------- next visit handler ----------
   const nv = await Companion.answerNextVisit();
   assert(nv.facts.some(f => f.label === 'Next visit' && f.value.includes('Mr Patel')), 'Next visit names the customer');
-  assert(nv.facts.some(f => f.label === 'Drive' && f.value === '12 min'), 'Next visit computes an ETA from the route model', nv.facts);
-  assert(nv.actions.some(a => a.label === 'Draft morning message'), 'Next visit offers the morning message draft');
+  assert(nv.facts.some(f => f.label === 'Context'), 'Next visit carries recorded customer context', nv.facts);
+  assert(nv.actions.length === 1 && nv.actions[0].label === 'Review visit', 'Next visit offers one context-first action');
 
   // ---------- follow-ups handler ----------
   global.FollowupsFeature.loadTasks = async () => [
@@ -309,7 +310,7 @@ assert(norm('random gibberish 123') === 'default', 'unknown routes to default');
 
   // Orders: unpaid sweep + order-number lookup.
   const unpaid = await Companion.answerOrders();
-  assert(unpaid.text.includes('still owe £300.00') && unpaid.facts.length === 1, 'Unpaid sweep lists the outstanding order', unpaid.text);
+  assert(!unpaid.actions.some(a=>a.label==='Record Payment') && unpaid.text.includes('unverified responsibility'), 'Unknown ownership never becomes an adviser collection instruction', unpaid.text);
   const byNum = await Companion.answerOrders('ORD-2026-0001');
   assert(byNum.facts.some(f => f.label === 'Balance due' && f.value === '£300.00'), 'Order-number lookup shows balance due', byNum.facts);
 
