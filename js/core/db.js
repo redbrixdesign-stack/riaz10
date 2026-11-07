@@ -1488,17 +1488,21 @@ const DB = {
   async getCreditNotes(filters={}){let rows=await this.db.creditNotes.toArray();for(const f of ['customerId','invoiceId','status'])if(filters[f]!=null)rows=rows.filter(r=>r[f]===filters[f]);return Promise.all(rows.map(decryptCreditNote));},
   async saveCustomerDocumentImport(plan) {
     if(!encryptionKey)throw new Error('Unlock Beelo before importing a document');
+    const importKey=encryptionKey;const checkImportKey=()=>{if(!encryptionKey||encryptionKey!==importKey)throw new Error('Beelo locked during import. Unlock and reopen the review.');};
     if(typeof this.db.transaction!=='function')throw new Error('Atomic document saving is unavailable. Reopen Beelo and retry.');
     if(!plan||!Number.isInteger(plan.customerId)||!/^([a-f0-9]{64})$/.test(plan.hash||'')||typeof plan.contentData!=='string'||plan.contentData.length>3*1024*1024||!plan.fields)throw new Error('Incomplete import');
     if(plan.order&&(!plan.fields.reference||!Number.isFinite(plan.fields.total)||plan.fields.total<0||plan.fields.balance!==null&&(!Number.isFinite(plan.fields.balance)||plan.fields.balance<0||plan.fields.balance>plan.fields.total)))throw new Error('Invalid order figures');
     if(plan.order&&!['invoice','order_receipt'].includes(plan.fields.documentType))throw new Error('Quotes and reference documents cannot create an order');
-    const customer=await this.getCustomer(plan.customerId);if(!customer)throw new Error('Customer no longer exists');
+    const customer=await this.getCustomer(plan.customerId);checkImportKey();if(!customer)throw new Error('Customer no longer exists');
     const prepared=await encryptDocument({customerId:plan.customerId,type:'external_customer_document',filename:plan.filename,contentData:plan.contentData,extractedText:JSON.stringify(plan.fields),mimeType:plan.mimeType,importHash:plan.hash,externalReference:plan.fields.reference,externalCustomerNumber:plan.fields.customerNumber,documentKind:plan.fields.documentType,importGroup:plan.group,createdAt:new Date().toISOString(),generatedAt:new Date().toISOString()});
+    checkImportKey();
     return this._runWrite(['documents','orders','customers'],async()=>{
+      checkImportKey();
       if(!await this.db.customers.get(plan.customerId))throw new Error('Customer no longer exists');
       const docs=await this.db.documents.toArray();
       const duplicate=docs.find(d=>d.importHash===plan.hash);
       if(duplicate){if(duplicate.customerId!==plan.customerId)throw new Error('This document is already attached to another customer');return {documentId:duplicate.id,orderId:duplicate.orderId||null,duplicate:true};}
+      checkImportKey();
       let orderId=null;
       if(plan.order){
         const orders=await this.db.orders.toArray();
@@ -1517,7 +1521,9 @@ const DB = {
           orderId=await this.db.orders.add({customerId:plan.customerId,orderNumber:plan.fields.reference,total:plan.fields.total,balanceDue:plan.fields.balance??0,externalBalanceKnown:plan.fields.balance!==null,paymentManagedExternally:true,paymentResponsibility:'company',source:'external_document',orderDate:plan.fields.documentDate||null,stage:'ordered',status:'ordered',depositPaid:0,commission:0,createdAt:new Date().toISOString(),fittingDatePending:!!plan.fields.fittingDate && plan.fields.fittingDate>=Utils.formatDate(Utils.getToday(),'iso')});
         }
       }
+      checkImportKey();
       const documentId=await this.db.documents.add({...prepared,orderId});
+      checkImportKey();
       return {documentId,orderId,duplicate:false};
     });
   },
