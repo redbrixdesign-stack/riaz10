@@ -129,6 +129,14 @@ const ControlFeature = {
           `)}
 
           ${card('Business', `
+            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["money"])}'>
+              <span aria-hidden="true" class="material-symbols-rounded">account_balance_wallet</span>
+              <span>Money</span>
+            </button>
+            <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["orders"])}'>
+              <span aria-hidden="true" class="material-symbols-rounded">view_kanban</span>
+              <span>Orders overview</span>
+            </button>
             <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["suppliers"])}'>
               <span aria-hidden="true" class="material-symbols-rounded">local_shipping</span>
               <span>Suppliers</span>

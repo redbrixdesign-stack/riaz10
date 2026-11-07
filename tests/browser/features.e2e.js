@@ -163,7 +163,7 @@ async function evaluate(ws, expression) {
     ok('boot: no resource 404s (favicon exempt)', bad404.length === 0, http404s.slice(0, 5));
 
     const navOrder = await evaluate(ws, `Array.from(document.querySelectorAll('#bottom-nav .nav-item')).map(b => b.dataset.feature)`);
-    ok('nav order Home, Orders, Money, Tools', JSON.stringify(navOrder) === JSON.stringify(['today', 'orders', 'money', 'control']), navOrder);
+    ok('nav order Home, Tools', JSON.stringify(navOrder) === JSON.stringify(['today', 'control']), navOrder);
 
     console.log('STEP3 Follow-ups inbox…');
     await navigateTo('followups');

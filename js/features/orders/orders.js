@@ -10,6 +10,7 @@
 const OrdersFeature = {
   id: 'orders',
   name: 'Orders',
+  route: false,
   icon: 'view_kanban',
 
   STAGES: [
@@ -86,7 +87,7 @@ const OrdersFeature = {
 
     return `
       <div class="fade-in">
-        ${App.renderTopHeader({ title: 'Orders', actions: `<button class="btn btn-sm btn-outline" data-action="App.navigate" data-args='["quotes"]'><span class="material-symbols-rounded">request_quote</span>Quotes</button>` })}
+        ${App.renderTopHeader({ title: 'Orders', showBack: true, backHref: 'control', actions: `<button class="btn btn-sm btn-outline" data-action="App.navigate" data-args='["quotes"]'><span class="material-symbols-rounded">request_quote</span>Quotes</button>` })}
 
         <div class="kanban-summary">
           <div class="kanban-summary-item">

@@ -6,6 +6,7 @@
 const MoneyFeature = {
   id: 'money',
   name: 'Money',
+  route: false,
   icon: 'account_balance_wallet',
   expensePhotoData: null,
 
@@ -234,7 +235,7 @@ const MoneyFeature = {
 
     return `<div class="fade-in">
       ${App.renderTopHeader({ 
-        title: 'Money', 
+        title: 'Money', showBack: true, backHref: 'today',
         actions: '<button class="btn btn-sm btn-ghost" aria-label="Invoices and payments" data-action="App.navigate" data-args=\'["invoices"]\'><span class="material-symbols-rounded">receipt_long</span></button><button class="btn btn-sm btn-ghost" aria-label="Download tax summary" data-action="ExportService.exportTaxSummary"><span class="material-symbols-rounded">download</span></button>'
       })}
       <div class="p-md pb-0" >
