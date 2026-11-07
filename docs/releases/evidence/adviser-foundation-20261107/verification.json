@@ -1,0 +1,22 @@
+{
+  "runtimeCommit": "00196b4",
+  "unitSuite": "npm test: exit 0",
+  "finalAffectedChecks": [
+    "adviser-context.test.js: passed",
+    "companion.test.js: passed",
+    "money.test.js: 57 OK",
+    "docs.test.js: passed"
+  ],
+  "additionalChecks": [
+    "social.test.js: passed",
+    "lighthouse-gate.test.mjs: passed (gate contract, not a fresh Lighthouse score)"
+  ],
+  "stagedDeployment": "dpl_A6fMe98VQrDKLg2KUKa8o2Awzteo",
+  "stagedAssets": "11 authenticated assets hash-match",
+  "physicalDeviceAcceptance": false,
+  "providersCalledByFoundationJourney": false,
+  "publicAssets": "11 public assets hash-match",
+  "baselineJourneys": 42,
+  "finalAffectedJourneys": 6,
+  "publicFoundation": "Chromium and WebKit passed; 12 states each, no POST/off-origin requests or page errors"
+}

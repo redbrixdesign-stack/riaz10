@@ -1,0 +1,387 @@
+{
+  "engine": "webkit",
+  "routes": [
+    {
+      "name": "home",
+      "hash": "today",
+      "text": "beelo.\ncalendar_month\nMon 9 Nov\nexpand_more\nsearch\nFind a customer\nToday\nTomorrow\nAT THE CUSTOMER\nOn site\nSYNTHETIC Current\nchevron_right\n\nFitting\n\nYour plan 10:00\nMonday 9 November 2026\n\nlocation_on\nSYNTHETIC Current Address\n\nTravel estimate unavailable · planning estimate\n\nAt this visit\n\nParking: driveway unavailable; use the signed car park (this visit) — differs from customer note; check · Access: side gate (customer note) · SYNTHETIC Window latch requires discussion\n\nOpen visit\nchevron_right\ntask_alt\nFinish visit\nedit_note\nAdd note\ncontact_phone\nContact\nThis week · earned, not necessarily paid\nchevron_right\nTarget £1,000.00\n£296.00\nExpenses\n£0.00\nEst. net\n£282.78\nBudget estimate · view assumptions\nNeeds attention\n2\nexpand_more\nRemaining today · 2\nPlan tomorrow\nchevron_right\n\nMiles · travel ETA includes 10 min buffer · estimates\n\n09:00\nSYNTHETIC Earlier\nConsultation · SYNTHETIC Earlier Address\nFrom SYNTHETIC Afternoon\n— mi\nNo ETA\nchevron_right\n14:00\nSYNTHETIC Afternoon\nFitting · SYNTHETIC Afternoon Address\nFrom SYNTHETIC Current\n1.0 mi\n~13 min\nchevron_right\ndocument_scanner\nScan\nadd\nAdd\nFind a customer\n\nauto_awesome\nAsk Beelo",
+      "buttons": 23,
+      "visibleButtons": 19,
+      "details": 1,
+      "documentHeight": 844
+    },
+    {
+      "name": "ask-what-next",
+      "hash": "today",
+      "text": "arrow_back\nHome\nBeelo\nwhat next\nB\nAt the customer\nSYNTHETIC Current · Monday 9 November 2026\nBooked time\n10:00\nContext\nParking: driveway unavailable; use the signed car park (this visit) — differs from customer note; check · Access: side gate (customer note) · SYNTHETIC Window latch requires discussion\nAt the customer: SYNTHETIC Current. Keep notes and record the result when the work is finished.\nOpen current visit\n▸ What's my day look like?\n▸ Who should I chase?\n▸ What have I missed?\narrow_upward",
+      "buttons": 6,
+      "visibleButtons": 6,
+      "details": 0,
+      "documentHeight": 844
+    },
+    {
+      "name": "ask-today",
+      "hash": "today",
+      "text": "arrow_back\nHome\nBeelo\ntoday\nB\nVisits today\n5\nDone\n2\nAt the customer\nSYNTHETIC Current · 10:00\nAt the customer: SYNTHETIC Current. Open this visit for the next step; earlier unfinished work stays saved.\nOpen current visit\nMy Day calendar\nOpen Visits\n▸ How am I doing this week?\n▸ Money & tax\n▸ Who should I chase?\narrow_upward",
+      "buttons": 8,
+      "visibleButtons": 8,
+      "details": 0,
+      "documentHeight": 844
+    },
+    {
+      "name": "visit",
+      "hash": "appointments?id=2",
+      "text": "arrow_back\nVisit\nS\nSYNTHETIC Current\nCUS-2026-0002 · View profile\nedit\nevent\nMonday 9 November 2026\n10:00\nhandyman\nFitting\nSelf-generated\nlocation_on\nSYNTHETIC Current Address\nedit\nCommunication & follow-ups\n\nNext action for this visit, with the customer's saved communication history.\n\nIntroduction: not recorded\nReminder: not recorded sent\nWindow agreement: not recorded\nCall\nMessage\nLog reply\nNext actions\n\nActions for this visit. Opening WhatsApp is not proof of sending.\n\nNo action due now for this visit.\n\nCustomer messages & contact history (0)\n\nOn-site timer running\n\nCustomer time so far: 40 min\n\nTravel to customer: 20 min · On site: 20 min\n\nDeparture detection works while Beelo receives accurate location updates. Reopen Beelo after using Maps or locking the phone.\n\nReview times\nEnd timer manually\ncampaign\nShare your finished work\nTurn a customer-approved photo or video into an editable social post.\n\nauto_awesome\nCreate Social Post\nWindow measurements (1)\nadd\nWindow / product\tDescription\tLeast width\tLeast drop\tEdit\nSYNTHETIC Bedroom\nRecess fitting\tBlackout roller, left control, replacement bracket required\t--\t--\t\nedit\n\nPhotos\nphoto_camera\nAdd Photo\nCapture the windows, fronts or any damage notes — anything useful to remember from today.\nMANAGE\nrequest_quote\nQuote\nnavigation\nNavigate\nstraighten\nMeasure\nedit_calendar\nMove\n\nevent_busy\nCancel Visit\nOUTCOME\n\ncheck_circle\nFitted\nevent_busy\nNot Fitted - Customer Not Ready\nwarning\nNot Fitted - Refused Child Safety Install\ntimelapse\nPartial\nrule\nSpecification Mismatch\ninventory_2\nMissing Parts\nkey_off\nAccess Issue\nerror\nIssues Reported\nrefresh\nRe-visit Needed\nblock\nClient Refused\nVISIT DIDN'T HAPPEN\nperson_off\nNot Fitted - Could Not Attend\nperson_off\nCustomer No Show\nNOTES\nedit\nParking: driveway unavailable; use the signed car park\nSYNTHETIC Window latch requires discussion\nReview visit summary (local pilot)",
+      "buttons": 33,
+      "visibleButtons": 33,
+      "details": 1,
+      "documentHeight": 2574
+    },
+    {
+      "name": "customer",
+      "hash": "customer?id=2&visitId=2",
+      "text": "arrow_back\nCustomer workspace\nSYNTHETIC Current\nedit\n\nCUS-2026-0002\n\nFitting · Monday 9 November 2026\n\n10:00\n\nNo address recorded\n\nCall\nMessage\nWhatsApp not available?\nCommunication\nMoney\nProducts\nNotes\nPhotos\nDocuments\nYour money with this customer\nRecorded earnings\n£0.00\nExpected, saved estimate\nNo estimate saved\nLinked expenses\n£0.00\nCommission received\nNot tracked separately\n\nOrder value and customer payments are separate from your earnings.\n\nOn-site timer running\n\nCustomer time so far: 40 min\n\nTravel to customer: 20 min · On site: 20 min\n\nDeparture detection works while Beelo receives accurate location updates. Reopen Beelo after using Maps or locking the phone.\n\nReview times\nEnd timer manually\nBefore you arrive\n\nParking: use the driveway\nAccess: side gate\n\nEdit notes · type or voice\nIntroduction: not recorded\nReminder: not recorded sent\nWindow agreement: not recorded\n\nA company-booked visit is not cancelled by silence. A new proposed time is not agreed until explicitly recorded.\n\nCommunication & follow-ups\nNext actions (1 due)\nAdd reminder\n\nActions for this customer. Opening WhatsApp is not proof of sending.\n\nevent_available\nToday\nOutcome not logged yet\n9 Nov · 10:00\n\nfact_check\nLog outcome\nMore options\nWhat has happened\nLog reply\n\n0 replies recorded · Saved drafts and adviser-recorded facts. Native-app edits, replies and delivery are not imported automatically.\n\nVisit scheduled (current details)\n09/11/2026, 10:30:00\n\nMonday 9 November 2026 · 10:00 · fitting\n\nLog contact attempt\nAdd reminder\nYour money\n£0.00 recorded earnings · not payment evidence\nProducts & measurements\n1 windows recorded\nPhotos\n0 photos\nQuotes & invoices\n0 quotes · 0 invoices\nVisits & related work\nCustomer settings",
+      "buttons": 31,
+      "visibleButtons": 31,
+      "details": 8,
+      "documentHeight": 2414
+    },
+    {
+      "name": "survey-visit",
+      "hash": "appointments?id=5",
+      "text": "arrow_back\nVisit\nS\nSYNTHETIC Survey\nCUS-2026-0004 · View profile\nedit\nevent\nMonday 9 November 2026\n09:30\nstraighten\nMeasure\nSelf-generated\nCommunication & follow-ups\n\nNext action for this visit, with the customer's saved communication history.\n\nIntroduction: recorded / known relationship\nReminder: not recorded sent\nWindow agreement: not recorded\nCall\nMessage\nLog reply\nNext actions (1 due)\n\nActions for this visit. Opening WhatsApp is not proof of sending.\n\nevent\nFitting date not agreed yet — choose the next step\nSYNTHETIC-REFERRAL · Date to agree\nReview fitting date\nMore options\nCustomer messages & contact history (0)\nOrder\nPayment managed externally\nreceipt_long\nSYNTHETIC-REFERRAL\n£1,200.00 · Ordered\nchevron_right\nPhotos\nphoto_camera\nAdd Photo\nCapture the windows, fronts or any damage notes — anything useful to remember from today.\nMANAGE\nrequest_quote\nQuote\nstraighten\nMeasure\nedit_calendar\nMove\n\nevent_busy\nCancel Visit\nOUTCOME\ncheck_circle\nSurvey Confirmed\nReferred order: £1,200.00 — not a new sale\nedit\nNOTES\nadd\nNo notes yet.\nReview visit summary (local pilot)",
+      "buttons": 19,
+      "visibleButtons": 19,
+      "details": 2,
+      "documentHeight": 1668
+    },
+    {
+      "name": "survey-customer",
+      "hash": "customer?id=4&visitId=5",
+      "text": "arrow_back\nCustomer workspace\nSYNTHETIC Survey\nedit\n\nCUS-2026-0004\n\nMeasure · Monday 9 November 2026\n\n09:30 · measured\n\nNo address recorded\n\nCall\nMessage\nWhatsApp not available?\nCommunication\nMoney\nProducts\nNotes\nPhotos\nDocuments\nYour money with this customer\nRecorded earnings\n£96.00\nExpected, saved estimate\nNo estimate saved\nLinked expenses\n£0.00\nCommission received\nNot tracked separately\n\nOrder value and customer payments are separate from your earnings.\n\nBefore you arrive\n\nNo customer context recorded yet.\n\nEdit notes · type or voice\nIntroduction: recorded / known relationship\nReminder: not recorded sent\nWindow agreement: not recorded\n\nA company-booked visit is not cancelled by silence. A new proposed time is not agreed until explicitly recorded.\n\nCommunication & follow-ups\nNext actions (1 due)\nAdd reminder\n\nActions for this customer. Opening WhatsApp is not proof of sending.\n\nevent\nFitting date not agreed yet — choose the next step\nSYNTHETIC-REFERRAL · Date to agree\nReview fitting date\nMore options\nWhat has happened\nLog reply\n\n0 replies recorded · Saved drafts and adviser-recorded facts. Native-app edits, replies and delivery are not imported automatically.\n\nVisit scheduled (current details)\n09/11/2026, 10:30:00\n\nMonday 9 November 2026 · 09:30 · measure\n\nOrder SYNTHETIC-REFERRAL\n09/11/2026, 10:00:00\n\n£1,200.00 order value · Referred · ordered · payment managed externally\n\nMeasure: measured\n09/11/2026, 09:30:00\n\nVisit outcome recorded\n\nLog contact attempt\nAdd reminder\nYour money\n£96.00 recorded earnings · not payment evidence\nProducts & measurements\n0 windows recorded\nPhotos\n0 photos\nQuotes & invoices\n0 quotes · 0 invoices\nVisits & related work\nCustomer settings",
+      "buttons": 28,
+      "visibleButtons": 28,
+      "details": 8,
+      "documentHeight": 2400
+    },
+    {
+      "name": "plan",
+      "hash": "appointments?action=tomorrow",
+      "text": "arrow_back\nPlan tomorrow\nToday\nTomorrow\n\nTuesday 10 Nov · 0 planned visits\n\nDrag to plan the order. Booked times and navigation stay unchanged until you agree and save a change.\n\nOrder saves on this device; new visits appear at the end.\n\nNo active visits booked for tomorrow.\n\nUse Scan to add on Home, or add a visit below.\n\nAdd visit\n\nPreview route can suggest a geographical order, ignoring booked times. A proposed time only changes the booking after you confirm customer agreement and review scheduling checks.",
+      "buttons": 4,
+      "visibleButtons": 4,
+      "details": 0,
+      "documentHeight": 844
+    },
+    {
+      "name": "tools",
+      "hash": "control",
+      "text": "Tools\nToday\nadd\nAdd Visit\nroute\nLog Mileage\nreceipt_long\nLog Expense\nfact_check\nEnd of Day\nCustomer\ncampaign\nFollow-ups\nconstruction\nJobs\nperson_add\nLead Inbox\nperson_search\nFind Customer\nBusiness\nlocal_shipping\nSuppliers\nevent_busy\nAvailability\nmonitoring\nProfitability\nreceipt_long\nInvoices\nField tools\nmap\nRoute Planner\nstraighten\nMeasure\ndocument_scanner\nScan Document\nData & Settings\nhub\nIntegrations\nsettings\nSettings\nbackup\nExport Backup",
+      "buttons": 18,
+      "visibleButtons": 18,
+      "details": 0,
+      "documentHeight": 1108
+    },
+    {
+      "name": "money",
+      "hash": "money",
+      "text": "Money\nreceipt_long\ndownload\nThis Week · Earnings (commission + visit fees)\n£296.00\n£704.00 to target\n30% of £1000 target\nEarnings gap\n£704 to hit your £1000 weekly target\n£704.00\nTax & deadlines\nTax year 2026-27 · 64 weeks to 31 Jan\nexpand_more\nThis Week\nThis Month\n£3.42\nMileage claim\n£0.00\nExpenses\n3\nRecords\nreceipt\nLog Expense\nroute\nLog Mileage\nlist\nView Records\nsearch\nFind receipts & expenses\nbackup\nBackup Data",
+      "buttons": 10,
+      "visibleButtons": 10,
+      "details": 1,
+      "documentHeight": 988
+    },
+    {
+      "name": "orders",
+      "hash": "orders",
+      "text": "Orders\nrequest_quote\nQuotes\n2\nLIVE\n£3,200.00\nIN PLAY\n£0.00\nDEPOSITS IN\n£0.00\nOWED\nreceipt_long\nQuoted\n0\nNothing quoted\nshopping_cart\nOrdered\n2\n£3,200.00\nSYNTHETIC Afternoon\n£2,000.00\nSYNTHETIC-COMPANY-900\nPayment managed externally\nchevron_right\nSYNTHETIC Survey\n£1,200.00\nSYNTHETIC-REFERRAL\nReferred order · payment managed externally\nchevron_right\nlocal_shipping\nDelivered\n0\nNothing here\nhandyman\nFitted\n0\nNothing here\npayments\nPaid\n0\nNothing here",
+      "buttons": 3,
+      "visibleButtons": 3,
+      "details": 0,
+      "documentHeight": 1067
+    },
+    {
+      "name": "followups",
+      "hash": "followups",
+      "text": "arrow_back\nFollow-ups\ninbox\nadd\n\nChoose a customer to see their next actions and communication history in one place. Personal and unlinked tasks remain here. Nothing sends automatically.\n\nResume saved messages\nDUE NOW (3)\n\nSYNTHETIC Survey\n1 action due\nFitting date not agreed yet — choose the next step\nchevron_right\n\nSYNTHETIC Earlier\n1 action due\nOutcome not logged yet\nchevron_right\n\nSYNTHETIC Current\n1 action due\nOutcome not logged yet\nchevron_right\nNot due yet (1)\nCommunication history · 2 unconfirmed by deadline\nQUICK OPENS\nview_kanban\nOrders board\nchat\nMessages",
+      "buttons": 10,
+      "visibleButtons": 10,
+      "details": 2,
+      "documentHeight": 853
+    }
+  ],
+  "homeFeatured": "SYNTHETIC Current\nchevron_right",
+  "askWhatNext": {
+    "command": "next visit",
+    "answer": {
+      "authoritative": true,
+      "text": "At the customer: SYNTHETIC Current. Keep notes and record the result when the work is finished.",
+      "facts": [
+        {
+          "label": "At the customer",
+          "value": "SYNTHETIC Current · Monday 9 November 2026"
+        },
+        {
+          "label": "Booked time",
+          "value": "10:00"
+        },
+        {
+          "label": "Context",
+          "value": "Parking: driveway unavailable; use the signed car park (this visit) — differs from customer note; check · Access: side gate (customer note) · SYNTHETIC Window latch requires discussion"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open current visit",
+          "onclick": "App.navigate('appointments', {id: 2})"
+        }
+      ],
+      "suggestions": [
+        "today",
+        "follow-ups",
+        "evening review"
+      ]
+    },
+    "defaultAnswer": {
+      "text": "I can't look that up — but I can help with your day, money, visits, follow-ups, or orders.",
+      "facts": [],
+      "actions": [],
+      "suggestions": [
+        "today",
+        "week",
+        "money",
+        "follow-ups",
+        "next visit",
+        "help"
+      ]
+    }
+  },
+  "homeNavigationRetainsChat": true,
+  "askToday": {
+    "authoritative": true,
+    "text": "At the customer: SYNTHETIC Current. Open this visit for the next step; earlier unfinished work stays saved.",
+    "facts": [
+      {
+        "label": "Visits today",
+        "value": "5"
+      },
+      {
+        "label": "Done",
+        "value": "2"
+      },
+      {
+        "label": "At the customer",
+        "value": "SYNTHETIC Current · 10:00"
+      }
+    ],
+    "actions": [
+      {
+        "label": "Open current visit",
+        "onclick": "App.navigate('appointments', {id: 2})"
+      },
+      {
+        "label": "My Day calendar",
+        "onclick": "CompanionFeature.openMyDay()"
+      },
+      {
+        "label": "Open Visits",
+        "onclick": "App.navigate('appointments', {tab: 'upcoming'})"
+      }
+    ],
+    "suggestions": [
+      "week",
+      "money",
+      "follow-ups"
+    ]
+  },
+  "probes": {
+    "dispatch": [
+      {
+        "key": "next visit",
+        "actual": "At the customer: SYNTHETIC Current. Keep notes and record the result when the work is finished."
+      },
+      {
+        "key": "follow-ups",
+        "actual": "3 things due today — SYNTHETIC first."
+      },
+      {
+        "key": "log expense",
+        "actual": "Open the expense sheet and either scan a receipt photo or type it in — I'll file it under the right category. (Receipts are scanned with Claude when AI is on.)"
+      },
+      {
+        "key": "my day",
+        "actual": "At the customer: SYNTHETIC Current. Open this visit for the next step; earlier unfinished work stays saved."
+      },
+      {
+        "key": "after visit",
+        "actual": "At the customer: SYNTHETIC Current. Keep notes and record the result when the work is finished."
+      },
+      {
+        "key": "evening review",
+        "actual": "End of day: 2 things to review — 2 visits today."
+      }
+    ],
+    "attention": [
+      {
+        "icon": "event_busy",
+        "label": "Outcomes not logged",
+        "value": "2 visits today",
+        "action": "App.navigate('appointments', {tab: 'upcoming'})",
+        "actionLabel": "Log outcomes"
+      },
+      {
+        "icon": "campaign",
+        "label": "Follow-ups due",
+        "value": "3 tasks due — SYNTHETIC first",
+        "action": "App.navigate('followups')",
+        "actionLabel": "Open Follow-ups"
+      }
+    ],
+    "brief": {
+      "text": "Parking: driveway unavailable; use the signed car park (this visit) — differs from customer note; check · Access: side gate (customer note) · SYNTHETIC Window latch requires discussion",
+      "fingerprint": "1nvdqd5",
+      "ai": false
+    },
+    "referralTaskKinds": [
+      "fitting_date"
+    ],
+    "visitOffersFittingDate": true,
+    "customerOffersFittingDate": true,
+    "snapshot": {
+      "advisor_name": "SYNTHETIC Adviser",
+      "today": {
+        "date": "2026-11-09",
+        "visits": [
+          {
+            "name": "SYNTHETIC Afternoon",
+            "time": "08:00",
+            "status": "completed",
+            "outcome": "ordered"
+          },
+          {
+            "name": "SYNTHETIC Earlier",
+            "time": "09:00",
+            "status": "confirmed",
+            "outcome": ""
+          },
+          {
+            "name": "SYNTHETIC Survey",
+            "time": "09:30",
+            "status": "completed",
+            "outcome": "measured"
+          },
+          {
+            "name": "SYNTHETIC Current",
+            "time": "10:00",
+            "status": "confirmed",
+            "outcome": ""
+          },
+          {
+            "name": "SYNTHETIC Afternoon",
+            "time": "14:00",
+            "status": "confirmed",
+            "outcome": ""
+          }
+        ]
+      },
+      "week": {
+        "sales": 2000,
+        "earnings": 296,
+        "ordered_count": 1,
+        "target": 1000,
+        "target_gap": 704
+      },
+      "month": {
+        "expenses_total": 0,
+        "mileage_km": 10
+      },
+      "follow_ups_due": [
+        {
+          "customer": "SYNTHETIC Survey",
+          "action": "Fitting date not agreed yet — choose the next step"
+        },
+        {
+          "customer": "SYNTHETIC Earlier",
+          "action": "Outcome not logged yet"
+        },
+        {
+          "customer": "SYNTHETIC Current",
+          "action": "Outcome not logged yet"
+        }
+      ],
+      "weather": null
+    },
+    "money": {
+      "authoritative": true,
+      "text": "£704.00 remaining to this week's target. £0.00 of expenses logged this month.",
+      "facts": [
+        {
+          "label": "This week earned",
+          "value": "£296.00",
+          "highlight": true
+        },
+        {
+          "label": "Earnings target",
+          "value": "£704.00"
+        },
+        {
+          "label": "Expenses this month",
+          "value": "£0.00"
+        },
+        {
+          "label": "Mileage claim",
+          "value": "6.2 mi · £3.42"
+        },
+        {
+          "label": "Tax estimate",
+          "value": "£0.00 ~31 Jan"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Open Money",
+          "onclick": "App.navigate('money')"
+        },
+        {
+          "label": "Log Expense",
+          "onclick": "MoneyFeature.openExpenseModal()"
+        },
+        {
+          "label": "View Records",
+          "onclick": "MoneyFeature.openRecordsModal()"
+        }
+      ],
+      "suggestions": [
+        "week",
+        "today",
+        "follow-ups"
+      ]
+    },
+    "orders": {
+      "authoritative": true,
+      "text": "No adviser-managed balance recorded as outstanding. Company balances and unverified responsibility are separate.",
+      "facts": [],
+      "actions": [
+        {
+          "label": "Open Orders",
+          "onclick": "App.navigate('orders')"
+        }
+      ],
+      "suggestions": [
+        "money",
+        "week"
+      ]
+    },
+    "externalResponsibility": "external",
+    "businessConfirmedKm": 10,
+    "allRecordedKm": 115
+  },
+  "surveyVisitFittingActions": 1,
+  "taxDetails": {
+    "open": false,
+    "attribute": null
+  },
+  "errors": [],
+  "posts": [],
+  "blocked": []
+}

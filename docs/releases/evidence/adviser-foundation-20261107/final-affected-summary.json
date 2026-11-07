@@ -1,0 +1,42 @@
+{
+  "runtimeCommit": "00196b4",
+  "results": [
+    {
+      "check": "adviser-foundation.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 6804
+    },
+    {
+      "check": "automatic-customer-time.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 11937
+    },
+    {
+      "check": "adviser-deferred-fitting.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 6963
+    },
+    {
+      "check": "payment-link.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 30336
+    },
+    {
+      "check": "cold-offline.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 6025
+    },
+    {
+      "check": "sw-update.e2e.js",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 2033
+    }
+  ],
+  "note": "Final payment-link assertion matches the general external-payment wording. An earlier harness assertion read the obsolete popup host; corrected to the visible inline outcome panel before acceptance."
+}

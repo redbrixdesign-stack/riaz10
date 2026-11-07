@@ -1,0 +1,61 @@
+{
+  "origin": "https://beelo1-14en9q3m5-beelomvp.vercel.app",
+  "access": "authenticated Vercel CLI",
+  "rows": [
+    {
+      "file": "index.html",
+      "local": "cd0c6246716b1b2c6d95cd0813e42a882374f7f65b4130bba6cf70876c43677d",
+      "deployed": "cd0c6246716b1b2c6d95cd0813e42a882374f7f65b4130bba6cf70876c43677d"
+    },
+    {
+      "file": "sw.js",
+      "local": "3a5e3d0a266cd53745400567037dce2377e4875dd3a15babf0f6aef9aaee8fde",
+      "deployed": "3a5e3d0a266cd53745400567037dce2377e4875dd3a15babf0f6aef9aaee8fde"
+    },
+    {
+      "file": "js/core/utils.min.js",
+      "local": "8457d04b5c41c1bdc99aa19f6b0fe5b170f4b698a7e0716d8c47084d9a2a5f4b",
+      "deployed": "8457d04b5c41c1bdc99aa19f6b0fe5b170f4b698a7e0716d8c47084d9a2a5f4b"
+    },
+    {
+      "file": "js/core/tax.min.js",
+      "local": "8a517c9f7e139c82bec000f2b7104425a24c52e99d363a87b47476937934f770",
+      "deployed": "8a517c9f7e139c82bec000f2b7104425a24c52e99d363a87b47476937934f770"
+    },
+    {
+      "file": "js/services/adviser-context.min.js",
+      "local": "d1dcbcf70320a26c6ffff1f10267af0314050cb7034c49e1b018dc79b49e4688",
+      "deployed": "d1dcbcf70320a26c6ffff1f10267af0314050cb7034c49e1b018dc79b49e4688"
+    },
+    {
+      "file": "js/features/companion/companion.min.js",
+      "local": "fe92828665e1c016615e98d30aece84566c301f1cd9d63443dc2d16dc7cab606",
+      "deployed": "fe92828665e1c016615e98d30aece84566c301f1cd9d63443dc2d16dc7cab606"
+    },
+    {
+      "file": "js/features/today/home-workspace.min.js",
+      "local": "e80384e143163027abe5ae4fdee72ad49bacd3dc298b8924ab772d7227752830",
+      "deployed": "e80384e143163027abe5ae4fdee72ad49bacd3dc298b8924ab772d7227752830"
+    },
+    {
+      "file": "js/features/followups/followups.min.js",
+      "local": "78474a16be82a5f9983bb1de3b757682f400474e5bccd44652fae4f99f018a3b",
+      "deployed": "78474a16be82a5f9983bb1de3b757682f400474e5bccd44652fae4f99f018a3b"
+    },
+    {
+      "file": "js/features/money/money.min.js",
+      "local": "31e3b6f789231c3963fac66417983118032a1ddb687014214c2e411908852dc5",
+      "deployed": "31e3b6f789231c3963fac66417983118032a1ddb687014214c2e411908852dc5"
+    },
+    {
+      "file": "js/features/orders/orders.min.js",
+      "local": "5c72c892d0752df891971e0d17ff41fdd15039397c273c83254b3af9ef1077ee",
+      "deployed": "5c72c892d0752df891971e0d17ff41fdd15039397c273c83254b3af9ef1077ee"
+    },
+    {
+      "file": "js/features/appointments/appointments.min.js",
+      "local": "cc49f196dd35c28e72db17169ecab6325604817e8493163eb62a791dc2688b54",
+      "deployed": "cc49f196dd35c28e72db17169ecab6325604817e8493163eb62a791dc2688b54"
+    }
+  ]
+}

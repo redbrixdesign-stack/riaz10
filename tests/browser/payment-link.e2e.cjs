@@ -69,7 +69,7 @@ const base = process.env.BEELO_TEST_URL || 'http://127.0.0.1:8023';
     return (await DB.addAppointment({customerId:id,type:'fitting',orderId,date:new Date().toISOString()})).id;
    },ids.customer);
    await open(referred); assert.equal(await page.locator('#outcome-payment').count(),0);
-   await page.getByText('Payment is managed externally for this referred order. No customer payment is recorded here.',{exact:true}).waitFor();
+   await page.getByText('Payment is managed externally for this order. No customer payment is recorded here.',{exact:true}).waitFor();
    await page.locator('#outcome-save').click();
    const sale = await page.evaluate(async id => (await DB.addAppointment({customerId:id,type:'consultation',date:new Date().toISOString()})).id,ids.customer);
    await open(sale,'ordered'); await page.locator('#outcome-value').fill('1000'); await page.locator('#outcome-payment').fill('200');

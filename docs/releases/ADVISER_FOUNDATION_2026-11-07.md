@@ -18,7 +18,15 @@ New unit scenarios cover command dispatch and read-only selection: latest activi
 
 The maintained browser release runner includes a new real encrypted-storage synthetic foundation journey in Chromium/WebKit. It checks actual Ask input, Home/Ask agreement, one preferred action, multiword dispatch, linked fitting-date visibility, note conflicts, external balances, mileage eligibility and tax disclosure. It captures no real customers or outgoing messages/provider requests. Existing release workflows run separately to protect notes/media, scheduling, timing, backups, offline startup and communications.
 
-Runtime candidate: cache195. Local full units, affected handler/money/docs checks and initial foundation browser scenarios passed. Final release acceptance and deployment evidence will be appended after completion. Original dirty workspace application changes remain isolated from this release checkout.
+Live runtime: `00196b4`, cache195, deployment `dpl_A6fMe98VQrDKLg2KUKa8o2Awzteo` (`beelo1-14en9q3m5-beelomvp.vercel.app`). The exact staged deployment was promoted without rebuilding. All 11 selected changed runtime assets match local, protected staged and public hashes. Public foundation journeys passed in Chromium/WebKit (12 screen states each); no real contacts, POST/provider requests or page errors in that journey.
+
+The complete unit suite passed on the integrated foundation; final affected appointment-save/type, fitting, companion, money and documentation checks passed. The complete 42-journey browser baseline passed, followed by six affected checks after the final Visit/payment correction: foundation, automatic customer time, deferred fitting, payment linking, cold offline and service-worker update. Social checks and the maintained Lighthouse-gate contract passed; this is not a new Lighthouse score or physical-device certification.
+
+Visual review caught the Visit's external-order zero-balance “Paid” label and company fitting collection field; both were corrected before promotion. Two harness assertions were aligned with the actual inline outcome host and the broader external-payment wording. Initial direct staged browser access reached Vercel sign-in; authenticated CLI asset verification was used without weakening protection, followed by real public-browser acceptance.
+
+Evidence: [verification receipt](evidence/adviser-foundation-20261107/verification.json), [baseline](evidence/adviser-foundation-20261107/baseline-summary.json), [final affected checks](evidence/adviser-foundation-20261107/final-affected-summary.json), [staged hashes](evidence/adviser-foundation-20261107/staged-hashes.json), [public hashes](evidence/adviser-foundation-20261107/public-hashes.json), [live next-action screen](evidence/adviser-foundation-20261107/chromium-ask-what-next.png), [linked survey action](evidence/adviser-foundation-20261107/chromium-survey-visit.png), [company fitting boundary](evidence/adviser-foundation-20261107/chromium-company-fitting-boundary.png).
+
+Original dirty workspace application changes remain isolated and unchanged (tracked non-documentation diff SHA-256 `8b6f2a59c93c01d1e4bee30742536a538f010119e3acf6b99e9b2f63e8e295d1`).
 
 ## Next foundation increments
 
