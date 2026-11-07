@@ -35,7 +35,7 @@ const dir=process.env.BEELO_ARTIFACT_DIR||'/private/tmp/beelo-foundation-browser
  await p.locator(`[data-action="AppointmentsFeature.captureOutcome"][data-args='[${ids.future},"completed"]']`).click();
  await p.locator('#outcome-save').waitFor();
  assert.equal(await p.locator('#outcome-payment').count(),0,'Company fitting must not prompt the adviser to collect its balance');
- assert.match(await p.locator('#modal-overlay').innerText(),/Payment is managed externally/);
+ assert.equal(await p.getByText('Payment is managed externally for this order. No customer payment is recorded here.',{exact:true}).count(),1);
  await p.screenshot({path:path.join(dir,engine.name()+'-company-fitting-boundary.png'),animations:'disabled'});
  await p.evaluate(()=>App.closeModal());
  for(const [name,id,params]of [['plan','appointments',{action:'tomorrow'}],['tools','control',{}],['money','money',{}],['orders','orders',{}],['followups','followups',{}],...(false?[['jobs','jobs',{}],['quotes','quotes',{}],['invoices','invoices',{}],['suppliers','suppliers',{}],['availability','capacity',{}],['profitability','profitability',{}],['aftercare','retention',{}],['integrations','communications',{}],['settings','settings',{}],['leads','leads',{}]]:[])]){await go(id,params);if(id==='money')findings.taxDetails={open:await p.locator('#tax-section').evaluate(e=>e.open),attribute:await p.locator('#tax-section').getAttribute('open')};await capture(name);}
