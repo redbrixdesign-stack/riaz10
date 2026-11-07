@@ -1,0 +1,37 @@
+{
+  "fixture": "Synthetic £1,000 commission, £50 fuel, 10 confirmed business miles; simplified mileage method",
+  "actual": {
+    "totalIncome": 1000,
+    "totalExpenses": 50,
+    "mileageClaim": 5.499999999999999,
+    "totalDeductible": 55.5,
+    "profit": 944.5,
+    "tax": {
+      "taxYear": {
+        "startYear": 2026,
+        "endYear": 2027,
+        "label": "2026-27"
+      },
+      "profit": 944.5,
+      "personalAllowance": 12570,
+      "taxableProfit": 0,
+      "incomeTax": 0,
+      "class4NIC": 0,
+      "totalLiability": 0,
+      "paymentOnAccount": 0,
+      "amountDueJan31": 0,
+      "amountDueJul31": 0,
+      "dueDates": {
+        "jan31": "2028-01-31T00:00:00.000Z",
+        "jul31": "2028-07-30T23:00:00.000Z"
+      },
+      "recommendedWeeklySave": 0,
+      "weeksToJan31": 65,
+      "effectiveRate": 0
+    }
+  },
+  "expectedMileageDeduction": 5.5,
+  "expectedDeductionForTheseVehicleCostsUnderMileageMethod": 5.5,
+  "excessVehicleDeduction": 50,
+  "productionDataWritten": false
+}

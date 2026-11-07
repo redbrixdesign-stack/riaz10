@@ -1,0 +1,26 @@
+{
+  "engine": "webkit",
+  "liveCache": "advisoros-v6-198-workspace-cleanup",
+  "emptyNameRejected": true,
+  "chosenTrade": {
+    "id": "plumbing",
+    "name": "Plumbing"
+  },
+  "requestedTarget": 0,
+  "setup": {
+    "name": "SYNTHETIC MVP New Adviser",
+    "trade": "plumbing",
+    "advisorTitle": "Independent Hillarys Window Coverings Expert",
+    "target": 600,
+    "aiEnabled": false,
+    "proxyConfigured": false,
+    "base": "",
+    "lastBackup": null,
+    "consent": false
+  },
+  "reloadPreserved": true,
+  "technicalAISetup": true,
+  "errors": [],
+  "posts": [],
+  "blockedExternal": []
+}

@@ -1,0 +1,24 @@
+[
+  {
+    "path": "api/claude",
+    "status": 403,
+    "body": {
+      "ok": false,
+      "error": "forbidden",
+      "message": "Bad or missing X-AI-Key header"
+    },
+    "credential": "deliberately invalid synthetic value",
+    "audioOrCustomerContentUploaded": false
+  },
+  {
+    "path": "api/transcribe",
+    "status": 403,
+    "body": {
+      "ok": false,
+      "error": "forbidden",
+      "message": "This device needs registering again"
+    },
+    "credential": "deliberately invalid synthetic value",
+    "audioOrCustomerContentUploaded": false
+  }
+]

@@ -1,0 +1,20 @@
+'use strict';
+const {chromium,webkit}=require('/private/tmp/beelo-home-release-20261107/node_modules/playwright'),fs=require('node:fs'),assert=require('node:assert/strict');
+const dir='/private/tmp/beelo-home-release-20261107/docs/audits/evidence/mvp-readiness-20261107';
+(async()=>{for(const engine of [chromium,webkit]){const b=await engine.launch();try{
+ const c=await b.newContext({viewport:{width:390,height:844},serviceWorkers:'block'}),errors=[],posts=[],external=[];
+ await c.route('**/*',r=>{if(new URL(r.request().url()).origin==='https://beelo.beelestial.co.uk')return r.continue();external.push(r.request().url());return r.abort();});
+ const p=await c.newPage();p.on('pageerror',e=>errors.push(e.message));p.on('request',r=>{if(r.method()==='POST')posts.push(r.url());});
+ await p.goto('https://beelo.beelestial.co.uk');await p.locator('#enc-passphrase-new').fill('SYNTHETIC disposable MVP readiness');await p.locator('#enc-passphrase-confirm').fill('SYNTHETIC disposable MVP readiness');await p.getByRole('button',{name:'Set Passphrase',exact:true}).click();
+ await p.locator('#ob-name').waitFor();await p.waitForTimeout(6500);if(await p.getByRole('button',{name:'I understand',exact:true}).isVisible())await p.getByRole('button',{name:'I understand',exact:true}).click();
+ await p.locator('[data-action="OnboardingFeature.finish"]').click();await p.getByText('Please enter your name',{exact:true}).waitFor();
+ const trade=await p.locator('#ob-trade option').evaluateAll(o=>o.map(x=>({id:x.value,name:x.textContent})));const selected=trade.find(t=>t.id!=='window_coverings');if(selected)await p.locator('#ob-trade').selectOption(selected.id);
+ await p.locator('#ob-name').fill('SYNTHETIC MVP New Adviser');await p.locator('#ob-target').fill('0');await p.locator('[data-action="OnboardingFeature.finish"]').click();await p.locator('.hw-home').waitFor();
+ if(await p.getByRole('button',{name:'I understand',exact:true}).isVisible())await p.getByRole('button',{name:'I understand',exact:true}).click();
+ await p.waitForTimeout(5500);const privacyExplanationVisible=await p.getByText('Your records stay on this phone',{exact:true}).isVisible();const setup=await p.evaluate(()=>({name:CONFIG.advisorName,trade:CONFIG.trade,advisorTitle:CONFIG.advisorTitle,target:CONFIG.weeklyTarget,aiEnabled:CONFIG.ai.enabled,proxyConfigured:!!CONFIG.ai.proxyUrl,base:CONFIG.businessAddress,lastBackup:ExportService.getLastBackupMeta(),consent:!!localStorage.getItem('advisoros_consent')}));
+ assert.equal(setup.name,'SYNTHETIC MVP New Adviser');await p.waitForFunction(()=>{const el=document.querySelector("#main > .fade-in");return !el||getComputedStyle(el).opacity==="1";});await p.screenshot({animations:"disabled",path:dir+'/'+engine.name()+'-fresh-home.png',fullPage:true});
+ await p.evaluate(()=>App.navigate('settings',{section:'ai'}));await p.locator('#set-ai-url').waitFor();const settingsText=await p.locator('#main').innerText();await p.waitForFunction(()=>{const el=document.querySelector("#main > .fade-in");return !el||getComputedStyle(el).opacity==="1";});await p.screenshot({animations:"disabled",path:dir+'/'+engine.name()+'-ai-setup.png',fullPage:true});
+ await p.reload();await p.locator('#set-ai-url').waitFor();assert.equal(await p.evaluate(()=>CONFIG.advisorName),'SYNTHETIC MVP New Adviser');
+ const observation={engine:engine.name(),liveCache:(await(await p.request.get('https://beelo.beelestial.co.uk/sw.js')).text()).match(/const CACHE_NAME = '([^']+)'/)[1],onboardingHeldBeyondPrivacyTimer:true,privacyExplanationVisible,emptyNameRejected:true,chosenTrade:selected,requestedTarget:0,setup,reloadPreserved:true,technicalAISetup:settingsText.includes('Proxy URL')&&settingsText.includes('Shared Secret'),errors,posts,blockedExternal:external};
+ assert.deepEqual(errors,[]);assert.deepEqual(posts,[]);fs.writeFileSync(dir+'/'+engine.name()+'-first-run.json',JSON.stringify(observation,null,2));console.log(engine.name(),JSON.stringify(observation));
+ }finally{await b.close();}}})().catch(e=>{console.error(e);process.exitCode=1});
