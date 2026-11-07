@@ -1,0 +1,46 @@
+{
+  "origin": "https://beelo.beelestial.co.uk",
+  "rows": [
+    {
+      "file": "index.html",
+      "sha256": "2be57758acd35c0db338bf8454459375b6e1ff7442484973b95f6da80684e5a9"
+    },
+    {
+      "file": "sw.js",
+      "sha256": "a373331c4a0c8b27e5099179caf790839e2de62f588fd6696b86a506694dddbd"
+    },
+    {
+      "file": "js/core/db.min.js",
+      "sha256": "0ef5eb3d0a4fbe8c0c6deff28e8fd47fbe137bfcf54e319ba95be912fd82c191"
+    },
+    {
+      "file": "js/core/legal.min.js",
+      "sha256": "039d3e251963ff0626f7dc7b890bb16a84005fad0e8455bb2a0b5c06a7d13bd4"
+    },
+    {
+      "file": "js/services/ai.min.js",
+      "sha256": "a36f95f72e8a76a63f89081f91af8d12f8155803d8f3286d5cae203a08a5988d"
+    },
+    {
+      "file": "js/features/customer/customer.min.js",
+      "sha256": "1f8bebe156b81ea2bda3e7dda6fe22c65c95c786d37214231ddc49e343a83a94"
+    },
+    {
+      "file": "js/features/customer/workspace.min.js",
+      "sha256": "4f6b6a1ddc6a3850d8b01ad6f127db6b09737388f9aa289fa57bfdaef0735786"
+    },
+    {
+      "file": "js/features/customer/document-import.min.js",
+      "sha256": "382a4e21cc6c1368e7e87be96be11d2ed97be71c31bf66b8bbbfdf9ff44d4006"
+    },
+    {
+      "file": "js/features/control/control.min.js",
+      "sha256": "5fa5fe97a22c245b9103ecf5d274c5acb31bcb59268c00b727df2f269cd39e91"
+    },
+    {
+      "file": "js/features/orders/orders.min.js",
+      "sha256": "8d1a8e09c440fd2f42f86ec039edbb86d530a3fe2c632c26db51e4f13f671f9c"
+    }
+  ],
+  "apiGetStatus": 405
+}

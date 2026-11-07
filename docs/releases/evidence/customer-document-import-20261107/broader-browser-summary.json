@@ -1,0 +1,53 @@
+{
+  "sourceCommit": null,
+  "results": [
+    {
+      "check": "customer-document-import.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 32449
+    },
+    {
+      "check": "customer-workspace.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 25726
+    },
+    {
+      "check": "home-money-navigation.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 12850
+    },
+    {
+      "check": "adviser-deferred-fitting.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 7184
+    },
+    {
+      "check": "protected-backup.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 8352
+    },
+    {
+      "check": "context-encryption.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 10638
+    },
+    {
+      "check": "cold-offline.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 5827
+    },
+    {
+      "check": "sw-update.e2e.js",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 2032
+    }
+  ]
+}

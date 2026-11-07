@@ -1,0 +1,18 @@
+{
+  "fullSuite": "npm test: exit 0 on integrated import",
+  "finalDocumentSourceAndMinified": [
+    "Database initialized",
+    "PASS .js: existing-customer matching/ambiguity, no invented quantities, encrypted originals/projection/backup, duplicate concurrency, external order only, no income/payment/booking, reviewed replacement/stale rejection, adviser boundary, atomic rollback and quotes stay quotes",
+    "PASS .min.js: existing-customer matching/ambiguity, no invented quantities, encrypted originals/projection/backup, duplicate concurrency, external order only, no income/payment/booking, reviewed replacement/stale rejection, adviser boundary, atomic rollback and quotes stay quotes"
+  ],
+  "finalProxy": [
+    "PASS document proxy: native PDF/image protocol, fixed extraction prompt, no client instructions, strict encoding/signature/type/size rejection before provider; existing image OCR unchanged; provider mocked"
+  ],
+  "lockRace": "unit verifies key loss aborts without plaintext/partial save",
+  "runtimeCommit": "8304cb8",
+  "cache": 197,
+  "deployment": "dpl_Tvn4hGigNmqeM22fdFe6GXYwSvoX",
+  "actualSuppliedPDFSentToProvider": false,
+  "actualProviderAccuracyVerified": false,
+  "physicalDeviceAcceptance": false
+}

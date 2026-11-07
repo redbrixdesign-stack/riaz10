@@ -1,0 +1,17 @@
+{
+  "sourceCommit": null,
+  "results": [
+    {
+      "check": "customer-document-import.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 31897
+    },
+    {
+      "check": "customer-workspace.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 25588
+    }
+  ]
+}

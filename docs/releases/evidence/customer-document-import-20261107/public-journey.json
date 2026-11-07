@@ -1,0 +1,7 @@
+{
+  "results": [
+    "PASS chromium: real PDF file \u2192 mocked extraction \u2192 existing customer/name then company-number match \u2192 review/confirmation \u2192 encrypted atomic save offline; originals download/reload, duplicate before AI, source versions, safe amount replacement, products/escaped content, proposed fitting, quote stays quote, no customer/invoice/payment/visit creation; no real provider calls",
+    "PASS webkit: real PDF file \u2192 mocked extraction \u2192 existing customer/name then company-number match \u2192 review/confirmation \u2192 encrypted atomic save offline; originals download/reload, duplicate before AI, source versions, safe amount replacement, products/escaped content, proposed fitting, quote stays quote, no customer/invoice/payment/visit creation; no real provider calls"
+  ],
+  "extractionProvider": "mocked, no real provider requests"
+}
