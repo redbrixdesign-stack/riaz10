@@ -39,7 +39,7 @@ global.App = {
     if (!m) return '';
     const objpath = m[1];
     const arglist = m[2].trim();
-    const KNOWN = ['App', 'AppointmentsFeature', 'SettingsFeature', 'MoneyFeature', 'TalkFeature', 'MeasureFeature', 'OnboardingFeature', 'RouteFeature', 'OrdersFeature', 'ContactFeature', 'HomeScreenController', 'CompanionFeature', 'ExportService', 'OCRFeature', 'ControlFeature', 'TodayFeature', 'Geo', 'CustomerFeature'];
+    const KNOWN = ['App', 'AppointmentsFeature', 'SettingsFeature', 'MoneyFeature', 'TalkFeature', 'MeasureFeature', 'OnboardingFeature', 'RouteFeature', 'OrdersFeature', 'ContactFeature', 'CompanionFeature', 'ExportService', 'OCRFeature', 'ControlFeature', 'TodayFeature', 'Geo', 'CustomerFeature'];
     if (!KNOWN.includes(objpath.split('.')[0])) return '';
     let jsonArgs = arglist.replace(/'([^']*)'/g, '"$1"');
     if (jsonArgs === '') return `data-action="${objpath}"`;
@@ -183,8 +183,7 @@ loadAll([
   'js/features/followups/followups.js',
   'js/features/orders/orders.js',
   'js/features/customer/customer.js',
-  'js/features/today/home-screen-controller.js',
-  '::raw::global.HomeScreenController = HomeScreenController;'
+  '::raw::global.Customer = CustomerFeature;'
 ]);
 
 const assert = (cond, msg) => { if (!cond) { console.error('FAIL:', msg); process.exitCode = 1; } else console.log('OK:', msg); };
@@ -215,21 +214,18 @@ const assert = (cond, msg) => { if (!cond) { console.error('FAIL:', msg); proces
   const countAfterPaid = await Followups.getDueCount();
   assert(countAfterPaid === 2, `Paid order drops out of the inbox (got ${countAfterPaid})`);
 
-  // Customer profile renders without throwing (renderProfile returns HTML).
+  let workspaceData;
+  global.CustomerWorkspace = { render(data) { workspaceData = data; return '<main>Customer workspace</main>'; } };
   const html = await Customer.renderProfile(1);
-  assert(typeof html === 'string' && html.includes('Customer 360'), 'Customer 360 profile renders');
-  assert(html.includes('Outstanding quotes (1)'), 'Outstanding quotes section present');
-  assert(html.includes('ORD-2026-0001'), 'Order row present in profile');
-  assert(html.includes('Lounge Bay'), 'Measurement row present in profile');
-  assert(html.includes('Sarah Johnson'), 'Customer name present');
-  assert(!html.includes('<script'), 'No raw script injection in profile');
+  assert(html.includes('Customer workspace'), 'Customer profile delegates to the current workspace');
+  assert(workspaceData.customer.fullName === 'Sarah Johnson', 'Workspace receives the customer');
+  assert(workspaceData.orders.some(o => o.orderNumber === 'ORD-2026-0001'), 'Workspace receives saved orders');
+  assert(workspaceData.measurements.some(m => JSON.stringify(m).includes('Lounge Bay')), 'Workspace receives saved measurements');
+  delete global.CustomerWorkspace;
+  const missing = await Customer.renderProfile(1);
+  assert(missing.includes('Customer workspace could not load') && missing.includes('App.reloadPage'), 'Missing workspace offers recovery, not an obsolete layout');
 
-  // Home: the featured next-visit card must carry the customer memory that
-  // helps the advisor arrive prepared, including saved voice context.
-  const upNext = HomeScreenController.renderUpNextBanner(TABLES.appointments.find(a => a.id === 12), [], TABLES.customers[0]);
-  assert(upNext.includes('Customer context'), 'Next-visit card labels customer context');
-  assert(upNext.includes('Prefers quiet motors; use the side gate.'), 'Next-visit card renders saved customer context');
-  assert(upNext.includes('1 saved voice note'), 'Next-visit card indicates saved voice context');
+
 
   // Talk: buildAiContext feeds the AI the real facts (quote value, measured
   // windows, order/deposit figures, timings, history) — not generic filler.

@@ -1,0 +1,22 @@
+{
+  "baselineCommit": "8059dfd",
+  "files": [
+    "js/core/app.min.js",
+    "js/features/appointments/appointments.min.js",
+    "js/features/companion/companion.min.js",
+    "js/features/control/control.min.js",
+    "js/features/customer/customer.min.js",
+    "js/features/customer/workspace.min.js",
+    "js/features/money/money.min.js",
+    "js/features/today/home-workspace.min.js",
+    "js/features/today/home-screen-controller.min.js",
+    "css/components.css",
+    "index.html",
+    "sw.js"
+  ],
+  "beforeBytes": 526323,
+  "afterBytes": 468387,
+  "reductionBytes": 57936,
+  "percent": 11.01,
+  "scope": "Uncompressed bytes of affected runtime assets only; not a network or performance benchmark."
+}

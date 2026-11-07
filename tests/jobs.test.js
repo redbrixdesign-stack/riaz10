@@ -61,10 +61,11 @@ const assert = (condition, message, extra) => {
 
   const apptsSource = fs.readFileSync(path.join(__dirname, '..', 'js/features/appointments/appointments.js'), 'utf8');
   const ordersSource = fs.readFileSync(path.join(__dirname, '..', 'js/features/orders/orders.js'), 'utf8');
+  const workspaceSource = fs.readFileSync(path.join(__dirname, '..', 'js/features/customer/workspace.js'), 'utf8');
   const customerSource = fs.readFileSync(path.join(__dirname, '..', 'js/features/customer/customer.js'), 'utf8');
   assert(apptsSource.includes('DB.scheduleJobVisit(jobId,') && apptsSource.includes('readArrivalWindow') && apptsSource.includes('operationId: jobOperationId'), 'job appointment save retains arrival-window validation and uses a retry-safe job domain operation');
   assert(ordersSource.includes("DB.getJobs({ orderId })") && ordersSource.includes("['jobs', { orderId: order.id }]") , 'order sheet opens its jobs without altering commercial stages');
-  assert(customerSource.includes("DB.getJobs({ customerId })") && customerSource.includes('Jobs (${jobs.length})'), 'Customer 360 lists linked jobs');
+  assert(customerSource.includes("DB.getJobs({ customerId })") && workspaceSource.includes("d.jobs.map(j=>act('App.navigate',['jobs'"), 'Customer 360 lists linked jobs');
   assert(ordersSource.includes('OrdersFeature.setStage') || ordersSource.includes('setStage(orderId'), 'legacy order stage workflow remains present');
 
   console.log(process.exitCode ? '\nJOBS TEST FAILED' : '\nJOBS TEST PASSED');

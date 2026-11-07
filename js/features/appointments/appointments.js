@@ -2061,8 +2061,6 @@ const AppointmentsFeature = {
 
         <div id="visit-time-panel" data-visit-id="${appt.id}">${this.renderOnSiteCard(appt)}</div>
 
-        ${appt.type === 'fitting' ? `<div class="card card-page"><div class="flex items-start gap-sm"><span class="material-symbols-rounded text-brand">campaign</span><div class="flex-1"><div class="fw-700">Share your finished work</div><div class="fs-13 text-secondary mt-2">Turn a customer-approved photo or video into an editable social post.</div></div></div><button class="btn btn-outline btn-block mt-sm" data-action="App.navigate" data-args='${JSON.stringify(['social', { appointmentId: appt.id }])}'><span class="material-symbols-rounded">auto_awesome</span>Create Social Post</button></div>` : ''}
-
         ${orderCardOrder ? this.renderLinkedOrderCard(orderCardOrder) : ''}
 
         ${measurements.length ? `
@@ -2203,6 +2201,8 @@ const AppointmentsFeature = {
           ${typeof VisitSummaries !== 'undefined' ? `<button class="btn btn-outline btn-block mt-sm" data-action="VisitSummaries.open" data-args='${JSON.stringify([appt.id])}'>Review visit summary (local pilot)</button>${VisitSummaries.render(appt)}` : ''}
           ${voiceNotes.length ? `<div class="mt-sm">${VoiceNotes.renderList(voiceNotes, { customerId: appt.customerId || null, appointmentId: appt.id })}</div>` : ''}
         </div>
+
+        ${appt.type === 'fitting' && appt.status === 'completed' && appt.outcome === 'completed' ? `<div class="card card-page"><div class="flex items-start gap-sm"><span aria-hidden="true" class="material-symbols-rounded text-brand">campaign</span><div class="flex-1"><div class="fw-700">Share your finished work</div><div class="fs-13 text-secondary mt-2">Turn a customer-approved photo or video into an editable social post.</div></div></div><button class="btn btn-outline btn-block mt-sm" data-action="App.navigate" data-args='${JSON.stringify(['social', { appointmentId: appt.id }])}'><span aria-hidden="true" class="material-symbols-rounded">auto_awesome</span>Create Social Post</button></div>` : ''}
       </div>
     `;
   },
@@ -3815,22 +3815,6 @@ const AppointmentsFeature = {
         return;
       }
 
-      if (outcomeId === 'ordered' && result.order?.id) {
-        try {
-          await this.offerFittingBooking(result.order.id);
-        } catch (error) {
-          console.error('Fitting prompt failed after order save:', error);
-          Toast.show('Order saved. Schedule the fitting from Orders when ready.', 'warning');
-          this.returnToVisit(id);
-        }
-        return;
-      }
-
-      if (appt.type === 'fitting' && outcomeId === 'completed') {
-        this.offerSocialPost(appt);
-        return;
-      }
-
       this.returnToVisit(id);
     } catch (e) {
       console.error('Save outcome error:', e);
@@ -3937,16 +3921,8 @@ const AppointmentsFeature = {
     }
   },
 
-  offerSocialPost(appt) {
-    App.openModal(`<div class="sheet-handle"></div><div class="sheet-header"><h3>Worth sharing?</h3><button class="btn btn-ghost btn-sm" data-action="AppointmentsFeature.skipSocialPost" data-args='${JSON.stringify([appt.id])}' aria-label="Close"><span class="material-symbols-rounded">close</span></button></div><div class="sheet-body"><div class="center-box"><span class="material-symbols-rounded fs-48 text-brand">photo_camera</span><div class="fw-700 mt-sm">That fitting could inspire your next customer.</div><div class="fs-13 text-secondary mt-sm lh-145">If the customer is happy for you to share the finished room, Beelo can turn a photo or short video into three editable post ideas.</div></div><button class="btn btn-primary btn-block mt-md" data-action="App.navigate" data-args='${JSON.stringify(['social', { appointmentId: appt.id }])}'><span class="material-symbols-rounded">auto_awesome</span>Create a post</button><button class="btn btn-outline btn-block mt-sm" data-action="AppointmentsFeature.skipSocialPost" data-args='${JSON.stringify([appt.id])}'>Not now</button></div>`);
-  },
-
   async returnToVisit(id) { const visit=await DB.getAppointment(id);if(App.currentFeature?.id==='customer' && document.getElementById('customer-workspace') && Number(visit?.customerId)===Number(CustomerFeature._lastId))return CustomerFeature.refreshProfile(visit.customerId);return App.navigate('appointments',{id}); },
 
-  skipSocialPost(appointmentId) {
-    App.closeModal();
-    this.returnToVisit(appointmentId);
-  },
   offerServiceCallBooking(appt) {
     const content = `<div class="sheet-handle"></div>
       <div class="sheet-header"><h3>Book the Service Call?</h3><button class="btn btn-ghost btn-sm" data-action="AppointmentsFeature.skipServiceCallBooking" data-args='${JSON.stringify([(appt.id)])}'><span class="material-symbols-rounded">close</span></button></div>

@@ -63,10 +63,11 @@ const assert = (condition, message, extra) => {
   assert(App.navigations.some(nav => nav[0] === 'quotes' && nav[1]?.id === 8), 'new version opens as a separate draft');
 
   const appointmentSource = fs.readFileSync(path.join(__dirname, '..', 'js/features/appointments/appointments.js'), 'utf8');
+  const workspaceSource = fs.readFileSync(path.join(__dirname, '..', 'js/features/customer/workspace.js'), 'utf8');
   const customerSource = fs.readFileSync(path.join(__dirname, '..', 'js/features/customer/customer.js'), 'utf8');
   const ordersSource = fs.readFileSync(path.join(__dirname, '..', 'js/features/orders/orders.js'), 'utf8');
   assert(appointmentSource.includes("'quotes', { action: 'add', customerId: appt.customerId, appointmentId: appt.id }"), 'visit detail can create a linked structured quote');
-  assert(customerSource.includes("DB.getQuotes({ customerId })") && customerSource.includes('Structured quotes'), 'Customer 360 lists and creates structured quotes');
+  assert(customerSource.includes("DB.getQuotes({ customerId })") && workspaceSource.includes("['quotes',{action:'add',customerId:id"), 'Customer 360 lists and creates structured quotes');
   assert(ordersSource.includes('liveStructuredQuotes') && ordersSource.includes('renderStructuredQuoteCard'), 'Orders board merges structured and legacy quoted cards');
   assert(ordersSource.includes('QUOTE_OUTCOMES'), 'legacy appointment quote pipeline remains intact');
 

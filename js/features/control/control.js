@@ -138,6 +138,8 @@ const ControlFeature = {
               <span aria-hidden="true" class="material-symbols-rounded">view_kanban</span>
               <span>Orders overview</span>
             </button>
+          `)}
+          <details class="card mb-md control-more"><summary class="fw-600 fs-16">More business tools</summary><div class="control-grid mt-sm">
             <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["suppliers"])}'>
               <span aria-hidden="true" class="material-symbols-rounded">local_shipping</span>
               <span>Suppliers</span>
@@ -154,7 +156,7 @@ const ControlFeature = {
               <span aria-hidden="true" class="material-symbols-rounded">receipt_long</span>
               <span>Invoices</span>
             </button>
-          `)}
+          </div></details>
 
           ${card('Field tools', `
             <button class="control-tile" type="button" data-action="App.navigate" data-args='${JSON.stringify(["route"])}'>

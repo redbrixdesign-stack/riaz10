@@ -269,7 +269,7 @@ const MoneyFeature = {
 
         <!-- Tax & Deadlines (progressive disclosure) -->
         ${formatted ? `
-        <details class="card card-page-mb" id="tax-section" ${formatted.profit > 0 ? 'open' : ''}>
+        <details class="card card-page-mb" id="tax-section">
           <summary class="flex items-center justify-between gap-12 cursor-pointer" style="list-style: none;">
             <div>
               <div class="fw-600" >Tax & deadlines</div>

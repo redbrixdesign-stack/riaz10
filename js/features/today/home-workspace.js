@@ -146,6 +146,15 @@ const HomeWorkspace = {
     }catch(_){if(token===this._searchToken&&host.isConnected)host.textContent='Search unavailable. Please try again.';}
   },
   cleanAddress(address) {const full=String(address).match(/\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b/i)?.[0];if(!full)return address;const out=full.replace(/\s/g,'').slice(0,-3);return String(address).split(/,|·/).map(s=>s.trim()).filter(s=>s.toUpperCase()!==out.toUpperCase()).join(', ');},
+  openDiary(isoDate) {
+    const day = typeof isoDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(isoDate) && Utils.formatDate(this.dayInstant(isoDate), 'iso') === isoDate ? isoDate : Utils.formatDate(Utils.getToday(), 'iso');
+    this.viewDay = day;
+    this.selectedDay = day;
+    this._calendarCursor = day;
+    this._openDiary = true;
+    CompanionFeature._turns = [];
+    return App.navigate('today');
+  },
   async toggleCalendar() {
     const host=document.getElementById('home-inline-calendar');if(!host)return;
     host.hidden=!host.hidden;document.getElementById('home-calendar-trigger')?.setAttribute('aria-expanded',String(!host.hidden));if(host.hidden)return;

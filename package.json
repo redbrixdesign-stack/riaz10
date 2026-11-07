@@ -1,7 +1,7 @@
 {
-  "name": "advisoros",
+  "name": "beelo",
   "version": "5.0.0",
-  "description": "The self-employed companion app for field service professionals. Offline-first PWA, no backend, no login.",
+  "description": "Pilot-stage, offline-capable operational memory for solo home-visit professionals, with optional protected AI assistance.",
   "private": true,
   "license": "MIT",
   "scripts": {

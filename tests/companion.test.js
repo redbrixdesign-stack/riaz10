@@ -94,11 +94,6 @@ global.CompanionFeature = {
 };
 
 global.AIService = { isEnabled: () => false, assistantTurn: async () => ({ ok: false, message: 'off' }) };
-global.HomeScreenController = {
-  renderDynamicHomeScreen() {},
-  stopDynamicHomeScreen() {}
-};
-
 // ---- In-memory DB stub ----
 const APPOINTMENTS = [];
 const CUSTOMERS = [];
@@ -245,13 +240,11 @@ assert(norm('random gibberish 123') === 'default', 'unknown routes to default');
   assert(snap.follow_ups_due.length === 2 && snap.follow_ups_due[0].customer === 'Sarah', 'Snapshot carries due follow-ups');
   assert(snap.weather.temp_c === 17 && snap.weather.condition === 'wb_sunny', 'Snapshot carries weather');
 
-  // ---------- my day panel ----------
-  let opened = false;
-  global.App.openModal = () => { opened = true; };
-  let mounted = '';
-  global.HomeScreenController.renderDynamicHomeScreen = id => { mounted = id; };
-  Companion.openMyDay();
-  assert(opened && mounted === 'companion-myday-root', 'My Day opens the weekly calendar panel in a modal');
+  // Ask Beelo and Home share the same diary, without a second modal/controller.
+  let diaryDay;
+  global.HomeWorkspace = { openDiary(day) { diaryDay = day; return 'diary'; } };
+  assert(Companion.openMyDay('2030-11-05') === 'diary' && diaryDay === '2030-11-05', 'My Day delegates to the canonical Home diary');
+  delete global.HomeWorkspace;
 
   // ---------- deep rules: a booking far out must be findable ----------
   CUSTOMERS.push(
@@ -348,46 +341,13 @@ assert(norm('random gibberish 123') === 'default', 'unknown routes to default');
   const fq = await Companion.answerFollowUps('who needs a quote chase');
   assert(fq.facts.length === 1 && fq.facts[0].label === 'Sarah', 'Follow-ups filter by kind (quotes)', fq.facts);
 
-  // Home schedule presentation: one continuous agenda owns the featured
-  // visit and all compact appointment rows.
-  const scheduleHtml = Companion.welcomeHtml({
-    nextVisit: {
-      id: 1, name: 'Mrs Smith', date: new Date().toISOString(), time: '09:30',
-      hasArrivalWindow: true, type: 'Fitting', address: '14 Beechwood Avenue', area: 'M33', eta: '18 min',
-      customerBrief: { text: 'Parking: visitor bay · Returning customer · Prefers neutral colours', fingerprint: 'brief-test' },
-      briefing: 'Prefers morning visits · Parking: use visitor bay'
-    },
-    upcomingVisits: [
-      { id: 2, name: 'Mr Khan', date: iso(1), time: '11:00–13:00', hasArrivalWindow: true, type: 'Sales', area: 'Altrincham', eta: '25 min' }
-    ],
-    week: { target: 1000, gap: 380, pct: 62 },
-    weekDays: [
-      { iso: global.utilsRef.formatDate(new Date(), 'iso'), label: 'Wed', num: 26, count: 2 }
-    ],
-    weekRange: 'Mon 24 – Sun 30',
-    routePlan: {
-      legs: [
-        { index: 0, from: { label: 'Base' }, to: { label: 'Mrs Smith', appointment: { id: 1, status: 'completed' } }, distanceKm: 6, etaMin: 12 },
-        { index: 1, from: { label: 'Mrs Smith' }, to: { label: 'Mr Khan', appointment: { id: 2, status: 'confirmed' } }, distanceKm: 8, etaMin: 16 }
-      ],
-      activeLeg: { index: 1, from: { label: 'Mrs Smith' }, to: { label: 'Mr Khan' } }
-    },
-    attention: [], suggestions: []
-  });
-  assert(scheduleHtml.includes('comp-home-greeting-main') && scheduleHtml.includes('<span class="comp-home-greeting-dot">.</span>'), 'Home starts with the advisor name and gold full stop');
-  assert(scheduleHtml.includes('Scan to add') && scheduleHtml.includes('home-quick-capture') && !scheduleHtml.includes('QUICK ADD') && !scheduleHtml.includes('Photo → right place'), 'Home exposes scan and manual fallbacks without the redundant quick-add labels');
-  assert(scheduleHtml.includes('>Upcoming<') && !scheduleHtml.includes('Next 14 days'), 'Appointment feed uses the single Upcoming heading');
-  assert(scheduleHtml.indexOf('THIS WEEK') < scheduleHtml.indexOf('home-quick-capture'), 'Home puts the calendar above the thumb-reachable scan control');
-  assert(!scheduleHtml.includes("TODAY'S ROUTE") && !scheduleHtml.includes('comp-home-route'), 'Home does not render the Route section');
-  assert((scheduleHtml.match(/comp-home-schedule"/g) || []).length === 1, 'Home renders one appointment schedule panel');
-  assert(scheduleHtml.includes('comp-home-schedule-list') && scheduleHtml.includes('comp-home-next-visit') && scheduleHtml.includes('comp-home-visit upcoming'), 'Schedule contains featured visit and compact rows');
-  assert(scheduleHtml.includes('comp-home-next-visit-context') && scheduleHtml.includes('Prefers morning visits'), 'Featured upcoming appointment renders saved customer context');
-  assert(scheduleHtml.includes('09:30') && scheduleHtml.includes('11:00–13:00') && !scheduleHtml.includes('Arrival window') && !scheduleHtml.includes('Window '), 'Schedule shows promised time ranges without redundant labels');
-  assert(scheduleHtml.includes('Visit brief') && scheduleHtml.includes('Parking: visitor bay') && scheduleHtml.includes('Returning customer'), 'Featured visit shows concise saved customer context');
-  assert(scheduleHtml.includes('Fitting · M33'), 'Featured visit shows sourced visit and area context');
-  assert(scheduleHtml.includes('data-customer-brief="brief-test"'), 'Featured visit brief remains addressable for an optional verified AI rephrase');
-  assert(scheduleHtml.includes('>Navigate<') && scheduleHtml.includes('>Call<') && scheduleHtml.includes('>On my way<'), 'Featured visit exposes the three field actions');
-  assert(!scheduleHtml.includes('AppointmentsFeature.startOnSite') && !scheduleHtml.includes('AppointmentsFeature.finishOnSite') && !scheduleHtml.includes('>Arrived<') && !scheduleHtml.includes('>Leave<'), 'Home leaves arrival and departure to automatic trip state instead of duplicate taps');
+  const unavailable = Companion.welcomeHtml({});
+  assert(unavailable.includes('Home could not load') && unavailable.includes('App.reloadPage'), 'Missing Home renderer gives an explicit recoverable error');
+  let renderedData;
+  global.HomeWorkspace = { render(data) { renderedData = data; return '<main>Current Home</main>'; } };
+  const currentHomeData = { nextVisit: { id: 1 } };
+  assert(Companion.welcomeHtml(currentHomeData) === '<main>Current Home</main>' && renderedData === currentHomeData, 'Only the current Home renderer owns Home presentation');
+  delete global.HomeWorkspace;
 
   const priorDate = new Date(Date.now() - 86400000).toISOString();
   APPOINTMENTS.push(

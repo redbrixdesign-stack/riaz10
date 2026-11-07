@@ -69,7 +69,7 @@ const settle = (page, ms = 2200) => page.waitForTimeout(ms);
   await A.waitForSelector('.bottom-sheet .hsc-root', { timeout: 15000 });
   await settle(A, 1500);
   await shot(A, '19-modal-my-day.png', 'My Day weekly calendar panel (bottom sheet)');
-  await A.evaluate(() => { HomeScreenController.stopDynamicHomeScreen(); App.closeModal({ all: true }); });
+  await A.evaluate(() => { App.closeModal({ all: true }); });
 
   // 18 End of Day
   await A.evaluate(() => TodayFeature.openEODModal());

@@ -45,7 +45,6 @@ const CustomerFeature = {
     let invoices = [];
     let payments = [];
     let retention = [];
-    let whatsappPreference = null;
     let linkedExpenses = null;
     try { appts = await DB.getAppointmentsByCustomer(customerId); } catch (e) {readErrors.push('visits');}
     try { orders = await DB.db.orders.where('customerId').equals(customerId).toArray(); } catch (e) {readErrors.push('orders');}
@@ -59,20 +58,9 @@ const CustomerFeature = {
     try { if (typeof DB.getInvoices === 'function') invoices = await DB.getInvoices({ customerId }); } catch (e) {}
     try { if (typeof DB.getLedgerEntries === 'function') payments = await DB.getLedgerEntries({ customerId }); } catch (e) {}
     try { if (typeof DB.getRetentionRecords === 'function') retention = await DB.getRetentionRecords({ customerId }); } catch (e) {}
-    try { if (typeof CommunicationService !== 'undefined') whatsappPreference = await CommunicationService.preference(customerId, 'whatsapp'); } catch (e) {}
     try { linkedExpenses = await DB.getExpensesByCustomer(customerId); } catch (e) { /* Show a read failure, not a false empty state. */ }
 
     appts.sort((a, b) => new Date(a.date) - new Date(b.date));
-    const firstVisit = appts[0];
-    const lastVisit = appts[appts.length - 1];
-    const totalValue = appts.reduce((sum, a) => sum + (a.outcome === 'ordered' ? (a.value || 0) : 0), 0);
-    const interests = Object.entries(AppointmentsFeature.extractBuyingInterests(appts)).sort((a, b) => b[1] - a[1]).slice(0, 5);
-
-    // Follow-up-able appointments (quote chases) still open for this customer.
-    const quoteOutcomes = (typeof TalkFeature !== 'undefined') ? Object.keys(TalkFeature.OUTCOME_TEMPLATE_MAP) : ['quoted', 'thinking', 'partner', 'compare_quotes', 'expensive', 'customer_no_show', 'advisor_unavailable'];
-    const outstandingQuotes = appts.filter(a => a.status !== 'cancelled' && quoteOutcomes.includes(a.outcome));
-    const now = new Date();
-
     // Measurements live per-visit; batch them across every visit of this
     // customer in one query instead of one round-trip per appointment.
     let measurements = [];
@@ -81,275 +69,9 @@ const CustomerFeature = {
         measurements = await DB.getMeasurementsForAppointments(appts.map(a => a.id));
       } catch (e) {}
     }
-    const apptById = new Map(appts.map(a => [a.id, a]));
-
-    // One merged, chronological "everything that's happened with this
-    // person" timeline - visits, orders, and follow-up messages together.
-    const timeline = [
-      ...appts.map(a => ({
-        date: a.date,
-        icon: CONFIG.appointmentTypes.find(t => t.id === a.type)?.icon || 'event',
-        title: CONFIG.appointmentTypes.find(t => t.id === a.type)?.name || a.type || 'Visit',
-        subtitle: a.outcome ? `Outcome: ${Utils.escapeHtml(a.outcome.replace(/_/g, ' '))}${a.value > 0 ? ` · ${Utils.formatCurrency(a.value)}` : ''}` : 'No outcome logged',
-        onclick: `App.navigate('appointments', {id: ${a.id}})`
-      })),
-      ...orders.map(o => ({
-        date: o.createdAt || o.date,
-        icon: 'receipt',
-        title: `Order ${Utils.escapeHtml(o.orderNumber || '')}`,
-        subtitle: `${this.orderStageLabel(o)} · ${Utils.formatCurrency(o.total || 0)}`,
-        onclick: `OrdersFeature.openOrderSheet(${o.id})`
-      })),
-      ...comms.map(c => {
-        const labels = { drafted: 'Message drafted', handed_off: 'Opened in WhatsApp', advisor_confirmed_sent: 'Message confirmed sent', delivered: 'Message delivered', replied: 'Customer reply', note: 'Internal note' };
-        return {
-        date: c.receivedAt || c.sentAt || c.createdAt,
-        icon: c.direction === 'inbound' ? 'mark_chat_read' : 'chat',
-        title: typeof CommunicationService !== 'undefined' && typeof CommunicationService.activityLabel === 'function' ? CommunicationService.activityLabel(c) : (labels[c.lifecycleState] || 'Recorded activity'),
-        subtitle: c.direction === 'inbound' ? Utils.escapeHtml(Utils.truncate(c.content || '', 90)) : Utils.escapeHtml((c.template || c.type || '').replace(/_/g, ' ')),
-        onclick: ''
-      }})
-    ].filter(item => item.date).sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    const messageComms = comms.filter(row => row.type !== 'phone_handoff');
-    const phone = customer.phone || '';
-    const address = customer.address?.line1 || '';
-    const name = customer.fullName || `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'Customer';
-
     if(typeof CustomerWorkspace!=='undefined')return CustomerWorkspace.render({readErrors,customerId,customer,appts,orders,comms,communicationLoadFailed,photos,voiceNotes,structuredQuotes,importedDocuments,jobs,invoices,payments,retention,linkedExpenses,measurements,params});
 
-    return `
-      <div class="fade-in">
-        ${App.renderTopHeader({ 
-          title: 'Customer 360', 
-          showBack: true, 
-          backHref: params.from === 'followups' ? 'followups' : 'appointments'
-        })}
-
-        <div class="card card-page-gap" >
-          <div class="flex items-center gap-md" >
-            <div class="avatar-56" >
-              ${Utils.escapeHtml(name.charAt(0).toUpperCase())}
-            </div>
-            <div class="flex-1" >
-              <div class="fs-20 fw-600" >${Utils.escapeHtml(name)}</div>
-              <div class="fs-13 text-secondary mt-2" >${Utils.escapeHtml(customer.customerNumber || '')}</div>
-            </div>
-            <button class="btn btn-ghost btn-sm" aria-label="Edit customer details" data-action="AppointmentsFeature.openEditCustomerModal" data-args='${JSON.stringify([(customer.id)])}'>
-              <span class="material-symbols-rounded">edit</span>
-            </button>
-          </div>
-
-          ${address ? `<div class="mt-12 fs-13 text-secondary flex items-center gap-sm" ><span class="material-symbols-rounded fs-16" >location_on</span>${Utils.escapeHtml(address)}</div>` : ''}
-          ${customer.email ? `<div class="mt-6 fs-13 text-secondary flex items-center gap-sm" ><span class="material-symbols-rounded fs-16" >mail</span>${Utils.escapeHtml(customer.email)}</div>` : ''}
-          ${whatsappPreference?.status === 'opted_out' || whatsappPreference?.status === 'blocked' ? `<div class="badge badge-danger mt-sm"><span class="material-symbols-rounded fs-14">block</span> Do not contact on WhatsApp</div>` : whatsappPreference?.status === 'opted_in' ? `<div class="badge badge-success mt-sm"><span class="material-symbols-rounded fs-14">verified</span> WhatsApp agreed</div>` : ''}
-
-          <div class="flex gap-sm mt-md" >
-            ${phone ? `
-              <button class="btn btn-outline btn-sm flex-1 gap-6" aria-label="Call" data-action="ContactFeature.start" data-args='${JSON.stringify([customer.id,"phone"])}'>
-                <span class="material-symbols-rounded fs-18" >call</span>
-                Call
-              </button>
-              <button class="btn btn-outline btn-sm flex-1 gap-6" aria-label="Message" data-action="ContactFeature.open" data-args='${Utils.escapeHtml(JSON.stringify([{name: (name), phone: (phone),customerId:customer.id}]))}'>
-                <span class="material-symbols-rounded fs-18" >chat</span>
-                Message
-              </button>
-            ` : ''}
-            ${address ? `
-              <button class="btn btn-outline btn-sm flex-1 gap-6"  data-action="Geo.openNavigation" data-args='${Utils.escapeHtml(JSON.stringify([(address)]))}'>
-                <span class="material-symbols-rounded fs-18" >navigation</span>
-                Navigate
-              </button>
-            ` : ''}
-            <button class="btn btn-outline btn-sm flex-1 gap-6"  data-action="App.navigate" data-args='${Utils.escapeHtml(JSON.stringify(["appointments", {action: "add", name: (name), phone: (phone), address: (address)}]))}'>
-              <span class="material-symbols-rounded fs-18" >add</span>
-              Visit
-            </button>
-          </div>
-          <div class="flex gap-sm mt-sm">
-            <button class="btn btn-ghost btn-sm flex-1" data-action="CommunicationsFeature.openPreferences" data-args='${JSON.stringify([customerId])}'><span class="material-symbols-rounded fs-16">privacy_tip</span>Contact preference</button>
-            <button class="btn btn-ghost btn-sm flex-1" data-action="CustomerFeature.openReplyModal" data-args='${JSON.stringify([customerId])}'><span class="material-symbols-rounded fs-16" aria-hidden="true">move_to_inbox</span>Log reply</button>
-          </div>
-        </div>
-
-        ${typeof FollowupsFeature !== 'undefined' ? await FollowupsFeature.renderCustomerPanel(customerId) : '<p role="alert">Follow-ups are unavailable. Reopen this profile to retry.</p>'}
-
-        <div class="card card-page" id="customer-communication-record">
-          <div class="fs-13 fw-600 text-secondary mb-sm">Communication record</div>
-          ${communicationLoadFailed ? '<p role="alert">Some communication history could not be loaded. Reopen this profile to retry; counts below may be incomplete.</p>' : ''}
-          <p class="fs-13">${comms.filter(c => c.direction !== 'inbound' && ['advisor_confirmed_sent', 'delivered', 'replied'].includes(c.lifecycleState)).length} confirmed sent · ${comms.filter(c => c.direction === 'inbound').length} replies recorded · ${comms.filter(c => c.direction !== 'inbound' && c.lifecycleState === 'handed_off').length} send confirmations outstanding</p>
-          <p class="hint">Only activity recorded in Beelo. No reply recorded does not mean the customer is unresponsive or the visit is cancelled. WhatsApp replies are not imported automatically; use Log reply above.</p>
-          <button class="btn btn-outline btn-sm" data-action="CustomerFeature.openContactAttempt" data-args='${JSON.stringify([customerId])}'>Log contact attempt</button>
-          ${messageComms.length ? `<details><summary>Read saved messages and replies (${messageComms.length})</summary>${[...messageComms].sort((a,b) => new Date(b.receivedAt || b.sentAt || b.createdAt || 0) - new Date(a.receivedAt || a.sentAt || a.createdAt || 0)).map(c => `<div class="py-8"><strong>${Utils.escapeHtml(typeof CommunicationService !== 'undefined' && typeof CommunicationService.activityLabel === 'function' ? CommunicationService.activityLabel(c) : 'Recorded activity')}</strong><div class="hint">${Utils.formatDate(c.receivedAt || c.sentAt || c.createdAt, 'short')} · ${Utils.escapeHtml(c.channel || c.type || 'Message')}</div><p class="fs-13" style="white-space:pre-wrap;overflow-wrap:anywhere">${Utils.escapeHtml(c.content || 'No message text captured')}</p></div>`).join('')}</details>` : '<p class="fs-13 text-tertiary">No messages or replies recorded yet.</p>'}
-          ${typeof ContactFeature !== 'undefined' && typeof ContactFeature.renderActivity === 'function' ? await ContactFeature.renderActivity(comms) : ''}
-          ${this.renderVisitPhoneHistory(appts, customerId)}
-        </div>
-
-        <div class="card card-page">
-            <div class="flex items-center justify-between mb-sm">
-              <div class="fs-13 fw-600 text-secondary">Customer context</div>
-              <button class="btn btn-ghost btn-sm" aria-label="Edit customer context" data-action="AppointmentsFeature.openEditCustomerModal" data-args='${JSON.stringify([(customer.id)])}'><span class="material-symbols-rounded">edit</span></button>
-            </div>
-            ${customer.notes ? `<div class="fs-14 text-secondary prewrap">${Utils.escapeHtml(customer.notes)}</div>` : '<div class="fs-13 text-tertiary">No customer context yet.</div>'}
-            ${typeof NoteCapture !== 'undefined' ? NoteCapture.renderPlaybackList(`customer-context-${customerId}`, customer.audioNotes || []) : ''}
-            ${voiceNotes.length ? `<div class="mt-sm">${VoiceNotes.renderList(voiceNotes, { customerId })}</div>` : ''}
-        </div>
-
-        <div class="card card-page" >
-          ${typeof VisitSummaries !== 'undefined' ? appts.filter(a => a.approvedVisitSummary).map(a => `<div><p>Visit ${Utils.escapeHtml(a.date || '')}</p>${VisitSummaries.render(a)}</div>`).join('') : ''}
-          <div class="hsc-stat-row">
-            <div class="hsc-stat hsc-stat-clickable" role="button" tabindex="0" aria-label="View visit history" data-action="CustomerFeature.scrollToHistory" data-key="Enter, space">
-              <div class="hsc-stat-value">${appts.length}</div>
-              <div class="hsc-stat-label">Visits</div>
-            </div>
-            <div class="hsc-stat">
-              <div class="hsc-stat-value">${Utils.formatCurrency(totalValue)}</div>
-              <div class="hsc-stat-label">Total Ordered</div>
-            </div>
-            <div class="hsc-stat">
-              <div class="hsc-stat-value">${outstandingQuotes.length + structuredQuotes.filter(q => ['draft', 'issued'].includes(q.status)).length}</div>
-              <div class="hsc-stat-label">Open Quotes</div>
-            </div>
-            <div class="hsc-stat">
-              <div class="hsc-stat-value">${Utils.formatCurrency(orders.reduce((s, o) => s + ((o.balanceDue || 0) > 0 ? (o.balanceDue || 0) : 0), 0))}</div>
-              <div class="hsc-stat-label">Owed</div>
-            </div>
-          </div>
-          ${firstVisit ? `<div class="fs-12 text-tertiary mt-10 text-center" >Customer since ${Utils.formatDate(firstVisit.date, 'long')}${lastVisit ? ` · Last visit ${Utils.formatDate(lastVisit.date, 'short')}` : ''}</div>` : ''}
-        </div>
-
-        <div class="card card-page">
-          <div class="flex items-center justify-between mb-sm"><div class="fs-13 fw-600 text-secondary">Structured quotes (${structuredQuotes.length})</div><button class="btn btn-primary btn-sm" data-action="App.navigate" data-args='${JSON.stringify(['quotes', { action: 'add', customerId }])}'><span class="material-symbols-rounded">add</span>Quote</button></div>
-          ${structuredQuotes.length ? structuredQuotes.map(q => `<button class="area-customer-row w-full text-left mb-6" data-action="App.navigate" data-args='${JSON.stringify(['quotes', { id: q.id }])}'><span class="material-symbols-rounded">request_quote</span><span class="flex-1 min-w-0"><strong>${Utils.escapeHtml(q.quoteNumber || 'Draft quote')} · v${q.version || 1}</strong><small>${Utils.formatCurrency(q.total || 0)} · ${Utils.escapeHtml(q.status || 'draft')}</small></span><span class="material-symbols-rounded">chevron_right</span></button>`).join('') : '<div class="fs-13 text-tertiary">No itemised quotes yet.</div>'}
-        </div>
-
-        ${outstandingQuotes.length ? `
-          <div class="card card-page" >
-            <div class="fs-13 fw-600 text-secondary mb-sm" >Outstanding quotes (${outstandingQuotes.length})</div>
-            ${outstandingQuotes.map(a => {
-              const daysSince = Utils.daysBetween(now, new Date(a.date));
-              const tpl = (typeof TalkFeature !== 'undefined') ? TalkFeature.getTemplateForOutcome(a.outcome) : null;
-              return `
-                <div class="area-customer-row w-full text-left mb-6" >
-                  <span class="material-symbols-rounded text-warning" >receipt_long</span>
-                  <span class="flex-1 min-w-0" >
-                    <strong>${Utils.escapeHtml(a.clientName || 'Customer')} · ${Utils.formatCurrency(a.value || 0)}</strong>
-                    <small>${Utils.formatDate(a.date, 'short')} · ${daysSince <= 0 ? 'today' : daysSince + 'd ago'} · ${Utils.escapeHtml(this.getOutcomeName(a.outcome))}</small>
-                  </span>
-                  ${tpl ? `<button class="btn btn-outline btn-sm" data-action="TalkFeature.sendMessage" data-args='${Utils.escapeHtml(JSON.stringify([(a.id), (tpl.template)]))}'><span class="material-symbols-rounded fs-16" >send</span></button>` : ''}
-                  <button class="btn btn-ghost btn-sm" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: (a.id)}])}'><span class="material-symbols-rounded fs-18" >chevron_right</span></button>
-                </div>
-              `;
-            }).join('')}
-          </div>
-        ` : ''}
-
-        ${orders.length ? `
-          <div class="card card-page" >
-            <div class="flex items-center justify-between mb-sm" >
-              <div class="fs-13 fw-600 text-secondary" >Orders (${orders.length})</div>
-              <button class="btn btn-ghost btn-sm" aria-label="Open orders board" data-action="App.navigate" data-args='${JSON.stringify(["orders"])}'>
-                <span class="material-symbols-rounded">view_kanban</span>
-              </button>
-            </div>
-            ${orders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).map(o => `
-              <button class="area-customer-row w-full text-left mb-6"  data-action="OrdersFeature.openOrderSheet" data-args='${JSON.stringify([(o.id)])}'>
-                <span class="material-symbols-rounded text-success" >receipt</span>
-                <span class="flex-1 min-w-0" >
-                  <strong>${Utils.escapeHtml(o.orderNumber || 'Order')}</strong>
-                  <small>${Utils.formatCurrency(o.total || 0)} · ${Utils.escapeHtml(this.orderStageLabel(o))}${(o.balanceDue || 0) > 0 ? ` · owes ${Utils.formatCurrency(o.balanceDue)}` : ''}</small>
-                </span>
-                <span class="material-symbols-rounded text-tertiary" >chevron_right</span>
-              </button>
-            `).join('')}
-          </div>
-        ` : ''}
-
-        ${jobs.length ? `<div class="card card-page"><div class="flex items-center justify-between mb-sm"><div class="fs-13 fw-600 text-secondary">Jobs (${jobs.length})</div><button class="btn btn-ghost btn-sm" data-action="App.navigate" data-args='${JSON.stringify(['jobs', { customerId }])}' aria-label="Open all customer jobs"><span class="material-symbols-rounded">construction</span></button></div>${jobs.map(job => `<button class="area-customer-row w-full text-left mb-6" data-action="App.navigate" data-args='${JSON.stringify(['jobs', { id: job.id }])}'><span class="material-symbols-rounded">construction</span><span class="flex-1"><strong>${Utils.escapeHtml(job.jobNumber || `Job ${job.id}`)}</strong><small>${Utils.escapeHtml((job.status || 'materials_ordered').replace(/_/g, ' '))}</small></span><span class="material-symbols-rounded">chevron_right</span></button>`).join('')}</div>` : ''}
-
-        <div class="card card-page"><div class="flex items-center justify-between"><div><div class="fs-13 fw-600 text-secondary">Aftercare</div><div class="fs-12 text-tertiary mt-2">${retention.filter(item => !['completed', 'cancelled'].includes(item.status)).length} open · reviews, referrals, warranty and repeat work</div></div><button class="btn btn-outline btn-sm" data-action="App.navigate" data-args='${JSON.stringify(['retention', { customerId }])}'><span class="material-symbols-rounded">handshake</span>Open</button></div></div>
-
-        ${(invoices.length || payments.length) ? `<div class="card card-page"><div class="flex items-center justify-between mb-sm"><div class="fs-13 fw-600 text-secondary">Invoices &amp; payments</div><button class="btn btn-ghost btn-sm" data-action="App.navigate" data-args='${JSON.stringify(['invoices', { customerId }])}' aria-label="Open customer invoices and payments"><span class="material-symbols-rounded">receipt_long</span></button></div>${invoices.slice(0, 3).map(invoice => `<button class="area-customer-row w-full text-left mb-6" data-action="App.navigate" data-args='${JSON.stringify(['invoices', { id: invoice.id }])}'><span class="material-symbols-rounded">receipt_long</span><span class="flex-1"><strong>${Utils.escapeHtml(invoice.invoiceNumber || 'Draft invoice')}</strong><small>${Utils.formatCurrency(invoice.total || 0)} · ${Utils.escapeHtml(invoice.status || 'draft')}</small></span><span class="material-symbols-rounded">chevron_right</span></button>`).join('')}<div class="fs-12 text-tertiary">${payments.length} ledger entr${payments.length === 1 ? 'y' : 'ies'} · corrections remain in history</div></div>` : ''}
-
-        <div class="card card-page" id="customer-expense-evidence">
-          <div class="fs-13 fw-600 text-secondary mb-sm">Expense evidence${linkedExpenses ? ` (${linkedExpenses.length})` : ''}</div>
-          <div class="hint mb-sm">Linked business expenses, not an amount charged to this customer.</div>
-          ${linkedExpenses === null ? '<div class="fs-13 text-secondary">Could not load expense evidence. Reopen this profile to retry.</div>' : linkedExpenses.length ? linkedExpenses.map(expense => `<button type="button" class="area-customer-row w-full text-left mb-6" data-action="MoneyFeature.openEditExpenseModal" data-args='${JSON.stringify([expense.id])}'><span class="material-symbols-rounded" aria-hidden="true">receipt_long</span><span class="flex-1 min-w-0"><strong>${Utils.escapeHtml(expense.description || 'Expense')}</strong><small>${Utils.formatDate(expense.date, 'short')} · ${Utils.formatCurrency(expense.amount)}${expense.photo ? ' · receipt attached' : ''}</small></span><span class="material-symbols-rounded" aria-hidden="true">chevron_right</span></button>`).join('') : '<div class="fs-13 text-tertiary">No expenses linked. Choose this customer when adding or editing an expense in Money.</div>'}
-        </div>
-
-        ${measurements.length ? `
-          <div class="card card-page" >
-            <div class="fs-13 fw-600 text-secondary mb-sm" >Measurements (${measurements.length})</div>
-            ${measurements.map(m => {
-              const visit = apptById.get(m.appointmentId);
-              return `
-                <button class="area-customer-row w-full text-left mb-6"  data-action="App.navigate" data-args='${JSON.stringify(["measure", {appointmentId: (m.appointmentId), measurementId: (m.id)}])}'>
-                  <span class="material-symbols-rounded">straighten</span>
-                  <span class="flex-1 min-w-0" >
-                    <strong>${Utils.escapeHtml(m.windowName || 'Window')}</strong>
-                    <small>${m.widthUsed ? Utils.formatMeasurement(m.widthUsed) : '--'} × ${m.dropUsed ? Utils.formatMeasurement(m.dropUsed) : '--'} · ${m.fittingType === 'exact' ? 'Exact' : 'Recess'}${visit ? ` · ${Utils.formatDate(visit.date, 'short')}` : ''}</small>
-                  </span>
-                  <span class="material-symbols-rounded text-tertiary" >chevron_right</span>
-                </button>
-              `;
-            }).join('')}
-          </div>
-        ` : ''}
-
-        ${interests.length ? `
-          <div class="card card-page" >
-            <div class="fs-13 fw-600 text-secondary mb-sm" >Buying Interest</div>
-            <div class="flex wrap gap-6" >
-              ${interests.map(([label, count]) => `<span class="chip">${Utils.escapeHtml(label)} · ${count}</span>`).join('')}
-            </div>
-          </div>
-        ` : ''}
-
-        <div class="card card-page" id="customer-history-anchor" >
-          <div class="fs-13 fw-600 text-secondary mb-sm" >History</div>
-          ${timeline.length === 0 ? `
-            <div class="fs-13 text-tertiary text-center py-16" >No visits, orders, or messages recorded yet</div>
-          ` : timeline.map(item => `
-            <div class="hsc-appt-row cursor-pointer cursor-default" ${item.onclick ? App.actionAttrs(item.onclick) + ' ' : ''}>
-              <span class="material-symbols-rounded text-tertiary" >${item.icon}</span>
-              <span class="hsc-appt-details">
-                <span class="hsc-appt-name">${item.title}</span>
-                <span class="hsc-appt-address">${Utils.formatDate(item.date, 'short')} · ${item.subtitle}</span>
-              </span>
-              ${item.onclick ? '<span class="material-symbols-rounded hsc-appt-chevron">chevron_right</span>' : ''}
-            </div>
-          `).join('')}
-        </div>
-
-        <div class="card card-page" >
-          <div class="flex items-center justify-between mb-sm" >
-            <div class="fs-13 fw-600 text-secondary" >Photos ${photos.length ? `(${photos.length})` : ''}</div>
-            <button class="btn btn-outline btn-sm" style="gap:6px;" aria-label="Add photo" data-file="customer-photo-input">
-              <span class="material-symbols-rounded fs-16" >photo_camera</span>Add Photo
-            </button>
-          </div>
-          ${photos.length === 0 ? `
-            <div class="fs-13 text-tertiary text-center pt-12 pb-4" >No photos yet — windows, fronts, damage notes, anything useful to remember.</div>
-          ` : `
-            <div class="grid-3 gap-6" >
-              ${photos.map(p => this.renderPhotoThumb(p)).join('')}
-            </div>
-          `}
-          <input type="file" id="customer-photo-input" accept="image/*,.heic,.heif" style="display:none;" data-action="AppointmentsFeature.captureCustomerPhoto" data-args='${JSON.stringify(["__event__", (customerId)])}'>
-        </div>
-
-        <div class="card-page" >
-          <button class="btn btn-danger btn-block btn-sm" data-action="AppointmentsFeature.confirmDeleteCustomer" data-args='${JSON.stringify([(customer.id)])}'>
-            <span class="material-symbols-rounded">delete</span>
-            Delete Customer
-          </button>
-        </div>
-      </div>
-    `;
-  },
-
-  scrollToHistory() {
-    document.getElementById('customer-history-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return '<div class="empty-state" role="alert"><p>Customer workspace could not load. Your saved records have not been changed.</p><button class="btn btn-primary" data-action="App.reloadPage">Reload Beelo</button></div>';
   },
 
   renderVisitPhoneHistory(visits, customerId) {
@@ -407,13 +129,6 @@ const CustomerFeature = {
     if (order.paymentManagedExternally || ['company','external'].includes(order.paymentResponsibility) || order.source === 'survey_referral') return `${order.source==='survey_referral'?'Referred':'Company-managed'} · ${['ordered', 'delivered', 'fitted'].includes(order.stage) ? order.stage : 'ordered'} · payment managed externally`;
     if ((order.balanceDue || 0) <= 0) return 'Paid';
     return (order.stage || 'ordered').replace(/_/g, ' ');
-  },
-
-  getOutcomeName(outcomeId) {
-    if (typeof AppointmentsFeature.getOutcomeName === 'function') {
-      return AppointmentsFeature.getOutcomeName(outcomeId, 'consultation');
-    }
-    return String(outcomeId || '').replace(/_/g, ' ');
   },
 
   activate(params = {}) {

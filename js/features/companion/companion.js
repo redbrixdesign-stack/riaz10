@@ -23,10 +23,6 @@ const CompanionFeature = {
   _turns: [],
   _busy: false,
   _rootId: null,
-  // Which week the Home strip displays (0 = current week, ±1 per arrow tap).
-  // Session-persisted like HomeScreenController._selectedDate; resets on reload.
-  _weekOffset: 0,
-
   // A tiny whitelist shared with the proxy prompt — the AI may only ever
   // suggest commands the router actually understands.
   ALLOWED_SUGGESTIONS: ['today', 'my day', 'week', 'money', 'follow-ups', 'next visit', 'log expense', 'messages', 'orders', 'weather', 'help'],
@@ -204,7 +200,7 @@ const CompanionFeature = {
   },
 
   unmount() {
-    try { HomeScreenController.stopDynamicHomeScreen(); } catch (e) { /* safe */ }
+    this._renderEpoch = (this._renderEpoch || 0) + 1;
   },
 
   renderShell() {
@@ -273,6 +269,10 @@ const CompanionFeature = {
         const again = document.getElementById('comp-scroll');
         if (again && this._turns.length === 0 && again.innerHTML) {
           again.innerHTML = this.welcomeHtml(homeData);
+          if (typeof HomeWorkspace !== 'undefined' && HomeWorkspace._openDiary) {
+            HomeWorkspace._openDiary = false;
+            await HomeWorkspace.toggleCalendar();
+          }
           if (this._homeScrollTop != null) {
             again.scrollTop = Math.min(this._homeScrollTop, again.scrollHeight);
             this._homeScrollTop = null;
@@ -331,229 +331,7 @@ const CompanionFeature = {
 
   welcomeHtml(homeData) {
     if (typeof HomeWorkspace !== 'undefined') return HomeWorkspace.render(homeData);
-    // Home = advisor identity, weekly calendar, thumb-reachable capture,
-    // today's route, then ONE appointment feed (NEXT visit as a rich card +
-    // compact rows), attention and Ask Beelo chips.
-
-    const advisorName = Utils.firstNameFrom(CONFIG.advisorName || '') || 'Advisor';
-    const greetingHtml = `
-      <div class="comp-home-greeting" aria-label="Advisor ${Utils.escapeHtml(advisorName)}">
-        <div class="comp-home-greeting-text">
-          <div class="comp-home-greeting-main">${Utils.escapeHtml(advisorName)}<span class="comp-home-greeting-dot">.</span></div>
-        </div>
-      </div>`;
-
-    const captureHtml = `
-      <div class="comp-home-section comp-home-quick-add" aria-label="Scan or add">
-        <label class="comp-home-capture" for="home-quick-capture">
-          <span class="comp-home-capture-plus material-symbols-rounded" aria-hidden="true">add</span>
-          <span class="comp-home-capture-copy"><strong>Scan to add</strong><small>Visit details or an expense receipt</small></span>
-          <span class="material-symbols-rounded" aria-hidden="true">document_scanner</span>
-        </label>
-        <input class="native-file-input" type="file" id="home-quick-capture" accept="image/*" capture="environment" data-event="change" data-action="ControlFeature.handleQuickCapture" data-args='${JSON.stringify(["__event__"])}'>
-        <div class="comp-home-quick-manual">
-          <button type="button" data-action="App.navigate" data-args='["appointments",{"action":"today-plan"}]'><span class="material-symbols-rounded" aria-hidden="true">event_note</span>Today’s plan</button>
-          <button type="button" data-action="App.navigate" data-args='["appointments",{"action":"tomorrow"}]'><span class="material-symbols-rounded" aria-hidden="true">event_note</span>Plan tomorrow</button>
-          <button type="button" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {action: "add"}])}'><span class="material-symbols-rounded">event</span>Add visit manually</button>
-          <button type="button" data-action="MoneyFeature.openExpenseModal"><span class="material-symbols-rounded">receipt_long</span>Add expense manually</button>
-        </div>
-      </div>`;
-
-    // A. THIS WEEK — navigational 7-day calendar (tap a day → My Day)
-    // with a thin target progress line.
-    let weekStripHtml = '';
-    const week = homeData.week;
-    if (week && week.target > 0) {
-      const todayIso = Utils.formatDate(Utils.getToday(), 'iso');
-      const daysHtml = (homeData.weekDays || []).map(d => {
-        const isToday = d.iso === todayIso;
-        const isPast = d.iso < todayIso;
-        return `
-          <button type="button" class="comp-home-week-day ${isToday ? 'today' : ''} ${isPast ? 'past' : ''}" data-action="CompanionFeature.openMyDay" data-args='${JSON.stringify([d.iso])}' ${isToday ? 'aria-current="date"' : ''}>
-            <span class="comp-home-week-day-label">${d.label}</span>
-            <span class="comp-home-week-day-num">${d.num}</span>
-            <span class="comp-home-week-day-count">${d.count > 0 ? d.count : '—'}</span>
-          </button>`;
-      }).join('');
-      weekStripHtml = `
-        <div class="comp-home-section">
-          <div class="comp-home-section-header">
-            <span class="comp-home-section-label">THIS WEEK</span>
-            <div class="comp-home-week-nav">
-              <button type="button" class="comp-home-week-arrow" aria-label="Previous week" data-action="CompanionFeature.shiftHomeWeek" data-args='${JSON.stringify([-1])}'>
-                <span class="material-symbols-rounded" aria-hidden="true">chevron_left</span>
-              </button>
-              <button type="button" class="comp-home-week-arrow" aria-label="Next week" data-action="CompanionFeature.shiftHomeWeek" data-args='${JSON.stringify([1])}'>
-                <span class="material-symbols-rounded" aria-hidden="true">chevron_right</span>
-              </button>
-            </div>
-          </div>
-          <div class="comp-home-week-strip">${daysHtml}</div>
-          <div class="comp-home-week-progress">
-            <div class="progress-bar comp-home-week-bar"><div class="fill accent" style="width:${week.pct}%"></div></div>
-            <button type="button" class="comp-home-week-target" data-action="App.navigate" data-args='${JSON.stringify(["money"])}'>
-              ${week.gap > 0 ? `${Utils.formatCurrency(week.gap)} to target` : 'Target reached — nice work'}
-            </button>
-          </div>
-          ${homeData.weekRange ? `<div class="comp-home-week-range">${Utils.escapeHtml(homeData.weekRange)} · tap a day for the diary</div>` : ''}
-        </div>`;
-    }
-
-    // B. TODAY'S ROUTE — a compact, actionable sequence using the same
-    // time-ordered legs as the full Route screen. Completed stops remain in
-    // context but are muted; the active leg is highlighted as the next move.
-    // C. NEXT / UPCOMING — the appointment feed. The first upcoming visit
-    // renders as the featured card (active, full detail + actions +
-    // "More about this visit"); the remaining upcoming visits render as
-    // compact rows (customer name, time, ETA). ONE feed — no separate
-    // TODAY/TOMORROW sections, so no appointment is ever shown twice.
-    const upcomingVisits = homeData.upcomingVisits || [];
-    let nextVisitHtml = '';
-    if (homeData.nextVisit || upcomingVisits.length > 0) {
-      const count = (homeData.nextVisit ? 1 : 0) + upcomingVisits.length;
-      // Featured card (only when a next visit exists).
-      let featuredHtml = '';
-      if (homeData.nextVisit) {
-        const nv = homeData.nextVisit;
-        // A bare time ("11:15") only reads correctly when the visit is today.
-        // On any other day the card shows the UK weekday + date.
-        const visitToday = Utils.isSameDay(new Date(nv.date), Utils.getToday());
-        const whenText = visitToday
-          ? nv.time
-          : `${Utils.formatDateUK(nv.date, 'weekday-short')} ${Utils.formatDateUK(nv.date, 'short')}, ${nv.time}`;
-        const timeLabel = whenText;
-        const context = nv.briefing || '';
-        const customerBrief = nv.customerBrief || null;
-        const etaText = [nv.eta !== '—' ? nv.eta : null, nv.travel].filter(Boolean).join(' · ');
-        const phoneDisabled = nv.phone ? '' : ' disabled aria-disabled="true"';
-        featuredHtml = `
-          <div class="comp-home-next-visit">
-            <button type="button" class="comp-home-next-visit-main" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: (nv.id)}])}'>
-              <div class="comp-home-next-visit-time${nv.hasArrivalWindow ? ' is-window' : ''}">${Utils.escapeHtml(timeLabel)}</div>
-              <div class="comp-home-next-visit-headline">
-                <div class="comp-home-next-visit-name">${Utils.escapeHtml(nv.name)}</div>
-                ${etaText ? `<div class="comp-home-next-visit-eta">${Utils.escapeHtml(etaText)}</div>` : ''}
-              </div>
-              ${context ? `<div class="comp-home-next-visit-context">${Utils.escapeHtml(context)}</div>` : ''}
-              <div class="comp-home-next-visit-address">${Utils.escapeHtml(nv.address)}</div>
-              ${nv.parkingNotes ? `<div class="comp-home-next-visit-journey">${Utils.escapeHtml(nv.parkingNotes)}</div>` : ''}
-              <div class="comp-home-next-visit-meta">${Utils.escapeHtml([nv.type, nv.area].filter(Boolean).join(' · '))}</div>
-              ${customerBrief ? `
-                <div class="comp-home-visit-brief" data-customer-brief="${Utils.escapeHtml(customerBrief.fingerprint || '')}">
-                  <span class="comp-home-visit-brief-label">Visit brief</span>
-                  <span class="comp-home-visit-brief-text">${Utils.escapeHtml(customerBrief.text)}</span>
-                </div>` : ''}
-            </button>
-            <div class="comp-home-next-visit-actions">
-              <button class="comp-home-cta comp-home-cta--primary" type="button" data-action="AppointmentsFeature.navigateToVisit" data-args='${Utils.escapeHtml(JSON.stringify([nv.address || '', (nv.id)]))}'>
-                <span class="material-symbols-rounded" aria-hidden="true">navigation</span>
-                <span>Navigate</span>
-              </button>
-              <button class="comp-home-cta comp-home-cta--ghost" type="button"${phoneDisabled} data-action="ContactFeature.open" data-args='${Utils.escapeHtml(JSON.stringify([{name: nv.name, phone: nv.phone || '', customerId:nv.customerId, appointmentId:nv.id}]))}'>
-                <span class="material-symbols-rounded" aria-hidden="true">call</span>
-                <span>Call</span>
-              </button>
-              <button class="comp-home-cta comp-home-cta--ghost" type="button"${phoneDisabled} data-action="TalkFeature.sendMessage" data-args='${JSON.stringify([(nv.id), "on_my_way"])}'>
-                <span class="material-symbols-rounded" aria-hidden="true">near_me</span>
-                <span>On my way</span>
-              </button>
-            </div>
-          </div>`;
-      }
-      // Compact rows for the remaining upcoming visits (name, time, ETA).
-      const rowsHtml = upcomingVisits.slice(0, 5).map(v => {
-        const visitToday = Utils.isSameDay(new Date(v.date), Utils.getToday());
-        const whenText = visitToday
-          ? v.time
-          : `${Utils.formatDateUK(v.date, 'weekday-short')} ${Utils.formatDateUK(v.date, 'short')}, ${v.time}`;
-        const meta = [v.area, v.eta ? `ETA ${v.eta}` : null].filter(Boolean).join(' · ');
-        return `
-          <button type="button" class="comp-home-visit upcoming" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {id: (v.id)}])}'>
-            <span class="comp-home-visit-time${v.hasArrivalWindow ? ' is-window' : ''}">${Utils.escapeHtml(whenText)}</span>
-            <div class="comp-home-visit-main">
-              <span class="comp-home-visit-name">${Utils.escapeHtml(v.name)}</span>
-              <span class="comp-home-visit-area">${Utils.escapeHtml(meta)}</span>
-            </div>
-          </button>`;
-      }).join('');
-      nextVisitHtml = `
-        <div class="comp-home-section comp-home-schedule" aria-labelledby="home-schedule-heading">
-          <div class="comp-home-section-header comp-home-schedule-header">
-            <div class="comp-home-schedule-title">
-              <span class="comp-home-section-label" id="home-schedule-heading">Upcoming</span>
-            </div>
-            <span class="comp-home-section-count">${count} visit${count === 1 ? '' : 's'}</span>
-          </div>
-          <div class="comp-home-schedule-list">
-            ${featuredHtml}
-            ${rowsHtml ? `<div class="comp-home-visits">${rowsHtml}</div>` : ''}
-          </div>
-          ${upcomingVisits.length > 5 ? `<button class="btn btn-ghost btn-sm comp-home-see-all" data-action="App.navigate" data-args='${JSON.stringify(["appointments", {tab: "upcoming"}])}'>See all ${count} visits</button>` : ''}
-        </div>`;
-    } else {
-      nextVisitHtml = `
-        <div class="comp-home-section comp-home-schedule" aria-labelledby="home-schedule-heading">
-          <div class="comp-home-section-header comp-home-schedule-header">
-            <div class="comp-home-schedule-title">
-              <span class="comp-home-section-label" id="home-schedule-heading">Upcoming</span>
-            </div>
-            <span class="comp-home-section-count">No visits</span>
-          </div>
-          <div class="comp-home-empty">No upcoming visits booked. A good day for follow-ups.</div>
-        </div>`;
-    }
-
-    // B. NEEDS YOUR ATTENTION
-    let attentionHtml = '';
-    if (homeData.attention && homeData.attention.length > 0) {
-      const itemsHtml = homeData.attention.map(item => item.action ? `
-        <button type="button" class="comp-home-attention-item" ${App.actionAttrs(item.action)}>
-          <span class="material-symbols-rounded comp-home-attention-icon" aria-hidden="true">${item.icon}</span>
-          <div class="comp-home-attention-content">
-            <span class="comp-home-attention-label">${Utils.escapeHtml(item.label)}</span>
-            <span class="comp-home-attention-value">${Utils.escapeHtml(item.value)}</span>
-          </div>
-          <span class="comp-home-attention-cta">${Utils.escapeHtml(item.actionLabel || 'Open')}<span class="material-symbols-rounded" aria-hidden="true">chevron_right</span></span>
-        </button>` : `
-        <div class="comp-home-attention-item">
-          <span class="material-symbols-rounded comp-home-attention-icon" aria-hidden="true">${item.icon}</span>
-          <div class="comp-home-attention-content">
-            <span class="comp-home-attention-label">${Utils.escapeHtml(item.label)}</span>
-            <span class="comp-home-attention-value">${Utils.escapeHtml(item.value)}</span>
-          </div>
-        </div>`).join('');
-      
-      attentionHtml = `
-        <div class="comp-home-section">
-          <div class="comp-home-section-header">
-            <span class="comp-home-section-label">NEEDS YOUR ATTENTION</span>
-            <span class="comp-home-section-count">${homeData.attention.length}</span>
-          </div>
-          <div class="comp-home-attention-list">${itemsHtml}</div>
-        </div>`;
-    }
-
-    // C. ASK BEELO - Suggestion chips
-    const suggestions = homeData.suggestions || [];
-    const suggestionsHtml = suggestions.length > 0 ? `
-      <div class="comp-home-section">
-        <div class="comp-home-section-header">
-          <span class="comp-home-section-label">ASK BEELO</span>
-        </div>
-        <div class="comp-home-suggestions">
-          ${suggestions.map(s => `<button class="comp-suggestion-chip" type="button" data-action="CompanionFeature.send" data-args='${Utils.escapeHtml(JSON.stringify([s]))}'>${Utils.escapeHtml(this.CHIP_LABELS[s] || s)}</button>`).join('')}
-        </div>
-      </div>` : '';
-
-    return `
-      <div class="comp-home">
-        ${greetingHtml}
-        ${weekStripHtml}
-        ${captureHtml}
-        ${nextVisitHtml}
-        ${attentionHtml}
-        ${suggestionsHtml}
-      </div>`;
+    return '<div class="empty-state" role="alert"><p>Home could not load. Your saved records have not been changed.</p><button class="btn btn-primary" data-action="App.reloadPage">Reload Beelo</button></div>';
   },
 
   // Live, data-driven welcome chips: real names/times/amounts the advisor
@@ -576,8 +354,7 @@ const CompanionFeature = {
     // measured from base, every following visit that day is measured from
     // the ONE BEFORE it — matching how the day actually drives, not
     // "drive home and back out again before every visit". Same chain the
-    // weekly layout uses (see home-screen-controller); the feed rows just
-    // render its labels. Coords for today's visits are ensured here so the
+    // Home diary uses; the feed rows just render its labels. Coords for today's visits are ensured here so the
     // chain works even before the Route screen has geocoded them.
     let basePoint = null;
     let baseLatLng = null;
@@ -760,39 +537,12 @@ const CompanionFeature = {
       pct: target > 0 ? Math.min(100, Math.round(((weekStats.earnings || 0) / target) * 100)) : 0
     };
 
-    // 7-day strip (Mon–Sun of the displayed week — current week by default,
-    // shifted ±1 week per tap on the ‹ › arrows) with real per-day visit
-    // counts, from the same day window the rest of the app uses.
-    let weekDays = [];
-    let weekRange = '';
-    try {
-      const weekStart = Utils.addDays(Utils.getStartOfWeek(), (this._weekOffset || 0) * 7);
-      const weekEnd = Utils.addDays(weekStart, 7);
-      const weekAppts = await DB.getAppointmentsForRange(weekStart.toISOString(), weekEnd.toISOString());
-      const counts = {};
-      for (const a of weekAppts) {
-        if (a.status === 'cancelled') continue;
-        const key = Utils.formatDate(a.date, 'iso');
-        counts[key] = (counts[key] || 0) + 1;
-      }
-      weekDays = Array.from({ length: 7 }, (_, i) => {
-        const d = Utils.addDays(weekStart, i);
-        const iso = Utils.formatDate(d, 'iso');
-        return { iso, label: Utils.formatDate(d, 'weekday-short'), num: d.getDate(), count: counts[iso] || 0 };
-      });
-      const first = weekDays[0];
-      const last = weekDays[6];
-      weekRange = `${first.label} ${first.num} – ${last.label} ${last.num}`;
-    } catch (e) { /* strip is optional */ }
-
     // Suggestions — a small contextual set, all whitelisted commands (the
     // AI never invents actions; every chip routes to an existing handler).
     const suggestions = ['today', 'next visit', 'follow-ups', 'week', 'messages'];
 
     return {
       nextVisit,
-      weekDays,
-      weekRange,
       // The appointment feed — remaining upcoming visits (14-day window,
       // after the featured NEXT card), chronological, each with a real
       // ETA when it can be computed. The renderer shows the first as the
@@ -1781,33 +1531,9 @@ const CompanionFeature = {
 
   /* ---------- actions ---------- */
 
-  // Move the Home week strip ±1 week and re-render the feed (the strip is
-  // the only week-aware part; NEXT/TODAY stay anchored to "now").
-  shiftHomeWeek(delta) {
-    this._weekOffset = (this._weekOffset || 0) + delta;
-    this.renderScroll();
-  },
-
   openMyDay(isoDate) {
-    // Optional initial day: the Home week strip lets a day tap open the
-    // calendar already on that day (existing HomeScreenController logic,
-    // just seeded before the panel renders).
-    if (isoDate && typeof HomeScreenController !== 'undefined') {
-      HomeScreenController._selectedDate = new Date(isoDate);
-    }
-    const content = `
-      <div class="sheet-handle"></div>
-      <div class="sheet-header"><h3>My Day</h3><button class="btn btn-ghost btn-sm" data-action="HomeScreenController.stopDynamicHomeScreen" data-close="1"><span class="material-symbols-rounded">close</span></button></div>
-      <div class="sheet-body p-0" style="min-height:72vh;">
-        <div id="companion-myday-root"></div>
-        <div class="p-md" >
-          <button class="btn btn-primary btn-block" data-action="HomeScreenController.stopDynamicHomeScreen" data-close="1">Back to Beelo</button>
-        </div>
-      </div>`;
-    App.openModal(content);
-    try { HomeScreenController.renderDynamicHomeScreen('companion-myday-root'); } catch (e) {
-      console.warn('My Day panel failed:', e);
-    }
+    if (typeof HomeWorkspace === 'undefined') return Toast.show('Home could not load. Please reload Beelo.', 'warning');
+    return HomeWorkspace.openDiary(isoDate);
   },
 
   async etaFor(appt) {
