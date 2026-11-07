@@ -19,6 +19,8 @@ const OrdersFeature = {
     { id: 'paid', name: 'Paid', icon: 'payments' }
   ],
 
+  _orderSheetRequest: 0,
+
   QUOTE_OUTCOMES: ['quoted', 'thinking', 'partner', 'compare_quotes', 'expensive'],
 
   isReferral(order) { return order.source === 'survey_referral'; },
@@ -192,8 +194,11 @@ const OrdersFeature = {
   /* ---------- Order detail sheet ---------- */
 
   async openOrderSheet(orderId) {
+    const navigationRevision=App._navigationRevision,request=++this._orderSheetRequest;
+    const current=()=>navigationRevision===App._navigationRevision&&request===this._orderSheetRequest;
     let order = null;
     try { order = await DB.db.orders.get(orderId); } catch (e) {}
+    if(!current())return;
     if (!order) { Toast.show('Order not found', 'error'); return; }
     let jobs = [];
     try { if (typeof DB.getJobs === 'function') jobs = await DB.getJobs({ orderId }); } catch (e) {}
@@ -298,6 +303,7 @@ const OrdersFeature = {
         </div>
       </div>
     `;
+    if(!current())return;
     App.openModal(content);
   },
 
@@ -413,11 +419,18 @@ const OrdersFeature = {
     App.navigate('orders', { id: orderId });
   },
 
+  deactivate() {
+    clearTimeout(this._orderSheetTimer);
+    this._orderSheetRequest++;
+  },
+
   activate(params = {}) {
     if (params.id) {
       const id = Number(params.id);
       if (Number.isInteger(id) && id > 0) {
-        setTimeout(() => this.openOrderSheet(id), 120);
+        const revision=App._navigationRevision;
+        clearTimeout(this._orderSheetTimer);
+        this._orderSheetTimer=setTimeout(()=>{if(revision===App._navigationRevision&&App.currentFeature?.id==='orders')this.openOrderSheet(id);},120);
       }
     }
   }

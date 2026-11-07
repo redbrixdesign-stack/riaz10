@@ -59,3 +59,11 @@ Full regression suite passed. Runtime `0641529`, cache 190. Exact production dep
 ### AW-003 deployed and live-verified
 
 Runtime `7d6346e`, cache 191; exact deployment `dpl_FwejnUbgTt7KhctidfvLJpvPK3No` (`beelo1-f2zbyl125-beelomvp.vercel.app`) staged, 11 selected assets hash-verified, then promoted without rebuild. All 39 maintained browser journeys and the full unit suite passed. Changed public assets match tested hashes. Public-origin Chromium/WebKit fitting lifecycle passed; stable pending-action screenshots visually inspected. Recent deployment error-log query returned zero rows (bounded observation, not an absence-of-all-errors guarantee). No provider requests or customer communications delivered by the synthetic journey. Physical iPhone/VoiceOver acceptance remains separate.
+
+## AW-004 — A delayed order panel can cross into another customer — P1
+
+**Confirmed:** Tap an order card while its record read is delayed, then navigate to a different customer. The old order sheet appears in that customer's workspace when the read completes. The order-route activation timer can similarly outlive its original route. Red Chromium journey reproduced one stale order heading instead of zero.
+
+**Fix:** Order panels retain their originating navigation revision and latest request identity. A stale read cannot display a panel/error after navigation or a newer order request. Leaving Orders cancels its scheduled panel and invalidates in-flight requests; its timer also verifies the originating navigation before opening. Legitimate order opens from Orders and the customer profile remain supported. No order/payment/commission data is changed by this fix.
+
+**Evidence:** Synthetic browser journey passes Chromium/WebKit for delayed encrypted-store read, stale activation timer, valid board/profile opens, and unchanged £500 balance/ordered stage. Public release follows after unit and affected-workflow checks. This does not claim every asynchronous feature in the app has received the same ownership audit.

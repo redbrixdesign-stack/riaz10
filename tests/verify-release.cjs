@@ -7,7 +7,7 @@ const {spawn}=require('node:child_process');
 const root=path.resolve(__dirname,'..');
 const directory=process.env.BEELO_ARTIFACT_DIR?path.resolve(process.env.BEELO_ARTIFACT_DIR):fs.mkdtempSync(path.join(os.tmpdir(),'beelo-release-'));
 fs.mkdirSync(directory,{recursive:true});
-const checks=['adviser-deferred-fitting.e2e.cjs','adviser-active-visit.e2e.cjs','adviser-home-plan.e2e.cjs','home-workspace.e2e.cjs','payment-link.e2e.cjs','protected-backup.e2e.cjs','context-encryption.e2e.cjs','lazy-state.e2e.cjs','social-share.e2e.cjs','cold-offline.e2e.cjs','script-load-deadline.e2e.cjs','claude-usage.e2e.cjs','test-session-boundary.e2e.cjs','visit-reminder-expiry.e2e.cjs','visit-reminder-lifecycle.e2e.cjs','visit-form-layout.e2e.cjs','modal-form-state.e2e.cjs','visit-draft.e2e.cjs','expense-date.e2e.cjs','expense-context.e2e.cjs','sw-update.e2e.js'];
+const checks=['adviser-order-navigation.e2e.cjs','adviser-deferred-fitting.e2e.cjs','adviser-active-visit.e2e.cjs','adviser-home-plan.e2e.cjs','home-workspace.e2e.cjs','payment-link.e2e.cjs','protected-backup.e2e.cjs','context-encryption.e2e.cjs','lazy-state.e2e.cjs','social-share.e2e.cjs','cold-offline.e2e.cjs','script-load-deadline.e2e.cjs','claude-usage.e2e.cjs','test-session-boundary.e2e.cjs','visit-reminder-expiry.e2e.cjs','visit-reminder-lifecycle.e2e.cjs','visit-form-layout.e2e.cjs','modal-form-state.e2e.cjs','visit-draft.e2e.cjs','expense-date.e2e.cjs','expense-context.e2e.cjs','sw-update.e2e.js'];
 checks.splice(checks.indexOf('expense-context.e2e.cjs'),0,'communication-resolution.e2e.cjs');
 checks.splice(checks.indexOf('expense-context.e2e.cjs'),0,'expense-finder.e2e.cjs');
 checks.splice(checks.indexOf('expense-context.e2e.cjs'),0,'working-memory-search.e2e.cjs');
