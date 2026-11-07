@@ -1,0 +1,75 @@
+{
+  "deployment": "https://beelo1-bacv3ya1r-beelomvp.vercel.app",
+  "results": [
+    {
+      "file": "sw.js",
+      "sha256": "b57601dd8c86231638507dc30585b688391ecccb05d67b23238b10ebfff02dbb",
+      "matched": true
+    },
+    {
+      "file": "index.html",
+      "sha256": "8540c9ad1954486eb511d3f9724a29411eb048c40cf9eab3a6488a20ec2f7590",
+      "matched": true
+    },
+    {
+      "file": "css/components.css",
+      "sha256": "ec0d961a4f5b7b0dcb0131d5acc9110b4594956af2b2a7c079cc6e733d62924e",
+      "matched": true
+    },
+    {
+      "file": "js/features/today/home-workspace.min.js",
+      "sha256": "2034c4aff249367d58c495e1cd2e4fe37d49f99ada91f7528378b4c81608303b",
+      "matched": true
+    },
+    {
+      "file": "js/core/db.min.js",
+      "sha256": "1cc5d62967f2390d2c475ad24c22adb309ce520756986695be43a2eada89869c",
+      "matched": true
+    },
+    {
+      "file": "js/core/app.min.js",
+      "sha256": "fc9d28f97bfe9531ba07358892e085ad78f46c9cde7ff1e8454aa0f21226ca0f",
+      "matched": true
+    },
+    {
+      "file": "js/features/customer/workspace.min.js",
+      "sha256": "52384b3b16ae9fe8ba6f33186a9c48060ada41a8a594d91be52e656564b2b27e",
+      "matched": true
+    },
+    {
+      "file": "js/features/companion/companion.min.js",
+      "sha256": "fb5a06d00014b91f37c0d387701afb5192dab134055d5c2abfa059a466a128fb",
+      "matched": true
+    },
+    {
+      "file": "js/features/appointments/appointments.min.js",
+      "sha256": "4abb7d7638cf53434a16aaeda01948f0ac2c4c22123febdd8e74234d2db355c1",
+      "matched": true
+    },
+    {
+      "file": "js/services/tasks.min.js",
+      "sha256": "4326bf184f5fcb6b8babe9d271a50164cb101dc73cb8c81819eca839f523d761",
+      "matched": true
+    },
+    {
+      "file": "js/features/followups/followups.min.js",
+      "sha256": "fa5dd73b7569f95fff86974cef235a9fc074e6715985db36acf5f6f99266be66",
+      "matched": true
+    },
+    {
+      "file": "js/features/orders/orders.min.js",
+      "sha256": "b99e357810d41fde9d04629b5a38817d16f7eb6f41da4aa3113f71b48583ef00",
+      "matched": true
+    },
+    {
+      "endpoint": "/api/claude",
+      "getStatus": 405,
+      "providerCalled": false
+    },
+    {
+      "endpoint": "/api/transcribe",
+      "getStatus": 405,
+      "providerCalled": false
+    }
+  ]
+}
