@@ -136,6 +136,7 @@ const App = {
 
     // First-run check: send to onboarding if not completed
     const onboardingDone = CONFIG.onboardingComplete || parsedSavedConfig?.onboardingComplete;
+    this._requiresOnboarding = !onboardingDone;
     // Always land on the day-aware Today screen on a fresh launch, not
     // whatever tab was left in the hash last time (e.g. #money) - Today is
     // the one screen that already decides Morning/Mid-Day/Evening for you,
@@ -707,6 +708,13 @@ const App = {
         params[key] = value;
       });
     }
+    if (this._requiresOnboarding && CONFIG.onboardingComplete !== true && featureId !== 'onboarding') {
+      if (this.currentFeature?.id === 'onboarding') {
+        window.history.replaceState(null, '', '#onboarding');
+        return; // Keep the unfinished setup form intact.
+      }
+      featureId = 'onboarding'; params = {};
+    }
     // Drop undefined/null params before serialising. URLSearchParams turns
     // an undefined VALUE into the string "undefined" (e.g. date=undefined),
     // which downstream forms read as a real value and render into date/time
@@ -847,6 +855,8 @@ const App = {
 
     // Update URL hash
     this.currentHash = targetHash;
+    const bottomNav = document.getElementById('bottom-nav');
+    if (bottomNav) bottomNav.hidden = targetHash.split('?')[0] === 'onboarding';
     if (window.location.hash.slice(1) !== targetHash) {
       window.location.hash = targetHash;
     }
