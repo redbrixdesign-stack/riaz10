@@ -21,3 +21,12 @@ Muhammad's iPhone screenshot showed that cache 187 implemented functionality wit
 - Customer-workspace, Home outcome-timing, communication-summary, cold-offline and service-worker update browser regressions passed. Synthetic records only; outside services blocked; no calls/messages/provider requests in those journeys.
 - Screenshots: `evidence/home-visual-parity-20261107/`. These are browser-engine iPhone-sized checks, not a claim of testing Muhammad's physical iPhone. Native simulator is available but was showing an older cached app and privacy sheet during inspection; no native acceptance is claimed.
 - Original dirty application checkout remains untouched. This correction is isolated on `codex/home-visual-parity-20261107`, cache 188. Live deployment identity is appended after promotion and verification.
+
+## Deployment verified
+
+- Runtime commit `2660bc5978e1c2877ff20e4acfcfdf4688e9e36e` pushed to `codex/home-visual-parity-20261107`.
+- Cache `advisoros-v6-188-home-visual-parity`.
+- Production deployment `dpl_8qbNG9JHZnpgRu6qNQvdXW8kP7UQ`, https://beelo1-rckueb5x1-beelomvp.vercel.app, staged and authenticated asset-verified, then promoted without rebuilding to https://beelo.beelestial.co.uk/.
+- Eight staged asset hashes match tested files; both existing AI endpoints reject GET with 405 without provider calls. The four changed public assets also match local source hashes.
+- Final public-origin Home/customer acceptance passed Chromium and WebKit, including Home geometry, calendar bounds, future-day action safety, search, context, recovery/offline note save and accessibility checks. Live WebKit screenshots are preserved beside local comparison screenshots.
+- Existing physical iPhone installations need Update and reload when offered. No records, credentials or financial formulas were altered by this correction. Original application diff hash is unchanged: `8b6f2a59c93c01d1e4bee30742536a538f010119e3acf6b99e9b2f63e8e295d1`.

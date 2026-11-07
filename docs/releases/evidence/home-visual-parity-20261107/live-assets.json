@@ -1,0 +1,28 @@
+{
+  "origin": "https://beelo.beelestial.co.uk",
+  "deploymentId": "dpl_8qbNG9JHZnpgRu6qNQvdXW8kP7UQ",
+  "runtimeCommit": "2660bc5978e1c2877ff20e4acfcfdf4688e9e36e",
+  "cache": 188,
+  "results": [
+    {
+      "file": "index.html",
+      "sha256": "b610de8d9224cb76fac9d8f6295c4e84c0bb52ea792252c52cb8b4d6920da6c4",
+      "matched": true
+    },
+    {
+      "file": "sw.js",
+      "sha256": "21d41e51a37c6650af2ae0e4aba1bf5c5c7328d4d07ede41c1e24869a35633de",
+      "matched": true
+    },
+    {
+      "file": "css/components.css",
+      "sha256": "568e76810af4b1387be96ddc86bd148d2ee9780dace1e86611d00b9f97eedbcd",
+      "matched": true
+    },
+    {
+      "file": "js/features/today/home-workspace.min.js",
+      "sha256": "808e4e193818ebcc4dc98dc8a168ce645d8543783158fad03467fe236dc9bb13",
+      "matched": true
+    }
+  ]
+}
