@@ -1,0 +1,70 @@
+{
+  "deployment": "https://beelo1-f2zbyl125-beelomvp.vercel.app",
+  "results": [
+    {
+      "file": "sw.js",
+      "sha256": "4756658660c70eaf46ee0f26e284ae0ac76ce893788928c2f911d315a2c43700",
+      "matched": true
+    },
+    {
+      "file": "css/components.css",
+      "sha256": "568e76810af4b1387be96ddc86bd148d2ee9780dace1e86611d00b9f97eedbcd",
+      "matched": true
+    },
+    {
+      "file": "index.html",
+      "sha256": "5c068e51ec16eb47a1e93553f4f1ecd53120450465b05071ea6d40cbaebd6cc4",
+      "matched": true
+    },
+    {
+      "file": "js/core/app.min.js",
+      "sha256": "fc9d28f97bfe9531ba07358892e085ad78f46c9cde7ff1e8454aa0f21226ca0f",
+      "matched": true
+    },
+    {
+      "file": "js/features/today/home-workspace.min.js",
+      "sha256": "f378da4d4580f830a50bb4be9f5ce60e990411c95f83182912f3dc9bb97690e9",
+      "matched": true
+    },
+    {
+      "file": "js/core/db.min.js",
+      "sha256": "1cc5d62967f2390d2c475ad24c22adb309ce520756986695be43a2eada89869c",
+      "matched": true
+    },
+    {
+      "file": "js/features/customer/workspace.min.js",
+      "sha256": "52384b3b16ae9fe8ba6f33186a9c48060ada41a8a594d91be52e656564b2b27e",
+      "matched": true
+    },
+    {
+      "file": "js/features/appointments/appointments.min.js",
+      "sha256": "4abb7d7638cf53434a16aaeda01948f0ac2c4c22123febdd8e74234d2db355c1",
+      "matched": true
+    },
+    {
+      "file": "js/features/companion/companion.min.js",
+      "sha256": "fb5a06d00014b91f37c0d387701afb5192dab134055d5c2abfa059a466a128fb",
+      "matched": true
+    },
+    {
+      "file": "js/services/tasks.min.js",
+      "sha256": "4326bf184f5fcb6b8babe9d271a50164cb101dc73cb8c81819eca839f523d761",
+      "matched": true
+    },
+    {
+      "file": "js/features/followups/followups.min.js",
+      "sha256": "fa5dd73b7569f95fff86974cef235a9fc074e6715985db36acf5f6f99266be66",
+      "matched": true
+    },
+    {
+      "endpoint": "/api/claude",
+      "getStatus": 405,
+      "providerCalled": false
+    },
+    {
+      "endpoint": "/api/transcribe",
+      "getStatus": 405,
+      "providerCalled": false
+    }
+  ]
+}
