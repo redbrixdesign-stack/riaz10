@@ -12,6 +12,7 @@ const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
   await p.goto(base);await p.waitForFunction(()=>App.currentHash==='today');
   await p.evaluate(()=>navigator.serviceWorker.ready);await p.waitForFunction(()=>!!navigator.serviceWorker.controller);await p.waitForTimeout(700);
   const ids=await p.evaluate(async()=>{
+   CONFIG.advisorTitle='SYNTHETIC Independent Role';CONFIG.socialLinks={facebook:'https://example.invalid/synthetic',instagram:''};CONFIG.weeklyTarget=0;CONFIG.commission={mode:'manual'};
    const c=await DB.addCustomer({firstName:'SYNTHETIC',lastName:'Backup',notes:'SYNTHETIC Urdu اردو 🪟'});
    const a=await DB.addAppointment({customerId:c.id,type:'fitting',date:'2020-01-01T10:00:00Z',notes:'SYNTHETIC visit note'});
    await DB.addVoiceNote({customerId:c.id,appointmentId:a.id,data:'A'.repeat(1000000),mimeType:'audio/wav',durationSeconds:30,title:'SYNTHETIC large recording'});
@@ -51,7 +52,7 @@ const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
   await q.waitForFunction(()=>window.backupResult==='ok');
   const verify=()=>q.evaluate(async ids=>({notes:(await DB.getCustomer(ids.c)).notes,voice:(await DB.getVoiceNotes({customerId:ids.c}))[0].data,photos:(await DB.getPhotosForCustomer(ids.c))[0].data,encrypted:typeof(await DB.db.customers.get(ids.c)).notes==='object'}),ids);
   let restored=await verify();assert.equal(restored.notes,'SYNTHETIC Urdu اردو 🪟');assert.equal(restored.voice,'A'.repeat(1000000));assert.equal(restored.photos,'QUJD');assert(restored.encrypted);
-  await q.reload();await q.waitForFunction(()=>App.currentHash==='today');restored=await verify();assert.equal(restored.voice.length,1000000);
+  await q.reload();await q.waitForFunction(()=>App.currentHash==='today');restored=await verify();assert.equal(restored.voice.length,1000000);assert.equal(await q.evaluate(()=>CONFIG.advisorTitle),'SYNTHETIC Independent Role');assert.equal(await q.evaluate(()=>CONFIG.socialLinks.facebook),'https://example.invalid/synthetic');assert.equal(await q.evaluate(()=>CONFIG.weeklyTarget),0);assert.equal(await q.evaluate(()=>TaxCalculator.estimateCommission(1000)),0);
   assert.deepEqual(posts,[]);
   console.log(`PASS ${engine.name()}: protected download >1 MB, password validation/cancel, wrong password and declined restore preserve data, real different-device key import, exact audio/photo/Unicode and reload; no uploads`);
  }finally{await browser.close();}

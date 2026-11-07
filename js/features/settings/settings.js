@@ -39,7 +39,7 @@ const SettingsFeature = {
     const commissionMode = commission.mode || 'two_stage';
     const effectiveRate = TaxCalculator.getEffectiveCommissionRate();
     const effectiveRatePercent = (effectiveRate * 100).toFixed(1);
-    const weeklyTarget = CONFIG.weeklyTarget || 600;
+    const weeklyTarget = CONFIG.weeklyTarget ?? 600;
 
     const sections = [
       {
@@ -242,10 +242,11 @@ const SettingsFeature = {
           <label>Name</label>
           <input type="text" class="input" id="set-name" value="${Utils.escapeHtml(CONFIG.advisorName || '')}" placeholder="Your full name" data-action="SettingsFeature.setName" data-args='${JSON.stringify(["__value__"])}'>
         </div>
+        <div class="form-group"><label for="set-advisor-title">How you introduce yourself</label><input type="text" class="input" id="set-advisor-title" maxlength="160" value="${Utils.escapeHtml(CONFIG.advisorTitle||'')}" data-action="SettingsFeature.setAdvisorTitle" data-args='["__value__"]'><p class="hint">Used in customer message drafts. Use only your own role and affiliation.</p></div>
         <div class="form-group">
           <label>Weekly Earnings Target (£)</label>
-          <input type="number" class="input" inputmode="decimal" id="set-target" value="${CONFIG.weeklyTarget || 600}" step="10" min="0" data-action="SettingsFeature.setTarget" data-args='${JSON.stringify(["__value__"])}'>
-          <div class="hint">What you want to take home this week. Everything else derives from this.</div>
+          <input type="number" class="input" inputmode="decimal" id="set-target" value="${CONFIG.weeklyTarget ?? 600}" step="10" min="0" data-action="SettingsFeature.setTarget" data-args='${JSON.stringify(["__value__"])}'>
+          <div class="hint">Recorded earnings goal before expenses and tax. Zero means no target; it is not a take-home figure.</div>
         </div>
         <div class="form-group mb-0">
           <label>Weekly Sales Target (derived)</label>
@@ -449,7 +450,7 @@ const SettingsFeature = {
         <div class="fw-600 mb-xs">Commission Rate</div>
         <div class="fs-12 text-secondary mb-12">How commission is calculated from a sale's value.</div>
 
-        <div class="segmented mb-12">
+        <div class="segmented mb-12"><button class="segment ${mode === 'manual' ? 'active' : ''}" data-action="SettingsFeature.setCommissionMode" data-args='["manual"]'>Not set</button>
           <button class="segment ${mode === 'two_stage' ? 'active' : ''}" data-action="SettingsFeature.setCommissionMode" data-args='${JSON.stringify(["two_stage"])}'>Sale reduction + net %</button>
           <button class="segment ${mode === 'simple' ? 'active' : ''}" data-action="SettingsFeature.setCommissionMode" data-args='${JSON.stringify(["simple"])}'>Simple %</button>
         </div>
@@ -465,7 +466,7 @@ const SettingsFeature = {
             <input type="number" class="input" inputmode="decimal" id="set-commission-net" value="${commission.netCommissionRate ?? 15.25}" step="0.01" min="0" max="100" data-action="SettingsFeature.setNetCommissionRate" data-args='${JSON.stringify(["__value__"])}'>
             <div class="hint">Applied to the net figure from Step 1.</div>
           </div>
-        ` : `
+        ` : mode === 'manual' ? '<p class="hint">No sales or survey commission estimates until you set your agreed scheme. Recorded service-call fees remain separate.</p>' : `
           <div class="form-group mb-0">
             <label>Commission Rate (%)</label>
             <input type="number" class="input" inputmode="decimal" id="set-commission-simple" value="${commission.simpleRate ?? 10}" step="0.1" min="0" max="100" data-action="SettingsFeature.setSimpleCommissionRate" data-args='${JSON.stringify(["__value__"])}'>
@@ -542,15 +543,15 @@ const SettingsFeature = {
           </button>
         </div>
 
-        <div class="fs-12 text-tertiary mt-10 lh-150">Works through your own serverless function (Vercel), which holds the API key — it never ships inside this app. Deploy <code class="fs-11">api/claude.mjs</code> (Vercel) with your <code class="fs-11">ANTHROPIC_API_KEY</code> environment variable, then paste the function URL below.</div>
+        <div class="fs-12 text-tertiary mt-10 lh-150">Optional online features need pilot access configured on this device. Ask the pilot organiser for the service address and device access secret. Provider API keys stay on the server; never paste one here.</div>
 
         <div class="form-group mt-10">
           <label>Proxy URL</label>
           <input type="text" class="input" id="set-ai-url" value="${Utils.escapeHtml(ai.proxyUrl || '')}" placeholder="https://your-site.vercel.app/api/claude" data-action="SettingsFeature.setAIUrl" data-args='${JSON.stringify(["__value__"])}'>
         </div>
         <div class="form-group">
-          <label>Shared Secret (optional)</label>
-          <input type="password" class="input" id="set-ai-secret" value="" placeholder="${secretSaved ? 'Saved securely on this device — leave blank to keep it' : 'Only if your proxy requires X-AI-Key'}" autocomplete="off">
+          <label>Device access secret</label>
+          <input type="password" class="input" id="set-ai-secret" value="" placeholder="${secretSaved ? 'Saved securely on this device — leave blank to keep it' : 'Required for the configured pilot AI service'}" autocomplete="off">
           <div class="fs-11 text-tertiary mt-4">Encrypted on this device and never included in Beelo backups.</div>
           <div class="flex gap-sm mt-6">
             <button class="btn btn-outline btn-sm" data-action="SettingsFeature.saveAISecretFromField">Save secret</button>
@@ -771,6 +772,7 @@ const SettingsFeature = {
     const aiWithoutSecret = CONFIG.ai ? { ...CONFIG.ai, secret: undefined } : CONFIG.ai;
     const toSave = {
       advisorName: CONFIG.advisorName,
+      advisorTitle: CONFIG.advisorTitle,
       companyName: CONFIG.companyName,
       socialLinks: CONFIG.socialLinks,
       businessAddress: CONFIG.businessAddress,
@@ -907,7 +909,8 @@ const SettingsFeature = {
   },
 
   setCommissionMode(mode) {
-    CONFIG.commission = { ...(CONFIG.commission || {}), mode };
+    if (!['manual','simple','two_stage'].includes(mode)) return;
+    CONFIG.commission = { ...(CONFIG.commission || {}), mode, simpleRate:CONFIG.commission?.simpleRate??0, saleReductionRate:CONFIG.commission?.saleReductionRate??0, netCommissionRate:CONFIG.commission?.netCommissionRate??0 };
     this.persist();
     this.refreshInPlace();
   },
@@ -981,9 +984,15 @@ const SettingsFeature = {
     Toast.show('Name updated', 'success');
   },
 
+  setAdvisorTitle(value) {
+    const title=String(value||'').trim();
+    if(!title||title.length>160)return Toast.show('Enter your role (up to 160 characters)','error');
+    CONFIG.advisorTitle=title;this.persist();Toast.show('Introduction updated','success');
+  },
+
   setTarget(value) {
     const num = parseFloat(value);
-    if (!num || num <= 0) {
+    if (String(value).trim() === '' || !Number.isFinite(num) || num < 0) {
       Toast.show('Please enter a valid target', 'error');
       return;
     }
@@ -1002,7 +1011,7 @@ const SettingsFeature = {
       return;
     }
     const num = parseFloat(value);
-    if (!num || num <= 0) {
+    if (!Number.isFinite(num) || num <= 0) {
       Toast.show('Please enter a valid hourly rate', 'error');
       return;
     }

@@ -299,10 +299,12 @@ App.registerFeature(LegalFeature);
    ============================================ */
 const ConsentPrompt = {
   _shown: false,
-  _attempts: 0,
 
   init() {
-    if (this._acknowledged()) return;
+    if (this._listening) return;
+    this._listening = true;
+    window.addEventListener('hashchange', () => this._schedule());
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) this._schedule(); });
     this._schedule();
   },
 
@@ -315,19 +317,44 @@ const ConsentPrompt = {
 
   _schedule() {
     if (this._shown || this._acknowledged()) return;
-    if (this._attempts >= 4) return;
-    this._attempts++;
-    setTimeout(() => {
+    if (this._timer) return;
+    this._timer = setTimeout(() => {
+      this._timer = null;
       if (this._shown || this._acknowledged()) return;
       try { if (typeof Utils !== 'undefined' && Utils.isLocalBrowserTest?.()) return; } catch {}
       if (typeof App === 'undefined' || App.currentHash === 'onboarding' || App.currentHash === '') return;
       // Don't interrupt a task the user is mid-way through; retry (bounded).
-      if (App.currentHash !== 'today' || document.querySelector('.modal-overlay.active')) {
+      if (App.currentHash !== 'today') return;
+      if (document.hidden || document.querySelector('.modal-overlay.active') || ['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)) {
         this._schedule();
         return;
       }
       this._show();
     }, 5000);
+  },
+
+  explanationHtml() {
+    return `        <p class="text-secondary mb-lg lh-150 fs-14">
+          Beelo has no user account or cloud customer database. Your saved customer,
+          visit, photo and audio records live on <strong>this device</strong>, with
+          sensitive fields encrypted. Beelo does not sell them.
+        </p>
+        <p class="text-secondary mb-lg lh-150 fs-14">
+          Maps, address search, routing and weather use external providers when you
+          request them. Voice audio is sent to OpenAI only when you tap
+          <strong>Transcribe</strong>. Claude photo/drafting tools are
+          <strong>off by default</strong> and use Anthropic only after you enable them.
+        </p>
+<p class="hint">Keep your passphrase safe and make a protected backup. There is no cloud recovery if this phone or its browser storage is lost. Review optional network features before using customer information.</p>`;
+  },
+
+  recordAcknowledgement() {
+    try {
+      localStorage.setItem('advisoros_consent', JSON.stringify({ v: 2, at: new Date().toISOString() }));
+      if (!this._acknowledged()) return false;
+      this._shown = true;
+      return true;
+    } catch (_) { return false; }
   },
 
   _show() {
@@ -339,17 +366,7 @@ const ConsentPrompt = {
         <h3>Your records stay on this phone</h3>
       </div>
       <div class="sheet-body p-md">
-        <p class="text-secondary mb-lg lh-150 fs-14">
-          Beelo has no user account or cloud customer database. Your saved customer,
-          visit, photo and audio records live on <strong>this device</strong>, with
-          sensitive fields encrypted. Beelo does not sell them.
-        </p>
-        <p class="text-secondary mb-lg lh-150 fs-14">
-          Maps, address search, routing and weather use external providers when you
-          request them. Voice audio is sent to OpenAI only when you tap
-          <strong>Transcribe</strong>. Claude photo/drafting tools are
-          <strong>off by default</strong> and use Anthropic only after you enable them.
-        </p>
+        ${this.explanationHtml()}
         <button class="btn btn-primary btn-block" data-action="ConsentPrompt.acknowledge">I understand</button>
         <button class="btn btn-ghost btn-block mt-sm" data-action="ConsentPrompt.openPrivacy">Read our privacy policy</button>
         <div class="fs-11 text-tertiary text-center mt-12" >No advertising tracking · no autonomous messages · network tools act only when requested</div>
@@ -358,16 +375,15 @@ const ConsentPrompt = {
   },
 
   acknowledge() {
-    try {
-      localStorage.setItem('advisoros_consent', JSON.stringify({ v: 2, at: new Date().toISOString() }));
-    } catch (e) {}
-    this._shown = true;
+    if (!this.recordAcknowledgement()) return Toast.show('Could not save your acknowledgement. Please try again.', 'error');
     App.closeModal({ all: true, silent: true });
     Toast.show('Privacy choices acknowledged', 'success');
   },
 
   openPrivacy() {
+    this._shown = false;
     Legal.openPage('privacy');
+    this._schedule();
   }
 };
 

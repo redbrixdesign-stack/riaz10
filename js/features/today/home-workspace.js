@@ -34,22 +34,17 @@ const HomeWorkspace = {
     const start=Utils.getStartOfWeek(),end=this.addDays(start,7),now=new Date(),to=now<end?now:end;
     const stats=await DB.getWeekStats(start.toISOString(),end.toISOString());
     const expenses=(await DB.getExpensesForPeriod(start.toISOString(),end.toISOString())).filter(e=>new Date(e.date)>=start&&new Date(e.date)<end);
-    const costs=expenses.reduce((s,e)=>s+Math.max(0,Number(e.amount)||0),0);
+    const expenseSummary=TaxCalculator.expenseBreakdown(expenses),costs=expenseSummary.cash;
     // A budgeting illustration, not a tax return: only explicitly confirmed
     // business trips count. Apply annual mileage bands, never reset each week.
-    const year=Utils.getTaxYearStart(),trips=await DB.getTripsForPeriod(year.toISOString(),to.toISOString());
-    const valid=t=>t.confirmed===true&&t.purpose==='business';
-    const prior=trips.filter(t=>valid(t)&&new Date(t.date)<start).reduce((s,t)=>s+Math.max(0,Number(t.distanceKm)||0),0);
-    const current=trips.filter(t=>valid(t)&&new Date(t.date)>=start&&new Date(t.date)<end).reduce((s,t)=>s+Math.max(0,Number(t.distanceKm)||0),0);
-    const mileage=TaxCalculator.calculateMileageClaim(prior+current)-TaxCalculator.calculateMileageClaim(prior);
+    const mileage=await TaxCalculator.calculatePeriodMileage(start.toISOString(),to.toISOString());
     // Actual recorded expenses leave the cash estimate once. Mileage is a tax
     // deduction, not a second cash outflow. Vehicle-running categories are
     // excluded from the tax deduction to avoid claiming both methods.
-    const vehicle=/fuel|petrol|diesel|vehicle|insurance|repair|servic|motor/i;
-    const deductible=expenses.filter(e=>!vehicle.test(e.category||'')).reduce((s,e)=>s+Math.max(0,Number(e.amount)||0),0);
+    const deductible=expenseSummary.deductible;
     const profit=Math.max(0,stats.earnings-deductible-mileage);
     const reserve=TaxCalculator.calculate(profit*52,{firstYear:true}).totalLiability/52;
-    return {earnings:stats.earnings,expenses:costs,mileage,reserve,net:stats.earnings-costs-reserve,target:Number(CONFIG.weeklyTarget)||0};
+    return {earnings:stats.earnings,expenses:costs,reviewExpenses:expenseSummary.review,mileage,reserve,net:stats.earnings-costs-reserve,target:Number(CONFIG.weeklyTarget)||0};
   },
   travel(id) {const leg=this.legs?.get(id);return leg?.km!==null&&leg?.km!==undefined?`${(leg.km*0.621371).toFixed(1)} mi · ${leg.minutes} min incl. 10 min buffer`:'Travel estimate unavailable';},
   icon(name) {return `<span class="material-symbols-rounded" aria-hidden="true">${name}</span>`;},
@@ -118,7 +113,7 @@ const HomeWorkspace = {
       <section class="hw-search"><label for="home-customer-search">Find a customer</label><input type="search" class="input" id="home-customer-search" placeholder="Name, phone, postcode, address or order" autocomplete="off" data-event="input" data-action="HomeWorkspace.search" data-args='["__event__"]'><div id="home-search-results" role="status" aria-live="polite"></div></section>${b('HomeWorkspace.ask',[],this.icon('auto_awesome')+'Ask Beelo','hw-ask')}`;
   },
   toggleAdd(){const host=document.getElementById('home-add-choices');if(host)host.hidden=!host.hidden;},
-  showEstimate(){const w=this.data?.weekMoney;if(!w)return;App.openModal(`<div class="sheet-header"><h3>Weekly budget estimate</h3><button class="btn btn-ghost" data-action="App.closeModal">Close</button></div><div class="sheet-body"><p>Recorded earnings are not commission received. This illustration subtracts recorded expenses and a tax/Class 4 reserve of ${this.esc(Utils.formatCurrency(w.reserve))}.</p><p>It assumes this week repeats for 52 weeks, configured standard tax bands and no other income or adjustments. Confirmed business mileage deduction: ${this.esc(Utils.formatCurrency(w.mileage))}, using annual bands. Vehicle-running categories are excluded from the tax expense deduction.</p><p>Check expense eligibility and private-use proportions. This is not actual take-home or a filing calculation.</p></div>`);},
+  showEstimate(){const w=this.data?.weekMoney;if(!w)return;App.openModal(`<div class="sheet-header"><h3>Weekly budget estimate</h3><button class="btn btn-ghost" data-action="App.closeModal">Close</button></div><div class="sheet-body"><p>Recorded earnings are not commission received. This illustration subtracts recorded expenses and a tax/Class 4 reserve of ${this.esc(Utils.formatCurrency(w.reserve))}.</p><p>It assumes this week repeats for 52 weeks, configured standard tax bands and no other income or adjustments. Confirmed business mileage deduction: ${this.esc(Utils.formatCurrency(w.mileage))}, using annual bands. Fuel and vehicle running costs are covered by mileage, not deducted again. Insurance without a type and Other/unknown categories stay outside the deduction until reviewed. Expenses awaiting review: ${this.esc(Utils.formatCurrency(w.reviewExpenses||0))}.</p><p>Check expense eligibility and private-use proportions. This is not actual take-home or a filing calculation.</p></div>`);},
   async selectDay(day){this.selectedDay=day;this._calendarCursor=day;await this.changeDay(day);if(!document.getElementById('home-inline-calendar')?.hidden)await this.renderCalendar();},
   scan() { document.getElementById('home-quick-capture')?.click(); },
   ask() {const composer=document.querySelector('.comp-composer');if(composer){composer.hidden=false;document.getElementById('comp-input')?.focus();}},

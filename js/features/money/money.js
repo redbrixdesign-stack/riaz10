@@ -222,19 +222,20 @@ const MoneyFeature = {
     } catch (e) {}
 
     const monthTotal = expenses.reduce((s, e) => s + (e.amount || 0), 0);
-    const monthMiles = trips.reduce((s, t) => s + (t.distanceKm || 0), 0);
+    const monthMiles = AdviserContext.businessKm(trips);
     const weekTotal = weekExpenses.reduce((s, e) => s + (e.amount || 0), 0);
     const weekMiles = AdviserContext.businessKm(weekTrips);
-    const mileageClaim = TaxCalculator.calculateMileageClaim(weekMiles);
+    let mileageClaim = null;
+    try { mileageClaim = await TaxCalculator.calculatePeriodMileage(weekStart.toISOString(), now.toISOString(), weekTrips); } catch (_) { /* Keep capture available; never show a failed read as a zero claim. */ }
     const weekRecordCount = weekExpenses.length + weekTrips.length;
     const weekEarnings = await this.getWeekEarnings();
-    const target = CONFIG.weeklyTarget || 600;
+    const target = CONFIG.weeklyTarget ?? 600;
     const targetGap = Math.max(0, target - weekEarnings);
     const recordCount = expenses.length + trips.length;
     const progressPct = target > 0 ? Math.min(100, Math.round((weekEarnings / target) * 100)) : 0;
 
     return `<div class="fade-in">
-      ${App.renderTopHeader({ 
+      ${App.renderTopHeader({
         title: 'Money', showBack: true, backHref: 'today',
         actions: '<button class="btn btn-sm btn-ghost" aria-label="Invoices and payments" data-action="App.navigate" data-args=\'["invoices"]\'><span class="material-symbols-rounded">receipt_long</span></button><button class="btn btn-sm btn-ghost" aria-label="Download tax summary" data-action="ExportService.exportTaxSummary"><span class="material-symbols-rounded">download</span></button>'
       })}
@@ -244,14 +245,14 @@ const MoneyFeature = {
           <div class="fs-13 op-90" >This Week · Earnings (commission + visit fees)</div>
           <div class="fs-40 fw-700 mt-4" >${Utils.formatCurrency(weekEarnings)}</div>
           <div class="fs-16 op-90 mt-2" >
-            ${targetGap > 0 
+            ${target <= 0 ? 'No weekly target set' : targetGap > 0
               ? `${Utils.formatCurrency(targetGap)} to target`
               : 'Target reached'}
           </div>
           <div class="progress-bar mt-10" style="background: rgba(255,255,255,0.15);">
             <div class="fill" style="width:${progressPct}%;background:var(--accent);"></div>
           </div>
-          <div class="fs-11 op-70 mt-4" >${progressPct}% of £${target} target</div>
+          <div class="fs-11 op-70 mt-4" >${target>0?`${progressPct}% of £${target} target`:'Set a target in Settings when you are ready'}</div>
         </div>
 
         <!-- What needs attention -->
@@ -272,14 +273,16 @@ const MoneyFeature = {
         <details class="card card-page-mb" id="tax-section">
           <summary class="flex items-center justify-between gap-12 cursor-pointer" style="list-style: none;">
             <div>
-              <div class="fw-600" >Tax & deadlines</div>
+              <div class="fw-600" >Tax planning estimate</div>
               <div class="fs-12 text-tertiary" >Tax year ${taxSummary.tax.taxYear.label} · ${formatted.weeksLeft} weeks to 31 Jan</div>
             </div>
             <span class="material-symbols-rounded text-tertiary" style="transition: transform 0.2s;">expand_more</span>
           </summary>
+          <p class="hint mt-sm">Cash expenses: ${formatted.expenses}. Estimated eligible nonvehicle expenses: ${formatted.deductibleExpenses}. Vehicle costs covered by mileage: ${formatted.vehicleExpenses}. Expenses awaiting category review: ${formatted.reviewExpenses}. All original expense records are kept.</p>
+          <p class="hint">Simplified car/van mileage replaces fuel and vehicle running costs. Business categories assume wholly business use; check eligibility and private use. This year-to-date illustration uses recorded earnings, not reconciled payments; it is not actual take-home or a filing calculation. Payments on account are illustrative, not an HMRC bill. Home instead annualises one week for its reserve.</p>
           <div class="mt-12 grid-2 gap-12" style="padding-top: 12px; border-top: 1px solid var(--border-light);">
             <div><div class="fs-12 text-tertiary" >Profit</div><div class="fs-20 fw-700" >${formatted.profit}</div></div>
-            <div><div class="fs-12 text-tertiary" >Tax due</div><div class="fs-20 fw-700 text-danger" >${formatted.taxDue}</div></div>
+            <div><div class="fs-12 text-tertiary" >Estimated tax on recorded profit</div><div class="fs-20 fw-700 text-danger" >${formatted.taxDue}</div></div>
             <div><div class="fs-12 text-tertiary" >Income tax</div><div class="fw-600" >${formatted.incomeTax}</div></div>
             <div><div class="fs-12 text-tertiary" >Class 4 NIC</div><div class="fw-600" >${formatted.class4NIC}</div></div>
           </div>
@@ -294,15 +297,15 @@ const MoneyFeature = {
               <div class="fs-16 fw-600 text-secondary" >${formatted.jul31}</div>
             </div>
           </div>
-          ${taxSummary.profit > 0 ? `
+          ${taxSummary.tax.totalLiability > 0 ? `
           <div class="mt-12 p-12 bg-success-light" style="border-radius: var(--radius-sm);">
             <div class="flex items-center gap-12">
               <span class="material-symbols-rounded text-success fs-24">savings</span>
               <div class="flex-1">
                 <div class="fw-600 text-success">Save ${formatted.weeklySave} this week</div>
-                <div class="fs-13 text-secondary">To cover your January tax bill</div>
+                <div class="fs-13 text-secondary">Illustrative reserve for January — not an HMRC bill</div>
               </div>
-              <button class="btn btn-sm btn-secondary" data-action="MoneyFeature.markSaved">Saved ✓</button>
+              <p class="hint">Planning suggestion only. Beelo does not track transfers into savings.</p>
             </div>
           </div>
           ` : ''}
@@ -311,7 +314,7 @@ const MoneyFeature = {
           <summary class="flex items-center justify-between gap-12 cursor-pointer" style="list-style: none;">
             <div>
               <div class="fw-600">Tax & deadlines</div>
-              <div class="fs-12 text-tertiary">No estimate yet — log a visit, expense or mileage</div>
+              <div class="fs-12 text-tertiary">Estimate unavailable — check saved records or try again</div>
             </div>
             <span class="material-symbols-rounded text-tertiary">expand_more</span>
           </summary>
@@ -331,7 +334,7 @@ const MoneyFeature = {
         <!-- This Week details (shown by default) -->
         <div id="money-week" class="mt-md">
           <div class="stats-grid">
-            <div class="stat-card" data-action="MoneyFeature.openRecordsModal"><div class="value">${Utils.formatCurrency(mileageClaim)}</div><div class="label">Mileage claim</div></div>
+            <div class="stat-card" data-action="MoneyFeature.openRecordsModal"><div class="value">${mileageClaim===null?'Unavailable':Utils.formatCurrency(mileageClaim)}</div><div class="label">Mileage claim</div></div>
             <div class="stat-card" data-action="MoneyFeature.openRecordsModal"><div class="value">${Utils.formatCurrency(weekTotal)}</div><div class="label">Expenses</div></div>
             <div class="stat-card" data-action="MoneyFeature.openRecordsModal"><div class="value">${weekRecordCount || '—'}</div><div class="label">Records</div></div>
           </div>
@@ -376,7 +379,6 @@ const MoneyFeature = {
     return stats.earnings;
   },
 
-  markSaved() { Toast.show('Marked as saved for this week', 'success'); },
 
   scrollToTaxEstimate() {
     document.getElementById('tax-estimate-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -490,7 +492,7 @@ const MoneyFeature = {
           <label>Category</label>
           <select class="select" id="edit-expense-category">
             ${CONFIG.expenseCategories.map(c => `<option value="${c.id}" ${c.id === expense.category ? 'selected' : ''}>${c.name}</option>`).join('')}
-          </select>
+          </select><p class="hint">Fuel/vehicle costs remain cash expenses but mileage covers their deduction. Choose Business insurance or Vehicle insurance explicitly. Insurance without a type and Other/unknown categories need review and are excluded from the estimate.</p>
         </div>
         <div class="form-group">
           <label>Description</label>
@@ -706,7 +708,7 @@ const MoneyFeature = {
           <label>Category</label>
           <select class="select" id="expense-category">
             ${CONFIG.expenseCategories.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
-          </select>
+          </select><p class="hint">Fuel/vehicle costs remain cash expenses but mileage covers their deduction. Choose Business insurance or Vehicle insurance explicitly. Insurance without a type and Other/unknown categories need review and are excluded from the estimate.</p>
         </div>
         <div class="form-group">
           <label>Description</label>

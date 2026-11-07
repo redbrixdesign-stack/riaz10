@@ -949,11 +949,11 @@ const CompanionFeature = {
     const end = Utils.getEndOfWeek();
     let stats = { sales: 0, earnings: 0, orderedCount: 0 };
     try { stats = await DB.getWeekStats(start.toISOString(), end.toISOString()); } catch (e) { /* empty week */ }
-    const target = CONFIG.weeklyTarget || 600;
+    const target = CONFIG.weeklyTarget ?? 600;
     const gap = Math.max(0, target - stats.earnings);
 
     return {
-      text: gap > 0
+      text: target <= 0 ? `No weekly target set. ${Utils.formatCurrency(stats.earnings)} recorded earnings this week.` : gap > 0
         ? `${Utils.formatCurrency(gap)} to your earnings target this week — ${stats.orderedCount} order${stats.orderedCount === 1 ? '' : 's'} so far.`
         : `Target hit — ${Utils.formatCurrency(stats.earnings)} earned against a ${Utils.formatCurrency(target)} target this week, with ${stats.orderedCount} order${stats.orderedCount === 1 ? '' : 's'}.`,
       facts: [
@@ -970,7 +970,7 @@ const CompanionFeature = {
   async answerMoney() {
     let weekEarnings = 0;
     try { weekEarnings = await MoneyFeature.getWeekEarnings(); } catch (e) {}
-    const target = CONFIG.weeklyTarget || 600;
+    const target = CONFIG.weeklyTarget ?? 600;
     const gap = Math.max(0, target - weekEarnings);
 
     const now = new Date();
@@ -985,25 +985,25 @@ const CompanionFeature = {
       const trips = await DB.getTripsForPeriod(monthStart.toISOString(), now.toISOString());
       monthMiles = AdviserContext.businessKm(trips);
     } catch (e) {}
-    const mileageClaim = TaxCalculator.calculateMileageClaim(monthMiles);
+    let mileageClaim=null;try{mileageClaim=await TaxCalculator.calculatePeriodMileage(monthStart.toISOString(), now.toISOString());}catch(_){}
 
     let taxDue = null;
     try {
       const ts = await TaxCalculator.getRunningEstimate();
-      if (ts && ts.tax) taxDue = ts.taxDue;
+      if (ts && ts.tax) taxDue = ts.tax.totalLiability;
     } catch (e) {}
 
     const facts = [
       { label: 'This week earned', value: Utils.formatCurrency(weekEarnings), highlight: true },
-      { label: 'Earnings target', value: Utils.formatCurrency(gap) },
+      { label: 'Earnings target', value: target>0?Utils.formatCurrency(target):'Not set' },
       { label: 'Expenses this month', value: Utils.formatCurrency(monthTotal) },
-      { label: 'Mileage claim', value: `${Utils.formatDistance(monthMiles)} · ${Utils.formatCurrency(mileageClaim)}` }
+      { label: 'Mileage claim', value: mileageClaim===null?'Unavailable — could not read mileage records':`${Utils.formatDistance(monthMiles)} · ${Utils.formatCurrency(mileageClaim)}` }
     ];
     if (taxDue !== null) facts.push({ label: 'Tax estimate', value: `${Utils.formatCurrency(taxDue)} ~31 Jan` });
 
     return {
         authoritative: true,
-      text: gap > 0
+      text: target <= 0 ? `No weekly target set. ${Utils.formatCurrency(weekEarnings)} earned and ${Utils.formatCurrency(monthTotal)} of expenses logged this month.` : gap > 0
         ? `${Utils.formatCurrency(gap)} remaining to this week's target. ${Utils.formatCurrency(monthTotal)} of expenses logged this month.`
         : `You're past this week's target — nice one. ${Utils.formatCurrency(monthTotal)} of expenses logged this month.`,
       facts,
@@ -1304,7 +1304,7 @@ const CompanionFeature = {
     try { trips = await DB.getTripsForPeriod(start.toISOString(), end.toISOString()); } catch (e) {}
     monthTotal = expenses.reduce((s, e) => s + (e.amount || 0), 0);
     monthMiles = AdviserContext.businessKm(trips);
-    const mileageClaim = TaxCalculator.calculateMileageClaim(monthMiles);
+    let mileageClaim=null;try{mileageClaim=await TaxCalculator.calculatePeriodMileage(start.toISOString(), end.toISOString(), trips);}catch(_){}
 
     const catTotals = {};
     for (const e of expenses) {
@@ -1321,7 +1321,7 @@ const CompanionFeature = {
       { label: 'Sales value', value: Utils.formatCurrency(periodStats.sales) },
       { label: 'Orders', value: String(periodStats.orderedCount) },
       { label: 'Expenses', value: Utils.formatCurrency(monthTotal) },
-      { label: 'Mileage claim', value: `${Utils.formatDistance(monthMiles)} · ${Utils.formatCurrency(mileageClaim)}` }
+      { label: 'Mileage claim', value: mileageClaim===null?'Unavailable — could not read mileage records':`${Utils.formatDistance(monthMiles)} · ${Utils.formatCurrency(mileageClaim)}` }
     ];
     if (topCats.length) facts.push({ label: 'Top expenses', value: topCats.join(' · ') });
 
@@ -1570,7 +1570,7 @@ const CompanionFeature = {
     const weekEnd = Utils.getEndOfWeek();
     let week = { sales: 0, earnings: 0, orderedCount: 0 };
     try { week = await DB.getWeekStats(weekStart.toISOString(), weekEnd.toISOString()); } catch (e) {}
-    const target = CONFIG.weeklyTarget || 600;
+    const target = CONFIG.weeklyTarget ?? 600;
 
     let monthExpenses = 0;
     let monthMiles = 0;

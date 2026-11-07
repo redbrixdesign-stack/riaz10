@@ -428,10 +428,10 @@ const NotificationService = {
       const today = Utils.getToday();
       const appointments = await DB.getAppointmentsForDate(today.toISOString());
       const weekEarnings = await TodayFeature.getWeekEarnings();
-      const target = CONFIG.weeklyTarget || 600;
+      const target = CONFIG.weeklyTarget ?? 600;
       const remaining = Math.max(0, target - weekEarnings);
 
-      const body = `${appointments.length} visit${appointments.length === 1 ? '' : 's'} today · ${Utils.formatCurrency(remaining)} from your weekly target`;
+      const body = `${appointments.length} visit${appointments.length === 1 ? '' : 's'} today · ${target>0?Utils.formatCurrency(remaining)+' from your weekly target':'No weekly target set'}`;
 
       this.showNotification('Your morning brief is ready ☀️', { body, tag: 'morning-brief' });
     } catch (e) {

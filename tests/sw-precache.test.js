@@ -10,7 +10,9 @@ async function fixture({hit=true,reject=false,hung=false}={}) {
  return {calls,fire(path,options={}){let response;const lifetimes=[];const request={method:'GET',url:new URL(path,scope.location.href).href,destination:'script',...options};listeners.fetch({request,respondWith:value=>response=Promise.resolve(value),waitUntil:value=>lifetimes.push(value)});return {response,lifetimes};}};
 }
 (async()=>{
- for(const path of ['js/services/quote-document.min.js?v=3','js/features/quotes/quotes.min.js?v=2','js/features/settings/settings.min.js?v=24']){
+ const lazy=fs.readFileSync('js/core/lazy-features.js','utf8');
+ const settingsPath=lazy.match(/js\/features\/settings\/settings\.min\.js\?v=\d+/)?.[0];assert(settingsPath,'Settings has a versioned lazy asset');
+ for(const path of ['js/services/quote-document.min.js?v=3','js/features/quotes/quotes.min.js?v=2',settingsPath]){
   const f=await fixture({hung:true});const e=f.fire(path);const response=await e.response;
   assert.equal(await response.text(),'SYNTHETIC cached script');
   assert.equal(f.calls.filter(call=>call.startsWith('network:')).length,0,'A precached versioned script must not start a network request');

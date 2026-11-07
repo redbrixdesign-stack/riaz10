@@ -52,7 +52,8 @@ global.MoneyFeature = {
 };
 global.TaxCalculator = {
   getRunningEstimate: async () => null,
-  calculateMileageClaim: () => 27.4
+  calculateMileageClaim: () => 27.4,
+  calculatePeriodMileage: async () => 27.4
 };
 global.WeatherService = {
   getTodayWeather: async () => ({ tempC: 17, icon: 'wb_sunny' })
@@ -176,7 +177,7 @@ assert(norm('random gibberish 123') === 'default', 'unknown routes to default');
   assert(week.suggestions.every(s => Companion.ALLOWED_SUGGESTIONS.includes(s)), 'Week suggestions whitelisted', week.suggestions);
 
   // ---------- money handler ----------
-  const tax = { tax: { taxYear: { endYear: 2026 }, weeksToJan31: 14 }, taxDue: 1860, profit: 9000, effectiveRate: '18.5%', weeklySave: 40, incomeTax: 1200, class4NIC: 660, jan31: '£1,860', jul31: '£930', weeksLeft: 14 };
+  const tax = { tax: { taxYear: { endYear: 2026 }, weeksToJan31: 14, totalLiability:1860 }, taxDue: 1860, profit: 9000, effectiveRate: '18.5%', weeklySave: 40, incomeTax: 1200, class4NIC: 660, jan31: '£1,860', jul31: '£930', weeksLeft: 14 };
   global.TaxCalculator.getRunningEstimate = async () => tax;
   const money = await Companion.answerMoney();
   assert(money.facts.some(f => f.label === 'This week earned' && f.value === '£620.00'), 'Money facts carry week earnings');

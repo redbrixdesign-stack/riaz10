@@ -16,6 +16,8 @@ const OnboardingFeature = {
   data: {
     advisorName: '',
     trade: 'window_coverings',
+    advisorTitle: 'independent window coverings professional',
+    earningsMode: 'manual',
     weeklyTarget: 600,
     businessAddress: '',
     distanceUnit: 'miles',
@@ -41,17 +43,22 @@ const OnboardingFeature = {
 
           <div class="form-group">
             <label>Your Trade</label>
-            <select class="select" id="ob-trade">
+            <select class="select" id="ob-trade" data-event="change" data-action="OnboardingFeature.changeTrade" data-args='["__value__"]'>
               ${CONFIG.trades.map(t => `<option value="${t.id}" ${this.data.trade === t.id ? 'selected' : ''}>${t.name}</option>`).join('')}
             </select>
           </div>
 
+          <div class="form-group"><label for="ob-title">How you introduce yourself</label><input type="text" class="input" id="ob-title" maxlength="160" value="${Utils.escapeHtml(this.data.advisorTitle)}"><p class="hint">Used in your message drafts. Add a company affiliation only if it is yours. Social links start blank; add your own in Settings.</p></div>
+          <details class="mb-md"><summary class="py-sm">Sales commission · set now or later</summary><label for="ob-commission-mode">How commission is estimated</label><select id="ob-commission-mode" class="select" data-event="change" data-action="OnboardingFeature.changeEarningsMode" data-args='["__value__"]'><option value="manual">Not set — no commission estimates yet</option><option value="simple">Percentage of the full sale</option><option value="two_stage">Sale reduction, then net commission</option></select>
+            <div id="ob-simple-fields" hidden><label for="ob-simple-rate">Commission (%)</label><input id="ob-simple-rate" class="input" type="number" inputmode="decimal" min="0" max="100" step="0.01"></div>
+            <div id="ob-net-fields" hidden><label for="ob-reduction">Sale reduction (%)</label><input id="ob-reduction" class="input" type="number" inputmode="decimal" min="0" max="100" step="0.01"><label for="ob-net-rate">Commission on the reduced amount (%)</label><input id="ob-net-rate" class="input" type="number" inputmode="decimal" min="0" max="100" step="0.01"></div><p class="hint">Use your actual agreement. Until configured, sales and survey commission estimates are £0. Change this later in Settings → Commission Rate. Existing pilot service-call fee rules are separate.</p>
+          </details>
           <div class="divider-text mt-28" >Weekly Target</div>
           <p class="text-secondary fs-13 mb-md lh-150" >
-            Powers your morning brief — how far you are from target, and whether you can afford to discount a job.
+            Compare recorded earnings with your goal before expenses and tax. Zero means no target. This is not a take-home target.
           </p>
           <div class="form-group">
-            <label>Weekly Net Earnings Goal (£)</label>
+            <label>Weekly earnings target (£, before expenses and tax)</label>
             <input type="number" class="input fs-24 fw-700 text-center" inputmode="decimal" id="ob-target" placeholder="600" value="${this.data.weeklyTarget}" step="10" min="0" >
           </div>
           <div class="flex gap-sm" >
@@ -87,6 +94,8 @@ const OnboardingFeature = {
             <button type="button" class="segment ${this.data.measurementUnit === 'inches' ? 'active' : ''}" data-value="inches" data-action="OnboardingFeature.setUnit" data-args='${JSON.stringify(["measurementUnit", "inches", "ob-measurement-segmented"])}'>in</button>
           </div>
 
+          <section class="card mt-md" aria-labelledby="ob-storage-title"><h2 id="ob-storage-title" class="fs-18">Your records stay on this phone</h2>${typeof ConsentPrompt!=='undefined'?ConsentPrompt.explanationHtml():'<p role="alert">Storage information could not load. Reload before completing setup.</p>'}<button type="button" class="btn btn-ghost" data-action="Legal.openPage" data-args='["privacy"]'>Read privacy policy</button><label class="flex items-start gap-sm mt-sm" for="ob-storage-ack"><input type="checkbox" id="ob-storage-ack"><span>I understand where my records are stored and that I need a protected backup.</span></label></section>
+          <p id="ob-error" role="alert"></p>
           <button class="btn btn-primary btn-block mt-xl"  data-action="OnboardingFeature.finish">
             Start Using Beelo <span class="material-symbols-rounded">check</span>
           </button>
@@ -99,6 +108,24 @@ const OnboardingFeature = {
         </div>
       </div>
     `;
+  },
+
+  suggestedTitle(trade) {
+    const name = CONFIG.trades.find(t => t.id === trade)?.name || 'home-visit';
+    return 'independent ' + name.toLowerCase() + ' professional';
+  },
+  changeTrade(value) {
+    const input = document.getElementById('ob-title');
+    if (input && input.value === this.suggestedTitle(this.data.trade)) input.value = this.suggestedTitle(value);
+    this.data.trade = value;
+  },
+  changeEarningsMode(value) {
+    document.getElementById('ob-simple-fields').hidden = value !== 'simple';
+    document.getElementById('ob-net-fields').hidden = value !== 'two_stage';
+  },
+  showError(message, field) {
+    const error = document.getElementById('ob-error'); if (error) error.textContent = message;
+    Toast.show(message, 'error'); const input = document.getElementById(field); input?.focus(); input?.scrollIntoView?.({block:'center'});
   },
 
   setTargetPreset(v) {
@@ -140,55 +167,39 @@ const OnboardingFeature = {
   },
 
   async finish() {
-    const nameEl = document.getElementById('ob-name');
-    const tradeEl = document.getElementById('ob-trade');
-    const targetEl = document.getElementById('ob-target');
-    const addressEl = document.getElementById('ob-address');
-
-    this.data.advisorName = nameEl ? nameEl.value.trim() : this.data.advisorName;
-    this.data.trade = tradeEl ? tradeEl.value : this.data.trade;
-    this.data.weeklyTarget = targetEl ? (parseFloat(targetEl.value) || 600) : this.data.weeklyTarget;
-    this.data.businessAddress = addressEl ? addressEl.value.trim() : this.data.businessAddress;
-
-    if (!this.data.advisorName) {
-      Toast.show('Please enter your name', 'error');
-      nameEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      nameEl?.focus();
-      return;
+    if (this._saving) return;
+    const value = id => document.getElementById(id)?.value?.trim() || '';
+    const name = value('ob-name'), trade = value('ob-trade'), title = value('ob-title');
+    const targetText = value('ob-target'), target = Number(targetText), mode = value('ob-commission-mode');
+    if (!name) return this.showError('Please enter your name', 'ob-name');
+    if (!CONFIG.trades.some(t => t.id === trade)) return this.showError('Choose your trade', 'ob-trade');
+    if (!title || title.length > 160) return this.showError('Enter how you introduce yourself (up to 160 characters)', 'ob-title');
+    if (!targetText || !Number.isFinite(target) || target < 0) return this.showError('Enter zero or a positive weekly earnings target', 'ob-target');
+    if (!['manual','simple','two_stage'].includes(mode)) return this.showError('Choose a commission option', 'ob-commission-mode');
+    const commission = { mode };
+    for (const [field,key] of mode === 'simple' ? [['ob-simple-rate','simpleRate']] : mode === 'two_stage' ? [['ob-reduction','saleReductionRate'],['ob-net-rate','netCommissionRate']] : []) {
+      const text = value(field), rate = Number(text);
+      if (!text || !Number.isFinite(rate) || rate < 0 || rate > 100) return this.showError('Enter a percentage between 0 and 100', field);
+      commission[key] = rate;
     }
-
-    CONFIG.advisorName = this.data.advisorName;
-    CONFIG.trade = this.data.trade;
-    CONFIG.weeklyTarget = this.data.weeklyTarget;
-    CONFIG.businessAddress = this.data.businessAddress;
-    CONFIG.distanceUnit = this.data.distanceUnit;
-    CONFIG.measurementUnit = this.data.measurementUnit;
-
+    if (!document.getElementById('ob-storage-ack')?.checked) return this.showError('Please read and acknowledge how your records are stored', 'ob-storage-ack');
+    if (typeof ConsentPrompt === 'undefined' || !ConsentPrompt.recordAcknowledgement()) return this.showError('Could not save the storage acknowledgement. Please try again.', 'ob-storage-ack');
     const toSave = {
-      advisorName: CONFIG.advisorName,
-      trade: CONFIG.trade,
-      weeklyTarget: CONFIG.weeklyTarget,
-      businessAddress: CONFIG.businessAddress,
-      distanceUnit: CONFIG.distanceUnit,
-      measurementUnit: CONFIG.measurementUnit,
-      advisorMode: CONFIG.advisorMode,
-      country: CONFIG.country,
-      currency: CONFIG.currency,
-      taxSystem: CONFIG.taxSystem,
-      dateFormat: CONFIG.dateFormat,
-      onboardingComplete: true
+      advisorName:name, advisorTitle:title, trade, weeklyTarget:target,
+      commission, socialLinks:{facebook:'',instagram:''},
+      businessAddress:value('ob-address'), distanceUnit:this.data.distanceUnit, measurementUnit:this.data.measurementUnit,
+      advisorMode:CONFIG.advisorMode, country:CONFIG.country, currency:CONFIG.currency,
+      taxSystem:CONFIG.taxSystem, dateFormat:CONFIG.dateFormat, onboardingComplete:true
     };
-
-    localStorage.setItem('advisoros_config', JSON.stringify(toSave));
-
+    this._saving = true;
+    const button = document.querySelector('[data-action="OnboardingFeature.finish"]'); if (button) button.disabled = true;
     try {
       await DB.setSetting('config', toSave);
-    } catch (e) {
-      console.log('DB save failed, localStorage will suffice:', e);
-    }
-
-    Toast.show(`Welcome, ${CONFIG.advisorName}!`, 'success');
-    App.navigate('today');
+      try { localStorage.setItem('advisoros_config', JSON.stringify(toSave)); } catch (_) { /* The local database is the persisted authority. */ }
+      Object.assign(CONFIG,toSave);
+      Toast.show(`Welcome, ${name}!`, 'success'); App.navigate('today');
+    } catch (_) { this.showError('Could not save setup. Your entries are still here; please try again.', 'ob-name'); }
+    finally { this._saving = false; if (button?.isConnected) button.disabled = false; }
   }
 };
 

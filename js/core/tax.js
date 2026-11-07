@@ -112,6 +112,22 @@ const TaxCalculator = {
     };
   },
 
+  // Cash records are retained separately from the simplified-mileage deduction.
+  expenseBreakdown(expenses) {
+    const result = { cash: 0, deductible: 0, mileageCovered: 0, review: 0, reviewCount: 0 };
+    const vehicle = new Set(['fuel', 'vehicle', 'vehicle_insurance']);
+    const business = new Set(['samples', 'tools', 'phone', 'business_insurance', 'marketing', 'training', 'parking', 'public_transport']);
+    for (const expense of expenses) {
+      const amount = Number(expense.amount);
+      if (!Number.isFinite(amount) || amount <= 0) continue;
+      result.cash += amount;
+      if (vehicle.has(expense.category)) result.mileageCovered += amount;
+      else if (business.has(expense.category)) result.deductible += amount;
+      else { result.review += amount; result.reviewCount++; }
+    }
+    return result;
+  },
+
   // Calculate from actual data
   async calculateFromData(startDate, endDate) {
     // Get income from completed appointments with orders
@@ -129,15 +145,15 @@ const TaxCalculator = {
 
     // Get expenses
     const expenses = await DB.getExpensesForPeriod(startDate, endDate);
-    const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+    const expenseSummary = this.expenseBreakdown(expenses);
+    const totalExpenses = expenseSummary.cash;
 
     // Get mileage
     const trips = await DB.getTripsForPeriod(startDate, endDate);
-    const totalKm = Utils.confirmedBusinessKm(trips);
-    const mileageClaim = this.calculateMileageClaim(totalKm);
+    const mileageClaim = await this.calculatePeriodMileage(startDate, endDate, trips);
 
     // Total deductible expenses
-    const totalDeductible = totalExpenses + mileageClaim;
+    const totalDeductible = expenseSummary.deductible + mileageClaim;
 
     // Profit
     const profit = totalIncome - totalDeductible;
@@ -145,6 +161,10 @@ const TaxCalculator = {
     return {
       totalIncome,
       totalExpenses,
+      deductibleExpenses: expenseSummary.deductible,
+      vehicleExpenses: expenseSummary.mileageCovered,
+      reviewExpenses: expenseSummary.review,
+      reviewExpenseCount: expenseSummary.reviewCount,
       mileageClaim,
       totalDeductible,
       profit,
@@ -154,6 +174,7 @@ const TaxCalculator = {
 
   estimateSurveyCommission(orderValue) {
     const c = CONFIG.commission || {};
+    if (c.mode === 'manual') return 0;
     const value = Math.max(0, Number(orderValue) || 0);
     const rate = c.mode === 'two_stage' ? c.netCommissionRate : c.mode === 'simple' ? c.simpleRate : c.rate;
     const basis = c.mode === 'two_stage' ? value * Math.max(0, 1 - (Number(c.saleReductionRate) || 0) / 100) : value;
@@ -166,6 +187,7 @@ const TaxCalculator = {
     const saleValue = Number(orderValue || 0);
     if (!(saleValue > 0)) return 0;
     const commission = CONFIG.commission || {};
+    if (commission.mode === 'manual') return 0;
 
     // 'two_stage': deduct a % from the sale to get a net figure, then take a % of that net figure.
     // e.g. sale reduced by 20%, then 15.25% commission on the remaining net.
@@ -192,6 +214,7 @@ const TaxCalculator = {
   // Used to derive the sales target from the earnings target (and vice versa).
   getEffectiveCommissionRate() {
     const commission = CONFIG.commission || {};
+    if (commission.mode === 'manual') return 0;
     if (commission.mode === 'two_stage') {
       const netFraction = 1 - (commission.saleReductionRate || 0) / 100;
       const rateFraction = (commission.netCommissionRate || 0) / 100;
@@ -216,10 +239,29 @@ const TaxCalculator = {
     return target / rate;
   },
 
+  async calculatePeriodMileage(startDate, endDate, periodTrips) {
+    const start=new Date(startDate), end=new Date(endDate);
+    if(!Number.isFinite(start.getTime())||!Number.isFinite(end.getTime())||end<=start)return 0;
+    const parts=Utils.ukParts(start),year=parts.month<4||(parts.month===4&&parts.day<6)?parts.year-1:parts.year;
+    const first=Utils.ukMidnightInstant(year,4,6);
+    const all=start.getTime()===first.getTime()&&periodTrips?periodTrips:await DB.getTripsForPeriod(first.toISOString(),end.toISOString());
+    const current=periodTrips||all;
+    let claim=0;
+    for(let y=year;Utils.ukMidnightInstant(y,4,6)<end;y++){
+      const from=Utils.ukMidnightInstant(y,4,6),next=Utils.ukMidnightInstant(y+1,4,6),a=start>from?start:from,b=end<next?end:next;
+      const prior=Utils.confirmedBusinessKm(all.filter(t=>new Date(t.date)>=from&&new Date(t.date)<a));
+      const km=Utils.confirmedBusinessKm(current.filter(t=>new Date(t.date)>=a&&new Date(t.date)<b));
+      claim+=this.calculateMileageClaim(prior+km,from)-this.calculateMileageClaim(prior,from);
+    }
+    return claim;
+  },
+
   // Calculate mileage claim from kilometres, applying UK simplified mileage bands.
-  calculateMileageClaim(totalKm) {
-    const miles = totalKm * 0.621371;
-    const firstBand = Math.min(Math.max(0, miles), 10000) * CONFIG.mileageRate;
+  calculateMileageClaim(totalKm, periodStart) {
+    const miles = Math.max(0, Number(totalKm) || 0) * 0.621371;
+    const date = periodStart ? Utils.formatDate(new Date(periodStart), 'iso') : '';
+    const firstRate = date && date < '2026-04-06' ? 0.45 : CONFIG.mileageRate;
+    const firstBand = Math.min(Math.max(0, miles), 10000) * firstRate;
     const secondBand = Math.max(0, miles - 10000) * CONFIG.mileageRateOver;
     return firstBand + secondBand;
   },
@@ -299,6 +341,9 @@ const TaxCalculator = {
     return {
       income: Utils.formatCurrency(taxData.totalIncome),
       expenses: Utils.formatCurrency(taxData.totalExpenses),
+      deductibleExpenses: Utils.formatCurrency(taxData.deductibleExpenses ?? taxData.totalExpenses),
+      vehicleExpenses: Utils.formatCurrency(taxData.vehicleExpenses || 0),
+      reviewExpenses: Utils.formatCurrency(taxData.reviewExpenses || 0),
       mileage: Utils.formatCurrency(taxData.mileageClaim),
       profit: Utils.formatCurrency(taxData.profit),
       incomeTax: Utils.formatCurrency(tax.incomeTax),

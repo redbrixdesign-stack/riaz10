@@ -176,7 +176,7 @@ const ExportService = {
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Tax Summary ${taxYear.label}</title>
+  <title>Tax planning estimate ${taxYear.label}</title>
   <style>
     body { font-family: Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; }
     h1 { font-size: 24px; border-bottom: 2px solid #333; padding-bottom: 10px; }
@@ -187,12 +187,15 @@ const ExportService = {
   </style>
 </head>
 <body>
-  <h1>Tax Summary ${taxYear.label}</h1>
+  <h1>Tax planning estimate ${taxYear.label}</h1>
   <p>Generated: ${new Date().toLocaleDateString('en-GB')}</p>
 
   <div class="section">
-    <div class="row"><span>Total Income</span><span>${formatted.income}</span></div>
-    <div class="row"><span>Total Expenses</span><span>${formatted.expenses}</span></div>
+    <div class="row"><span>Recorded earnings (not payments received)</span><span>${formatted.income}</span></div>
+    <div class="row"><span>Cash expenses recorded</span><span>${formatted.expenses}</span></div>
+    <div class="row"><span>Estimated eligible nonvehicle expenses</span><span>${formatted.deductibleExpenses}</span></div>
+    <div class="row"><span>Vehicle costs already covered by mileage</span><span>${formatted.vehicleExpenses}</span></div>
+    <div class="row"><span>Expenses awaiting category review</span><span>${formatted.reviewExpenses}</span></div>
     <div class="row"><span>Mileage Claim</span><span>${formatted.mileage}</span></div>
     <div class="row total"><span>Taxable Profit</span><span>${formatted.profit}</span></div>
   </div>
@@ -200,7 +203,7 @@ const ExportService = {
   <div class="section">
     <div class="row"><span>Income Tax</span><span>${formatted.incomeTax}</span></div>
     <div class="row"><span>Class 4 NIC</span><span>${formatted.class4NIC}</span></div>
-    <div class="row total highlight"><span>Total Tax Due</span><span>${formatted.taxDue}</span></div>
+    <div class="row total highlight"><span>Estimated tax on recorded profit</span><span>${formatted.taxDue}</span></div>
   </div>
 
   <div class="section">
@@ -210,7 +213,7 @@ const ExportService = {
   </div>
 
   <p style="margin-top: 40px; font-size: 12px; color: #666;">
-    This is an estimate for planning purposes. Please verify with your accountant before filing.
+    Planning illustration, not accounts, actual take-home, an HMRC bill or a filing calculation. Simplified car/van mileage replaces fuel and vehicle running costs. Untyped insurance and Other/unknown expenses are excluded pending category review. Business categories assume wholly business use; verify eligibility and private use. Recorded earnings are not reconciled cash receipts. Other income, reliefs and payments already made are not reconciled here. Please verify with your accountant before filing.
   </p>
 </body>
 </html>`;
@@ -399,6 +402,8 @@ const ExportService = {
       if (App.migrateConfig) App.migrateConfig();
       const savedConfig = {
         advisorName: CONFIG.advisorName,
+        advisorTitle: CONFIG.advisorTitle,
+        socialLinks: CONFIG.socialLinks,
         companyName: CONFIG.companyName || '',
         businessAddress: CONFIG.businessAddress || '',
         businessLatLng: CONFIG.businessLatLng || null,
