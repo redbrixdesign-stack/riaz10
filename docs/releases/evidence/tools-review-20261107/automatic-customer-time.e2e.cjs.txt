@@ -1,0 +1,2 @@
+PASS chromium: navigation → GPS arrival → automatic on-site/departure → travel + site total; drive-by/jitter; outcome/£20 fee separate; encrypted reload/offline gap/review; mileage unchanged; no contact
+PASS webkit: navigation → GPS arrival → automatic on-site/departure → travel + site total; drive-by/jitter; outcome/£20 fee separate; encrypted reload/offline gap/review; mileage unchanged; no contact

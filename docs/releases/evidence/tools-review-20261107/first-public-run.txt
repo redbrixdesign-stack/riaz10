@@ -1,0 +1,10 @@
+PASS tools-review.e2e.cjs (73s)
+PASS home-money-navigation.e2e.cjs (16s)
+FAIL protected-backup.e2e.cjs (31s)
+page.waitForFunction: Timeout 30000ms exceeded.
+    at /private/tmp/beelo-home-release-20261107/tests/browser/protected-backup.e2e.cjs:12:30 {
+  log: [],
+  name: 'TimeoutError'
+}
+
+Browser acceptance stopped at protected-backup.e2e.cjs

@@ -1,0 +1,4 @@
+Blocked synthetic address lookup attempts: 1
+PASS chromium: survey → defer/reload → failed save/read recovery → offline fitting → cancellation/completion reconciliation; no autonomous contact
+Blocked synthetic address lookup attempts: 1
+PASS webkit: survey → defer/reload → failed save/read recovery → offline fitting → cancellation/completion reconciliation; no autonomous contact

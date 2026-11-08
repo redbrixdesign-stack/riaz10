@@ -1,0 +1,13 @@
+FAIL tools-review.e2e.cjs (47s)
+locator.click: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for getByRole('button', { name: 'Job costing', exact: true })[22m
+
+    at /private/tmp/beelo-home-release-20261107/tests/browser/tools-review.e2e.cjs:28:178 {
+  log: [
+    "  - waiting for getByRole('button', { name: 'Job costing', exact: true })"
+  ],
+  name: 'TimeoutError'
+}
+
+Browser acceptance stopped at tools-review.e2e.cjs

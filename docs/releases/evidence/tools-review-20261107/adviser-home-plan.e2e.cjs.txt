@@ -1,0 +1,2 @@
+PASS chromium: Home Tomorrow/far future → correct day plan → Add Visit date; no booking writes, provider calls or sends
+PASS webkit: Home Tomorrow/far future → correct day plan → Add Visit date; no booking writes, provider calls or sends

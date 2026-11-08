@@ -1,0 +1,2 @@
+PASS chromium: first lazy social save/reload, all nine canonical routes, five primary nav items, stale fitting render cannot replace latest state; no uploads/shares
+PASS webkit: first lazy social save/reload, all nine canonical routes, five primary nav items, stale fitting render cannot replace latest state; no uploads/shares

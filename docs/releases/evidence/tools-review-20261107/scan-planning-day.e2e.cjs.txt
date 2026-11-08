@@ -1,0 +1,4 @@
+SYNTHETIC rows [{"id":1,"name":"SYNTHETIC Undated Card","date":"2026-10-28T09:00:00.000Z"}]
+PASS chromium: planner Add→Scan→Back day; synthetic undated result uses plan, explicit document date preserved; unavailable OCR manual date review/validation and explicit Save persist; no provider calls or automatic sends
+SYNTHETIC rows [{"id":1,"name":"SYNTHETIC Undated Card","date":"2026-10-28T09:00:00.000Z"}]
+PASS webkit: planner Add→Scan→Back day; synthetic undated result uses plan, explicit document date preserved; unavailable OCR manual date review/validation and explicit Save persist; no provider calls or automatic sends

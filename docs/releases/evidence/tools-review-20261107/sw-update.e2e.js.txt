@@ -1,0 +1,2 @@
+Post-update caches: [ 'other-app-test', 'advisoros-v6-200-tools-review-test-b' ]
+PASS: waiting update, deliberate activation, old-cache cleanup, foreign-cache preservation, new shell reload and uncached offline route fallback

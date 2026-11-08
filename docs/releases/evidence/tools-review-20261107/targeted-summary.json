@@ -1,0 +1,29 @@
+{
+  "sourceCommit": null,
+  "results": [
+    {
+      "check": "tools-review.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 36248
+    },
+    {
+      "check": "navigation-review.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 8560
+    },
+    {
+      "check": "workspace-cleanup.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 17500
+    },
+    {
+      "check": "home-money-navigation.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 15595
+    }
+  ]
+}

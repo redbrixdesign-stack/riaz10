@@ -1,0 +1,2 @@
+PASS chromium: call/SMS/WhatsApp handoffs, one-return panel, Later/customer/editor isolation, encrypted note/audio, atomic retry, explicit send decisions, offline/reload; no real external calls/messages
+PASS webkit: call/SMS/WhatsApp handoffs, one-return panel, Later/customer/editor isolation, encrypted note/audio, atomic retry, explicit send decisions, offline/reload; no real external calls/messages

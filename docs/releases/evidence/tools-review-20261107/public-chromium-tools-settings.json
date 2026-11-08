@@ -1,0 +1,298 @@
+{
+  "engine": "chromium",
+  "results": [
+    {
+      "label": "Add Visit",
+      "action": "App.navigate",
+      "args": "[\"appointments\",{\"action\":\"add\"}]",
+      "executed": true,
+      "hash": "appointments?action=add",
+      "headings": [
+        "New Visit"
+      ],
+      "text": "arrow_back\nNew Visit\n\nUnfinished details are saved encrypted on this device, not booked.\n\nDiscard unfinished visit\nCustomer Name *\nPhone\nAddress *\ndocument_scanner\nScan customer details\nUse this for a paper note, screenshot, business card or order document.\nDate *\nDiary time *\nUsed for diary order, route planning and travel gaps.\nDuration\n15 min\n30 min\n45 min\n1 hr\n1h 30m\n2 hrs\nTravel room\nroute\nCheck gaps\nA sales day. Keep the diary purposeful and leave breathing room between proper calls.\nRough area-based check of the gap before and after this visit.\nArrival window — optional\nExact time — no arrival window\n09:00-12:00\n12:00-15:00\n15:00-18:00\n18:00-21:00\nCustom window…\nIf an exact time can't be guaranteed, promise a window instead — the diary still plans on the exact time.\nParking / Access\nType\nConsultation\nMeasure\nFitting\nFollow Up\nReview\nService Call\nSource\nFacebook\nInstagram\nTikTok\nGoogle\nWebsite\nReferral\nLeaflet\nShow Home\nEvent\nWalk-in\nOther\nNotes\nmic\nRecord voice\nAudio stays on this device. It is sent for transcription only when you choose Transcribe. Transcription supports audio up to 3 MB; larger recordings remain available for playback.\nSave Visit",
+      "downloadName": null
+    },
+    {
+      "label": "Log Expense",
+      "action": "MoneyFeature.openExpenseModal",
+      "args": "[]",
+      "executed": true,
+      "hash": "control",
+      "headings": [
+        "Tools",
+        "Add & capture",
+        "Plan & review",
+        "Money & settings",
+        "Quick Expense"
+      ],
+      "text": "Quick Expense\nclose\nExpense date\nUse the actual expense date, including for older receipts.\nCustomer (optional)\nGeneral business — not linked to a customer.\nChoose a result to link. Searching alone does not change the link. Leave general costs unlinked.\nUse General business\nAmount (£)\nCategory\nFuel\nSamples\nTools/Equipment\nPhone/Internet\nInsurance — review type\nBusiness insurance (not vehicle)\nVehicle insurance\nBusiness parking\nBusiness public transport\nVehicle Costs\nMarketing\nTraining\nOther\n\nFuel/vehicle costs remain cash expenses but mileage covers their deduction. Choose Business insurance or Vehicle insurance explicitly. Insurance without a type and Other/unknown categories need review and are excluded from the estimate.\n\nDescription\nReceipt\nphoto_camera\nTake Photo\nSave Expense",
+      "downloadName": null
+    },
+    {
+      "label": "Log Mileage",
+      "action": "MoneyFeature.openMileageModal",
+      "args": "[]",
+      "executed": true,
+      "hash": "control",
+      "headings": [
+        "Tools",
+        "Add & capture",
+        "Plan & review",
+        "Money & settings",
+        "Log Mileage"
+      ],
+      "text": "Log Mileage\nclose\ndirections_car\nStart Live Trip\nUses GPS + real road distance. Add a destination and it checks for arrival whenever you reopen the app (handy if you navigate elsewhere in the meantime) — or leave it blank and tap Finish yourself.\nFrom\nTo\nOR ENTER MANUALLY\nDistance (miles)\nLog Trip",
+      "downloadName": null
+    },
+    {
+      "label": "Import customer document",
+      "action": "CustomerFeature.openDocumentImport",
+      "args": "[]",
+      "executed": true,
+      "hash": "control",
+      "headings": [
+        "Tools",
+        "Add & capture",
+        "Plan & review",
+        "Money & settings",
+        "Import customer document"
+      ],
+      "text": "Import customer document\nClose\n\nCompany quote, invoice or order receipt. Link it to an existing customer; nothing creates a new customer or adviser invoice.\n\nPDF or photo · up to 2 MB\n\nRead with AI sends this file, including any customer details or signature, through your configured protected AI service. Review the result before saving. AI reading requires an internet connection.\n\nRead with AI",
+      "downloadName": null
+    },
+    {
+      "label": "Route Planner",
+      "action": "App.navigate",
+      "args": "[\"route\"]",
+      "executed": true,
+      "hash": "route",
+      "headings": [
+        "Route"
+      ],
+      "text": "Route\nnavigation\nroute\nTODAY'S VISITS\n1 visit booked · Tap one to navigate\n1\nSTOPS\noffline\nBASE LOOP\noffline\nEST. TIME\noffline\nTAX RELIEF\nThese totals only count 0 of 1 stops - 1 location couldn't be placed on the map, see below.\nmap\nLoading map...\n\nMap lines show stop order, not turn-by-turn road directions. Distances and travel times are estimates.\n\nRoute friend\nSales day · 1 area\nEasy day\n100%\nFlow\n—\nBase loop\n—\nPossible save\nlightbulb\nAdd your business base in Settings so I can judge the true start and return mileage.\nlightbulb\nArea-wise, this looks calm: mostly Area unknown.\n1\nSYNTHETIC Tools Customer\n10:00 · Area unknown ·\nnavigation",
+      "downloadName": null
+    },
+    {
+      "label": "End of Day",
+      "action": "TodayFeature.openEODModal",
+      "args": "[]",
+      "executed": true,
+      "hash": "control",
+      "headings": [
+        "Tools",
+        "Add & capture",
+        "Plan & review",
+        "Money & settings"
+      ],
+      "text": "Tools\n\nFind customers on Home. Open their visit for measurements, notes and messages.\n\nAdd & capture\nadd\nAdd Visit\nreceipt_long\nLog Expense\nroute\nLog Mileage\nupload_file\nImport customer document\nPlan & review\nmap\nRoute Planner\nfact_check\nEnd of Day\ncampaign\nFollow-ups\nMoney & settings\naccount_balance_wallet\nMoney\nbackup\nBackup & restore\nsettings\nSettings\nMore tools & saved records\n\nOptional workflows and business setup. Your existing records stay available.\n\nview_kanban\nOrders overview\nconstruction\nJobs\nperson_add\nLead Inbox\nevent_busy\nAvailability\nreceipt_long\nInvoices\nlocal_shipping\nSuppliers\nmonitoring\nJob costing setup",
+      "downloadName": null
+    },
+    {
+      "label": "Follow-ups",
+      "action": "App.navigate",
+      "args": "[\"followups\"]",
+      "executed": true,
+      "hash": "followups",
+      "headings": [
+        "Follow-ups"
+      ],
+      "text": "arrow_back\nFollow-ups\ninbox\nadd\n\nChoose a customer to see their next actions and communication history in one place. Personal and unlinked tasks remain here. Nothing sends automatically.\n\nResume saved messages\nDUE NOW (1)\nSYNTHETIC Tools Customer\n1 action due\nIntroduce yourself and confirm this visit\nchevron_right\nNot due yet (1)\nQUICK OPENS\nview_kanban\nOrders board\nchat\nMessages",
+      "downloadName": null
+    },
+    {
+      "label": "Money",
+      "action": "App.navigate",
+      "args": "[\"money\"]",
+      "executed": true,
+      "hash": "money",
+      "headings": [
+        "Money"
+      ],
+      "text": "arrow_back\nMoney\nreceipt_long\ndownload\nThis Week · Earnings (commission + visit fees)\n£0.00\n£1,000.00 to target\n0% of £1000 target\nEarnings gap\n£1000 to hit your £1000 weekly target\n£1,000.00\nTax planning estimate\nTax year 2026-27 · 64 weeks to 31 Jan\nexpand_more\nThis Week\nThis Month\n£0.00\nMileage claim\n£12.34\nExpenses\n1\nRecords\nreceipt\nLog Expense\nroute\nLog Mileage\nlist\nView Records\nsearch\nFind receipts & expenses\nbackup\nBackup Data",
+      "downloadName": null
+    },
+    {
+      "label": "Backup & restore",
+      "action": "App.navigate",
+      "args": "[\"settings\",{\"section\":\"data\"}]",
+      "executed": true,
+      "hash": "settings?section=data",
+      "headings": [
+        "Data & Backup"
+      ],
+      "text": "arrow_back\nData & Backup\ndatabase\nStorage looks persistent\nUsing indexedDB. Keep using the same website address so your data stays in the same app storage.\nhttps://beelo.beelestial.co.uk\nLast Backup\nNever backed up\nbackup\nBack Up My Beelo\nCreates a complete backup of all your customers, visits, orders, measurements, photos, and settings\nPassword-protected backup\nThe standard JSON backup is readable outside Beelo. Use a password-protected backup to encrypt the exported file.\nRestore from Backup\nReplaces all data on this device with a previous backup\nrestore\nChoose Backup File\nOnly restores from Beelo backup files (.json). Your AI proxy secret is never included in backups and will not be affected.\ndownload\nExport to CSV (single table)\nDanger Zone\nPermanent actions that cannot be undone\ndelete_forever\nStart Fresh — Delete All Data\nDeletes all customers, visits, orders, photos, messages, settings, and targets. No undo.\nnotifications\nNo recent backup\nYour last backup was Never backed up. Consider backing up before your next busy day.",
+      "downloadName": null
+    },
+    {
+      "label": "Settings",
+      "action": "App.navigate",
+      "args": "[\"settings\"]",
+      "executed": true,
+      "hash": "settings",
+      "headings": [
+        "Settings"
+      ],
+      "text": "Settings\nperson\nYour Details\nName, weekly target, minimum hourly value\nSYNTHETIC Tools Adviser · £1000/week\nchevron_right\nbusiness\nCompany Branding\nCompany name shown throughout the app\nBeelo (default)\nchevron_right\nlocation_on\nBusiness Base\nHome address for route distances & ETAs\nNot set\nchevron_right\nnavigation\nNavigation\nDefault app for customer directions\nAsk every time\nchevron_right\nlock_clock\nApp Lock\nChoose when Beelo asks for your passphrase\n1 hour\nchevron_right\nwb_sunny\nMorning Brief\nDaily overview when you open the app\nOff\nchevron_right\nnotifications_active\nVisit Alerts\nNext-appointment alerts and phone notifications\nOff\nchevron_right\nschedule_send\nAutomated Messages\nTravel drafts; routine reminders stay in Follow-ups\nOff\nchevron_right\npercent\nCommission Rate\nHow commission is calculated from sales\n12.2% effective · two_stage\nchevron_right\nbusiness_center\nAdvisor Mode\nCompany vs Independent workflow\ncompany\nchevron_right\nconstruction\nTrade\nYour trade type\nWindow Coverings\nchevron_right\nstraighten\nUnits\nDistance & measurement units\nmiles · mm\nchevron_right\npsychology\nClaude AI\nDocument scanning & message drafting\nOff\nchevron_right\nforum\nCommunication history\nReview local history; customer preferences stay in their profiles\nRecent saved activity and pending hand-offs\nchevron_right\nbackup\nData & Backup\nExport, import, factory reset\nPersistent\nchevron_right\npolicy\nPrivacy & Legal\nPrivacy policy, terms, consent & erasure\nAcknowledged\nchevron_right\nABOUT\nBeelo v5.0\nYour day, visits, follow-ups, and money in one place.",
+      "downloadName": null
+    },
+    {
+      "label": "Orders overview",
+      "action": "App.navigate",
+      "args": "[\"orders\"]",
+      "executed": true,
+      "hash": "orders",
+      "headings": [
+        "Orders"
+      ],
+      "text": "arrow_back\nOrders\nrequest_quote\nQuotes\n0\nLIVE\n£0.00\nIN PLAY\n£0.00\nDEPOSITS IN\n£0.00\nOWED\nview_kanban\nNo orders yet.\nLog an \"Ordered\" outcome on a visit and the sale appears here.",
+      "downloadName": null
+    },
+    {
+      "label": "Jobs",
+      "action": "App.navigate",
+      "args": "[\"jobs\"]",
+      "executed": true,
+      "hash": "jobs",
+      "headings": [
+        "Jobs"
+      ],
+      "text": "arrow_back\nJobs\nconstruction\nNo jobs yet\nCreate a job from an order when operational work begins.\nOpen orders",
+      "downloadName": null
+    },
+    {
+      "label": "Lead Inbox",
+      "action": "App.navigate",
+      "args": "[\"leads\"]",
+      "executed": true,
+      "hash": "leads",
+      "headings": [
+        "Lead inbox"
+      ],
+      "text": "arrow_back\nLead inbox\nadd\nEnquiry\nperson_add\nNo enquiries yet\nSave a new lead before a visit has been arranged.\nadd\nAdd enquiry",
+      "downloadName": null
+    },
+    {
+      "label": "Availability",
+      "action": "App.navigate",
+      "args": "[\"capacity\"]",
+      "executed": true,
+      "hash": "capacity",
+      "headings": [
+        "Availability"
+      ],
+      "text": "arrow_back\nAvailability\nadd\nBlock time\nCapacity advice, not auto-booking\nBeelo warns about leave, closed hours, clashes and overloaded days. It never moves a customer visit by itself.\nevent_available\nNo blocked time ahead\nAdd leave or unavailable periods so booking advice reflects the day you can deliver.",
+      "downloadName": null
+    },
+    {
+      "label": "Invoices",
+      "action": "App.navigate",
+      "args": "[\"invoices\"]",
+      "executed": true,
+      "hash": "invoices",
+      "headings": [
+        "Invoices & payments"
+      ],
+      "text": "arrow_back\nInvoices & payments\nINVOICES (0)\nreceipt_long\nNo invoices yet\nPAYMENT LEDGER (0)\nNo payment entries yet.",
+      "downloadName": null
+    },
+    {
+      "label": "Suppliers",
+      "action": "App.navigate",
+      "args": "[\"suppliers\"]",
+      "executed": true,
+      "hash": "suppliers",
+      "headings": [
+        "Supplier orders"
+      ],
+      "text": "arrow_back\nSupplier orders\nBuying and delivery progress lives here. It never moves the customer order stage automatically.\nlocal_shipping\nNo supplier orders yet\nOpen a customer order or job to add a supplier record and track delivery checks.\nOpen orders",
+      "downloadName": null
+    },
+    {
+      "label": "Job costing setup",
+      "action": "App.navigate",
+      "args": "[\"profitability\"]",
+      "executed": true,
+      "hash": "profitability",
+      "headings": [
+        "Job costing policies"
+      ],
+      "text": "arrow_back\nJob costing policies\nadd\nNew policy\nEffective-dated costing\nA new policy applies only from its start date. Historic quotes and jobs keep the policy that applied at the time.\nmonitoring\nNo costing policy yet",
+      "downloadName": null
+    }
+  ],
+  "settings": [
+    {
+      "label": "person\nYour Details\nName, weekly target, minimum hourly value\nSYNTHETIC Tools Adviser · £1000/week\nchevron_right",
+      "hash": "settings?section=details"
+    },
+    {
+      "label": "business\nCompany Branding\nCompany name shown throughout the app\nBeelo (default)\nchevron_right",
+      "hash": "settings?section=branding"
+    },
+    {
+      "label": "location_on\nBusiness Base\nHome address for route distances & ETAs\nNot set\nchevron_right",
+      "hash": "settings?section=business-base"
+    },
+    {
+      "label": "navigation\nNavigation\nDefault app for customer directions\nAsk every time\nchevron_right",
+      "hash": "settings?section=navigation"
+    },
+    {
+      "label": "lock_clock\nApp Lock\nChoose when Beelo asks for your passphrase\n1 hour\nchevron_right",
+      "hash": "settings?section=security"
+    },
+    {
+      "label": "wb_sunny\nMorning Brief\nDaily overview when you open the app\nOff\nchevron_right",
+      "hash": "settings?section=morning-brief"
+    },
+    {
+      "label": "notifications_active\nVisit Alerts\nNext-appointment alerts and phone notifications\nOff\nchevron_right",
+      "hash": "settings?section=visit-reminders"
+    },
+    {
+      "label": "schedule_send\nAutomated Messages\nTravel drafts; routine reminders stay in Follow-ups\nOff\nchevron_right",
+      "hash": "settings?section=auto-messages"
+    },
+    {
+      "label": "percent\nCommission Rate\nHow commission is calculated from sales\n12.2% effective · two_stage\nchevron_right",
+      "hash": "settings?section=commission"
+    },
+    {
+      "label": "business_center\nAdvisor Mode\nCompany vs Independent workflow\ncompany\nchevron_right",
+      "hash": "settings?section=advisor-mode"
+    },
+    {
+      "label": "construction\nTrade\nYour trade type\nWindow Coverings\nchevron_right",
+      "hash": "settings?section=trade"
+    },
+    {
+      "label": "straighten\nUnits\nDistance & measurement units\nmiles · mm\nchevron_right",
+      "hash": "settings?section=units"
+    },
+    {
+      "label": "psychology\nClaude AI\nDocument scanning & message drafting\nOff\nchevron_right",
+      "hash": "settings?section=ai"
+    },
+    {
+      "label": "forum\nCommunication history\nReview local history; customer preferences stay in their profiles\nRecent saved activity and pending hand-offs\nchevron_right",
+      "hash": "communications"
+    },
+    {
+      "label": "backup\nData & Backup\nExport, import, factory reset\nPersistent\nchevron_right",
+      "hash": "settings?section=data"
+    },
+    {
+      "label": "policy\nPrivacy & Legal\nPrivacy policy, terms, consent & erasure\nAcknowledged\nchevron_right",
+      "hash": "settings?section=privacy"
+    }
+  ],
+  "errors": [],
+  "posts": [],
+  "blockedExternal": [
+    "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
+    "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
+    "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
+    "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  ]
+}

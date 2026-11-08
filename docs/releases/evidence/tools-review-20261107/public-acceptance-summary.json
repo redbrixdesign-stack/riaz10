@@ -1,0 +1,24 @@
+{
+  "runtimeCommit": "d622bef8164cff626a882fd3b756d66d2b5f7973",
+  "results": [
+    {
+      "check": "tools-review.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 73238
+    },
+    {
+      "check": "home-money-navigation.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 16008
+    },
+    {
+      "check": "protected-backup.e2e.cjs",
+      "status": "passed",
+      "code": 0,
+      "durationMs": 13196
+    }
+  ],
+  "note": "Consolidated live evidence: original Tools/Home-Money run and separate genuine-passphrase backup recheck. Original backup harness failure retained in first-public-summary.json; production ignored its local-only test shortcut as designed."
+}

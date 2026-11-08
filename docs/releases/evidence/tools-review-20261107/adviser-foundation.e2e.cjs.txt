@@ -1,0 +1,4 @@
+chromium: 12 screens captured; what-next command=next visit; Home=SYNTHETIC Current
+chevron_right; posts=0; pageErrors=0
+webkit: 12 screens captured; what-next command=next visit; Home=SYNTHETIC Current
+chevron_right; posts=0; pageErrors=0

@@ -1,0 +1,2 @@
+PASS chromium: real photo picker, exact photo/video share payloads mocked, live consent/privacy blocks, media replacement requires new approval, cancellation has no clipboard fallback, withdrawal persists; no uploads/publication
+PASS webkit: real photo picker, exact photo/video share payloads mocked, live consent/privacy blocks, media replacement requires new approval, cancellation has no clipboard fallback, withdrawal persists; no uploads/publication

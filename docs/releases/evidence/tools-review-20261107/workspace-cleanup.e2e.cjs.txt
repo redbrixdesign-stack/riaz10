@@ -1,0 +1,2 @@
+PASS cleanup chromium: Home weekly summary → Money → Back; Tools fallback and Orders overview; expense sheet, offline navigation, reload/deep link, customer money, 320–768px; unchanged records, no contacts/provider requests
+PASS cleanup webkit: Home weekly summary → Money → Back; Tools fallback and Orders overview; expense sheet, offline navigation, reload/deep link, customer money, 320–768px; unchanged records, no contacts/provider requests

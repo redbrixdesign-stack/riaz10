@@ -1,0 +1,2 @@
+PASS protected-backup.e2e.cjs (13s)
+All synthetic browser acceptance checks passed. Evidence: /private/tmp/beelo-tools-public-backup

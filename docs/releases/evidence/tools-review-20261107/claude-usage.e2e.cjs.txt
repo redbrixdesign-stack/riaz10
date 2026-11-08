@@ -1,0 +1,6 @@
+[claude.mjs] Shared usage protection unavailable
+[claude.mjs] Shared usage protection unavailable
+PASS chromium: Settings action -> real local production-mode handler -> missing/outage 503 without provider, healthy mocked-provider recovery and 429 deny; notes retained; no external provider call
+[claude.mjs] Shared usage protection unavailable
+[claude.mjs] Shared usage protection unavailable
+PASS webkit: Settings action -> real local production-mode handler -> missing/outage 503 without provider, healthy mocked-provider recovery and 429 deny; notes retained; no external provider call

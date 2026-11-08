@@ -1,0 +1,2 @@
+PASS chromium: Home/evening/Follow-ups agree before/during/exact scheduled finish; cancelled/completed excluded; UK day on foreign device; no automatic booking/earnings writes; explicit offline reschedule removes alert and survives reload; no sends/provider calls
+PASS webkit: Home/evening/Follow-ups agree before/during/exact scheduled finish; cancelled/completed excluded; UK day on foreign device; no automatic booking/earnings writes; explicit offline reschedule removes alert and survives reload; no sends/provider calls

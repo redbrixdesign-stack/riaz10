@@ -1,0 +1,69 @@
+{
+  "deploymentId": "dpl_3R6D6375xKkWoJX1bDzDj5CVB3uP",
+  "url": "https://beelo.beelestial.co.uk/",
+  "runtimeCommit": "d622bef",
+  "assets": [
+    {
+      "path": "index.html",
+      "sha256": "29c85cf45d9f7e5a32ad37820057f72d906c5645929daf7a7ea65145b31170b5",
+      "matches": true,
+      "publicMatches": true
+    },
+    {
+      "path": "sw.js",
+      "sha256": "65c119a5ffe6314b308ab0b5d470ef83fbe799dd505c5705f66bf1fde1bf3739",
+      "matches": true,
+      "publicMatches": true
+    },
+    {
+      "path": "js/core/lazy-features.min.js",
+      "sha256": "3c0c4f9bf1320a9dc8bf59569f78661492a803e5c3041af2154113b8bcc28e38",
+      "matches": true,
+      "publicMatches": true
+    },
+    {
+      "path": "js/features/control/control.min.js",
+      "sha256": "618a2205e9798628602258898ca26e9ae0acc3b7e8950972facbb13544483970",
+      "matches": true,
+      "publicMatches": true
+    },
+    {
+      "path": "js/services/communications.min.js",
+      "sha256": "97cd2079f4e29f4c3c85170b828a98d112328cb15bafb64335c61040191c62e3",
+      "matches": true,
+      "publicMatches": true
+    },
+    {
+      "path": "js/features/jobs/jobs.min.js",
+      "sha256": "8d511bba5705a862c20149c22eb3447871dbe5dc6890a6b0999d60954fb8615c",
+      "matches": true,
+      "publicMatches": true
+    },
+    {
+      "path": "js/features/suppliers/suppliers.min.js",
+      "sha256": "4478b47e7c998ee9f890f08f79be39d9e3ed7adc36f227690cb6a83c3a06f911",
+      "matches": true,
+      "publicMatches": true
+    },
+    {
+      "path": "js/features/profitability/profitability.min.js",
+      "sha256": "18e6f85a238443f024346e9d3240f82ae45c6eae53cd94d114167fbc1d002cc9",
+      "matches": true,
+      "publicMatches": true
+    },
+    {
+      "path": "js/features/settings/settings.min.js",
+      "sha256": "7f473acf8a87bf432ab0c7dcf7e78dbbb3f6ea9f285fad8f4d9156de7ed2b1e2",
+      "matches": true,
+      "publicMatches": true
+    },
+    {
+      "path": "js/features/today/today.min.js",
+      "sha256": "26af3775915940b2ecb74d24f771d41b8649c93f75e432a5ae9566ca82b0dcb2",
+      "matches": true,
+      "publicMatches": true
+    }
+  ],
+  "removedControllerStatus": 404,
+  "cache": "advisoros-v6-200-tools-review"
+}

@@ -1,0 +1,2 @@
+PASS chromium secure public-origin fixture: stored test flag cannot skip genuine gate/consent; known fixture passphrase rejected; real passphrase unlock/reload retains encrypted record; no uploads
+PASS webkit secure public-origin fixture: stored test flag cannot skip genuine gate/consent; known fixture passphrase rejected; real passphrase unlock/reload retains encrypted record; no uploads

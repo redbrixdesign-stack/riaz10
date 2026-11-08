@@ -1,0 +1,2 @@
+PASS chromium: real Home, chained planned legs, buffer, inline contact/calendar, 8 visits, far future, UK phone/order search, 320–1280 layout, profile shortcuts, encrypted draft/reload/offline save in place; no contacts or provider calls
+PASS webkit: real Home, chained planned legs, buffer, inline contact/calendar, 8 visits, far future, UK phone/order search, 320–1280 layout, profile shortcuts, encrypted draft/reload/offline save in place; no contacts or provider calls

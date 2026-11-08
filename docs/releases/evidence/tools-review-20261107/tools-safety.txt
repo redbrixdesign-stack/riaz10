@@ -1,0 +1,2 @@
+PASS .js: 17 purposeful tool entries, safe recovery route, no phone-based demo deletion or unused date helper, measurement deep link retained; company/unknown/no-policy costing guarded and explicit own/commission basis retained
+PASS .min.js: 17 purposeful tool entries, safe recovery route, no phone-based demo deletion or unused date helper, measurement deep link retained; company/unknown/no-policy costing guarded and explicit own/commission basis retained

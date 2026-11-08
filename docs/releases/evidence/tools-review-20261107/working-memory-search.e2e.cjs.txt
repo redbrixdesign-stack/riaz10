@@ -1,0 +1,2 @@
+PASS chromium: encrypted measurement/notes/transcript retrieval, source visit open, escaped readable390px results, empty/error/retry, offline search, newest-query ownership, persistence and no uploads
+PASS webkit: encrypted measurement/notes/transcript retrieval, source visit open, escaped readable390px results, empty/error/retry, offline search, newest-query ownership, persistence and no uploads

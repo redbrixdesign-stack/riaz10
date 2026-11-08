@@ -1,0 +1,2 @@
+PASS chromium: real DB expired reminder stays quiet; valid reminder opens; dismissal/replay/disabled callbacks stay quiet; appointments/context unchanged; no uploads
+PASS webkit: real DB expired reminder stays quiet; valid reminder opens; dismissal/replay/disabled callbacks stay quiet; appointments/context unchanged; no uploads

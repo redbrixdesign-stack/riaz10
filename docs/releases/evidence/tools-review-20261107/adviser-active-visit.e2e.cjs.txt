@@ -1,0 +1,2 @@
+PASS chromium: on-site and in-transit customer priority, earlier pending retained, booked-order fallback, no automatic travel/outcome/earnings writes or sends
+PASS webkit: on-site and in-transit customer priority, earlier pending retained, booked-order fallback, no automatic travel/outcome/earnings writes or sends

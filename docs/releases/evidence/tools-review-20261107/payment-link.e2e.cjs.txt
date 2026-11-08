@@ -1,0 +1,2 @@
+PASS chromium: older fitting link, correct partial payment, double tap/reload, stale-link rejection/retry offline, unlinked completion, external referral, sale deposit on own order; no requests sent
+PASS webkit: older fitting link, correct partial payment, double tap/reload, stale-link rejection/retry offline, unlinked completion, external referral, sale deposit on own order; no requests sent

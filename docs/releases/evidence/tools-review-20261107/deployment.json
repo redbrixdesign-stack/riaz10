@@ -1,0 +1,10 @@
+{
+  "id": "dpl_3R6D6375xKkWoJX1bDzDj5CVB3uP",
+  "state": "READY",
+  "url": "https://beelo1-fimo5gb4v-beelomvp.vercel.app",
+  "publicUrl": "https://beelo.beelestial.co.uk/",
+  "runtimeCommit": "d622bef8164cff626a882fd3b756d66d2b5f7973",
+  "cache": "advisoros-v6-200-tools-review",
+  "completionDate": "2026-11-08",
+  "method": "Production-configured candidate staged without domain assignment; verified bytes promoted without rebuild; public byte hashes confirmed."
+}

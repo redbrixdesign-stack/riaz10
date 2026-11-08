@@ -1,0 +1,2 @@
+PASS chromium: resume expiry, active editor protection, hidden reminder-only stack removal, no resurrection, disabling and booking cancellation; unsaved values/DOM/context retained; no uploads
+PASS webkit: resume expiry, active editor protection, hidden reminder-only stack removal, no resurrection, disabling and booking cancellation; unsaved values/DOM/context retained; no uploads

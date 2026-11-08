@@ -6,10 +6,10 @@ const base=process.env.BEELO_TEST_URL||'http://127.0.0.1:8023';
  const browser=await engine.launch();
  try{
   const c=await browser.newContext({viewport:{width:390,height:844}});
-  await c.addInitScript(()=>{localStorage.setItem('advisoros_enc_test','1');localStorage.setItem('advisoros_config',JSON.stringify({onboardingComplete:true}));localStorage.setItem('advisoros_consent',JSON.stringify({v:2}));});
+  await c.addInitScript(()=>{localStorage.setItem('advisoros_config',JSON.stringify({onboardingComplete:true,ai:{enabled:false}}));localStorage.setItem('advisoros_consent',JSON.stringify({v:2}));});
   const p=await c.newPage();const posts=[];
   p.on('request',r=>{if(r.method()==='POST')posts.push(r.url());});
-  await p.goto(base);await p.waitForFunction(()=>App.currentHash==='today');
+  await p.goto(base);await p.locator('#enc-passphrase-new').fill('SYNTHETIC-device-A-123');await p.locator('#enc-passphrase-confirm').fill('SYNTHETIC-device-A-123');await p.getByRole('button',{name:'Set Passphrase',exact:true}).click();await p.waitForFunction(()=>App.currentHash==='today');
   await p.evaluate(()=>navigator.serviceWorker.ready);await p.waitForFunction(()=>!!navigator.serviceWorker.controller);await p.waitForTimeout(700);
   const ids=await p.evaluate(async()=>{
    CONFIG.advisorTitle='SYNTHETIC Independent Role';CONFIG.socialLinks={facebook:'https://example.invalid/synthetic',instagram:''};CONFIG.weeklyTarget=0;CONFIG.commission={mode:'manual'};

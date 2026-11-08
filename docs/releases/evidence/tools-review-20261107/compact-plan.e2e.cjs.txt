@@ -1,0 +1,2 @@
+PASS chromium: seven compact rows at320/390/768, four fields/missing values, collapsed context/keyboard actions, real pointer reorder, saved order/offline/reload, proposal without agreement/booked-time changes, preview and original visit; no uploads
+PASS webkit: seven compact rows at320/390/768, four fields/missing values, collapsed context/keyboard actions, real pointer reorder, saved order/offline/reload, proposal without agreement/booked-time changes, preview and original visit; no uploads
